@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import { DndProvider } from "react-dnd";
+import { HTML5Backend } from "react-dnd-html5-backend";
 import { supabase } from "./lib/supabaseClient";
 import { Edit3, Eye, LogOut, Save, AlertTriangle, Moon, Sun, MoreHorizontal, Search, BookOpen } from "lucide-react";
 import { 
@@ -253,7 +255,6 @@ export default function App() {
   } | null>(null);
   const [showPasswordReset, setShowPasswordReset] = useState(false);
   const [newPassword, setNewPassword] = useState("");
-  const [isImportSuccess, setIsImportSuccess] = useState(false);
   const [showSEOEditor, setShowSEOEditor] = useState(false);
   const [showComponentLibrary, setShowComponentLibrary] = useState(false);
   
@@ -443,21 +444,6 @@ export default function App() {
       }
       
       // Handle fresh import notification
-      const freshImport = localStorage.getItem('freshImport');
-      if (freshImport === 'true') {
-        localStorage.removeItem('freshImport');
-        
-        setIsImportSuccess(true);
-        setShowSaveIndicator(true);
-        setTimeout(() => {
-          setShowSaveIndicator(false);
-          setIsImportSuccess(false);
-        }, 3000);
-        
-        if (isAuthenticated) {
-          setIsEditMode(true);
-        }
-      }
       
       // Mark as initialized for this session
       sessionStorage.setItem('appInitialized', 'true');
@@ -658,347 +644,8 @@ export default function App() {
     console.log('👋 Signed out - authentication cleared from localStorage');
   };
 
-  // Shared export function - PLACEHOLDER MODE: Strip images from export
-  const handleExportData = () => {
-    try {
-      const now = new Date();
-      const timestamp = now.toISOString().replace(/[:.]/g, '-').slice(0, -5);
-      
-      // PLACEHOLDER MODE: Remove all image data before export
-      const cleanCaseStudies = () => {
-        const data = localStorage.getItem('caseStudies');
-        if (!data) return null;
-        const parsed = JSON.parse(data);
-        return JSON.stringify(parsed.map((cs: any) => ({
-          ...cs,
-          url: undefined, // Remove hero image
-          caseStudyImages: [], // Clear project images gallery
-          flowDiagramImages: [], // Clear flow diagrams gallery
-        })));
-      };
-      
-      const cleanDesignProjects = () => {
-        const data = localStorage.getItem('designProjects');
-        if (!data) return null;
-        const parsed = JSON.parse(data);
-        return JSON.stringify(parsed.map((dp: any) => ({
-          ...dp,
-          url: undefined, // Remove thumbnail
-        })));
-      };
-      
-      const exportData = {
-        logo: undefined, // Don't export logo in placeholder mode
-        heroText: localStorage.getItem('heroText'),
-        caseStudies: cleanCaseStudies(),
-        designProjects: cleanDesignProjects(),
-        pageVisibility: localStorage.getItem('pageVisibility'),
-        theme: localStorage.getItem('theme'),
-        aboutPageContent: localStorage.getItem('aboutPageContent'),
-        contactPageContent: localStorage.getItem('contactPageContent'),
-        musicPageContent: localStorage.getItem('musicPageContent'),
-        visualsPageContent: localStorage.getItem('visualsPageContent'),
-        exportDate: now.toISOString(),
-        _mode: 'PLACEHOLDER',
-        _note: 'Exported in PLACEHOLDER MODE - images excluded for testing. Add Supabase URLs before production use.'
-      };
-      
-      const jsonString = JSON.stringify(exportData, null, 2);
-      const fileSizeMB = (jsonString.length * 2 / 1024 / 1024).toFixed(2);
-      
-      console.log('📦 Export info (PLACEHOLDER MODE):');
-      console.log(`  File size: ${fileSizeMB} MB`);
-      console.log(`  Images: EXCLUDED (for testing)`);
-      
-      const blob = new Blob([jsonString], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `portfolio-backup-placeholder-${timestamp}.json`;
-      a.style.display = 'none';
-      
-      // Append to body, click, then remove - required for some browsers
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      
-      // Clean up the blob URL after a short delay
-      setTimeout(() => {
-        URL.revokeObjectURL(url);
-      }, 100);
-      
-      const caseStudiesData = exportData.caseStudies;
-      const caseStudiesCount = caseStudiesData ? JSON.parse(caseStudiesData).length : 0;
-      
-      // Log success info to console
-      console.log('✅ Export Complete (PLACEHOLDER MODE)!');
-      console.log(`📊 ${caseStudiesCount} case studies`);
-      console.log(`📦 File size: ${fileSizeMB} MB`);
-      console.log(`🖼️  Images: EXCLUDED`);
-      
-      // Show non-blocking success indicator instead of alert
-      setShowSaveIndicator(true);
-      setTimeout(() => setShowSaveIndicator(false), 4000);
-      
-    } catch (error) {
-      console.error('Export error:', error);
-      alert(`❌ Export failed: ${error}\n\nCheck console for details.`);
-    }
-  };
 
-  // Shared import function to avoid duplication
-  const handleImportData = () => {
-    console.log('\n🔵 ========== IMPORT STARTED ==========');
-    console.log('⏰ Timestamp:', new Date().toISOString());
-    console.log('👤 Authenticated:', isAuthenticated);
-    console.log('✏️ Edit mode:', isEditMode);
-    
-    if (!confirm('⚠️ IMPORT WARNING\n\nImporting will REPLACE all current data with the data from the JSON file.\n\nMake sure you have exported your current changes FIRST!\n\nClick OK only if you want to proceed with import.')) {
-      console.log('❌ Import cancelled by user');
-      return;
-    }
-    
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.json';
-    input.onchange = (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (file) {
-        console.log('\n📤 FILE SELECTED:', file.name);
-        console.log('📏 File size:', (file.size / 1024).toFixed(2), 'KB');
-        console.log('📅 Last modified:', new Date(file.lastModified).toISOString());
-        
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          try {
-            const jsonString = event.target?.result as string;
-            if (!jsonString) {
-              throw new Error('File is empty');
-            }
-            
-            const data = JSON.parse(jsonString);
-            console.log('📤 Parsed JSON successfully');
-            
-            // Validate the imported data structure
-            if (!data.caseStudies && !data.designProjects && !data.logo && !data.heroText) {
-              alert('❌ Invalid backup file - no data found');
-              return;
-            }
-            
-            // Validate case studies if present
-            if (data.caseStudies) {
-              try {
-                console.log('DEBUG: About to parse case studies');
-                const caseStudies = JSON.parse(data.caseStudies);
-                if (!Array.isArray(caseStudies)) {
-                  throw new Error('Case studies must be an array');
-                }
-                // Migrate to add missing video fields
-                console.log('🔄 Migrating case studies...');
-                const migratedCaseStudies = migrateProjectsArray(caseStudies);
-                console.log('✅ Migration complete, re-stringifying...');
-                data.caseStudies = JSON.stringify(migratedCaseStudies);
-                console.log(`✅ Validated and migrated ${migratedCaseStudies.length} case studies`);
-              } catch (e) {
-                console.error('CASE STUDIES IMPORT ERROR:', e);
-                if (e instanceof Error) console.error('Stack:', e.stack);
-                alert(`❌ Import Error: Case studies data is invalid.\n\n${e}\n\nPlease check your backup file.`);
-                return;
-              }
-            }
-            
-            // Validate design projects if present
-            if (data.designProjects) {
-              try {
-                console.log('DEBUG: About to parse design projects');
-                const designProjects = JSON.parse(data.designProjects);
-                if (!Array.isArray(designProjects)) {
-                  throw new Error('Design projects must be an array');
-                }
-                // Migrate to add missing video fields
-                console.log('🔄 Migrating design projects...');
-                const migratedDesignProjects = migrateProjectsArray(designProjects);
-                console.log('✅ Migration complete, re-stringifying...');
-                data.designProjects = JSON.stringify(migratedDesignProjects);
-                console.log(`✅ Validated and migrated ${migratedDesignProjects.length} design projects`);
-              } catch (e) {
-                console.error('DESIGN PROJECTS IMPORT ERROR:', e);
-                if (e instanceof Error) console.error('Stack:', e.stack);
-                alert(`❌ Import Error: Design projects data is invalid.\n\n${e}\n\nPlease check your backup file.`);
-                return;
-              }
-            }
-            
-            // Validate page visibility if present
-            if (data.pageVisibility) {
-              try {
-                const pageVis = JSON.parse(data.pageVisibility);
-                if (typeof pageVis !== 'object' || pageVis === null) {
-                  throw new Error('Page visibility must be an object');
-                }
-                console.log('✅ Validated page visibility');
-              } catch (e) {
-                console.warn('⚠️ Page visibility invalid, skipping:', e);
-                delete data.pageVisibility;
-              }
-            }
-            
-            // Calculate total size of data to import
-            const totalSize = 
-              (data.logo?.length || 0) +
-              (data.heroText?.length || 0) +
-              (data.caseStudies?.length || 0) +
-              (data.designProjects?.length || 0) +
-              (data.pageVisibility?.length || 0) +
-              (data.theme?.length || 0);
-            
-            const totalSizeMB = (totalSize * 2 / 1024 / 1024).toFixed(2); // UTF-16 = 2 bytes per char
-            console.log('📏 Total import size:', totalSizeMB, 'MB');
-            
-            // Check current localStorage usage
-            let currentSize = 0;
-            for (let key in localStorage) {
-              if (localStorage.hasOwnProperty(key)) {
-                currentSize += (localStorage[key].length + key.length) * 2;
-              }
-            }
-            const currentSizeMB = (currentSize / 1024 / 1024).toFixed(2);
-            console.log('💾 Current localStorage usage:', currentSizeMB, 'MB');
-            
-            // Warn if size is large (typically 5-10MB limit)
-            if (totalSize * 2 > 5 * 1024 * 1024) {
-              const proceed = confirm(
-                `⚠️ LARGE DATA WARNING\n\n` +
-                `Import size: ${totalSizeMB} MB\n` +
-                `Current usage: ${currentSizeMB} MB\n\n` +
-                `This data is very large and may exceed browser storage limits (typically 5-10MB).\n\n` +
-                `If the import fails:\n` +
-                `1. Go to /emergency.html\n` +
-                `2. Consider removing large images\n` +
-                `3. Split your data into smaller files\n\n` +
-                `Proceed anyway?`
-              );
-              
-              if (!proceed) {
-                console.log('❌ Import cancelled by user (large data)');
-                return;
-              }
-            }
-            
-            // All validations passed - write to localStorage
-            console.log('💾 Writing validated data to localStorage...');
-            
-            try {
-              if (data.logo) localStorage.setItem('logo', data.logo);
-              if (data.heroText) localStorage.setItem('heroText', data.heroText);
-              if (data.caseStudies) {
-                localStorage.setItem('caseStudies', data.caseStudies);
-                // Immediately verify it was written correctly
-                const verify = localStorage.getItem('caseStudies');
-                if (verify !== data.caseStudies) {
-                  throw new Error('Case studies verification failed after write');
-                }
-              }
-              if (data.designProjects) {
-                localStorage.setItem('designProjects', data.designProjects);
-                // Immediately verify it was written correctly
-                const verify = localStorage.getItem('designProjects');
-                if (verify !== data.designProjects) {
-                  throw new Error('Design projects verification failed after write');
-                }
-              }
-              if (data.pageVisibility) localStorage.setItem('pageVisibility', data.pageVisibility);
-              if (data.theme) localStorage.setItem('theme', data.theme);
-              if (data.aboutPageContent) localStorage.setItem('aboutPageContent', data.aboutPageContent);
-              if (data.contactPageContent) localStorage.setItem('contactPageContent', data.contactPageContent);
-              if (data.musicPageContent) localStorage.setItem('musicPageContent', data.musicPageContent);
-              if (data.visualsPageContent) localStorage.setItem('visualsPageContent', data.visualsPageContent);
-              
-              console.log('✅ All data written to localStorage');
-              console.log('📊 Verification check...');
-              
-              // Final verification before reload
-              const finalCheck = {
-                caseStudies: localStorage.getItem('caseStudies') ? 'OK' : 'MISSING',
-                designProjects: localStorage.getItem('designProjects') ? 'OK' : 'MISSING',
-                logo: localStorage.getItem('logo') ? 'OK' : 'MISSING'
-              };
-              
-              console.log('Final check:', finalCheck);
-              
-              // Set flag for success notification
-              localStorage.setItem('freshImport', 'true');
-              
-              console.log('✅ Import complete - ALL DATA WRITTEN SUCCESSFULLY');
-              console.log('🔵 ========== IMPORT COMPLETE - RELOADING ==========\n');
-              
-              // Slight delay to ensure localStorage is fully written and flushed
-              setTimeout(() => {
-                console.log('🔄 Triggering page reload NOW...');
-                window.location.reload();
-              }, 1000); // Increased to 1 second to ensure write completes
-              
-            } catch (writeError: any) {
-              console.error('❌ Error writing to localStorage:', writeError);
-              
-              // Check if it's a quota exceeded error
-              const isQuotaError = 
-                writeError.name === 'QuotaExceededError' ||
-                writeError.message?.includes('quota') ||
-                writeError.message?.includes('QuotaExceeded');
-              
-              if (isQuotaError) {
-                alert(
-                  `❌ STORAGE QUOTA EXCEEDED!\n\n` +
-                  `Your data is too large for browser storage.\n` +
-                  `Import size: ${totalSizeMB} MB\n` +
-                  `Browser limit: ~5-10 MB\n\n` +
-                  `SOLUTIONS:\n\n` +
-                  `1. REDUCE IMAGE SIZES (recommended):\n` +
-                  `   • Use smaller/compressed images\n` +
-                  `   • Remove unused images\n` +
-                  `   • Use external image hosting\n\n` +
-                  `2. SPLIT YOUR DATA:\n` +
-                  `   • Create multiple smaller imports\n` +
-                  `   • Keep only recent/important content\n\n` +
-                  `3. CLEAR OLD DATA:\n` +
-                  `   • Go to /emergency.html\n` +
-                  `   • Clear All Data\n` +
-                  `   • Then try importing again\n\n` +
-                  `Your import was NOT saved - your previous data is still intact.`
-                );
-              } else {
-                alert(
-                  `❌ Error saving imported data:\n\n${writeError}\n\n` +
-                  `Your import was not saved.\n\n` +
-                  `Possible causes:\n` +
-                  `- localStorage is full (${totalSizeMB} MB)\n` +
-                  `- Browser security settings\n` +
-                  `- Data is corrupted\n\n` +
-                  `Try:\n` +
-                  `1. Go to /emergency.html\n` +
-                  `2. Clear old data\n` +
-                  `3. Import smaller data files`
-                );
-              }
-              return;
-            }
-            
-          } catch (err) {
-            console.error('❌ Import error:', err);
-            alert(`❌ Error importing data:\n\n${err}\n\nYour previous data is still intact.\n\nPlease check:\n1. The file is a valid JSON export\n2. The file is not corrupted\n3. The console for more details`);
-          }
-        };
-        
-        reader.onerror = () => {
-          alert('❌ Error reading file. Please try again.');
-        };
-        
-        reader.readAsText(file);
-      }
-    };
-    input.click();
-  };
+  // Removed unused import function - data now saved to Supabase automatically
 
   const handleEditModeClick = () => {
     if (!isAuthenticated) {
@@ -1007,18 +654,6 @@ export default function App() {
       const newMode = !isEditMode;
       
       // When switching FROM edit mode TO preview mode, remind about exporting
-      if (isEditMode && !newMode) {
-        const shouldSwitch = confirm(
-          '💾 Switching to Preview Mode\n\n' +
-          'Have you exported your latest changes?\n\n' +
-          '✅ If YES: Click OK to continue\n' +
-          '❌ If NO: Click Cancel and export first using the "📥 Export Now" button in Edit Mode'
-        );
-        
-        if (!shouldSwitch) {
-          return; // Don't switch modes
-        }
-      }
       
       setIsEditMode(newMode);
       
@@ -1169,12 +804,10 @@ export default function App() {
               <Save className="w-5 h-5" />
               <div>
                 <div className="font-bold text-base">
-                  {isImportSuccess ? 'Import Successful!' : 'Changes Saved to localStorage!'}
+                  Changes Saved to Supabase!
                 </div>
                 <div className="text-xs opacity-90 mt-0.5">
-                  {isImportSuccess 
-                    ? 'Your data has been imported and is now active' 
-                    : 'Click "📥 Export Now" to backup to file'}
+                  Data automatically saved to database
                 </div>
               </div>
             </div>
@@ -1246,28 +879,6 @@ export default function App() {
             </motion.div>
 
             
-            {/* Verify Saved button - toggles panel and always refreshes data */}
-            <Button
-              onClick={() => {
-                if (showDebugPanel) {
-                  // Panel is open - close it
-                  setShowDebugPanel(false);
-                } else {
-                  // Panel is closed - open it and refresh data
-                  refreshDebugInfo();
-                  setShowDebugPanel(true);
-                }
-              }}
-              variant={showDebugPanel ? "outline" : "default"}
-              size="sm"
-              className={`rounded-full shadow-sm backdrop-blur-sm ${
-                showDebugPanel 
-                  ? "" 
-                  : "bg-green-600 hover:bg-green-700 text-white"
-              }`}
-            >
-              {showDebugPanel ? '✖️ Close Storage Info' : '💾 Verify Saved'}
-            </Button>
             
             {/* Export/Import/Refresh buttons in Edit Mode */}
             <div className="flex gap-2">
@@ -1279,22 +890,6 @@ export default function App() {
                 title="Reload page to see latest changes"
               >
                 🔄 Refresh
-              </Button>
-              <Button
-                onClick={handleExportData}
-                variant="default"
-                size="sm"
-                className="rounded-full shadow-sm backdrop-blur-sm bg-green-600 hover:bg-green-700 text-white"
-              >
-                📥 Export Now
-              </Button>
-              <Button
-                onClick={handleImportData}
-                variant="outline"
-                size="sm"
-                className="rounded-full shadow-sm backdrop-blur-sm"
-              >
-                📤 Import
               </Button>
             </div>
             
@@ -1316,25 +911,6 @@ export default function App() {
         )}
         {isAuthenticated && !isEditMode && (
           <>
-            {/* Export/Import in Preview Mode for quick access */}
-            <div className="flex gap-2">
-              <Button
-                onClick={handleExportData}
-                variant="outline"
-                size="sm"
-                className="rounded-full shadow-sm backdrop-blur-sm bg-green-50 hover:bg-green-100 dark:bg-green-900/20 dark:hover:bg-green-900/30 border-green-500/50"
-              >
-                📥 Export Now
-              </Button>
-              <Button
-                onClick={handleImportData}
-                variant="outline"
-                size="sm"
-                className="rounded-full shadow-sm backdrop-blur-sm"
-              >
-                📤 Import
-              </Button>
-            </div>
 
             <div className="flex flex-col gap-2 bg-card/80 backdrop-blur-sm rounded-2xl p-3 border border-border">
               <div className="text-xs font-semibold text-muted-foreground mb-1">Page Visibility</div>
@@ -1403,6 +979,26 @@ export default function App() {
               className="rounded-full shadow-sm backdrop-blur-sm"
             >
               Reset Data
+            </Button>
+            <Button
+              onClick={async () => {
+                if (confirm('Fix Skype Qik image and restore Tandem case study?')) {
+                  // Call the global fix function
+                  if ((window as any).fixPortfolioIssues) {
+                    await (window as any).fixPortfolioIssues();
+                    // Reload after fixes
+                    setTimeout(() => window.location.reload(), 2000);
+                  } else {
+                    console.log('Fix function not available, reloading...');
+                    window.location.reload();
+                  }
+                }
+              }}
+              variant="outline"
+              size="sm"
+              className="rounded-full shadow-sm backdrop-blur-sm bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/30 border-blue-500/50"
+            >
+              🔧 Fix Issues
             </Button>
             <Button
               onClick={handleSignOut}
@@ -1594,41 +1190,43 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      <div className="relative z-10">
-        {currentPage === "home" && (
-          <Home 
-            onStartClick={navigateToStart} 
-            isEditMode={isEditMode}
-            onProjectClick={navigateToProject}
-            currentPage={currentPage}
-          />
-        )}
-        {currentPage === "about" && (isEditMode || pageVisibility.about) && (
-          <About onBack={navigateHome} onHoverChange={setIsBlurringBackground} isEditMode={isEditMode} />
-        )}
-        {currentPage === "contact" && (isEditMode || pageVisibility.contact) && (
-          <Contact onBack={navigateHome} isEditMode={isEditMode} />
-        )}
-        {currentPage === "music" && (isEditMode || pageVisibility.music) && (
-          <Music onBack={navigateHome} isEditMode={isEditMode} />
-        )}
-        {currentPage === "visuals" && (isEditMode || pageVisibility.visuals) && (
-          <Visuals onBack={navigateHome} isEditMode={isEditMode} />
-        )}
-        {currentPage === "project-detail" && selectedProject && (
-          <ProjectDetail
-            key={(selectedProject as any)._navTimestamp || selectedProject.id}
-            project={selectedProject}
-            onBack={navigateHome}
-            onUpdate={handleUpdateProject}
-            isEditMode={isEditMode}
-          />
-        )}
-        {currentPage === "supabase-test" && (
-          <SupabaseTest />
-        )}
-        {/* Supabase test page removed */}
-      </div>
+      <DndProvider backend={HTML5Backend}>
+        <div className="relative z-10">
+          {currentPage === "home" && (
+            <Home 
+              onStartClick={navigateToStart} 
+              isEditMode={isEditMode}
+              onProjectClick={navigateToProject}
+              currentPage={currentPage}
+            />
+          )}
+          {currentPage === "about" && (isEditMode || pageVisibility.about) && (
+            <About onBack={navigateHome} onHoverChange={setIsBlurringBackground} isEditMode={isEditMode} />
+          )}
+          {currentPage === "contact" && (isEditMode || pageVisibility.contact) && (
+            <Contact onBack={navigateHome} isEditMode={isEditMode} />
+          )}
+          {currentPage === "music" && (isEditMode || pageVisibility.music) && (
+            <Music onBack={navigateHome} isEditMode={isEditMode} />
+          )}
+          {currentPage === "visuals" && (isEditMode || pageVisibility.visuals) && (
+            <Visuals onBack={navigateHome} isEditMode={isEditMode} />
+          )}
+          {currentPage === "project-detail" && selectedProject && (
+            <ProjectDetail
+              key={(selectedProject as any)._navTimestamp || selectedProject.id}
+              project={selectedProject}
+              onBack={navigateHome}
+              onUpdate={handleUpdateProject}
+              isEditMode={isEditMode}
+            />
+          )}
+          {currentPage === "supabase-test" && (
+            <SupabaseTest />
+          )}
+          {/* Supabase test page removed */}
+        </div>
+      </DndProvider>
 
       {currentPage !== "home" && currentPage !== "project-detail" && (() => {
         // Filter visible pages based on edit mode and page visibility

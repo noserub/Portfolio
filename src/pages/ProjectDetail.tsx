@@ -2,8 +2,7 @@ import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { motion } from "motion/react";
 import { supabase } from '../lib/supabaseClient';
 import { ArrowLeft, Plus, X, Edit2, Image as ImageIcon, Video as VideoIcon, GripVertical, ZoomIn, ZoomOut, Move, RotateCcw } from "lucide-react";
-import { DndProvider, useDrag, useDrop } from "react-dnd";
-import { HTML5Backend } from "react-dnd-html5-backend";
+import { useDrag, useDrop } from "react-dnd";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Textarea } from "../components/ui/textarea";
@@ -496,7 +495,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     position?: { x: number; y: number };
   } | null>(null);
   const [isEditingHeroImage, setIsEditingHeroImage] = useState(false);
-  // Hero image ALWAYS defaults to 100% zoom and centered (detail page only)
+  // Hero image positioning - completely independent from home screen
+  // Case study detail screen has its own positioning that doesn't affect home screen
   const [heroScale, setHeroScale] = useState(1);
   const [heroPosition, setHeroPosition] = useState({ x: 50, y: 50 });
   const [isDraggingHero, setIsDraggingHero] = useState(false);
@@ -602,7 +602,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       contentChanged,
       titleChanged,
       descriptionChanged,
-      contentPreview: caseStudyContent?.substring(0, 50) + '...'
+      contentPreview: caseStudyContent?.substring(0, 50) + '...',
+      hasBlobUrls: caseStudyContent?.includes('blob:') || false
     });
 
     // Only proceed if something actually changed
@@ -614,11 +615,23 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     const timeoutId = setTimeout(() => {
       console.log('⏰ Auto-save timeout triggered');
       // Always save if we're in edit mode and content exists
-      if (isEditMode && caseStudyContent && caseStudyContent.trim()) {
+      if (isEditMode && caseStudyContent && caseStudyContent.length > 0) {
+        // Clean blob URLs from content before saving
+        const cleanBlobUrls = (content: string): string => {
+          if (!content) return content;
+          return content.replace(/blob:http:\/\/[^\s)]+/g, '');
+        };
+        
+        const cleanedContent = cleanBlobUrls(caseStudyContent);
+        const blobUrlCount = (caseStudyContent.match(/blob:http:\/\/[^\s)]+/g) || []).length;
+        
         console.log('💾 Auto-saving content changes...', {
           title: editedTitle,
           description: editedDescription,
-          contentLength: caseStudyContent.length
+          contentLength: caseStudyContent.length,
+          blobUrlsRemoved: blobUrlCount,
+          originalContent: caseStudyContent.substring(0, 100) + '...',
+          cleanedContent: cleanedContent.substring(0, 100) + '...'
         });
         
         // Update refs to current values
@@ -637,7 +650,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
           ...project,
           title: editedTitle,
           description: editedDescription,
-          caseStudyContent,
+          caseStudyContent: cleanedContent,
         });
       } else {
         console.log('❌ Auto-save skipped - DETAILED REASON:', {
@@ -973,43 +986,9 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     // Don't auto-save - save happens when clicking Back or Done button
   };
 
-  // Auto-save hero image adjustments ONLY when user manually adjusts in Edit mode
-  // Only save if user has explicitly changed from defaults (1, 50, 50)
-  useEffect(() => {
-    const hasBeenAdjusted = heroScale !== 1 || heroPosition.x !== 50 || heroPosition.y !== 50;
-    const isDifferentFromSaved = heroScale !== project.scale || heroPosition.x !== project.position.x || heroPosition.y !== project.position.y;
-    
-    // Only save if user manually adjusted AND it's different from what's saved
-    if (isEditingHeroImage && hasBeenAdjusted && isDifferentFromSaved) {
-      const timer = setTimeout(() => {
-        // CRITICAL: Use refs for image arrays to avoid stale state
-        const updatedProject: ProjectData = {
-          ...project,
-          scale: heroScale,
-          position: heroPosition,
-          title: editedTitle,
-          description: editedDescription,
-          caseStudyContent,
-          caseStudyImages: caseStudyImagesRef.current,
-          flowDiagramImages: flowDiagramImagesRef.current,
-          videoItems: videoItemsRef.current,
-          galleryAspectRatio,
-          flowDiagramAspectRatio,
-          videoAspectRatio,
-          galleryColumns,
-          flowDiagramColumns,
-          videoColumns,
-          projectImagesPosition,
-          videosPosition,
-          flowDiagramsPosition,
-          solutionCardsPosition,
-        };
-        onUpdate(updatedProject);
-      }, 300); // Debounce to avoid saving on every pixel moved
-      
-      return () => clearTimeout(timer);
-    }
-  }, [heroScale, heroPosition.x, heroPosition.y, isEditingHeroImage]);
+  // Hero image positioning is completely independent - no auto-save needed
+  // The hero image positioning only affects the case study detail screen
+  // Home screen positioning remains separate and controlled by project.position/project.scale
 
   const handleHeroMouseDown = (e: React.MouseEvent) => {
     if (!isEditingHeroImage) return;

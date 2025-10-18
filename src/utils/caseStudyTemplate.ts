@@ -6,46 +6,7 @@ export const CASE_STUDY_TEMPLATE = {
   description: "Add your project description here",
   caseStudyContent: `# Overview
 
-(Brief overview of the project - what it is, why it matters)
-
----
-
-# The challenge
-
-(Describe the problem you were solving - add multiple paragraphs or bullet points as needed)
-
----
-
-# My role & impact
-
-## Leadership
-• Define strategy and vision
-• Build and mentor team
-• Collaborate with stakeholders
-
-## Design
-• Design end-to-end experience
-• Create design system
-• Prototype and test
-• Build and ship features
-
-## Research
-• Conduct user research studies
-• Analyze data and insights
-• Validate design decisions
-• Test prototypes with users
-
----
-
-# Impact
-
-⭐ **Key metric 1:** Description
-
-👉 **Key metric 2:** Description
-
-🔄 **Key metric 3:** Description
-
-💵 **Key metric 4:** Description
+Brief overview of the project - what it is, why it matters, and the key outcomes achieved.
 
 ---
 
@@ -61,19 +22,52 @@ export const CASE_STUDY_TEMPLATE = {
 
 ---
 
+# Impact
+
+⭐ **Key metric 1:** Description of the impact and results achieved
+
+👉 **Key metric 2:** Description of the impact and results achieved
+
+🔄 **Key metric 3:** Description of the impact and results achieved
+
+💵 **Key metric 4:** Description of the impact and results achieved
+
+---
+
+# My role & impact
+
+## Leadership
+• Define strategy and vision for the project
+• Build and mentor team members
+• Collaborate with stakeholders to align on goals
+
+## Design
+• Design end-to-end user experience
+• Create intuitive interface and interactions
+• Prototype and test with real users
+• Build and ship features that drive results
+
+## Research
+• Conduct user research studies with target audience
+• Analyze data and insights to inform decisions
+• Validate design decisions through usability testing
+• Test prototypes with users to ensure success
+
+---
+
 # Research insights
 
-## Insight 1 headline
+## Key insight 1
 
-Description of the insight and why it matters.
+Description of this important research finding and why it matters for the project.
 
-## Insight 2 headline
+## Key insight 2
 
-Description of the insight and why it matters.
+Description of this important research finding and why it matters for the project.
 
-## Insight 3 headline
+## Key insight 3
 
-Description of the insight and why it matters.
+Description of this important research finding and why it matters for the project.
 
 (Add or remove ## sections as needed - each becomes a card)
 
@@ -83,17 +77,17 @@ Description of the insight and why it matters.
 
 ## Competitor 1
 
-Description of competitor and key differentiators
-• Feature 1
-• Feature 2
-• Limitation
+Description of this competitor and their key differentiators
+• Key strength 1
+• Key strength 2
+• Main limitation
 
 ## Competitor 2
 
-Description of competitor and key differentiators
-• Feature 1
-• Feature 2
-• Limitation
+Description of this competitor and their key differentiators
+• Key strength 1
+• Key strength 2
+• Main limitation
 
 (Add or remove ## competitor sections as needed - each becomes a card)
 
@@ -101,7 +95,7 @@ Description of competitor and key differentiators
 
 # The solution: A new direction
 
-(Describe your solution approach, key features, and how they address the challenge)
+Describe your solution approach, key features, and how they address the challenge. Explain the strategy and methodology behind your approach.
 
 ---
 
@@ -109,17 +103,23 @@ Description of competitor and key differentiators
 
 ## Feature 1 headline
 
-Description of this key feature and its impact on users.
+Description of this key feature and its impact on users and the business.
 
 ## Feature 2 headline
 
-Description of this key feature and its impact on users.
+Description of this key feature and its impact on users and the business.
 
 ## Feature 3 headline
 
-Description of this key feature and its impact on users.
+Description of this key feature and its impact on users and the business.
 
 (Add or remove ## sections as needed - each becomes a card)
+
+---
+
+# The challenge
+
+Describe the problem you were solving - add multiple paragraphs or bullet points as needed to fully explain the context and constraints.
 
 ---
 

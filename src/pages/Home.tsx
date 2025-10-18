@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { motion } from "motion/react";
-import { DndProvider, useDrag, useDrop } from "react-dnd";
-import { HTML5Backend } from "react-dnd-html5-backend";
+import { useDrag, useDrop } from "react-dnd";
 import { ProjectImage, ProjectData } from "../components/ProjectImage";
 import { Lightbox } from "../components/Lightbox";
 import { useSEO } from "../hooks/useSEO";
@@ -1477,6 +1476,296 @@ Tools for family members to support patients without being intrusive.
     return content.replace(/blob:http:\/\/[^\s)]+/g, '');
   };
 
+  // Clean up blob URLs from project URLs and replace with placeholder
+  const cleanProjectUrl = (url: string, title?: string): string => {
+    console.log('🔍 cleanProjectUrl called with:', { url, title });
+    
+    if (!url || url.trim() === '' || url === 'NULL' || url === 'null') {
+      console.log('❌ No URL provided, using fallback');
+      // Use different placeholders based on project type even for empty URLs
+      const lowerTitle = title?.toLowerCase() || '';
+      console.log('🔍 Checking title for empty URL matches:', lowerTitle);
+      
+      if (lowerTitle.includes('tandem') || lowerTitle.includes('diabetes') || lowerTitle.includes('care')) {
+        const medicalUrl = 'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtZWRpY2FsJTIwZGV2aWNlfGVufDF8fHx8MTc1OTM3NTg3Nnww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral';
+        console.log('🏥 Using medical placeholder for empty URL:', title);
+        return medicalUrl;
+      } else if (lowerTitle.includes('skype') || lowerTitle.includes('qik')) {
+        const techUrl = 'https://images.unsplash.com/photo-1758770478125-4850521fd941?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkaWdpdGFsJTIwaW50ZXJmYWNlfGVufDF8fHx8MTc1OTM3NTg3NXww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral';
+        console.log('💻 Using tech placeholder for empty URL:', title);
+        return techUrl;
+      } else {
+        const genericUrl = 'https://images.unsplash.com/photo-1551650975-87deedd944c3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx0ZWNobm9sb2d5fGVufDF8fHx8MTc1OTM3NTg3Nnww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral';
+        console.log('🔧 Using generic placeholder for empty URL:', title);
+        return genericUrl;
+      }
+    }
+    
+    // If it's a blob URL or looks like a broken URL, replace with a placeholder
+    if (url.startsWith('blob:') || url.includes('localhost:3000') || url.includes('net::ERR_FILE_NOT_FOUND') || url.includes('blob:http://localhost:3000')) {
+      console.log('🔄 Replacing blob URL with placeholder:', url);
+      
+      // Use different placeholders based on project type
+      const lowerTitle = title?.toLowerCase() || '';
+      console.log('🔍 Checking title for matches:', lowerTitle);
+      
+      if (lowerTitle.includes('tandem') || lowerTitle.includes('diabetes') || lowerTitle.includes('care')) {
+        // Medical/healthcare themed placeholder for Tandem Diabetes Care
+        const medicalUrl = 'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtZWRpY2FsJTIwZGV2aWNlfGVufDF8fHx8MTc1OTM3NTg3Nnww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral';
+        console.log('🏥 Using medical placeholder for:', title);
+        return medicalUrl;
+      } else if (lowerTitle.includes('skype') || lowerTitle.includes('qik')) {
+        // Tech/communication themed placeholder for Skype Qik
+        const techUrl = 'https://images.unsplash.com/photo-1758770478125-4850521fd941?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkaWdpdGFsJTIwaW50ZXJmYWNlfGVufDF8fHx8MTc1OTM3NTg3NXww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral';
+        console.log('💻 Using tech placeholder for:', title);
+        return techUrl;
+      } else {
+        // Generic tech placeholder for other projects
+        const genericUrl = 'https://images.unsplash.com/photo-1551650975-87deedd944c3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx0ZWNobm9sb2d5fGVufDF8fHx8MTc1OTM3NTg3Nnww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral';
+        console.log('🔧 Using generic placeholder for:', title);
+        return genericUrl;
+      }
+    }
+    
+    console.log('✅ URL is not a blob, keeping original:', url);
+    return url;
+  };
+
+  // Clean up database by removing test data and duplicates
+  const cleanupDatabase = async () => {
+    try {
+      console.log('🧹 Cleaning up database...');
+      
+      // Get all projects
+      const { data: allProjects, error: fetchError } = await supabase
+        .from('projects')
+        .select('*');
+      
+      if (fetchError) {
+        console.error('❌ Error fetching projects:', fetchError);
+        return;
+      }
+      
+      console.log('📊 Found projects in database:', allProjects?.length || 0);
+      
+      // Group projects by title
+      const projectsByTitle = (allProjects || []).reduce((acc, project) => {
+        if (!acc[project.title]) {
+          acc[project.title] = [];
+        }
+        acc[project.title].push(project);
+        return acc;
+      }, {} as Record<string, any[]>);
+      
+      // Process each group
+      for (const [title, projects] of Object.entries(projectsByTitle)) {
+        const projectList = projects as any[];
+        if (projectList.length > 1) {
+          console.log(`🔄 Found ${projectList.length} duplicates for "${title}"`);
+          
+          // Find the best project to keep
+          const bestProject = projectList.reduce((best, current) => {
+            const bestHasValidUrl = best.url && !best.url.startsWith('blob:') && best.url !== 'NULL';
+            const currentHasValidUrl = current.url && !current.url.startsWith('blob:') && current.url !== 'NULL';
+            
+            if (currentHasValidUrl && !bestHasValidUrl) return current;
+            if (!currentHasValidUrl && bestHasValidUrl) return best;
+            
+            const bestContent = best.case_study_content || '';
+            const currentContent = current.case_study_content || '';
+            
+            if (currentContent.length > bestContent.length) return current;
+            return best;
+          });
+          
+          // Delete the duplicates
+          const duplicatesToDelete = projectList.filter(p => p.id !== bestProject.id);
+          for (const duplicate of duplicatesToDelete) {
+            console.log(`🗑️ Deleting duplicate project: ${duplicate.id} (${title})`);
+            await supabase.from('projects').delete().eq('id', duplicate.id);
+          }
+        }
+      }
+      
+      // Remove test data (be more specific to avoid deleting legitimate projects)
+      const testDataProjects = (allProjects || []).filter(project => 
+        project.title?.toLowerCase().includes('mofo test') ||
+        project.title?.toLowerCase().includes('debug test') ||
+        project.title?.toLowerCase().includes('test debug')
+      );
+      
+      for (const testProject of testDataProjects) {
+        console.log(`🗑️ Deleting test data: ${testProject.id} (${testProject.title})`);
+        await supabase.from('projects').delete().eq('id', testProject.id);
+      }
+      
+      console.log('✅ Database cleanup complete');
+    } catch (error) {
+      console.error('❌ Error cleaning up database:', error);
+    }
+  };
+
+  // Check for missing important projects and restore them if needed
+  const checkAndRestoreMissingProjects = async () => {
+    try {
+      console.log('🔍 Checking for missing important projects...');
+      
+      // Check if Tandem Diabetes Care exists
+      const { data: tandemProjects, error: tandemError } = await supabase
+        .from('projects')
+        .select('*')
+        .ilike('title', '%tandem%diabetes%care%');
+      
+      if (tandemError) {
+        console.error('❌ Error checking for Tandem project:', tandemError);
+        return;
+      }
+      
+      if (!tandemProjects || tandemProjects.length === 0) {
+        console.log('🔄 Tandem Diabetes Care project missing, restoring...');
+        
+        // Restore Tandem Diabetes Care project
+        const tandemProject = {
+          title: 'Tandem Diabetes Care',
+          description: 'Designing the first touch screen insulin pump interface',
+          url: 'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtZWRpY2FsJTIwZGV2aWNlfGVufDF8fHx8MTc1OTM3NTg3Nnww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
+          position_x: 50,
+          position_y: 50,
+          scale: 1,
+          published: true,
+          requires_password: false,
+          case_study_content: `# Overview
+
+## Challenge
+Tandem Diabetes Care needed to design the first touch screen insulin pump interface. The challenge was to create an intuitive, accessible interface for managing diabetes that could be used by people of all ages and technical abilities.
+
+## Mission
+Design a revolutionary touch screen interface for insulin pumps that would set the standard for medical device interfaces.
+
+# At a glance
+
+**Role:** Lead UX Designer
+
+**Team:** 3-4 designers, partnered with product + engineering
+
+**Platforms:** Touch screen insulin pump interface
+
+**Timeline:** 6 months design and development
+
+---
+
+# My role & impact
+
+## Leadership
+• Led UX design for the first touch screen insulin pump
+• Collaborated with medical professionals and diabetes patients
+• Designed accessible interface for all age groups
+
+## Design & research
+• Conducted extensive user research with diabetes patients
+• Designed touch screen interface with large, accessible buttons
+• Created intuitive navigation for complex medical functions
+• Ensured compliance with medical device regulations
+
+## Impact
+⭐ **Revolutionary interface** - First touch screen insulin pump
+👉 **Improved accessibility** - Easier to use for all age groups
+🔄 **Better user experience** - Intuitive navigation and controls
+💵 **Market leadership** - Set standard for medical device interfaces
+
+---
+
+# Key features
+
+## Touch Screen Interface
+Designed the first touch screen interface for insulin pumps with large, accessible buttons and intuitive navigation.
+
+## Accessibility Focus
+Ensured the interface could be used by people of all ages and technical abilities, with large text and clear visual hierarchy.
+
+## Medical Compliance
+Designed to meet strict medical device regulations while maintaining excellent user experience.
+
+---
+
+# Key takeaway
+
+I designed the first touch screen insulin pump interface, revolutionizing how people with diabetes interact with their medical devices and setting the standard for future medical device interfaces.`,
+          gallery_aspect_ratio: '3x4',
+          flow_diagram_aspect_ratio: '3x4',
+          video_aspect_ratio: '16x9',
+          gallery_columns: 2,
+          flow_diagram_columns: 2,
+          video_columns: 2,
+          project_images_position: 1,
+          videos_position: 2,
+          flow_diagrams_position: 3,
+          solution_cards_position: 4,
+          sort_order: 0
+        };
+        
+        const { error: insertError } = await supabase
+          .from('projects')
+          .insert(tandemProject);
+        
+        if (insertError) {
+          console.error('❌ Error restoring Tandem project:', insertError);
+        } else {
+          console.log('✅ Tandem Diabetes Care project restored');
+        }
+      } else {
+        console.log('✅ Tandem Diabetes Care project exists');
+      }
+    } catch (error) {
+      console.error('❌ Error checking for missing projects:', error);
+    }
+  };
+
+  // Fix blob URLs in database by replacing them with proper placeholders
+  const fixBlobUrlsInDatabase = async () => {
+    try {
+      console.log('🔧 Fixing blob URLs in database...');
+      
+      // Get all projects with blob URLs
+      const { data: projects, error } = await supabase
+        .from('projects')
+        .select('id, title, url')
+        .or('url.like.blob:%,url.like.%localhost:3000%');
+      
+      if (error) {
+        console.error('❌ Error fetching projects with blob URLs:', error);
+        return;
+      }
+      
+      console.log('📊 Found projects with blob URLs:', projects?.length || 0);
+      
+      for (const project of projects || []) {
+        if (project.url && (project.url.startsWith('blob:') || project.url.includes('localhost:3000'))) {
+          console.log(`🔧 Fixing blob URL for project: ${project.title}`);
+          
+          // Get the appropriate placeholder URL
+          const fixedUrl = cleanProjectUrl(project.url, project.title);
+          
+          // Update the project in the database
+          const { error: updateError } = await supabase
+            .from('projects')
+            .update({ url: fixedUrl })
+            .eq('id', project.id);
+          
+          if (updateError) {
+            console.error(`❌ Error updating project ${project.title}:`, updateError);
+          } else {
+            console.log(`✅ Updated project ${project.title} with new URL: ${fixedUrl}`);
+          }
+        }
+      }
+      
+      console.log('✅ Blob URL fixes complete');
+    } catch (error) {
+      console.error('❌ Error fixing blob URLs:', error);
+    }
+  };
+
   // Clean up blob URLs in existing case studies
   const cleanupBlobUrls = async () => {
     try {
@@ -1518,10 +1807,224 @@ Tools for family members to support patients without being intrusive.
     }
   };
 
+  // Manual fix for specific issues
+  const manualFixIssues = async () => {
+    try {
+      console.log('🔧 Manual fix for specific issues...');
+      
+      // Fix Skype Qik image
+      const { data: skypeProjects, error: skypeError } = await supabase
+        .from('projects')
+        .select('*')
+        .ilike('title', '%skype%qik%');
+      
+      console.log('🔍 Found Skype Qik projects:', skypeProjects?.length || 0);
+      
+      if (skypeProjects && skypeProjects.length > 0) {
+        // Fix all Skype Qik projects
+        for (const skypeProject of skypeProjects) {
+          console.log('🔧 Fixing Skype Qik project:', skypeProject.title, 'Current URL:', skypeProject.url);
+          
+          const techUrl = 'https://images.unsplash.com/photo-1758770478125-4850521fd941?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkaWdpdGFsJTIwaW50ZXJmYWNlfGVufDF8fHx8MTc1OTM3NTg3NXww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral';
+          
+          const { error: updateError } = await supabase
+            .from('projects')
+            .update({ url: techUrl })
+            .eq('id', skypeProject.id);
+          
+          if (updateError) {
+            console.error('❌ Error updating Skype Qik:', updateError);
+          } else {
+            console.log('✅ Skype Qik image fixed for project:', skypeProject.title);
+          }
+        }
+      } else {
+        console.log('❌ No Skype Qik projects found');
+      }
+      
+      // Check and restore Tandem case study
+      const { data: tandemProjects, error: tandemError } = await supabase
+        .from('projects')
+        .select('*')
+        .ilike('title', '%tandem%diabetes%care%');
+      
+      if (tandemProjects && tandemProjects.length > 0) {
+        // Fix existing Tandem project if it has no URL
+        const tandemProject = tandemProjects[0];
+        if (!tandemProject.url || tandemProject.url === 'NULL' || tandemProject.url.trim() === '') {
+          console.log('🔧 Fixing Tandem project URL...');
+          
+          const medicalUrl = 'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtZWRpY2FsJTIwZGV2aWNlfGVufDF8fHx8MTc1OTM3NTg3Nnww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral';
+          
+          const { error: updateError } = await supabase
+            .from('projects')
+            .update({ url: medicalUrl })
+            .eq('id', tandemProject.id);
+          
+          if (updateError) {
+            console.error('❌ Error updating Tandem project URL:', updateError);
+          } else {
+            console.log('✅ Tandem project URL fixed');
+          }
+        } else {
+          console.log('✅ Tandem project already has a valid URL');
+        }
+      } else if (!tandemProjects || tandemProjects.length === 0) {
+        console.log('🔄 Creating Tandem Diabetes Care project...');
+        
+        const tandemProject = {
+          title: 'Tandem Diabetes Care',
+          description: 'Designing the first touch screen insulin pump interface',
+          url: 'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtZWRpY2FsJTIwZGV2aWNlfGVufDF8fHx8MTc1OTM3NTg3Nnww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
+          position_x: 50,
+          position_y: 50,
+          scale: 1,
+          published: true,
+          requires_password: false,
+          case_study_content: `# Overview
+
+## Challenge
+Tandem Diabetes Care needed to design the first touch screen insulin pump interface. The challenge was to create an intuitive, accessible interface for managing diabetes that could be used by people of all ages and technical abilities.
+
+## Mission
+Design a revolutionary touch screen interface for insulin pumps that would set the standard for medical device interfaces.
+
+# At a glance
+
+**Role:** Lead UX Designer
+
+**Team:** 3-4 designers, partnered with product + engineering
+
+**Platforms:** Touch screen insulin pump interface
+
+**Timeline:** 6 months design and development
+
+---
+
+# My role & impact
+
+## Leadership
+• Led UX design for the first touch screen insulin pump
+• Collaborated with medical professionals and diabetes patients
+• Designed accessible interface for all age groups
+
+## Design & research
+• Conducted extensive user research with diabetes patients
+• Designed touch screen interface with large, accessible buttons
+• Created intuitive navigation for complex medical functions
+• Ensured compliance with medical device regulations
+
+## Impact
+⭐ **Revolutionary interface** - First touch screen insulin pump
+👉 **Improved accessibility** - Easier to use for all age groups
+🔄 **Better user experience** - Intuitive navigation and controls
+💵 **Market leadership** - Set standard for medical device interfaces
+
+---
+
+# Key features
+
+## Touch Screen Interface
+Designed the first touch screen interface for insulin pumps with large, accessible buttons and intuitive navigation.
+
+## Accessibility Focus
+Ensured the interface could be used by people of all ages and technical abilities, with large text and clear visual hierarchy.
+
+## Medical Compliance
+Designed to meet strict medical device regulations while maintaining excellent user experience.
+
+---
+
+# Key takeaway
+
+I designed the first touch screen insulin pump interface, revolutionizing how people with diabetes interact with their medical devices and setting the standard for future medical device interfaces.`,
+          gallery_aspect_ratio: '3x4',
+          flow_diagram_aspect_ratio: '3x4',
+          video_aspect_ratio: '16x9',
+          gallery_columns: 2,
+          flow_diagram_columns: 2,
+          video_columns: 2,
+          project_images_position: 1,
+          videos_position: 2,
+          flow_diagrams_position: 3,
+          solution_cards_position: 4,
+          sort_order: 0
+        };
+        
+        const { error: insertError } = await supabase
+          .from('projects')
+          .insert(tandemProject);
+        
+        if (insertError) {
+          console.error('❌ Error creating Tandem project:', insertError);
+        } else {
+          console.log('✅ Tandem Diabetes Care project created');
+        }
+      } else {
+        console.log('✅ Tandem Diabetes Care project already exists');
+      }
+      
+      console.log('✅ Manual fixes complete');
+    } catch (error) {
+      console.error('❌ Error in manual fixes:', error);
+    }
+  };
+
+  // Make the fix function available globally
+  (window as any).fixPortfolioIssues = manualFixIssues;
+  
+  // Direct Skype Qik fix function
+  const fixSkypeQikDirectly = async () => {
+    try {
+      console.log('🔧 Direct Skype Qik fix...');
+      
+      const { data: skypeProjects, error } = await supabase
+        .from('projects')
+        .select('*')
+        .ilike('title', '%skype%qik%');
+      
+      console.log('📊 Skype Qik projects found:', skypeProjects?.length || 0);
+      console.log('📊 Skype Qik projects:', skypeProjects);
+      
+      if (skypeProjects && skypeProjects.length > 0) {
+        for (const project of skypeProjects) {
+          console.log(`🔧 Updating project: ${project.title} (ID: ${project.id})`);
+          console.log(`🔧 Current URL: ${project.url}`);
+          
+          const newUrl = 'https://images.unsplash.com/photo-1758770478125-4850521fd941?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkaWdpdGFsJTIwaW50ZXJmYWNlfGVufDF8fHx8MTc1OTM3NTg3NXww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral';
+          
+          const { error: updateError } = await supabase
+            .from('projects')
+            .update({ url: newUrl })
+            .eq('id', project.id);
+          
+          if (updateError) {
+            console.error('❌ Update error:', updateError);
+          } else {
+            console.log('✅ Updated successfully');
+          }
+        }
+      }
+    } catch (error) {
+      console.error('❌ Direct fix error:', error);
+    }
+  };
+  
+  // Make direct fix available globally
+  (window as any).fixSkypeQik = fixSkypeQikDirectly;
+
   // Populate Supabase case studies with content on mount
   useEffect(() => {
     populateSupabaseCaseStudies();
     cleanupBlobUrls();
+    manualFixIssues(); // Manual fix for specific issues
+    
+    // Temporarily disable aggressive database cleanup to prevent removing legitimate projects
+    // const hasRunCleanup = sessionStorage.getItem('databaseCleanupRun');
+    // if (!hasRunCleanup) {
+    //   cleanupDatabase(); // Clean up duplicates and test data
+    //   sessionStorage.setItem('databaseCleanupRun', 'true');
+    // }
   }, []);
   
   // Filter projects by type (case studies vs design projects) and convert to ProjectData format
@@ -1530,20 +2033,40 @@ Tools for family members to support patients without being intrusive.
     
     const filtered = projects
       .filter(project => {
-        const isCaseStudy = project.title.toLowerCase().includes('case study') || 
-                           project.title.toLowerCase().includes('research') ||
-                           project.title.toLowerCase().includes('tandem') ||
-                           project.title.toLowerCase().includes('diabetes') ||
-                           project.description?.toLowerCase().includes('case study');
+        // More specific filtering - only exclude explicit design projects
+        const isDesignProject = project.title.toLowerCase().includes('modern tech') ||
+                               project.title.toLowerCase().includes('web design') ||
+                               project.title.toLowerCase().includes('abstract art') ||
+                               project.title.toLowerCase().includes('product design') ||
+                               (project.description?.toLowerCase().includes('design') && 
+                                !project.description?.toLowerCase().includes('diabetes') &&
+                                !project.description?.toLowerCase().includes('medical') &&
+                                !project.description?.toLowerCase().includes('insulin')) ||
+                               (project.description?.toLowerCase().includes('interface') &&
+                                !project.description?.toLowerCase().includes('diabetes') &&
+                                !project.description?.toLowerCase().includes('medical') &&
+                                !project.description?.toLowerCase().includes('insulin'));
         
-        console.log(`🔍 Project "${project.title}": isCaseStudy = ${isCaseStudy}`);
+        // Default to case study unless it's explicitly a design project
+        const isCaseStudy = !isDesignProject;
+        
+        console.log(`🔍 Project "${project.title}": isDesignProject = ${isDesignProject}, isCaseStudy = ${isCaseStudy}`);
         return isCaseStudy;
       })
-      .map(project => ({
-        ...project,
-        position: { x: project.position_x, y: project.position_y },
-        // Map other fields as needed
-      }));
+      .map(project => {
+        console.log('🔍 Processing case study project:', { 
+          title: project.title, 
+          url: project.url,
+          hasBlobUrl: project.url?.startsWith('blob:') || false
+        });
+        
+        return {
+          ...project,
+          position: { x: project.position_x, y: project.position_y },
+          url: cleanProjectUrl(project.url || '', project.title),
+          // Map other fields as needed
+        };
+      });
     
     console.log('🏠 Home: Filtered case studies from Supabase:', filtered);
     
@@ -1562,27 +2085,84 @@ Tools for family members to support patients without being intrusive.
     // Combine Supabase and localStorage projects, removing duplicates
     const allProjects = [...filtered, ...localStorageProjects];
     
-    // Remove duplicates based on title and content
-    const uniqueProjects = allProjects.reduce((acc, project) => {
-      const existingIndex = acc.findIndex(p => 
-        p.title === project.title && 
-        (p.caseStudyContent || (p as any).case_study_content) === (project.caseStudyContent || (project as any).case_study_content)
-      );
+    // Filter out test data and invalid projects
+    const validProjects = allProjects.filter(project => {
+      // Filter out test data
+      if (project.title?.toLowerCase().includes('test') || 
+          project.title?.toLowerCase().includes('mofo') ||
+          project.title?.toLowerCase().includes('debug')) {
+        console.log(`🗑️ Filtering out test data: "${project.title}"`);
+        return false;
+      }
+      
+      // Filter out projects with no title
+      if (!project.title || project.title.trim() === '') {
+        console.log(`🗑️ Filtering out project with no title`);
+        return false;
+      }
+      
+      return true;
+    });
+
+    // Remove duplicates based on title, prioritizing projects with valid URLs
+    const uniqueProjects = validProjects.reduce((acc, project) => {
+      const existingIndex = acc.findIndex(p => p.title === project.title);
+      
+      console.log(`🔍 Processing project "${project.title}": existingIndex = ${existingIndex}`);
       
       if (existingIndex === -1) {
         // No duplicate found, add the project
+        console.log(`✅ Adding new project: "${project.title}"`);
         acc.push(project);
       } else {
-        // Duplicate found, keep the one with more content or from Supabase
+        // Duplicate found, choose the best one
         const existing = acc[existingIndex];
+        
+        // Priority: 1) Valid URL, 2) More content, 3) Supabase over localStorage
+        const projectHasValidUrl = project.url && !project.url.startsWith('blob:') && project.url !== 'NULL';
+        const existingHasValidUrl = existing.url && !existing.url.startsWith('blob:') && existing.url !== 'NULL';
+        
         const projectContent = project.caseStudyContent || (project as any).case_study_content || '';
         const existingContent = existing.caseStudyContent || (existing as any).case_study_content || '';
         
-        if (projectContent.length > existingContent.length) {
-          console.log(`🔄 Home: Replacing duplicate "${project.title}" with more content`);
+        let shouldReplace = false;
+        let reason = '';
+        
+        if (projectHasValidUrl && !existingHasValidUrl) {
+          shouldReplace = true;
+          reason = 'has valid URL';
+        } else if (!projectHasValidUrl && existingHasValidUrl) {
+          shouldReplace = false;
+          reason = 'existing has valid URL';
+        } else if (projectContent.length > existingContent.length) {
+          shouldReplace = true;
+          reason = 'has more content';
+        } else if (projectContent.length < existingContent.length) {
+          shouldReplace = false;
+          reason = 'existing has more content';
+        } else {
+          // Same content, prefer Supabase over localStorage
+          const projectIsFromSupabase = project.id && project.id.length > 10; // Supabase IDs are longer
+          const existingIsFromSupabase = existing.id && existing.id.length > 10;
+          
+          if (projectIsFromSupabase && !existingIsFromSupabase) {
+            shouldReplace = true;
+            reason = 'from Supabase';
+          } else {
+            shouldReplace = false;
+            reason = 'existing is from Supabase or same source';
+          }
+        }
+        
+        if (shouldReplace) {
+          console.log(`🔄 Home: Replacing duplicate "${project.title}" (${reason})`);
+          console.log(`🔄 Replacing existing project:`, existing);
+          console.log(`🔄 With new project:`, project);
           acc[existingIndex] = project;
         } else {
-          console.log(`🔄 Home: Keeping existing "${project.title}", skipping duplicate`);
+          console.log(`🔄 Home: Keeping existing "${project.title}" (${reason})`);
+          console.log(`🔄 Keeping existing project:`, existing);
+          console.log(`🔄 Discarding new project:`, project);
         }
       }
       
@@ -1624,6 +2204,7 @@ Tools for family members to support patients without being intrusive.
       .map(project => ({
         ...project,
         position: { x: project.position_x, y: project.position_y },
+        url: cleanProjectUrl(project.url || '', project.title),
         // Map other fields as needed
       }));
     
@@ -2113,7 +2694,7 @@ Tools for family members to support patients without being intrusive.
         published: newCaseStudy.published || false,
         requires_password: newCaseStudy.requires_password || false,
         password: newCaseStudy.password,
-        case_study_content: newCaseStudy.case_study_content,
+        case_study_content: newCaseStudy.caseStudyContent,
         case_study_images: newCaseStudy.case_study_images || [],
         flow_diagram_images: newCaseStudy.flow_diagram_images || [],
         video_items: newCaseStudy.video_items || [],
@@ -2998,7 +3579,6 @@ Tools for family members to support patients without being intrusive.
               )}
 
             {/* Scrollable Container */}
-            <DndProvider backend={HTML5Backend}>
               <div
                 ref={caseStudiesScrollRef}
                 className={`flex gap-6 overflow-x-auto scrollbar-hide py-8 px-4 snap-x snap-mandatory scroll-smooth ${
@@ -3081,7 +3661,6 @@ Tools for family members to support patients without being intrusive.
                   </>
                 )}
               </div>
-            </DndProvider>
           </motion.div>
         </div>
       </section>

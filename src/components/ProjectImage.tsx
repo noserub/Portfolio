@@ -72,12 +72,29 @@ export function ProjectImage({
   const [editedProject, setEditedProject] = useState(project);
   const [isPositioning, setIsPositioning] = useState(false);
   const [isDraggingPosition, setIsDraggingPosition] = useState(false);
+  const [imageLoadError, setImageLoadError] = useState(false);
   const imageRef = useRef<HTMLDivElement>(null);
 
   // Sync local state when project prop changes (e.g., when image is replaced)
   useEffect(() => {
     setEditedProject(project);
+    setImageLoadError(false); // Reset error state when project changes
   }, [project]);
+
+  // Handle image load error
+  const handleImageError = () => {
+    console.log('❌ Image failed to load:', editedProject.url);
+    setImageLoadError(true);
+  };
+
+  // Get the image URL with fallback
+  const getImageUrl = () => {
+    if (imageLoadError) {
+      // Use a fallback image when the main image fails to load
+      return 'https://images.unsplash.com/photo-1551650975-87deedd944c3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx0ZWNobm9sb2d5fGVufDF8fHx8MTc1OTM3NTg3Nnww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral';
+    }
+    return editedProject.url;
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -215,10 +232,19 @@ export function ProjectImage({
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
         >
+          {/* Hidden image to detect load errors */}
+          <img
+            src={editedProject.url}
+            alt=""
+            style={{ display: 'none' }}
+            onError={handleImageError}
+            onLoad={() => setImageLoadError(false)}
+          />
+          
           <motion.div
             className="w-full h-full relative"
             style={{
-              backgroundImage: `url(${editedProject.url})`,
+              backgroundImage: `url(${getImageUrl()})`,
               backgroundSize: `${editedProject.scale * 100}%`,
               backgroundPosition: `${editedProject.position.x}% ${editedProject.position.y}%`,
               backgroundRepeat: "no-repeat",
