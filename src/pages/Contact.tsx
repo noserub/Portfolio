@@ -132,17 +132,22 @@ export function Contact({ onBack, isEditMode = false }: ContactProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('📧 Contact form submit triggered:', formData);
     setIsSubmitting(true);
     
     try {
       // Submit to Supabase
+      console.log('📤 Submitting to Supabase...');
       const result = await createMessage({
         name: formData.name,
         email: formData.email,
         message: formData.message
       });
       
+      console.log('📤 Supabase result:', result);
+      
       if (result) {
+        console.log('✅ Message submitted successfully');
         setIsSubmitted(true);
         setFormData({ name: '', email: '', message: '' });
         
@@ -150,9 +155,11 @@ export function Contact({ onBack, isEditMode = false }: ContactProps) {
         setTimeout(() => {
           setIsSubmitted(false);
         }, 3000);
+      } else {
+        console.log('❌ Message submission failed - no result returned');
       }
     } catch (error) {
-      console.error('Error submitting contact form:', error);
+      console.error('❌ Error submitting contact form:', error);
     } finally {
       setIsSubmitting(false);
     }
@@ -166,8 +173,9 @@ export function Contact({ onBack, isEditMode = false }: ContactProps) {
   };
 
   return (
-    <PageLayout title="Get in touch" onBack={onBack}>
-      <div className="max-w-7xl mx-auto">
+    <PageLayout title="Get in touch" onBack={onBack} children={
+      <>
+        <div className="max-w-7xl mx-auto">
         {/* Subheading */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -556,7 +564,8 @@ export function Contact({ onBack, isEditMode = false }: ContactProps) {
           </div>
         </div>
       </div>
-    </PageLayout>
+      </>
+    } />
   );
 }
 

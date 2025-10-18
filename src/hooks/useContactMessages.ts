@@ -66,18 +66,37 @@ export function useContactMessages() {
   // Create message
   const createMessage = async (message: ContactMessageInsert): Promise<ContactMessage | null> => {
     try {
+      console.log('📤 useContactMessages: Creating message:', message);
+      
+      // Try to get current user, but don't require authentication
+      const { data: { user } } = await supabase.auth.getUser();
+      console.log('📤 useContactMessages: Current user:', user ? 'authenticated' : 'anonymous');
+      
+      const messageData = {
+        ...message,
+        user_id: user?.id || null // Allow null for anonymous users
+      };
+      
       const { data, error } = await supabase
         .from('contact_messages')
-        .insert(message)
+        .insert(messageData)
         .select()
         .single();
 
-      if (error) throw error;
+      console.log('📤 useContactMessages: Supabase response:', { data, error });
+
+      if (error) {
+        console.error('❌ useContactMessages: Supabase error:', error);
+        throw error;
+      }
+      
+      console.log('✅ useContactMessages: Message created successfully:', data);
       
       // Update local state
       setMessages(prev => [data, ...prev]);
       return data;
     } catch (err: any) {
+      console.error('❌ useContactMessages: Error creating message:', err);
       setError(err.message);
       return null;
     }
