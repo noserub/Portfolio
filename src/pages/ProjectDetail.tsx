@@ -1,0 +1,2376 @@
+import { useState, useMemo, useRef, useEffect, useCallback } from "react";
+import { motion } from "motion/react";
+import { supabase } from '../lib/supabaseClient';
+import { ArrowLeft, Plus, X, Edit2, Image as ImageIcon, Video as VideoIcon, GripVertical, ZoomIn, ZoomOut, Move, RotateCcw } from "lucide-react";
+import { DndProvider, useDrag, useDrop } from "react-dnd";
+import { HTML5Backend } from "react-dnd-html5-backend";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Textarea } from "../components/ui/textarea";
+import { Lightbox } from "../components/Lightbox";
+import { ProjectData } from "../components/ProjectImage";
+import { CaseStudySections } from "../components/features/CaseStudySections";
+import { PageLayout } from "../components/layout/PageLayout";
+import { AtAGlanceSidebar } from "../components/features/AtAGlanceSidebar";
+import { ImpactSidebar } from "../components/features/ImpactSidebar";
+import { FlowDiagramGallery } from "../components/FlowDiagramGallery";
+import { VideoGallery } from "../components/VideoGallery";
+import { useCaseStudySEO } from "../hooks/useSEO";
+
+interface ProjectDetailProps {
+  project: ProjectData;
+  onBack: () => void;
+  onUpdate: (updatedProject: ProjectData) => void;
+  isEditMode: boolean;
+}
+
+interface CaseStudyImage {
+  id: string;
+  url: string;
+  alt: string;
+  caption?: string;
+  scale?: number;
+  position?: { x: number; y: number };
+}
+
+interface ImageEditorProps {
+  scale: number;
+  position: { x: number; y: number };
+  onScaleChange: (scale: number) => void;
+  onPositionChange: (position: { x: number; y: number }) => void;
+  onReset: () => void;
+}
+
+const ImageEditor = ({ scale, position, onScaleChange, onPositionChange, onReset }: ImageEditorProps) => {
+  // ImageEditor doesn't need dragging - that's handled by the parent
+  // This component just shows the controls
+
+  return (
+    <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-3 z-20" onClick={(e) => e.stopPropagation()}>
+      {/* Zoom Controls */}
+      <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md rounded-full p-2 border border-white/20">
+        <Button
+          size="sm"
+          variant="ghost"
+          className="rounded-full w-8 h-8 p-0 hover:bg-white/20"
+          onClick={(e) => {
+            e.stopPropagation();
+            onScaleChange(Math.max(0.5, scale - 0.1));
+          }}
+        >
+          <ZoomOut className="w-4 h-4 text-white" />
+        </Button>
+        <span className="text-white text-sm font-semibold min-w-[60px] text-center">
+          {Math.round(scale * 100)}%
+        </span>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="rounded-full w-8 h-8 p-0 hover:bg-white/20"
+          onClick={(e) => {
+            e.stopPropagation();
+            onScaleChange(Math.min(3, scale + 0.1));
+          }}
+        >
+          <ZoomIn className="w-4 h-4 text-white" />
+        </Button>
+      </div>
+
+      {/* Position Hint */}
+      <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md rounded-full px-4 py-2 border border-white/20">
+        <Move className="w-4 h-4 text-white" />
+        <span className="text-white text-sm">Drag image to reposition</span>
+      </div>
+
+      {/* Reset Button */}
+      <Button
+        size="sm"
+        variant="ghost"
+        className="rounded-full bg-white/10 backdrop-blur-md hover:bg-white/20 border border-white/20 text-white"
+        onClick={(e) => {
+          e.stopPropagation();
+          onReset();
+        }}
+      >
+        <RotateCcw className="w-4 h-4 mr-2" />
+        Reset
+      </Button>
+    </div>
+  );
+};
+
+interface DraggableImageProps {
+  image: CaseStudyImage;
+  index: number;
+  isEditMode: boolean;
+  onRemove: (id: string) => void;
+  onImageClick: (image: CaseStudyImage) => void;
+  moveImage: (dragIndex: number, hoverIndex: number) => void;
+  onImageUpdate: (id: string, updates: Partial<CaseStudyImage>) => void;
+  onDragEnd: () => void;
+}
+
+const DraggableImage = ({ image, index, isEditMode, onRemove, onImageClick, moveImage, onImageUpdate, onDragEnd }: DraggableImageProps) => {
+  const ref = useRef<HTMLDivElement>(null);
+  const [isEditingImage, setIsEditingImage] = useState(false);
+  const [isDraggingPosition, setIsDraggingPosition] = useState(false);
+  const imageRef = useRef<HTMLDivElement>(null);
+  
+  // Local state for position/scale during editing (to avoid saving on every pixel)
+  // Initialize from image prop, but only update when image ID changes
+  const [localPosition, setLocalPosition] = useState(() => image.position || { x: 50, y: 50 });
+  const [localScale, setLocalScale] = useState(() => image.scale || 1);
+
+  const scale = localScale;
+  const position = localPosition;
+  
+  // Track the current image ID to detect when we switch to a different image
+  const prevImageIdRef = useRef(image.id);
+  
+  // Only sync local state when the image ID changes (new image loaded)
+  useEffect(() => {
+    if (prevImageIdRef.current !== image.id) {
+      setLocalPosition(image.position || { x: 50, y: 50 });
+      setLocalScale(image.scale || 1);
+      prevImageIdRef.current = image.id;
+    }
+  }, [image.id]); // Only depend on image.id, not position or scale!
+
+  const [{ isDragging }, drag] = useDrag({
+    type: 'image',
+    item: { id: image.id, index },
+    canDrag: isEditMode && !isEditingImage,
+    end: () => {
+      // Save when drag ends
+      onDragEnd();
+    },
+    collect: (monitor) => ({
+      isDragging: monitor.isDragging(),
+    }),
+  });
+
+  const [{ isOver, canDrop, draggedItem }, drop] = useDrop({
+    accept: 'image',
+    hover: (draggedItem: { id: string; index: number }, monitor) => {
+      if (!ref.current) return;
+      
+      const dragIndex = draggedItem.index;
+      const hoverIndex = index;
+      
+      // Don't replace items with themselves
+      if (dragIndex === hoverIndex) return;
+      
+      // Determine rectangle on screen
+      const hoverBoundingRect = ref.current.getBoundingClientRect();
+      
+      // Get vertical middle
+      const hoverMiddleY = (hoverBoundingRect.bottom - hoverBoundingRect.top) / 2;
+      
+      // Determine mouse position
+      const clientOffset = monitor.getClientOffset();
+      if (!clientOffset) return;
+      
+      // Get pixels to the top
+      const hoverClientY = clientOffset.y - hoverBoundingRect.top;
+      
+      // Only perform the move when the mouse has crossed half of the item's height
+      // When dragging downwards, only move when the cursor is below 50%
+      // When dragging upwards, only move when the cursor is above 50%
+      
+      // Dragging downwards
+      if (dragIndex < hoverIndex && hoverClientY < hoverMiddleY) {
+        return;
+      }
+      
+      // Dragging upwards
+      if (dragIndex > hoverIndex && hoverClientY > hoverMiddleY) {
+        return;
+      }
+      
+      // Time to actually perform the action
+      moveImage(dragIndex, hoverIndex);
+      
+      // Note: we're mutating the monitor item here!
+      // Generally it's better to avoid mutations,
+      // but it's good here for the sake of performance
+      // to avoid expensive index searches.
+      draggedItem.index = hoverIndex;
+    },
+    collect: (monitor) => ({
+      isOver: monitor.isOver(),
+      canDrop: monitor.canDrop(),
+      draggedItem: monitor.getItem() as { id: string; index: number } | null,
+    }),
+  });
+
+  drag(drop(ref));
+
+  const handleImageMouseDown = (e: React.MouseEvent) => {
+    if (!isEditingImage) return;
+    e.stopPropagation();
+    setIsDraggingPosition(true);
+  };
+
+  const handleImageMouseMove = (e: React.MouseEvent) => {
+    if (!isDraggingPosition || !imageRef.current) return;
+    e.stopPropagation();
+    e.preventDefault();
+    
+    const rect = imageRef.current.getBoundingClientRect();
+    // Calculate position as percentage within the container
+    const x = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
+    const y = Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100));
+    
+    // Update local state immediately for smooth dragging (don't save yet)
+    setLocalPosition({ x, y });
+  };
+
+  const handleImageMouseUp = () => {
+    if (isDraggingPosition) {
+      // Only save when mouse is released (not on every pixel movement)
+      onImageUpdate(image.id, { position: localPosition, scale: localScale });
+    }
+    setIsDraggingPosition(false);
+  };
+
+  // Show drop indicator when this position would receive the dragged item
+  const showDropIndicator = isOver && canDrop && !isDragging && isEditMode && draggedItem && draggedItem.index !== index;
+
+  return (
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ 
+        opacity: isDragging ? 0.3 : 1, 
+        scale: isDragging ? 0.95 : 1,
+      }}
+      transition={{ delay: isDragging ? 0 : 0.7 + index * 0.1 }}
+      className={`relative group ${isDragging ? 'z-50 cursor-grabbing' : ''}`}
+      style={{ cursor: isEditMode && !isEditingImage && !isDragging ? 'grab' : 'pointer' }}
+    >
+      {/* Drop Indicator - Shows above where item will land */}
+      {showDropIndicator && (
+        <motion.div
+          initial={{ opacity: 0, scaleX: 0 }}
+          animate={{ opacity: 1, scaleX: 1 }}
+          exit={{ opacity: 0, scaleX: 0 }}
+          transition={{ duration: 0.15, ease: "easeOut" }}
+          className="absolute -top-3 left-0 right-0 h-1.5 rounded-full z-30"
+          style={{
+            background: 'linear-gradient(90deg, #ec4899 0%, #8b5cf6 25%, #3b82f6 50%, #06b6d4 75%, #fbbf24 100%)',
+            boxShadow: '0 0 24px rgba(236, 72, 153, 0.9), 0 0 40px rgba(59, 130, 246, 0.7), 0 4px 12px rgba(0, 0, 0, 0.3)',
+          }}
+        >
+          {/* Pulsing glow effect */}
+          <motion.div
+            className="absolute inset-0 rounded-full"
+            style={{
+              background: 'linear-gradient(90deg, #ec4899 0%, #8b5cf6 25%, #3b82f6 50%, #06b6d4 75%, #fbbf24 100%)',
+            }}
+            animate={{
+              opacity: [0.5, 1, 0.5],
+              scale: [1, 1.1, 1],
+            }}
+            transition={{
+              duration: 1.5,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+          />
+        </motion.div>
+      )}
+      
+      {/* Drag Handle - Only visible in Edit Mode when not editing image */}
+      {isEditMode && !isEditingImage && (
+        <div className="absolute top-2 left-2 z-20 bg-black/70 text-white p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity cursor-move">
+          <GripVertical className="w-4 h-4" />
+        </div>
+      )}
+      
+      {/* Edit Image Button - Only visible in Edit Mode */}
+      {isEditMode && !isEditingImage && (
+        <Button
+          size="sm"
+          className="absolute bottom-2 left-1/2 -translate-x-1/2 z-20 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsEditingImage(true);
+          }}
+        >
+          <Edit2 className="w-3 h-3 mr-2" />
+          Adjust
+        </Button>
+      )}
+      
+      <motion.div
+        ref={imageRef}
+        whileHover={{ scale: isEditMode && !isEditingImage ? 1 : 1.03, y: isEditMode && !isEditingImage ? 0 : -4 }}
+        className="aspect-[3/4] overflow-hidden rounded-xl shadow-lg border border-border/20 relative"
+        style={{ 
+          cursor: isEditingImage ? 'crosshair' : 'pointer',
+          background: 'linear-gradient(135deg, #ec4899 0%, #8b5cf6 25%, #3b82f6 50%, #06b6d4 75%, #fbbf24 100%)'
+        }}
+        onClick={() => !isEditMode && !isEditingImage && onImageClick(image)}
+        onMouseDown={handleImageMouseDown}
+        onMouseMove={handleImageMouseMove}
+        onMouseUp={handleImageMouseUp}
+        onMouseLeave={handleImageMouseUp}
+      >
+        <div
+          className="w-full h-full"
+          style={{
+            backgroundImage: `url(${image.url})`,
+            backgroundSize: `${scale * 100}%`,
+            backgroundPosition: `${position.x}% ${position.y}%`,
+            backgroundRepeat: "no-repeat",
+          }}
+        />
+        
+        {/* Image Editor Overlay */}
+        {isEditingImage && (
+          <>
+            <ImageEditor
+              scale={scale}
+              position={position}
+              onScaleChange={(newScale) => setLocalScale(newScale)}
+              onPositionChange={(newPos) => setLocalPosition(newPos)}
+              onReset={() => {
+                setLocalScale(1);
+                setLocalPosition({ x: 50, y: 50 });
+              }}
+            />
+            <Button
+              size="sm"
+              variant="default"
+              className="absolute bottom-4 right-4 z-30 shadow-lg"
+              onClick={(e) => {
+                e.stopPropagation();
+                // Save changes when clicking "Done"
+                onImageUpdate(image.id, { scale: localScale, position: localPosition });
+                setIsEditingImage(false);
+              }}
+            >
+              Done
+            </Button>
+          </>
+        )}
+      </motion.div>
+      {image.alt && (
+        <p className="text-sm text-muted-foreground mt-2 text-center">{image.alt}</p>
+      )}
+      {isEditMode && !isEditingImage && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove(image.id);
+          }}
+          className="absolute top-2 right-2 bg-destructive text-destructive-foreground rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg z-10"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      )}
+    </motion.div>
+  );
+};
+
+export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: ProjectDetailProps) {
+  const [isEditing, setIsEditing] = useState(false);
+  
+  // Debug logging for project data
+  useEffect(() => {
+    console.log('📄 ProjectDetail: Project data received:', project);
+    console.log('📄 ProjectDetail: caseStudyContent:', project.caseStudyContent);
+    console.log('📄 ProjectDetail: caseStudyContent length:', project.caseStudyContent?.length || 0);
+    
+    // Check authentication status
+    const checkAuth = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      console.log('📄 ProjectDetail: Current user:', user ? user.email : 'Not authenticated');
+    };
+    checkAuth();
+  }, [project]);
+  
+  const [editedTitle, setEditedTitle] = useState(project.title);
+  const [editedDescription, setEditedDescription] = useState(project.description);
+  const [caseStudyContent, setCaseStudyContent] = useState(
+    project.caseStudyContent || (project as any).case_study_content || "Add your detailed case study content here. Describe the challenge, process, solution, and results."
+  );
+  const [caseStudyImages, setCaseStudyImages] = useState<CaseStudyImage[]>(
+    project.caseStudyImages || (project as any).case_study_images || []
+  );
+  const [flowDiagramImages, setFlowDiagramImages] = useState<Array<{
+    id: string; 
+    url: string; 
+    alt: string;
+    caption?: string;
+    scale?: number;
+    position?: { x: number; y: number };
+  }>>( project.flowDiagramImages || (project as any).flow_diagram_images || []
+  );
+  const [videoItems, setVideoItems] = useState<Array<{
+    id: string;
+    url: string;
+    type: 'youtube' | 'vimeo' | 'upload' | 'url';
+    caption?: string;
+    thumbnail?: string;
+  }>>(
+    project.videoItems || (project as any).video_items || []
+  );
+  
+  const [projectImagesPosition, setProjectImagesPosition] = useState<number>(
+    project.projectImagesPosition !== undefined ? project.projectImagesPosition : 1
+  );
+  const [videosPosition, setVideosPosition] = useState<number>(
+    project.videosPosition !== undefined ? project.videosPosition : 998
+  );
+  const [flowDiagramsPosition, setFlowDiagramsPosition] = useState<number>(
+    project.flowDiagramsPosition !== undefined ? project.flowDiagramsPosition : 1000
+  );
+  const [solutionCardsPosition, setSolutionCardsPosition] = useState<number>(
+    project.solutionCardsPosition !== undefined ? project.solutionCardsPosition : 3
+  );
+  
+  // NEW: Track positions for ALL sections (markdown + sidebars + galleries)
+  const [sectionPositions, setSectionPositions] = useState<Record<string, number>>(() => {
+    // Load from project or set intelligent defaults
+    if (project.sectionPositions && Object.keys(project.sectionPositions).length > 0) {
+      return project.sectionPositions;
+    }
+    
+    // Default positions: sidebars early, then markdown sections in order, then galleries at end
+    return {
+      '__AT_A_GLANCE__': 0,
+      'Overview': 1,
+      '__IMPACT__': 2,
+      'My role': 3,
+      'The Solution': 4,
+      '__PROJECT_IMAGES__': 5,
+      '__SOLUTION_CARDS__': 6,
+      '__FLOW_DIAGRAMS__': 7,
+      // Additional sections will be added dynamically as they're parsed
+    };
+  });
+  
+  // Use refs to track latest values to avoid stale state in callbacks
+  const caseStudyImagesRef = useRef(caseStudyImages);
+  const flowDiagramImagesRef = useRef(flowDiagramImages);
+  const videoItemsRef = useRef(videoItems);
+  
+  // Keep refs in sync with state
+  useEffect(() => {
+    caseStudyImagesRef.current = caseStudyImages;
+  }, [caseStudyImages]);
+  
+  useEffect(() => {
+    flowDiagramImagesRef.current = flowDiagramImages;
+  }, [flowDiagramImages]);
+  
+  useEffect(() => {
+    videoItemsRef.current = videoItems;
+  }, [videoItems]);
+  const [galleryAspectRatio, setGalleryAspectRatio] = useState<"3x4" | "4x3" | "2x3" | "3x2" | "16x9">(
+    project.galleryAspectRatio || (project as any).gallery_aspect_ratio || "3x4"
+  );
+  const [flowDiagramAspectRatio, setFlowDiagramAspectRatio] = useState<"3x4" | "4x3" | "2x3" | "3x2" | "16x9">(
+    project.flowDiagramAspectRatio || (project as any).flow_diagram_aspect_ratio || "16x9"
+  );
+  const [galleryColumns, setGalleryColumns] = useState<1 | 2 | 3>(
+    project.galleryColumns || (project as any).gallery_columns || 2
+  );
+  const [flowDiagramColumns, setFlowDiagramColumns] = useState<1 | 2 | 3>(
+    project.flowDiagramColumns || (project as any).flow_diagram_columns || 1
+  );
+  const [videoAspectRatio, setVideoAspectRatio] = useState<"3x4" | "4x3" | "2x3" | "3x2" | "16x9" | "9x16">(
+    project.videoAspectRatio || (project as any).video_aspect_ratio || "16x9"
+  );
+  const [videoColumns, setVideoColumns] = useState<1 | 2 | 3>(
+    project.videoColumns || (project as any).video_columns || 1
+  );
+  const [lightboxImage, setLightboxImage] = useState<CaseStudyImage | null>(null);
+  const [flowDiagramLightboxImage, setFlowDiagramLightboxImage] = useState<{
+    id: string; 
+    url: string; 
+    alt: string;
+    caption?: string;
+    scale?: number;
+    position?: { x: number; y: number };
+  } | null>(null);
+  const [isEditingHeroImage, setIsEditingHeroImage] = useState(false);
+  // Hero image ALWAYS defaults to 100% zoom and centered (detail page only)
+  const [heroScale, setHeroScale] = useState(1);
+  const [heroPosition, setHeroPosition] = useState({ x: 50, y: 50 });
+  const [isDraggingHero, setIsDraggingHero] = useState(false);
+  const heroImageRef = useRef<HTMLDivElement>(null);
+  
+  // Store original content when entering edit mode (for Cancel functionality)
+  const [originalContent, setOriginalContent] = useState(caseStudyContent);
+
+  // No useEffect needed - useState initializers use the project prop on mount
+  // The navigation timestamp key in App.tsx forces a fresh component instance when navigating
+  // This ensures we always start with fresh data from localStorage
+  // During editing, we keep local state and don't sync with prop updates (which are from our own saves)
+
+  // Parse sections directly to extract "At a glance" - memoized to prevent re-parsing on every render
+  // Parse sections to extract both "At a glance" and "Impact" for sidebars
+  const { atGlanceContent, impactContent } = useMemo(() => {
+    const lines = caseStudyContent?.split('\n') || [];
+    let currentSection: { title: string; content: string } | null = null;
+    let currentSubsection: { title: string; content: string } | null = null;
+    let atGlanceSection: { title: string; content: string } | null = null;
+    let impactSection: { title: string; content: string } | null = null;
+
+    lines.forEach(line => {
+      // Check for top-level section (# Header)
+      if (line.trim().match(/^# (.+)$/)) {
+        // Save previous subsection if it was "Impact" before moving to new section
+        if (currentSubsection && currentSubsection.title === "Impact") {
+          impactSection = currentSubsection;
+        }
+        // Save previous section if it was "At a glance" or "Impact"
+        if (currentSection && currentSection.title === "At a glance") {
+          atGlanceSection = currentSection;
+        }
+        if (currentSection && currentSection.title === "Impact") {
+          impactSection = currentSection;
+        }
+        const title = (line || '').trim().substring(2).trim();
+        currentSection = { title, content: '' };
+        currentSubsection = null; // Reset subsection
+      }
+      // Check for subsection (## Header)
+      else if (line.trim().match(/^## (.+)$/)) {
+        // Save previous subsection if it was "Impact"
+        if (currentSubsection && currentSubsection.title === "Impact") {
+          impactSection = currentSubsection;
+        }
+        const title = (line || '').trim().substring(3).trim();
+        currentSubsection = { title, content: '' };
+      }
+      // Add content to current subsection or section
+      else if (currentSubsection) {
+        currentSubsection.content += line + '\n';
+      } else if (currentSection) {
+        currentSection.content += line + '\n';
+      }
+    });
+
+    // Check if last section is "At a glance" or "Impact"
+    if (currentSection && currentSection.title === "At a glance") {
+      atGlanceSection = currentSection;
+    }
+    if (currentSection && currentSection.title === "Impact") {
+      impactSection = currentSection;
+    }
+    // Check if last subsection is "Impact"
+    if (currentSubsection && currentSubsection.title === "Impact") {
+      impactSection = currentSubsection;
+    }
+
+    console.log('📋 Parsed sections:', {
+      hasAtGlance: !!atGlanceSection,
+      hasImpact: !!impactSection,
+      impactTitle: impactSection?.title,
+      impactContentLength: impactSection?.content?.length || 0
+    });
+
+    return {
+      atGlanceContent: atGlanceSection,
+      impactContent: impactSection
+    };
+  }, [caseStudyContent]);
+
+  // Track previous content to avoid unnecessary saves
+  const prevContentRef = useRef<string>('');
+  const prevTitleRef = useRef<string>('');
+  const prevDescriptionRef = useRef<string>('');
+
+  // Auto-save content changes with debouncing
+  useEffect(() => {
+    const currentContent = caseStudyContent || '';
+    const currentTitle = editedTitle || '';
+    const currentDescription = editedDescription || '';
+    
+    // Check if content actually changed
+    const contentChanged = currentContent !== prevContentRef.current;
+    const titleChanged = currentTitle !== prevTitleRef.current;
+    const descriptionChanged = currentDescription !== prevDescriptionRef.current;
+    
+    console.log('🔄 Auto-save useEffect triggered:', {
+      isEditMode,
+      hasContent: !!caseStudyContent,
+      contentLength: caseStudyContent?.length || 0,
+      contentChanged,
+      titleChanged,
+      descriptionChanged,
+      contentPreview: caseStudyContent?.substring(0, 50) + '...'
+    });
+
+    // Only proceed if something actually changed
+    if (!contentChanged && !titleChanged && !descriptionChanged) {
+      console.log('⏭️ Auto-save skipped - no changes detected');
+      return;
+    }
+
+    const timeoutId = setTimeout(() => {
+      console.log('⏰ Auto-save timeout triggered');
+      // Always save if we're in edit mode and content exists
+      if (isEditMode && caseStudyContent && caseStudyContent.trim()) {
+        console.log('💾 Auto-saving content changes...', {
+          title: editedTitle,
+          description: editedDescription,
+          contentLength: caseStudyContent.length
+        });
+        
+        // Update refs to current values
+        prevContentRef.current = currentContent;
+        prevTitleRef.current = currentTitle;
+        prevDescriptionRef.current = currentDescription;
+        
+        console.log('📤 ProjectDetail: Calling onUpdate with:', {
+          id: project.id,
+          title: editedTitle,
+          description: editedDescription,
+          contentLength: caseStudyContent?.length || 0
+        });
+        
+        onUpdate({
+          ...project,
+          title: editedTitle,
+          description: editedDescription,
+          caseStudyContent,
+        });
+      } else {
+        console.log('❌ Auto-save skipped - DETAILED REASON:', {
+          isEditMode,
+          hasContent: !!caseStudyContent,
+          contentLength: caseStudyContent?.length || 0,
+          contentTrimmed: caseStudyContent?.trim() || '',
+          contentTrimmedLength: caseStudyContent?.trim()?.length || 0,
+          'isEditMode check': isEditMode,
+          'hasContent check': !!caseStudyContent,
+          'trimmed check': caseStudyContent?.trim() ? true : false,
+          'FINAL CONDITION': `isEditMode: ${isEditMode}, hasContent: ${!!caseStudyContent}, trimmed: ${caseStudyContent?.trim() ? true : false}`,
+          'WHY SKIPPED': !isEditMode ? 'NOT IN EDIT MODE' : !caseStudyContent ? 'NO CONTENT' : !caseStudyContent?.trim() ? 'CONTENT IS EMPTY AFTER TRIM' : 'UNKNOWN'
+        });
+      }
+    }, 2000); // Save 2 seconds after last change
+
+    return () => clearTimeout(timeoutId);
+  }, [caseStudyContent, editedTitle, editedDescription, isEditMode, project, onUpdate]);
+
+  // Immediate save when user stops typing (onBlur)
+  const handleContentBlur = () => {
+    console.log('🖱️ Textarea blur triggered:', {
+      isEditMode,
+      hasContent: !!caseStudyContent,
+      contentLength: caseStudyContent?.length || 0
+    });
+    
+    if (isEditMode && caseStudyContent && caseStudyContent.trim()) {
+      console.log('💾 Immediate save on blur...');
+      
+      console.log('📤 ProjectDetail: Calling onUpdate (blur) with:', {
+        id: project.id,
+        title: editedTitle,
+        description: editedDescription,
+        contentLength: caseStudyContent?.length || 0
+      });
+      
+      onUpdate({
+        ...project,
+        title: editedTitle,
+        description: editedDescription,
+        caseStudyContent,
+      });
+      } else {
+        console.log('❌ Blur save skipped - DETAILED REASON:', {
+          isEditMode,
+          hasContent: !!caseStudyContent,
+          contentLength: caseStudyContent?.length || 0,
+          contentTrimmed: caseStudyContent?.trim() || '',
+          contentTrimmedLength: caseStudyContent?.trim()?.length || 0,
+          'isEditMode check': isEditMode,
+          'hasContent check': !!caseStudyContent,
+          'trimmed check': caseStudyContent?.trim() ? true : false,
+          'FINAL CONDITION': `isEditMode: ${isEditMode}, hasContent: ${!!caseStudyContent}, trimmed: ${caseStudyContent?.trim() ? true : false}`,
+          'WHY SKIPPED': !isEditMode ? 'NOT IN EDIT MODE' : !caseStudyContent ? 'NO CONTENT' : !caseStudyContent?.trim() ? 'CONTENT IS EMPTY AFTER TRIM' : 'UNKNOWN'
+        });
+      }
+  };
+
+  // NOTE: No useEffect for flowDiagramImages or caseStudyImages auto-save
+  // The inline saves in onImagesChange callbacks handle this correctly
+  // A useEffect here would create a race condition and save stale data
+
+  const handleSave = () => {
+    // CRITICAL: Use refs to get latest image arrays, not stale state
+    const updatedProject: ProjectData = {
+      ...project,
+      title: editedTitle,
+      description: editedDescription,
+      caseStudyContent,
+      caseStudyImages: caseStudyImagesRef.current,
+      flowDiagramImages: flowDiagramImagesRef.current,
+      videoItems: videoItemsRef.current,
+      galleryAspectRatio,
+      flowDiagramAspectRatio,
+      videoAspectRatio,
+      galleryColumns,
+      flowDiagramColumns,
+      videoColumns,
+      projectImagesPosition,
+      videosPosition,
+      flowDiagramsPosition,
+      solutionCardsPosition,
+    };
+    console.log('💾 [handleSave] Saving with', caseStudyImagesRef.current.length, 'project images,', videoItemsRef.current.length, 'videos and', flowDiagramImagesRef.current.length, 'flow diagrams');
+    onUpdate(updatedProject);
+    setIsEditing(false);
+  };
+
+  const handleAddImage = async () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        try {
+          // Use placeholder URL instead of base64
+          const { uploadImage } = await import('../utils/imageHelpers');
+          const url = await uploadImage(file, 'portrait');
+          
+          const newImage: CaseStudyImage = {
+            id: Math.random().toString(36).substr(2, 9),
+            url: url,
+            alt: file.name,
+            scale: 1,
+            position: { x: 50, y: 50 }
+          };
+          const updatedImages = [...caseStudyImages, newImage];
+          setCaseStudyImages(updatedImages);
+          
+          // Always save immediately when adding images
+          // CRITICAL: Use ref for flowDiagramImages to avoid stale state
+          const updatedProject: ProjectData = {
+            ...project,
+            title: editedTitle,
+            description: editedDescription,
+            caseStudyContent,
+            caseStudyImages: updatedImages,
+            flowDiagramImages: flowDiagramImagesRef.current,
+            videoItems: videoItemsRef.current,
+            galleryAspectRatio,
+            flowDiagramAspectRatio,
+            videoAspectRatio,
+            galleryColumns,
+            flowDiagramColumns,
+            videoColumns,
+            projectImagesPosition,
+            videosPosition,
+            flowDiagramsPosition,
+            solutionCardsPosition,
+          };
+          console.log('📸 Adding new image to project:', {
+            projectId: project.id,
+            totalImages: updatedImages.length,
+            newImageId: newImage.id,
+            placeholderUrl: url
+          });
+          onUpdate(updatedProject);
+        } catch (error) {
+          console.error('Error adding image:', error);
+          alert('Failed to add image. Please try again.');
+        }
+      }
+    };
+    input.click();
+  };
+
+  const handleRemoveImage = (id: string) => {
+    const updatedImages = caseStudyImages.filter((img) => img.id !== id);
+    setCaseStudyImages(updatedImages);
+    
+    // Always save immediately when removing images
+    // CRITICAL: Use ref for flowDiagramImages to avoid stale state
+    const updatedProject: ProjectData = {
+      ...project,
+      title: editedTitle,
+      description: editedDescription,
+      caseStudyContent,
+      caseStudyImages: updatedImages,
+      flowDiagramImages: flowDiagramImagesRef.current,
+      galleryAspectRatio,
+      flowDiagramAspectRatio,
+      galleryColumns,
+      flowDiagramColumns,
+      projectImagesPosition,
+      flowDiagramsPosition,
+      solutionCardsPosition,
+    };
+    console.log('🗑️ [handleRemoveImage] Removing image, saving with', updatedImages.length, 'project images');
+    onUpdate(updatedProject);
+  };
+
+  const handleChangeHeroImage = async () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        try {
+          // Convert file to base64 data URL for persistence
+          const reader = new FileReader();
+          reader.onloadend = async () => {
+            const newImageUrl = reader.result as string;
+            
+            // New images default to 100% zoom, centered (for both detail and home views)
+            const newScale = 1;
+            const newPosition = { x: 50, y: 50 };
+            
+            // Update local display state
+            setHeroScale(newScale);
+            setHeroPosition(newPosition);
+            
+            // CRITICAL: Use refs for image arrays to avoid stale state
+            const updatedProject: ProjectData = {
+              ...project,
+              url: newImageUrl,
+              scale: newScale, // This is for the home carousel
+              position: newPosition, // This is for the home carousel
+              title: editedTitle,
+              description: editedDescription,
+              caseStudyContent,
+              caseStudyImages: caseStudyImagesRef.current,
+              flowDiagramImages: flowDiagramImagesRef.current,
+              galleryAspectRatio,
+              flowDiagramAspectRatio,
+              galleryColumns,
+              flowDiagramColumns,
+              projectImagesPosition,
+              flowDiagramsPosition,
+              solutionCardsPosition,
+            };
+            
+            console.log('🖼️ ProjectDetail: Hero image changed, calling onUpdate with:', {
+              id: updatedProject.id,
+              newImageUrl: newImageUrl.substring(0, 50) + '...',
+              scale: newScale,
+              position: newPosition
+            });
+            
+            onUpdate(updatedProject);
+          };
+          reader.readAsDataURL(file);
+        } catch (error) {
+          console.error('Error uploading hero image:', error);
+          alert('Failed to upload image. Please try again.');
+        }
+      }
+    };
+    input.click();
+  };
+
+  // Update visual order during drag (no auto-save)
+  const moveImage = (dragIndex: number, hoverIndex: number) => {
+    setCaseStudyImages(prevImages => {
+      const updatedImages = [...prevImages];
+      const [draggedImage] = updatedImages.splice(dragIndex, 1);
+      updatedImages.splice(hoverIndex, 0, draggedImage);
+      return updatedImages;
+    });
+  };
+  
+  // Save changes and navigate back
+  const handleSaveAndBack = () => {
+    // CRITICAL: Use refs for image arrays to avoid stale state
+    const updatedProject: ProjectData = {
+      ...project,
+      title: editedTitle,
+      description: editedDescription,
+      caseStudyContent,
+      caseStudyImages: caseStudyImagesRef.current,
+      flowDiagramImages: flowDiagramImagesRef.current,
+      videoItems: videoItemsRef.current,
+      galleryAspectRatio,
+      flowDiagramAspectRatio,
+      videoAspectRatio,
+      galleryColumns,
+      flowDiagramColumns,
+      videoColumns,
+      projectImagesPosition,
+      videosPosition,
+      flowDiagramsPosition,
+      solutionCardsPosition,
+    };
+    
+    console.log('💾 [handleSaveAndBack] Saving all changes synchronously before navigation:', {
+      imageCount: caseStudyImagesRef.current.length,
+      imageIds: caseStudyImagesRef.current.map(img => img.id)
+    });
+    
+    // Save synchronously DIRECTLY to localStorage (bypass React state updates)
+    try {
+      const caseStudiesData = localStorage.getItem('caseStudies');
+      const designProjectsData = localStorage.getItem('designProjects');
+      
+      if (caseStudiesData) {
+        const caseStudies = JSON.parse(caseStudiesData);
+        const updatedCaseStudies = caseStudies.map((p: ProjectData) =>
+          p.id === project.id ? updatedProject : p
+        );
+        localStorage.setItem('caseStudies', JSON.stringify(updatedCaseStudies));
+        console.log('✅ Saved directly to localStorage');
+      } else if (designProjectsData) {
+        const designProjects = JSON.parse(designProjectsData);
+        const updatedDesignProjects = designProjects.map((p: ProjectData) =>
+          p.id === project.id ? updatedProject : p
+        );
+        localStorage.setItem('designProjects', JSON.stringify(updatedDesignProjects));
+        console.log('✅ Saved directly to localStorage');
+      }
+    } catch (e) {
+      console.error('Failed to save directly to localStorage:', e);
+    }
+    
+    // Also call onUpdate for React state updates (but don't wait for it)
+    onUpdate(updatedProject);
+    
+    // Navigate immediately (localStorage write is already complete)
+    onBack();
+  };
+  
+  // Cancel editing - discard changes and go back
+  const handleCancelEditing = () => {
+    // Restore original content
+    setCaseStudyContent(originalContent);
+    setIsEditing(false);
+  };
+  
+  // Navigate back without forcing save (for Cancel button and back navigation in preview mode)
+  const handleBack = () => {
+    // If in edit mode and editing, ask for confirmation
+    if (isEditMode && isEditing && caseStudyContent !== originalContent) {
+      if (!confirm('You have unsaved changes. Do you want to leave without saving?')) {
+        return;
+      }
+    }
+    
+    // Navigate without saving
+    onBack();
+  };
+  
+  // No-op for drag end
+  const handleDragEnd = () => {
+    // Don't save on drag end - save happens when clicking Back
+  };
+
+  const handleImageUpdate = (id: string, updates: Partial<CaseStudyImage>) => {
+    setCaseStudyImages(prevImages =>
+      prevImages.map(img => img.id === id ? { ...img, ...updates } : img)
+    );
+    // Don't auto-save - save happens when clicking Back or Done button
+  };
+
+  // Auto-save hero image adjustments ONLY when user manually adjusts in Edit mode
+  // Only save if user has explicitly changed from defaults (1, 50, 50)
+  useEffect(() => {
+    const hasBeenAdjusted = heroScale !== 1 || heroPosition.x !== 50 || heroPosition.y !== 50;
+    const isDifferentFromSaved = heroScale !== project.scale || heroPosition.x !== project.position.x || heroPosition.y !== project.position.y;
+    
+    // Only save if user manually adjusted AND it's different from what's saved
+    if (isEditingHeroImage && hasBeenAdjusted && isDifferentFromSaved) {
+      const timer = setTimeout(() => {
+        // CRITICAL: Use refs for image arrays to avoid stale state
+        const updatedProject: ProjectData = {
+          ...project,
+          scale: heroScale,
+          position: heroPosition,
+          title: editedTitle,
+          description: editedDescription,
+          caseStudyContent,
+          caseStudyImages: caseStudyImagesRef.current,
+          flowDiagramImages: flowDiagramImagesRef.current,
+          videoItems: videoItemsRef.current,
+          galleryAspectRatio,
+          flowDiagramAspectRatio,
+          videoAspectRatio,
+          galleryColumns,
+          flowDiagramColumns,
+          videoColumns,
+          projectImagesPosition,
+          videosPosition,
+          flowDiagramsPosition,
+          solutionCardsPosition,
+        };
+        onUpdate(updatedProject);
+      }, 300); // Debounce to avoid saving on every pixel moved
+      
+      return () => clearTimeout(timer);
+    }
+  }, [heroScale, heroPosition.x, heroPosition.y, isEditingHeroImage]);
+
+  const handleHeroMouseDown = (e: React.MouseEvent) => {
+    if (!isEditingHeroImage) return;
+    e.stopPropagation();
+    setIsDraggingHero(true);
+  };
+
+  const handleHeroMouseMove = (e: React.MouseEvent) => {
+    if (!isDraggingHero || !heroImageRef.current) return;
+    e.stopPropagation();
+    e.preventDefault();
+    
+    const rect = heroImageRef.current.getBoundingClientRect();
+    const x = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
+    const y = Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100));
+    
+    setHeroPosition({ x, y });
+  };
+
+  const handleHeroMouseUp = () => {
+    setIsDraggingHero(false);
+  };
+
+  const handleMoveProjectImages = (direction: 'up' | 'down') => {
+    const currentPos = projectImagesPosition;
+    const targetPos = direction === 'up' ? currentPos - 1 : currentPos + 1;
+    
+    // Don't move if at boundary
+    if (direction === 'up' && currentPos === 0) return;
+    
+    // Find what section is at the target position and swap with it
+    let newProjectImagesPos = targetPos;
+    let newVideosPos = videosPosition;
+    let newFlowDiagramsPos = flowDiagramsPosition;
+    let newSolutionCardsPos = solutionCardsPosition;
+    
+    if (videosPosition === targetPos) {
+      // Swap with Videos
+      newVideosPos = currentPos;
+      newProjectImagesPos = targetPos;
+    } else if (flowDiagramsPosition === targetPos) {
+      // Swap with Flow Diagrams
+      newFlowDiagramsPos = currentPos;
+      newProjectImagesPos = targetPos;
+    } else if (solutionCardsPosition === targetPos) {
+      // Swap with Solution Cards
+      newSolutionCardsPos = currentPos;
+      newProjectImagesPos = targetPos;
+    }
+    
+    console.log(`📦 Swapping Project Images: ${currentPos} ↔ ${targetPos}`);
+    
+    setProjectImagesPosition(newProjectImagesPos);
+    setVideosPosition(newVideosPos);
+    setFlowDiagramsPosition(newFlowDiagramsPos);
+    setSolutionCardsPosition(newSolutionCardsPos);
+    
+    const updatedProject: ProjectData = {
+      ...project,
+      title: editedTitle,
+      description: editedDescription,
+      caseStudyContent,
+      caseStudyImages: caseStudyImagesRef.current,
+      flowDiagramImages: flowDiagramImagesRef.current,
+      videoItems: videoItemsRef.current,
+      galleryAspectRatio,
+      flowDiagramAspectRatio,
+      videoAspectRatio,
+      galleryColumns,
+      flowDiagramColumns,
+      videoColumns,
+      projectImagesPosition: newProjectImagesPos,
+      videosPosition,
+      flowDiagramsPosition: newFlowDiagramsPos,
+      solutionCardsPosition: newSolutionCardsPos,
+    };
+    onUpdate(updatedProject);
+  };
+
+  const handleMoveVideos = (direction: 'up' | 'down') => {
+    const currentPos = videosPosition;
+    const targetPos = direction === 'up' ? currentPos - 1 : currentPos + 1;
+    
+    // Don't move if at boundary
+    if (direction === 'up' && currentPos === 0) return;
+    
+    // Find what section is at the target position and swap with it
+    let newProjectImagesPos = projectImagesPosition;
+    let newVideosPos = targetPos;
+    let newFlowDiagramsPos = flowDiagramsPosition;
+    let newSolutionCardsPos = solutionCardsPosition;
+    
+    if (projectImagesPosition === targetPos) {
+      // Swap with Project Images
+      newProjectImagesPos = currentPos;
+      newVideosPos = targetPos;
+    } else if (flowDiagramsPosition === targetPos) {
+      // Swap with Flow Diagrams
+      newFlowDiagramsPos = currentPos;
+      newVideosPos = targetPos;
+    } else if (solutionCardsPosition === targetPos) {
+      // Swap with Solution Cards
+      newSolutionCardsPos = currentPos;
+      newVideosPos = targetPos;
+    }
+    
+    console.log(`📹 Swapping Videos: ${currentPos} ↔ ${targetPos}`);
+    
+    setProjectImagesPosition(newProjectImagesPos);
+    setVideosPosition(newVideosPos);
+    setFlowDiagramsPosition(newFlowDiagramsPos);
+    setSolutionCardsPosition(newSolutionCardsPos);
+    
+    const updatedProject: ProjectData = {
+      ...project,
+      title: editedTitle,
+      description: editedDescription,
+      caseStudyContent,
+      caseStudyImages: caseStudyImagesRef.current,
+      flowDiagramImages: flowDiagramImagesRef.current,
+      videoItems: videoItemsRef.current,
+      galleryAspectRatio,
+      flowDiagramAspectRatio,
+      videoAspectRatio,
+      galleryColumns,
+      flowDiagramColumns,
+      videoColumns,
+      projectImagesPosition: newProjectImagesPos,
+      videosPosition: newVideosPos,
+      flowDiagramsPosition: newFlowDiagramsPos,
+      solutionCardsPosition: newSolutionCardsPos,
+    };
+    onUpdate(updatedProject);
+  };
+
+  const handleMoveFlowDiagrams = (direction: 'up' | 'down') => {
+    const currentPos = flowDiagramsPosition;
+    const targetPos = direction === 'up' ? currentPos - 1 : currentPos + 1;
+    
+    // Don't move if at boundary
+    if (direction === 'up' && currentPos === 0) return;
+    
+    // Find what section is at the target position and swap with it
+    let newProjectImagesPos = projectImagesPosition;
+    let newVideosPos = videosPosition;
+    let newFlowDiagramsPos = targetPos;
+    let newSolutionCardsPos = solutionCardsPosition;
+    
+    if (projectImagesPosition === targetPos) {
+      // Swap with Project Images
+      newProjectImagesPos = currentPos;
+      newFlowDiagramsPos = targetPos;
+    } else if (videosPosition === targetPos) {
+      // Swap with Videos
+      newVideosPos = currentPos;
+      newFlowDiagramsPos = targetPos;
+    } else if (solutionCardsPosition === targetPos) {
+      // Swap with Solution Cards
+      newSolutionCardsPos = currentPos;
+      newFlowDiagramsPos = targetPos;
+    }
+    
+    console.log(`📊 Swapping Flow Diagrams: ${currentPos} ↔ ${targetPos}`);
+    
+    setProjectImagesPosition(newProjectImagesPos);
+    setVideosPosition(newVideosPos);
+    setFlowDiagramsPosition(newFlowDiagramsPos);
+    setSolutionCardsPosition(newSolutionCardsPos);
+    
+    const updatedProject: ProjectData = {
+      ...project,
+      title: editedTitle,
+      description: editedDescription,
+      caseStudyContent,
+      caseStudyImages: caseStudyImagesRef.current,
+      flowDiagramImages: flowDiagramImagesRef.current,
+      videoItems: videoItemsRef.current,
+      galleryAspectRatio,
+      flowDiagramAspectRatio,
+      videoAspectRatio,
+      galleryColumns,
+      flowDiagramColumns,
+      videoColumns,
+      projectImagesPosition: newProjectImagesPos,
+      videosPosition: newVideosPos,
+      flowDiagramsPosition: newFlowDiagramsPos,
+      solutionCardsPosition: newSolutionCardsPos,
+    };
+    onUpdate(updatedProject);
+  };
+
+  const handleMoveSolutionCards = (direction: 'up' | 'down') => {
+    const currentPos = solutionCardsPosition;
+    const targetPos = direction === 'up' ? currentPos - 1 : currentPos + 1;
+    
+    console.log(`🎴 Attempting to move Solution Cards ${direction}: ${currentPos} → ${targetPos}`);
+    
+    // Don't move if at boundary
+    if (direction === 'up' && currentPos === 0) {
+      console.log(`⚠️ Can't move up - already at top`);
+      return;
+    }
+    
+    // Find what section is at the target position and swap with it
+    let newProjectImagesPos = projectImagesPosition;
+    let newVideosPos = videosPosition;
+    let newFlowDiagramsPos = flowDiagramsPosition;
+    let newSolutionCardsPos = targetPos;
+    
+    if (projectImagesPosition === targetPos) {
+      // Swap with Project Images
+      console.log(`↔️ Swapping Solution Cards with Project Images`);
+      newProjectImagesPos = currentPos;
+      newSolutionCardsPos = targetPos;
+    } else if (videosPosition === targetPos) {
+      // Swap with Videos
+      console.log(`↔️ Swapping Solution Cards with Videos`);
+      newVideosPos = currentPos;
+      newSolutionCardsPos = targetPos;
+    } else if (flowDiagramsPosition === targetPos) {
+      // Swap with Flow Diagrams
+      console.log(`↔️ Swapping Solution Cards with Flow Diagrams`);
+      newFlowDiagramsPos = currentPos;
+      newSolutionCardsPos = targetPos;
+    } else {
+      // Moving past a markdown section - just increment/decrement
+      console.log(`📝 Moving past markdown section at position ${targetPos}`);
+      newSolutionCardsPos = targetPos;
+    }
+    
+    console.log(`✅ New positions:`, {
+      projectImages: newProjectImagesPos,
+      videos: newVideosPos,
+      flowDiagrams: newFlowDiagramsPos,
+      solutionCards: newSolutionCardsPos
+    });
+    
+    setProjectImagesPosition(newProjectImagesPos);
+    setVideosPosition(newVideosPos);
+    setFlowDiagramsPosition(newFlowDiagramsPos);
+    setSolutionCardsPosition(newSolutionCardsPos);
+    
+    const updatedProject: ProjectData = {
+      ...project,
+      title: editedTitle,
+      description: editedDescription,
+      caseStudyContent,
+      caseStudyImages: caseStudyImagesRef.current,
+      flowDiagramImages: flowDiagramImagesRef.current,
+      videoItems: videoItemsRef.current,
+      galleryAspectRatio,
+      flowDiagramAspectRatio,
+      videoAspectRatio,
+      galleryColumns,
+      flowDiagramColumns,
+      videoColumns,
+      projectImagesPosition: newProjectImagesPos,
+      videosPosition: newVideosPos,
+      flowDiagramsPosition: newFlowDiagramsPos,
+      solutionCardsPosition: newSolutionCardsPos,
+    };
+    onUpdate(updatedProject);
+  };
+
+  // Markdown section move handler - only swaps with other markdown sections
+  const handleMoveMarkdownSection = (sectionTitle: string, direction: 'up' | 'down') => {
+    console.log(`📝 Moving markdown section "${sectionTitle}" ${direction}`);
+    
+    // Build the combined sections list to find actual positions
+    const sections = caseStudyContent?.split('\n---\n').map(section => {
+      const lines = section.trim().split('\n');
+      const firstLine = lines[0];
+      const titleMatch = firstLine.match(/^# (.+)$/);
+      return titleMatch ? titleMatch[1].trim() : null;
+    }).filter(Boolean);
+    
+    // Filter out special sections
+    const markdownSections = sections.filter(s => 
+      s !== 'At a glance' && s !== 'Impact'
+    );
+    
+    // Build combined list with positions
+    const combined: Array<{ title: string; type: 'markdown' | 'special'; position: number }> = [];
+    let markdownIndex = 0;
+    
+    for (let i = 0; i < 20; i++) { // Max 20 positions
+      // Check if Project Images is at this position
+      if (projectImagesPosition === i && (caseStudyImages.length > 0 || isEditMode)) {
+        combined.push({ title: '__PROJECT_IMAGES__', type: 'special', position: i });
+        continue;
+      }
+      
+      // Check if Flow Diagrams is at this position
+      if (flowDiagramsPosition === i && (flowDiagramImages.length > 0 || isEditMode)) {
+        combined.push({ title: '__FLOW_DIAGRAMS__', type: 'special', position: i });
+        continue;
+      }
+      
+      // Check if Solution Cards is at this position
+      if (solutionCardsPosition === i) {
+        combined.push({ title: '__SOLUTION_CARDS__', type: 'special', position: i });
+        continue;
+      }
+      
+      // Otherwise, add next markdown section if available
+      if (markdownIndex < markdownSections.length) {
+        combined.push({ 
+          title: markdownSections[markdownIndex], 
+          type: 'markdown', 
+          position: i 
+        });
+        markdownIndex++;
+      }
+    }
+    
+    console.log('📋 Combined sections:', combined.map(c => `${c.title} (${c.type}) @${c.position}`));
+    
+    // Find current section in combined list
+    const currentIndex = combined.findIndex(c => c.title === sectionTitle);
+    if (currentIndex === -1) {
+      console.error('❌ Section not found in combined list');
+      return;
+    }
+    
+    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    
+    // Check boundaries
+    if (targetIndex < 0 || targetIndex >= combined.length) {
+      console.log('⚠️ Already at boundary');
+      return;
+    }
+    
+    const current = combined[currentIndex];
+    const target = combined[targetIndex];
+    
+    console.log(`↔️ Swapping "${current.title}" (${current.type}) with "${target.title}" (${target.type})`);
+    console.log(`  Current at position ${currentIndex}, Target at position ${targetIndex}`);
+    console.log(`  Direction: ${direction}`);
+    
+    if (target.type === 'special') {
+      // Cannot swap markdown sections with special sections
+      // Use the purple control bars on special sections instead
+      console.log('⚠️ Cannot swap markdown section with special section');
+      console.log('💡 Use the purple control bar arrows on the special section instead');
+      alert(
+        '⚠️ Cannot Move Past Special Sections\n\n' +
+        `"${sectionTitle}" is adjacent to "${target.title?.replace(/__/g, '')?.replace(/_/g, ' ') || 'Unknown'}".\n\n` +
+        'To reorder around special sections:\n\n' +
+        '1. Use the PURPLE CONTROL BAR arrows on:\n' +
+        '   • Project Images\n' +
+        '   • Flow Diagrams\n' +
+        '   • Solution Cards\n\n' +
+        '2. Move the special section up/down\n' +
+        '3. Then move this markdown section'
+      );
+      return;
+      
+    } else {
+      // Swapping with another markdown section - update markdown content
+      console.log('📝 Swapping markdown sections in content');
+      
+      const lines = caseStudyContent?.split('\n') || [];
+      const allSections: Array<{ title: string; startLine: number; endLine: number }> = [];
+      
+      // Find all section boundaries
+      for (let i = 0; i < lines.length; i++) {
+        const headerMatch = lines[i].match(/^# (.+)$/);
+        if (headerMatch) {
+          const title = headerMatch[1].trim();
+          allSections.push({ title, startLine: i, endLine: -1 });
+          
+          if (allSections.length > 1) {
+            allSections[allSections.length - 2].endLine = i - 1;
+          }
+        }
+      }
+      
+      if (allSections.length > 0) {
+        allSections[allSections.length - 1].endLine = lines.length - 1;
+      }
+      
+      const currentSection = allSections.find(s => s.title === sectionTitle);
+      const targetSection = allSections.find(s => s.title === target.title);
+      
+      if (!currentSection || !targetSection) {
+        console.error('❌ Sections not found in markdown');
+        return;
+      }
+      
+      // Extract section content
+      const currentLines = lines.slice(currentSection.startLine, currentSection.endLine + 1);
+      const targetLines = lines.slice(targetSection.startLine, targetSection.endLine + 1);
+      
+      // Rebuild content with swapped sections
+      const newLines = direction === 'up' ? [
+        ...lines.slice(0, targetSection.startLine),
+        ...currentLines,
+        ...targetLines,
+        ...lines.slice(currentSection.endLine + 1)
+      ] : [
+        ...lines.slice(0, currentSection.startLine),
+        ...targetLines,
+        ...currentLines,
+        ...lines.slice(targetSection.endLine + 1)
+      ];
+      
+      const newContent = newLines.join('\n');
+      console.log('✅ Markdown content updated');
+      setCaseStudyContent(newContent);
+      
+      const updatedProject: ProjectData = {
+        ...project,
+        title: editedTitle,
+        description: editedDescription,
+        caseStudyContent: newContent,
+        caseStudyImages: caseStudyImagesRef.current,
+        flowDiagramImages: flowDiagramImagesRef.current,
+        galleryAspectRatio,
+        flowDiagramAspectRatio,
+        galleryColumns,
+        flowDiagramColumns,
+        projectImagesPosition,
+        flowDiagramsPosition,
+        solutionCardsPosition,
+      };
+      onUpdate(updatedProject);
+    }
+  };
+
+  // OLD: Universal section move handler - works for ANY section
+  const handleMoveSection = (sectionId: string, direction: 'up' | 'down') => {
+    const currentPos = sectionPositions[sectionId];
+    if (currentPos === undefined) {
+      console.error(`Section ${sectionId} not found in positions`);
+      return;
+    }
+    
+    const targetPos = direction === 'up' ? currentPos - 1 : currentPos + 1;
+    
+    // Find all sections to get boundaries
+    const allPositions = Object.values(sectionPositions);
+    const minPos = Math.min(...allPositions);
+    const maxPos = Math.max(...allPositions);
+    
+    // Don't move if at boundary
+    if (targetPos < minPos || targetPos > maxPos) {
+      console.log(`Cannot move ${sectionId} ${direction} - at boundary`);
+      return;
+    }
+    
+    // Find what section is at the target position
+    const targetSectionId = Object.keys(sectionPositions).find(
+      id => sectionPositions[id] === targetPos
+    );
+    
+    if (!targetSectionId) {
+      console.error(`No section found at position ${targetPos}`);
+      return;
+    }
+    
+    console.log(`🔄 Swapping "${sectionId}" (${currentPos}) ↔ "${targetSectionId}" (${targetPos})`);
+    
+    // Swap the two sections
+    const newPositions = {
+      ...sectionPositions,
+      [sectionId]: targetPos,
+      [targetSectionId]: currentPos
+    };
+    
+    setSectionPositions(newPositions);
+    
+    // Auto-save
+    const updatedProject: ProjectData = {
+      ...project,
+      title: editedTitle,
+      description: editedDescription,
+      caseStudyContent,
+      caseStudyImages: caseStudyImagesRef.current,
+      flowDiagramImages: flowDiagramImagesRef.current,
+      galleryAspectRatio,
+      flowDiagramAspectRatio,
+      galleryColumns,
+      flowDiagramColumns,
+      projectImagesPosition,
+      flowDiagramsPosition,
+      solutionCardsPosition,
+      sectionPositions: newPositions,
+    };
+    onUpdate(updatedProject);
+  };
+
+  // Handler for updating "At a glance" sidebar
+  const handleUpdateAtAGlance = (title: string, content: string) => {
+    // Update the markdown content by replacing the "At a glance" section
+    const lines = caseStudyContent?.split('\n') || [];
+    const newLines: string[] = [];
+    let inAtAGlance = false;
+    let foundAtAGlance = false;
+    
+    for (const line of lines) {
+      const topLevelMatch = line.trim().match(/^# (.+)$/);
+      
+      if (topLevelMatch) {
+        const sectionTitle = topLevelMatch[1].trim();
+        
+        // Found "At a glance" - replace it
+        if (sectionTitle === "At a glance") {
+          foundAtAGlance = true;
+          inAtAGlance = true;
+          newLines.push(`# ${title}`);
+          newLines.push(content);
+          continue;
+        } else {
+          // Hit another top-level section - stop skipping
+          inAtAGlance = false;
+        }
+      }
+      
+      // Skip old "At a glance" content
+      if (inAtAGlance) {
+        continue;
+      }
+      
+      newLines.push(line);
+    }
+    
+    // If "At a glance" wasn't found, add it at the beginning
+    if (!foundAtAGlance) {
+      newLines.unshift(`# ${title}`, content, '');
+    }
+    
+    const newContent = newLines.join('\n');
+    setCaseStudyContent(newContent);
+    
+    // Auto-save
+    const updatedProject: ProjectData = {
+      ...project,
+      title: editedTitle,
+      description: editedDescription,
+      caseStudyContent: newContent,
+      caseStudyImages: caseStudyImagesRef.current,
+      flowDiagramImages: flowDiagramImagesRef.current,
+      galleryAspectRatio,
+      flowDiagramAspectRatio,
+      galleryColumns,
+      flowDiagramColumns,
+      projectImagesPosition,
+      flowDiagramsPosition,
+      solutionCardsPosition,
+      sectionPositions,
+    };
+    onUpdate(updatedProject);
+  };
+
+  // Handler for updating "Impact" sidebar
+  const handleUpdateImpact = (title: string, content: string) => {
+    // Update the markdown content by replacing the "Impact" subsection
+    const lines = caseStudyContent?.split('\n') || [];
+    const newLines: string[] = [];
+    let inImpact = false;
+    let foundImpact = false;
+    
+    for (const line of lines) {
+      const subsectionMatch = line.trim().match(/^## (.+)$/);
+      const topLevelMatch = line.trim().match(/^# (.+)$/);
+      
+      // Found "Impact" subsection - replace it
+      if (subsectionMatch) {
+        const subsectionTitle = subsectionMatch[1].trim();
+        
+        if (subsectionTitle === "Impact") {
+          foundImpact = true;
+          inImpact = true;
+          newLines.push(`## ${title}`);
+          newLines.push(content);
+          continue;
+        } else {
+          // Hit another subsection - stop skipping
+          inImpact = false;
+        }
+      }
+      
+      // Hit another top-level section - stop skipping
+      if (topLevelMatch && inImpact) {
+        inImpact = false;
+      }
+      
+      // Skip old "Impact" content
+      if (inImpact) {
+        continue;
+      }
+      
+      newLines.push(line);
+    }
+    
+    // If "Impact" wasn't found, add it as a subsection of "The Solution"
+    if (!foundImpact) {
+      // Find "The Solution" section and add Impact there
+      const solutionIndex = newLines.findIndex(line => line.trim().match(/^# The Solution$/i));
+      if (solutionIndex >= 0) {
+        newLines.splice(solutionIndex + 1, 0, '', `## ${title}`, content, '');
+      } else {
+        // If no Solution section, just add at end
+        newLines.push('', `## ${title}`, content);
+      }
+    }
+    
+    const newContent = newLines.join('\n');
+    setCaseStudyContent(newContent);
+    
+    // Auto-save
+    const updatedProject: ProjectData = {
+      ...project,
+      title: editedTitle,
+      description: editedDescription,
+      caseStudyContent: newContent,
+      caseStudyImages: caseStudyImagesRef.current,
+      flowDiagramImages: flowDiagramImagesRef.current,
+      galleryAspectRatio,
+      flowDiagramAspectRatio,
+      galleryColumns,
+      flowDiagramColumns,
+      projectImagesPosition,
+      flowDiagramsPosition,
+      solutionCardsPosition,
+      sectionPositions,
+    };
+    onUpdate(updatedProject);
+  };
+
+  // Memoize expensive position calculations to prevent timeout
+  const { actualPositions, totalSections } = useMemo(() => {
+    console.log('🔄 Calculating actualPositions and totalSections...');
+    
+    // Parse sections once
+    const lines = caseStudyContent?.split('\n') || [];
+    const sections = lines?.filter(line => (line || '').trim().match(/^# (.+)$/)).map(line => (line || '').trim().substring(2).trim()) || [];
+    const decorativeCardSections = ["Overview", "My role", "Research insights", "Competitive analysis"];
+    
+    // Build base items
+    const items: Array<{ title: string; type: string }> = sections.filter(title => {
+      if (title === "At a glance" || title === "Impact") return false;
+      const isDecorative = decorativeCardSections.some(dec => title.toLowerCase().includes(dec.toLowerCase()));
+      const isSolution = title.toLowerCase().includes("solution");
+      return isDecorative || isSolution;
+    }).map(s => ({ title: s, type: 'section' }));
+    
+    // Collect insertions
+    const insertions: Array<{ pos: number; item: { title: string; type: string } }> = [];
+    
+    if (caseStudyImages.length > 0 || isEditMode) {
+      insertions.push({ 
+        pos: projectImagesPosition, 
+        item: { title: '__PROJECT_IMAGES__', type: 'gallery' }
+      });
+    }
+    
+    if (videoItems.length > 0 || isEditMode) {
+      insertions.push({ 
+        pos: videosPosition, 
+        item: { title: '__VIDEOS__', type: 'gallery' }
+      });
+    }
+    
+    if (flowDiagramImages.length > 0 || isEditMode) {
+      insertions.push({ 
+        pos: flowDiagramsPosition, 
+        item: { title: '__FLOW_DIAGRAMS__', type: 'gallery' }
+      });
+    }
+    
+    const hasCards = sections.some(title => {
+      if (title === "At a glance" || title === "Impact") return false;
+      const isDecorative = decorativeCardSections.some(dec => title.toLowerCase().includes(dec.toLowerCase()));
+      const isSolution = title.toLowerCase().includes("solution");
+      return !isDecorative && !isSolution;
+    });
+    
+    if (hasCards || isEditMode) {
+      insertions.push({ 
+        pos: solutionCardsPosition, 
+        item: { title: '__SOLUTION_CARDS__', type: 'gallery' }
+      });
+    }
+    
+    // Sort descending (highest first) to avoid index shifting
+    insertions.sort((a, b) => b.pos - a.pos);
+    
+    // Insert in descending order
+    for (const insertion of insertions) {
+      items.splice(Math.min(insertion.pos, items.length), 0, insertion.item);
+    }
+    
+    // Find actual indices
+    const projectImagesActual = items.findIndex(item => item.title === '__PROJECT_IMAGES__');
+    const videosActual = items.findIndex(item => item.title === '__VIDEOS__');
+    const flowDiagramsActual = items.findIndex(item => item.title === '__FLOW_DIAGRAMS__');
+    const solutionCardsActual = items.findIndex(item => item.title === '__SOLUTION_CARDS__');
+    
+    console.log('✅ Calculated positions:', {
+      projectImages: projectImagesActual,
+      videos: videosActual,
+      flowDiagrams: flowDiagramsActual,
+      solutionCards: solutionCardsActual,
+      total: items.length
+    });
+    
+    return {
+      actualPositions: {
+        projectImages: projectImagesActual,
+        videos: videosActual,
+        flowDiagrams: flowDiagramsActual,
+        solutionCards: solutionCardsActual,
+        total: items.length
+      },
+      totalSections: items.length
+    };
+  }, [
+    caseStudyContent,
+    caseStudyImages.length,
+    videoItems.length,
+    flowDiagramImages.length,
+    projectImagesPosition,
+    videosPosition,
+    flowDiagramsPosition,
+    solutionCardsPosition,
+    isEditMode
+  ]);
+
+  return (
+    <PageLayout title={project.description || project.title} onBack={handleBack} overline={project.title}>
+      <div className={!isEditing && atGlanceContent ? "flex flex-col lg:flex-row gap-16" : "space-y-16"}>
+        {/* Main Content */}
+        <div className={!isEditing && atGlanceContent ? "flex-1 space-y-16 min-w-0 w-full lg:w-auto" : "space-y-16"}>
+        {/* Hero Image Section - Order 2 on mobile (after title, before sidebars) */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="relative p-8 bg-gradient-to-br from-slate-50/80 via-blue-50/60 to-purple-50/40 dark:from-slate-900/20 dark:via-blue-900/10 dark:to-purple-900/10 backdrop-blur-sm rounded-3xl border border-border shadow-2xl overflow-hidden group order-2 lg:order-none"
+        >
+          <div 
+            ref={heroImageRef}
+            className="aspect-video overflow-hidden rounded-2xl shadow-2xl relative"
+            style={{
+              background: 'linear-gradient(135deg, #ec4899 0%, #8b5cf6 25%, #3b82f6 50%, #06b6d4 75%, #fbbf24 100%)',
+              cursor: isEditingHeroImage ? 'crosshair' : 'pointer'
+            }}
+            onClick={() => !isEditMode && !isEditingHeroImage && setLightboxImage({ id: 'hero', url: project.url, alt: project.title })}
+            onMouseDown={handleHeroMouseDown}
+            onMouseMove={handleHeroMouseMove}
+            onMouseUp={handleHeroMouseUp}
+            onMouseLeave={handleHeroMouseUp}
+          >
+            <div
+              className="w-full h-full"
+              style={{
+                backgroundImage: `url(${project.url})`,
+                backgroundSize: `${heroScale * 100}%`,
+                backgroundPosition: `${heroPosition.x}% ${heroPosition.y}%`,
+                backgroundRepeat: "no-repeat",
+              }}
+            />
+            {/* Edit Buttons - Only visible in Edit Mode when not editing */}
+            {isEditMode && !isEditingHeroImage && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="absolute inset-0 bg-black/50 flex items-center justify-center gap-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+              >
+                <Button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleChangeHeroImage();
+                  }}
+                  size="lg"
+                  className="rounded-full shadow-xl"
+                >
+                  <ImageIcon className="w-5 h-5 mr-2" />
+                  Change Image
+                </Button>
+                <Button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsEditingHeroImage(true);
+                  }}
+                  size="lg"
+                  variant="secondary"
+                  className="rounded-full shadow-xl"
+                >
+                  <Edit2 className="w-5 h-5 mr-2" />
+                  Adjust Image
+                </Button>
+              </motion.div>
+            )}
+            
+            {/* Image Editor for Hero Image */}
+            {isEditingHeroImage && (
+              <>
+                <ImageEditor
+                  scale={heroScale}
+                  position={heroPosition}
+                  onScaleChange={setHeroScale}
+                  onPositionChange={setHeroPosition}
+                  onReset={() => {
+                    setHeroScale(1);
+                    setHeroPosition({ x: 50, y: 50 });
+                  }}
+                />
+                <Button
+                  size="sm"
+                  variant="default"
+                  className="absolute bottom-4 right-4 z-30 shadow-lg"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsEditingHeroImage(false);
+                  }}
+                >
+                  Done
+                </Button>
+              </>
+            )}
+          </div>
+        </motion.div>
+
+        {/* Case Study Content - Separate Cards for Each Section - Order 4 on mobile (after hero and sidebars) */}
+        {isEditMode && isEditing ? (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className="order-4 lg:order-none"
+          >
+            <div className="p-8 bg-gradient-to-br from-slate-50/10 via-white/15 to-gray-50/8 dark:from-slate-800/30 dark:via-slate-900/25 dark:to-slate-800/20 backdrop-blur-md rounded-2xl border border-border/30 shadow-lg">
+              <label className="block mb-4">Case Study Content</label>
+              
+              <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-500/30 rounded-xl text-sm text-blue-900 dark:text-blue-100">
+                <p className="font-semibold mb-2">💡 Editing Markdown Sections</p>
+                <p className="text-xs">
+                  Edit the content below to modify your case study sections. 
+                  Separate sections with <code className="bg-blue-900/20 dark:bg-blue-100/20 px-1.5 py-0.5 rounded">---</code>
+                </p>
+              </div>
+              
+              <Textarea
+                value={caseStudyContent}
+                onChange={(e) => setCaseStudyContent(e.target.value)}
+                onBlur={handleContentBlur}
+                placeholder="Write your detailed case study content here..."
+                rows={12}
+                className="font-normal"
+              />
+              <div className="flex gap-3 mt-4">
+                <Button
+                  onClick={() => {
+                    // Immediately persist the changes to localStorage
+                    const updatedProject: ProjectData = {
+                      ...project,
+                      title: editedTitle,
+                      description: editedDescription,
+                      caseStudyContent: caseStudyContent,
+                      caseStudyImages: caseStudyImagesRef.current,
+                      flowDiagramImages: flowDiagramImagesRef.current,
+                      videoItems: videoItemsRef.current,
+                      galleryAspectRatio,
+                      flowDiagramAspectRatio,
+                      videoAspectRatio,
+                      galleryColumns,
+                      flowDiagramColumns,
+                      videoColumns,
+                      projectImagesPosition,
+                      videosPosition,
+                      flowDiagramsPosition,
+                      solutionCardsPosition,
+                    };
+                    
+                    console.log('💾 Saving reordered content to localStorage');
+                    onUpdate(updatedProject);
+                    
+                    setShowSaveIndicator(true);
+                    setTimeout(() => setShowSaveIndicator(false), 3000);
+                    
+                    setIsEditing(false);
+                  }}
+                  className="flex-1"
+                >
+                  Save Changes
+                </Button>
+                <Button
+                  onClick={handleCancelEditing}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </motion.div>
+        ) : (
+          <div className="order-4 lg:order-none">
+            <CaseStudySections 
+            content={caseStudyContent}
+            isEditMode={isEditMode}
+            onEditClick={() => {
+              setOriginalContent(caseStudyContent); // Save current content before editing
+              setIsEditing(true);
+            }}
+            onContentUpdate={(newContent) => {
+              console.log('📝 onContentUpdate called - updating case study content');
+              console.log('  Old content length:', caseStudyContent.length);
+              console.log('  New content length:', newContent.length);
+              
+              // Update content when individual section is edited
+              setCaseStudyContent(newContent);
+              
+              // Auto-save the project
+              const updatedProject: ProjectData = {
+                ...project,
+                title: editedTitle,
+                description: editedDescription,
+                caseStudyContent: newContent,
+                caseStudyImages: caseStudyImagesRef.current,
+                flowDiagramImages: flowDiagramImagesRef.current,
+                galleryAspectRatio,
+                flowDiagramAspectRatio,
+                galleryColumns,
+                flowDiagramColumns,
+                projectImagesPosition,
+                flowDiagramsPosition,
+                solutionCardsPosition,
+              };
+              
+              console.log('💾 Calling onUpdate to save project with new content');
+              onUpdate(updatedProject);
+              console.log('✅ onUpdate completed');
+            }}
+            atAGlanceSidebar={atGlanceContent ? (
+              <AtAGlanceSidebar 
+                content={atGlanceContent.content} 
+                isEditMode={isEditMode}
+                onUpdate={handleUpdateAtAGlance}
+              />
+            ) : undefined}
+            impactSidebar={impactContent ? (
+              <ImpactSidebar 
+                content={impactContent.content}
+                isEditMode={isEditMode}
+                onUpdate={handleUpdateImpact}
+              />
+            ) : undefined}
+            projectImagesPosition={projectImagesPosition}
+            videosPosition={videosPosition}
+            flowDiagramsPosition={flowDiagramsPosition}
+            solutionCardsPosition={solutionCardsPosition}
+            onMoveProjectImages={handleMoveProjectImages}
+            onMoveVideos={handleMoveVideos}
+            onMoveFlowDiagrams={handleMoveFlowDiagrams}
+            onMoveSolutionCards={handleMoveSolutionCards}
+            onMoveMarkdownSection={handleMoveMarkdownSection}
+            actualPositions={actualPositions}
+            totalSections={totalSections}
+            imageGallerySlot={
+              (caseStudyImages.length > 0 || isEditMode) ? (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.6 }}
+                >
+                  <div className="p-8 bg-gradient-to-br from-slate-50/10 via-white/15 to-gray-50/8 dark:from-slate-800/30 dark:via-slate-900/25 dark:to-slate-800/20 backdrop-blur-md rounded-2xl border border-border/30 shadow-lg">
+                    <div className="flex items-center gap-3 mb-8">
+                      <div className="p-3 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl text-purple-600 dark:text-purple-400 shadow-md">
+                        <ImageIcon className="w-6 h-6" />
+                      </div>
+                      <h3>Project Images</h3>
+                    </div>
+
+                    <FlowDiagramGallery
+                      images={caseStudyImages}
+                      onImagesChange={(newImages) => {
+                        console.log('🖼️ [ProjectDetail] Project Images changed:', {
+                          projectId: project.id,
+                          projectTitle: project.title,
+                          oldCount: caseStudyImages.length,
+                          newCount: newImages.length,
+                          deletedCount: caseStudyImages.length - newImages.length,
+                          oldIds: caseStudyImages.map(img => img.id),
+                          newIds: newImages.map(img => img.id),
+                          timestamp: new Date().toISOString()
+                        });
+                        
+                        // CRITICAL: Update ref SYNCHRONOUSLY before saving
+                        caseStudyImagesRef.current = newImages;
+                        setCaseStudyImages(newImages);
+                        
+                        // Auto-save when images change
+                        // Use refs for BOTH arrays to ensure we have the latest data
+                        const updatedProject: ProjectData = {
+                          ...project,
+                          title: editedTitle,
+                          description: editedDescription,
+                          caseStudyContent,
+                          caseStudyImages: newImages,
+                          flowDiagramImages: flowDiagramImagesRef.current,
+                          galleryAspectRatio,
+                          flowDiagramAspectRatio,
+                          galleryColumns,
+                          flowDiagramColumns,
+                          projectImagesPosition,
+                          flowDiagramsPosition,
+                          solutionCardsPosition,
+                        };
+                        console.log('💾 [ProjectDetail] Calling onUpdate with', newImages.length, 'project images and', flowDiagramImagesRef.current.length, 'flow diagrams');
+                        onUpdate(updatedProject);
+                        console.log('✅ [ProjectDetail] onUpdate callback completed');
+                      }}
+                      onImageClick={(image) => setLightboxImage(image)}
+                      isEditMode={isEditMode}
+                      aspectRatio={galleryAspectRatio}
+                      onAspectRatioChange={(newRatio) => {
+                        setGalleryAspectRatio(newRatio);
+                        // Auto-save when aspect ratio changes
+                        // Use refs to get latest image counts
+                        const updatedProject: ProjectData = {
+                          ...project,
+                          title: editedTitle,
+                          description: editedDescription,
+                          caseStudyContent,
+                          caseStudyImages: caseStudyImagesRef.current,
+                          flowDiagramImages: flowDiagramImagesRef.current,
+                          galleryAspectRatio: newRatio,
+                          flowDiagramAspectRatio,
+                          galleryColumns,
+                          flowDiagramColumns,
+                          projectImagesPosition,
+                          flowDiagramsPosition,
+                          solutionCardsPosition,
+                        };
+                        onUpdate(updatedProject);
+                      }}
+                      columns={galleryColumns}
+                      onColumnsChange={(newColumns) => {
+                        setGalleryColumns(newColumns);
+                        // Auto-save when columns change
+                        // Use refs to get latest image counts
+                        const updatedProject: ProjectData = {
+                          ...project,
+                          title: editedTitle,
+                          description: editedDescription,
+                          caseStudyContent,
+                          caseStudyImages: caseStudyImagesRef.current,
+                          flowDiagramImages: flowDiagramImagesRef.current,
+                          galleryAspectRatio,
+                          flowDiagramAspectRatio,
+                          galleryColumns: newColumns,
+                          flowDiagramColumns,
+                          projectImagesPosition,
+                          flowDiagramsPosition,
+                          solutionCardsPosition,
+                        };
+                        onUpdate(updatedProject);
+                      }}
+                    />
+                  </div>
+                </motion.div>
+              ) : undefined
+            }
+            videoSlot={
+              (videoItems.length > 0 || isEditMode) ? (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.65 }}
+                >
+                  <div className="p-8 bg-gradient-to-br from-slate-50/10 via-white/15 to-gray-50/8 dark:from-slate-800/30 dark:via-slate-900/25 dark:to-slate-800/20 backdrop-blur-md rounded-2xl border border-border/30 shadow-lg">
+                    <div className="flex items-center gap-3 mb-8">
+                      <div className="p-3 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl text-red-600 dark:text-red-400 shadow-md">
+                        <VideoIcon className="w-6 h-6" />
+                      </div>
+                      <h3>Videos</h3>
+                    </div>
+
+                    <VideoGallery
+                      videos={videoItems}
+                      onVideosChange={(newVideos) => {
+                        console.log('📹 Videos changed:', {
+                          oldCount: videoItems.length,
+                          newCount: newVideos.length
+                        });
+                        
+                        // CRITICAL: Update ref SYNCHRONOUSLY before saving
+                        videoItemsRef.current = newVideos;
+                        setVideoItems(newVideos);
+                        
+                        // Auto-save when videos change
+                        const updatedProject: ProjectData = {
+                          ...project,
+                          title: editedTitle,
+                          description: editedDescription,
+                          caseStudyContent,
+                          caseStudyImages: caseStudyImagesRef.current,
+                          flowDiagramImages: flowDiagramImagesRef.current,
+                          videoItems: newVideos,
+                          galleryAspectRatio,
+                          flowDiagramAspectRatio,
+                          videoAspectRatio,
+                          galleryColumns,
+                          flowDiagramColumns,
+                          videoColumns,
+                          projectImagesPosition,
+                          videosPosition,
+                          flowDiagramsPosition,
+                          solutionCardsPosition,
+                        };
+                        onUpdate(updatedProject);
+                      }}
+                      isEditMode={isEditMode}
+                      aspectRatio={videoAspectRatio}
+                      onAspectRatioChange={(newRatio) => {
+                        setVideoAspectRatio(newRatio);
+                        // Auto-save when aspect ratio changes
+                        const updatedProject: ProjectData = {
+                          ...project,
+                          title: editedTitle,
+                          description: editedDescription,
+                          caseStudyContent,
+                          caseStudyImages: caseStudyImagesRef.current,
+                          flowDiagramImages: flowDiagramImagesRef.current,
+                          videoItems: videoItemsRef.current,
+                          galleryAspectRatio,
+                          flowDiagramAspectRatio,
+                          videoAspectRatio: newRatio,
+                          galleryColumns,
+                          flowDiagramColumns,
+                          videoColumns,
+                          projectImagesPosition,
+                          videosPosition,
+                          flowDiagramsPosition,
+                          solutionCardsPosition,
+                        };
+                        onUpdate(updatedProject);
+                      }}
+                      columns={videoColumns}
+                      onColumnsChange={(newColumns) => {
+                        setVideoColumns(newColumns);
+                        // Auto-save when columns change
+                        const updatedProject: ProjectData = {
+                          ...project,
+                          title: editedTitle,
+                          description: editedDescription,
+                          caseStudyContent,
+                          caseStudyImages: caseStudyImagesRef.current,
+                          flowDiagramImages: flowDiagramImagesRef.current,
+                          videoItems: videoItemsRef.current,
+                          galleryAspectRatio,
+                          flowDiagramAspectRatio,
+                          videoAspectRatio,
+                          galleryColumns,
+                          flowDiagramColumns,
+                          videoColumns: newColumns,
+                          projectImagesPosition,
+                          videosPosition,
+                          flowDiagramsPosition,
+                          solutionCardsPosition,
+                        };
+                        onUpdate(updatedProject);
+                      }}
+                    />
+                  </div>
+                </motion.div>
+              ) : undefined
+            }
+            flowDiagramSlot={
+              (flowDiagramImages.length > 0 || isEditMode) ? (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.7 }}
+                >
+                  <div className="p-8 bg-gradient-to-br from-slate-50/10 via-white/15 to-gray-50/8 dark:from-slate-800/30 dark:via-slate-900/25 dark:to-slate-800/20 backdrop-blur-md rounded-2xl border border-border/30 shadow-lg">
+                    <div className="flex items-center gap-3 mb-8">
+                      <div className="p-3 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl text-blue-600 dark:text-blue-400 shadow-md">
+                        <ImageIcon className="w-6 h-6" />
+                      </div>
+                      <h3>Flow Diagrams</h3>
+                    </div>
+
+                    <FlowDiagramGallery
+                      images={flowDiagramImages}
+                      onImagesChange={(newImages) => {
+                        console.log('📊 Flow Diagram Images changed:', {
+                          oldCount: flowDiagramImages.length,
+                          newCount: newImages.length,
+                          imageIds: newImages.map(img => img.id)
+                        });
+                        
+                        // CRITICAL: Update ref SYNCHRONOUSLY before saving
+                        flowDiagramImagesRef.current = newImages;
+                        setFlowDiagramImages(newImages);
+                        
+                        // Auto-save when flow diagram images change
+                        // Use refs for BOTH arrays to ensure we have the latest data
+                        const updatedProject: ProjectData = {
+                          ...project,
+                          title: editedTitle,
+                          description: editedDescription,
+                          caseStudyContent,
+                          caseStudyImages: caseStudyImagesRef.current,
+                          flowDiagramImages: newImages,
+                          galleryAspectRatio,
+                          flowDiagramAspectRatio,
+                          galleryColumns,
+                          flowDiagramColumns,
+                          projectImagesPosition,
+                          flowDiagramsPosition,
+                          solutionCardsPosition,
+                        };
+                        console.log('💾 Saving project with', caseStudyImagesRef.current.length, 'project images and', newImages.length, 'flow diagrams');
+                        onUpdate(updatedProject);
+                      }}
+                      onImageClick={(image) => setFlowDiagramLightboxImage(image)}
+                      isEditMode={isEditMode}
+                      aspectRatio={flowDiagramAspectRatio}
+                      onAspectRatioChange={(newRatio) => {
+                        setFlowDiagramAspectRatio(newRatio);
+                        // Auto-save when aspect ratio changes
+                        // Use refs to get latest image counts
+                        const updatedProject: ProjectData = {
+                          ...project,
+                          title: editedTitle,
+                          description: editedDescription,
+                          caseStudyContent,
+                          caseStudyImages: caseStudyImagesRef.current,
+                          flowDiagramImages: flowDiagramImagesRef.current,
+                          videoItems: videoItemsRef.current,
+                          galleryAspectRatio,
+                          flowDiagramAspectRatio: newRatio,
+                          videoAspectRatio,
+                          galleryColumns,
+                          flowDiagramColumns,
+                          videoColumns,
+                          projectImagesPosition,
+                          videosPosition,
+                          flowDiagramsPosition,
+                          solutionCardsPosition,
+                        };
+                        onUpdate(updatedProject);
+                      }}
+                      columns={flowDiagramColumns}
+                      onColumnsChange={(newColumns) => {
+                        setFlowDiagramColumns(newColumns);
+                        // Auto-save when columns change
+                        // Use refs to get latest image counts
+                        const updatedProject: ProjectData = {
+                          ...project,
+                          title: editedTitle,
+                          description: editedDescription,
+                          caseStudyContent,
+                          caseStudyImages: caseStudyImagesRef.current,
+                          flowDiagramImages: flowDiagramImagesRef.current,
+                          videoItems: videoItemsRef.current,
+                          galleryAspectRatio,
+                          flowDiagramAspectRatio,
+                          videoAspectRatio,
+                          galleryColumns,
+                          flowDiagramColumns: newColumns,
+                          videoColumns,
+                          projectImagesPosition,
+                          videosPosition,
+                          flowDiagramsPosition,
+                          solutionCardsPosition,
+                        };
+                        onUpdate(updatedProject);
+                      }}
+                    />
+                  </div>
+                </motion.div>
+              ) : undefined
+            }
+          />
+          </div>
+        )}
+
+        {/* Save Button (Edit Mode) */}
+        {isEditMode && isEditing && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex gap-4 justify-end sticky bottom-6 z-50 order-5 lg:order-none"
+          >
+            <Button variant="outline" onClick={() => setIsEditing(false)} size="lg">
+              Cancel
+            </Button>
+            <Button onClick={handleSave} size="lg">
+              Save Changes
+            </Button>
+          </motion.div>
+        )}
+        </div>
+
+        {/* Sidebar - Only show in preview mode when content exists, hidden on mobile */}
+        {!isEditing && (atGlanceContent || impactContent) && (
+          <div className="hidden lg:block w-full lg:w-80 flex-shrink-0 order-3 lg:order-last">
+            <div className="lg:sticky lg:top-24 space-y-12">
+              {atGlanceContent && (
+                <AtAGlanceSidebar 
+                  content={atGlanceContent.content}
+                  isEditMode={isEditMode}
+                  onUpdate={handleUpdateAtAGlance}
+                />
+              )}
+              {impactContent && (
+                <ImpactSidebar 
+                  content={impactContent.content}
+                  isEditMode={isEditMode}
+                  onUpdate={handleUpdateImpact}
+                />
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Lightbox for Case Study Images */}
+      {lightboxImage && (
+        <Lightbox
+          isOpen={true}
+          onClose={() => setLightboxImage(null)}
+          imageUrl={lightboxImage.url}
+          imageAlt={lightboxImage.alt}
+          imageCaption={lightboxImage.caption}
+          images={caseStudyImages.map(img => ({ url: img.url, alt: img.alt, caption: img.caption }))}
+          currentIndex={caseStudyImages.findIndex(img => img.id === lightboxImage.id)}
+          onNavigate={(newIndex) => {
+            const newImage = caseStudyImages[newIndex];
+            if (newImage) {
+              setLightboxImage(newImage);
+            }
+          }}
+        />
+      )}
+
+      {/* Lightbox for Flow Diagrams */}
+      {flowDiagramLightboxImage && (
+        <Lightbox
+          isOpen={true}
+          onClose={() => setFlowDiagramLightboxImage(null)}
+          imageUrl={flowDiagramLightboxImage.url}
+          imageAlt={flowDiagramLightboxImage.alt}
+          imageCaption={flowDiagramLightboxImage.caption}
+          images={flowDiagramImages.map(img => ({ url: img.url, alt: img.alt, caption: img.caption }))}
+          currentIndex={flowDiagramImages.findIndex(img => img.id === flowDiagramLightboxImage.id)}
+          onNavigate={(newIndex) => {
+            const newImage = flowDiagramImages[newIndex];
+            if (newImage) {
+              setFlowDiagramLightboxImage(newImage);
+            }
+          }}
+        />
+      )}
+    </PageLayout>
+  );
+}
+
+export default ProjectDetail;

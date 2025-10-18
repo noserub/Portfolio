@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supabase Test</title>
+</head>
+<body>
+    <h1>Supabase Test Page</h1>
+    <div id="status">Loading...</div>
+    
+    <script type="module">
+        // Test if we can access the Supabase test page
+        console.log('Testing Supabase integration...');
+        
+        // Check if we're on the right URL
+        if (window.location.search.includes('supabase=true')) {
+            document.getElementById('status').innerHTML = '✅ URL parameter detected: supabase=true';
+            console.log('✅ Supabase URL parameter detected');
+        } else {
+            document.getElementById('status').innerHTML = '❌ Missing supabase=true parameter';
+            console.log('❌ Missing supabase parameter');
+        }
+        
+        // Try to fetch the main app
+        fetch('/')
+            .then(response => {
+                console.log('✅ Main app responds:', response.status);
+                return response.text();
+            })
+            .then(html => {
+                if (html.includes('SupabaseTest')) {
+                    document.getElementById('status').innerHTML += '<br>✅ SupabaseTest component found in app';
+                    console.log('✅ SupabaseTest component found');
+                } else {
+                    document.getElementById('status').innerHTML += '<br>❌ SupabaseTest component not found';
+                    console.log('❌ SupabaseTest component not found');
+                }
+            })
+            .catch(err => {
+                document.getElementById('status').innerHTML += '<br>❌ Error: ' + err.message;
+                console.error('❌ Error:', err);
+            });
+    </script>
+</body>
+</html>
+

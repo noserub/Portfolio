@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Emergency Recovery - Portfolio</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    
+    .container {
+      background: white;
+      border-radius: 20px;
+      padding: 40px;
+      max-width: 600px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    
+    h1 {
+      font-size: 32px;
+      margin-bottom: 10px;
+      color: #1a202c;
+    }
+    
+    .subtitle {
+      color: #718096;
+      margin-bottom: 30px;
+      font-size: 16px;
+    }
+    
+    .info-box {
+      background: #f7fafc;
+      border: 2px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 25px;
+    }
+    
+    .info-box h2 {
+      font-size: 18px;
+      margin-bottom: 15px;
+      color: #2d3748;
+    }
+    
+    .info-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    
+    .info-item:last-child {
+      border-bottom: none;
+    }
+    
+    .info-label {
+      color: #718096;
+      font-size: 14px;
+    }
+    
+    .info-value {
+      font-weight: 600;
+      color: #2d3748;
+      font-size: 14px;
+    }
+    
+    .status-ok {
+      color: #48bb78;
+    }
+    
+    .status-error {
+      color: #f56565;
+    }
+    
+    button {
+      width: 100%;
+      padding: 14px;
+      margin: 8px 0;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .btn-primary {
+      background: #667eea;
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: #5a67d8;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+    
+    .btn-secondary {
+      background: #edf2f7;
+      color: #2d3748;
+    }
+    
+    .btn-secondary:hover {
+      background: #e2e8f0;
+    }
+    
+    .btn-danger {
+      background: #fc8181;
+      color: white;
+    }
+    
+    .btn-danger:hover {
+      background: #f56565;
+    }
+    
+    pre {
+      background: #1a202c;
+      color: #68d391;
+      padding: 15px;
+      border-radius: 8px;
+      overflow: auto;
+      font-size: 12px;
+      line-height: 1.6;
+      max-height: 300px;
+    }
+    
+    .log {
+      margin-top: 20px;
+      padding: 15px;
+      background: #fffaf0;
+      border: 1px solid #f6ad55;
+      border-radius: 8px;
+      font-size: 13px;
+      max-height: 200px;
+      overflow: auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔧 Emergency Recovery</h1>
+    <p class="subtitle">Fix blank screen and import issues</p>
+    
+    <div class="info-box">
+      <h2>📊 Current Status</h2>
+      <div class="info-item">
+        <span class="info-label">localStorage:</span>
+        <span class="info-value" id="storage-status">Checking...</span>
+      </div>
+      <div class="info-item">
+        <span class="info-label">Case Studies:</span>
+        <span class="info-value" id="case-studies-status">Checking...</span>
+      </div>
+      <div class="info-item">
+        <span class="info-label">Design Projects:</span>
+        <span class="info-value" id="design-projects-status">Checking...</span>
+      </div>
+      <div class="info-item">
+        <span class="info-label">Storage Used:</span>
+        <span class="info-value" id="storage-size">Checking...</span>
+      </div>
+      <div class="info-item">
+        <span class="info-label">Storage Limit:</span>
+        <span class="info-value">~5-10 MB (browser dependent)</span>
+      </div>
+    </div>
+    
+    <div id="quota-warning" style="display: none;" class="info-box" 
+         style="background: #fef2f2; border-color: #fca5a5;">
+      <h2 style="color: #991b1b;">⚠️ Storage Almost Full</h2>
+      <p style="color: #7f1d1d; font-size: 14px; margin-top: 10px;">
+        You're using a lot of storage space. Consider clearing old data or reducing image sizes.
+      </p>
+    </div>
+    
+    <button class="btn-primary" onclick="goToApp()">
+      🏠 Go to App
+    </button>
+    
+    <button class="btn-secondary" onclick="runDiagnostics()">
+      🔍 Run Full Diagnostics
+    </button>
+    
+    <button class="btn-secondary" onclick="autoFix()">
+      🔧 Auto-Fix Corruption
+    </button>
+    
+    <button class="btn-secondary" onclick="clearFreshImport()">
+      🔄 Clear Import Flag & Reload
+    </button>
+    
+    <button class="btn-danger" onclick="clearAll()">
+      ⚠️ Clear All Data
+    </button>
+    
+    <div id="log" class="log" style="display: none;"></div>
+    <pre id="diagnostics" style="display: none;"></pre>
+  </div>
+
+  <script>
+    // Log function
+    function log(message) {
+      const logEl = document.getElementById('log');
+      logEl.style.display = 'block';
+      logEl.innerHTML += message + '<br>';
+      console.log(message);
+    }
+
+    // Check storage on load
+    function checkStorage() {
+      try {
+        // Test access
+        localStorage.setItem('__test', 'test');
+        localStorage.removeItem('__test');
+        document.getElementById('storage-status').innerHTML = '<span class="status-ok">✅ OK</span>';
+
+        // Check case studies
+        const cs = localStorage.getItem('caseStudies');
+        if (cs) {
+          try {
+            const parsed = JSON.parse(cs);
+            if (Array.isArray(parsed)) {
+              document.getElementById('case-studies-status').innerHTML = 
+                `<span class="status-ok">✅ ${parsed.length} items</span>`;
+            } else {
+              document.getElementById('case-studies-status').innerHTML = 
+                '<span class="status-error">❌ Corrupted</span>';
+            }
+          } catch (e) {
+            document.getElementById('case-studies-status').innerHTML = 
+              '<span class="status-error">❌ Invalid JSON</span>';
+          }
+        } else {
+          document.getElementById('case-studies-status').innerHTML = 
+            '<span style="color: #718096;">ℹ️ None</span>';
+        }
+
+        // Check design projects
+        const dp = localStorage.getItem('designProjects');
+        if (dp) {
+          try {
+            const parsed = JSON.parse(dp);
+            if (Array.isArray(parsed)) {
+              document.getElementById('design-projects-status').innerHTML = 
+                `<span class="status-ok">✅ ${parsed.length} items</span>`;
+            } else {
+              document.getElementById('design-projects-status').innerHTML = 
+                '<span class="status-error">❌ Corrupted</span>';
+            }
+          } catch (e) {
+            document.getElementById('design-projects-status').innerHTML = 
+              '<span class="status-error">❌ Invalid JSON</span>';
+          }
+        } else {
+          document.getElementById('design-projects-status').innerHTML = 
+            '<span style="color: #718096;">ℹ️ None</span>';
+        }
+
+        // Calculate size
+        let total = 0;
+        for (let key in localStorage) {
+          if (localStorage.hasOwnProperty(key)) {
+            total += (localStorage[key].length + key.length) * 2;
+          }
+        }
+        const sizeMB = (total / 1024 / 1024).toFixed(2);
+        document.getElementById('storage-size').textContent = sizeMB + ' MB';
+        
+        // Show warning if over 4MB (approaching limit)
+        if (total > 4 * 1024 * 1024) {
+          const warningEl = document.getElementById('quota-warning');
+          if (warningEl) {
+            warningEl.style.display = 'block';
+          }
+        }
+
+      } catch (e) {
+        document.getElementById('storage-status').innerHTML = 
+          '<span class="status-error">❌ Not accessible</span>';
+        log('ERROR: ' + e.message);
+      }
+    }
+
+    function goToApp() {
+      window.location.href = '/';
+    }
+
+    function runDiagnostics() {
+      const diagEl = document.getElementById('diagnostics');
+      diagEl.style.display = 'block';
+      
+      let output = '=== FULL DIAGNOSTICS ===\n\n';
+      output += 'Timestamp: ' + new Date().toISOString() + '\n\n';
+      
+      // Check each item
+      output += '--- localStorage Keys ---\n';
+      output += Object.keys(localStorage).join(', ') + '\n\n';
+      
+      // Check case studies
+      const cs = localStorage.getItem('caseStudies');
+      if (cs) {
+        output += '--- Case Studies ---\n';
+        output += 'Length: ' + cs.length + ' chars\n';
+        try {
+          const parsed = JSON.parse(cs);
+          output += 'Valid: YES\n';
+          output += 'Count: ' + (Array.isArray(parsed) ? parsed.length : 'NOT AN ARRAY') + '\n';
+          output += 'First 200 chars: ' + cs.substring(0, 200) + '\n';
+        } catch (e) {
+          output += 'Valid: NO - ' + e.message + '\n';
+          output += 'First 200 chars: ' + cs.substring(0, 200) + '\n';
+        }
+        output += '\n';
+      }
+      
+      // Check design projects
+      const dp = localStorage.getItem('designProjects');
+      if (dp) {
+        output += '--- Design Projects ---\n';
+        output += 'Length: ' + dp.length + ' chars\n';
+        try {
+          const parsed = JSON.parse(dp);
+          output += 'Valid: YES\n';
+          output += 'Count: ' + (Array.isArray(parsed) ? parsed.length : 'NOT AN ARRAY') + '\n';
+        } catch (e) {
+          output += 'Valid: NO - ' + e.message + '\n';
+        }
+        output += '\n';
+      }
+      
+      // Check flags
+      output += '--- Flags ---\n';
+      output += 'freshImport: ' + localStorage.getItem('freshImport') + '\n';
+      output += 'isAuthenticated: ' + localStorage.getItem('isAuthenticated') + '\n';
+      output += 'theme: ' + localStorage.getItem('theme') + '\n';
+      
+      diagEl.textContent = output;
+      log('✅ Diagnostics complete');
+    }
+
+    function autoFix() {
+      log('🔧 Starting auto-fix...');
+      let fixed = 0;
+      
+      // Fix case studies
+      const cs = localStorage.getItem('caseStudies');
+      if (cs) {
+        try {
+          const parsed = JSON.parse(cs);
+          if (!Array.isArray(parsed)) {
+            localStorage.removeItem('caseStudies');
+            log('❌ Removed corrupted case studies');
+            fixed++;
+          }
+        } catch (e) {
+          localStorage.removeItem('caseStudies');
+          log('❌ Removed invalid case studies JSON');
+          fixed++;
+        }
+      }
+      
+      // Fix design projects
+      const dp = localStorage.getItem('designProjects');
+      if (dp) {
+        try {
+          const parsed = JSON.parse(dp);
+          if (!Array.isArray(parsed)) {
+            localStorage.removeItem('designProjects');
+            log('❌ Removed corrupted design projects');
+            fixed++;
+          }
+        } catch (e) {
+          localStorage.removeItem('designProjects');
+          log('❌ Removed invalid design projects JSON');
+          fixed++;
+        }
+      }
+      
+      if (fixed > 0) {
+        log(`✅ Fixed ${fixed} issues`);
+        setTimeout(() => {
+          alert('Fixed ' + fixed + ' issues. Page will reload.');
+          window.location.reload();
+        }, 1000);
+      } else {
+        log('✅ No issues found');
+      }
+      
+      checkStorage();
+    }
+
+    function clearFreshImport() {
+      localStorage.removeItem('freshImport');
+      log('✅ Cleared fresh import flag');
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 500);
+    }
+
+    function clearAll() {
+      if (confirm('⚠️ This will delete ALL your data!\n\nAre you absolutely sure?')) {
+        const auth = localStorage.getItem('isAuthenticated');
+        const theme = localStorage.getItem('theme');
+        
+        localStorage.clear();
+        
+        if (auth) localStorage.setItem('isAuthenticated', auth);
+        if (theme) localStorage.setItem('theme', theme);
+        
+        log('✅ All data cleared (kept auth & theme)');
+        setTimeout(() => {
+          alert('Data cleared. Redirecting to home...');
+          window.location.href = '/';
+        }, 1000);
+      }
+    }
+
+    // Run check on load
+    checkStorage();
+  </script>
+</body>
+</html>

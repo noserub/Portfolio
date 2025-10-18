@@ -1,0 +1,1688 @@
+import React, { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "motion/react";
+import { supabase } from "./lib/supabaseClient";
+import { Edit3, Eye, LogOut, Save, AlertTriangle, Moon, Sun, MoreHorizontal, Search, BookOpen } from "lucide-react";
+import { 
+  Header, 
+  AnimatedBackground, 
+  AbstractPattern, 
+  SignIn, 
+  CaseStudyPasswordPrompt, 
+  SEOEditor, 
+  ComponentLibrary 
+} from "./components";
+import SupabaseTest from "./components/SupabaseTest";
+import { 
+  Home, 
+  About, 
+  Music, 
+  Visuals, 
+  Contact, 
+  ProjectDetail, 
+  DiagnosticPage, 
+  EmergencyRecovery 
+} from "./pages";
+import { Button } from "./components/ui/button";
+import { Input } from "./components/ui/input";
+import { ProjectData } from "./components/ProjectImage";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "./components/ui/dropdown-menu";
+import { Toaster } from "./components/ui/sonner";
+import { migrateResearchInsights, migrateProjectsArray, runSafetyChecks } from "./utils";
+import { useAppSettings } from "./hooks/useAppSettings";
+
+// Lazy load diagnostics to avoid blocking React mount
+if (typeof window !== 'undefined') {
+  import("./utils/diagnostics").catch(err => {
+    console.warn('Diagnostics tools failed to load:', err);
+  });
+}
+
+// Run safety checks before anything else
+try {
+  runSafetyChecks();
+} catch (err) {
+  console.error('Safety checks failed:', err);
+  // Continue anyway - don't block React
+}
+
+type Page = "home" | "about" | "contact" | "music" | "visuals" | "project-detail" | "supabase-test";
+
+// Error Boundary Component
+class ErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean; error: Error | null }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: any) {
+    console.error('❌ CRITICAL ERROR in App:', error, errorInfo);
+    console.error('Error stack:', error.stack);
+    console.error('Component stack:', errorInfo.componentStack);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen bg-background flex items-center justify-center p-6">
+          <div className="max-w-2xl w-full bg-card border border-border rounded-2xl p-8 shadow-2xl">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="p-3 bg-red-500/10 rounded-full">
+                <AlertTriangle className="w-8 h-8 text-red-500" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold">Something went wrong</h1>
+                <p className="text-muted-foreground">The application encountered an error</p>
+              </div>
+            </div>
+            
+            <div className="bg-red-500/5 border border-red-500/20 rounded-lg p-4 mb-6">
+              <p className="font-mono text-sm text-red-600 dark:text-red-400">
+                {this.state.error?.message || 'Unknown error'}
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                This might be caused by corrupted data in localStorage. Try one of these options:
+              </p>
+              
+              <div className="flex gap-3">
+                <Button
+                  onClick={() => window.location.reload()}
+                  variant="default"
+                >
+                  Reload Page
+                </Button>
+                <Button
+                  onClick={() => {
+                    if (confirm('This will clear all your data and reset to defaults. Are you sure?')) {
+                      localStorage.clear();
+                      window.location.reload();
+                    }
+                  }}
+                  variant="destructive"
+                >
+                  Reset All Data
+                </Button>
+              </div>
+
+              <details className="mt-6">
+                <summary className="cursor-pointer text-sm text-muted-foreground hover:text-foreground">
+                  View technical details
+                </summary>
+                <pre className="mt-4 p-4 bg-muted rounded-lg text-xs overflow-auto">
+                  {this.state.error?.stack}
+                </pre>
+              </details>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+export default function App() {
+  const [isDiagnosticMode, setIsDiagnosticMode] = useState(false);
+  const [isEmergencyMode, setIsEmergencyMode] = useState(false);
+  
+  // Check URL parameters in useEffect
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const diagnostic = urlParams.get('diagnostic') === 'true';
+    const emergency = urlParams.get('emergency') === 'true';
+    const supabase = urlParams.get('supabase') === 'true';
+    
+    console.log('🔍 URL params:', {
+      search: window.location.search,
+      diagnostic,
+      emergency,
+      supabase
+    });
+    
+    setIsDiagnosticMode(diagnostic);
+    setIsEmergencyMode(emergency);
+    if (supabase) {
+      setCurrentPage('supabase-test');
+    }
+  }, []);
+  
+  // Signal to pre-React loader that React has mounted
+  useEffect(() => {
+    console.log('✅ REACT: App component mounted');
+    if (typeof window !== 'undefined' && (window as any).__reactMounted) {
+      (window as any).__reactMounted();
+    }
+  }, []);
+  
+  // Move early returns to after all hooks are declared
+
+  // Initialize state with safe defaults and error handling
+  const [isInitialized, setIsInitialized] = useState(true); // Start initialized to render immediately
+  const [currentPage, setCurrentPage] = useState<Page>("home");
+  const [selectedProject, setSelectedProject] = useState<ProjectData | null>(null);
+  const [projectUpdateCallback, setProjectUpdateCallback] = useState<{fn: ((project: ProjectData) => void)} | null>(null);
+  
+  // Use Supabase for app settings including logo
+  const { settings, updateSettings, getCurrentUserSettings } = useAppSettings();
+  const logo = settings?.logo_url;
+  
+  // Debug logging
+  useEffect(() => {
+    console.log('🎨 Current settings:', settings);
+    console.log('🖼️ Current logo URL:', logo);
+  }, [settings, logo]);
+  
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    try {
+      const saved = localStorage.getItem('theme');
+      if (saved === 'dark' || saved === 'light') return saved;
+      return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    } catch (e) {
+      console.error('Error loading theme:', e);
+      return 'light';
+    }
+  });
+  
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [isBlurringBackground, setIsBlurringBackground] = useState(false);
+  
+  // Debug background blur state changes
+  useEffect(() => {
+    console.log('🌫️ Background blur state changed:', isBlurringBackground);
+    console.log('🎨 CSS classes being applied:', isBlurringBackground 
+      ? 'opacity-100 bg-white/10 dark:bg-black/10' 
+      : 'opacity-0 bg-transparent'
+    );
+    console.log('🔍 Filter styles being applied:', isBlurringBackground 
+      ? 'blur(8px) saturate(120%)' 
+      : 'blur(0px) saturate(100%)'
+    );
+  }, [isBlurringBackground]);
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    try {
+      // Load authentication state from localStorage
+      const savedAuth = localStorage.getItem('isAuthenticated');
+      return savedAuth === 'true';
+    } catch (e) {
+      console.error('Error loading auth state:', e);
+      return false;
+    }
+  });
+
+  // Listen for Supabase auth state changes
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('🔐 Supabase auth state changed:', { event, user: session?.user?.email });
+      
+      if (session?.user) {
+        // User is authenticated in Supabase
+        setIsAuthenticated(true);
+        localStorage.setItem('isAuthenticated', 'true');
+        console.log('✅ Signed in - authentication persisted to localStorage');
+      } else {
+        // User is not authenticated in Supabase
+        setIsAuthenticated(false);
+        localStorage.setItem('isAuthenticated', 'false');
+        console.log('👋 Signed out - authentication cleared from localStorage');
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+  const [showSignIn, setShowSignIn] = useState(false);
+  const [showSaveIndicator, setShowSaveIndicator] = useState(false);
+  const [showDebugPanel, setShowDebugPanel] = useState(false);
+  const [pendingProtectedProject, setPendingProtectedProject] = useState<{
+    project: ProjectData;
+    updateCallback: (project: ProjectData) => void;
+  } | null>(null);
+  const [showPasswordReset, setShowPasswordReset] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [isImportSuccess, setIsImportSuccess] = useState(false);
+  const [showSEOEditor, setShowSEOEditor] = useState(false);
+  const [showComponentLibrary, setShowComponentLibrary] = useState(false);
+  
+  const [pageVisibility, setPageVisibility] = useState(() => {
+    try {
+      const saved = localStorage.getItem('pageVisibility');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return {
+          about: parsed.about ?? true,
+          contact: parsed.contact ?? true,
+          music: parsed.music ?? true,
+          visuals: parsed.visuals ?? true
+        };
+      }
+    } catch (e) {
+      console.error('Error loading page visibility:', e);
+    }
+    return {
+      about: true,
+      contact: true,
+      music: true,
+      visuals: true
+    };
+  });
+  
+  const [debugInfo, setDebugInfo] = useState<{
+    hasLogo: boolean;
+    caseStudiesCount: number;
+    designProjectsCount: number;
+    totalSize: string;
+    caseStudies: any[];
+  } | null>(null);
+
+  const refreshDebugInfo = () => {
+    try {
+      const caseStudiesData = localStorage.getItem('caseStudies');
+      const designProjectsData = localStorage.getItem('designProjects');
+      const caseStudies = caseStudiesData ? JSON.parse(caseStudiesData) : [];
+      const designProjects = designProjectsData ? JSON.parse(designProjectsData) : [];
+      
+      const estimatedSize = (
+        (caseStudiesData?.length || 0) + 
+        (designProjectsData?.length || 0) +
+        (localStorage.getItem('logo')?.length || 0)
+      ) * 2;
+      
+      setDebugInfo({
+        hasLogo: !!localStorage.getItem('logo'),
+        caseStudiesCount: caseStudies.length,
+        designProjectsCount: designProjects.length,
+        totalSize: `${(estimatedSize / 1024 / 1024).toFixed(2)} MB`,
+        caseStudies: caseStudies
+      });
+    } catch (e) {
+      console.error('Error loading debug info:', e);
+      setDebugInfo({
+        hasLogo: false,
+        caseStudiesCount: 0,
+        designProjectsCount: 0,
+        totalSize: '0 MB',
+        caseStudies: []
+      });
+    }
+  };
+
+  // Calculate debug info when panel is shown
+  useEffect(() => {
+    if (showDebugPanel) {
+      refreshDebugInfo();
+    }
+  }, [showDebugPanel]);
+
+  // Auto-refresh debug info when data is saved - always refresh when saved, not just when panel is open
+  useEffect(() => {
+    if (showSaveIndicator) {
+      console.log('💾 Save indicator shown - refreshing debug info');
+      refreshDebugInfo();
+    }
+  }, [showSaveIndicator]);
+
+  // Logo is now saved to Supabase via updateSettings
+
+  // Save page visibility to localStorage
+  useEffect(() => {
+    localStorage.setItem('pageVisibility', JSON.stringify(pageVisibility));
+  }, [pageVisibility]);
+
+  // Apply theme to document and save to localStorage
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  useEffect(() => {
+    // Skip if already initialized
+    const isInitialized = sessionStorage.getItem('appInitialized');
+    if (isInitialized) {
+      return;
+    }
+    
+    try {
+      console.log('🔄 Running one-time initialization...');
+      
+      // Check if this is first load (no case studies exist)
+      const caseStudiesData = localStorage.getItem('caseStudies');
+      if (!caseStudiesData) {
+        localStorage.setItem('caseStudies', JSON.stringify([]));
+      }
+      
+      // FIX SECTION POSITIONS: Only run once ever
+      if (localStorage.getItem('positionsMigrated') !== 'true') {
+        const data = localStorage.getItem('caseStudies');
+        if (data) {
+          try {
+            const projects = JSON.parse(data);
+            let updated = false;
+            
+            const fixedProjects = projects.map((project: any) => {
+              if (!project.solutionCardsPosition || project.solutionCardsPosition < 900) {
+                updated = true;
+                return {
+                  ...project,
+                  projectImagesPosition: 2,
+                  solutionCardsPosition: 999,
+                  flowDiagramsPosition: 1000
+                };
+              }
+              return project;
+            });
+            
+            if (updated) {
+              localStorage.setItem('caseStudies', JSON.stringify(fixedProjects));
+            }
+            
+            // Mark migration as complete
+            localStorage.setItem('positionsMigrated', 'true');
+          } catch (e) {
+            console.warn('Migration failed:', e);
+          }
+        }
+      }
+      
+      // Migrate video fields if not already done
+      if (localStorage.getItem('videoFieldsMigrated') !== 'true') {
+        try {
+          console.log('🔄 Running video fields migration...');
+          
+          // Migrate case studies
+          const caseStudiesData = localStorage.getItem('caseStudies');
+          if (caseStudiesData) {
+            const caseStudies = JSON.parse(caseStudiesData);
+            if (Array.isArray(caseStudies)) {
+              const migrated = migrateProjectsArray(caseStudies);
+              localStorage.setItem('caseStudies', JSON.stringify(migrated));
+              console.log(`✅ Migrated ${migrated.length} case studies with video fields`);
+            }
+          }
+          
+          // Migrate design projects
+          const designProjectsData = localStorage.getItem('designProjects');
+          if (designProjectsData) {
+            const designProjects = JSON.parse(designProjectsData);
+            if (Array.isArray(designProjects)) {
+              const migrated = migrateProjectsArray(designProjects);
+              localStorage.setItem('designProjects', JSON.stringify(migrated));
+              console.log(`✅ Migrated ${migrated.length} design projects with video fields`);
+            }
+          }
+          
+          localStorage.setItem('videoFieldsMigrated', 'true');
+        } catch (e) {
+          console.warn('Video fields migration failed:', e);
+        }
+      }
+      
+      // Clean up any stale migration flags
+      try {
+        localStorage.removeItem('needsSolutionHighlights');
+      } catch (e) {
+        // Ignore
+      }
+      
+      // Handle fresh import notification
+      const freshImport = localStorage.getItem('freshImport');
+      if (freshImport === 'true') {
+        localStorage.removeItem('freshImport');
+        
+        setIsImportSuccess(true);
+        setShowSaveIndicator(true);
+        setTimeout(() => {
+          setShowSaveIndicator(false);
+          setIsImportSuccess(false);
+        }, 3000);
+        
+        if (isAuthenticated) {
+          setIsEditMode(true);
+        }
+      }
+      
+      // Mark as initialized for this session
+      sessionStorage.setItem('appInitialized', 'true');
+      console.log('✅ Initialization complete');
+      
+    } catch (err) {
+      console.error('Initialization error:', err);
+      // Mark as initialized anyway to prevent retry loops
+      sessionStorage.setItem('appInitialized', 'true');
+    }
+  }, []); // Empty dependency array - only runs once
+
+  // Scroll to top when page changes
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [currentPage]);
+
+  // NOW ALL HOOKS ARE DECLARED - SAFE TO DO CONDITIONAL RENDERING
+  // If in emergency mode, show emergency recovery
+  if (isEmergencyMode) {
+    return <EmergencyRecovery />;
+  }
+  
+  // If in diagnostic mode, show diagnostic page
+  if (isDiagnosticMode) {
+    return <DiagnosticPage />;
+  }
+  
+  // Supabase test mode removed - now using integrated hooks in components
+
+  const handleLogoUpload = async (file: File) => {
+    try {
+      // Convert file to base64 data URL
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const logoUrl = reader.result as string;
+        
+        // Save to Supabase
+        const success = await updateSettings({ logo_url: logoUrl });
+        if (success) {
+          console.log('✅ Logo saved to Supabase');
+          // Refresh settings to update UI
+          await getCurrentUserSettings();
+          console.log('🔄 Settings refreshed, logo should now be visible');
+        } else {
+          console.error('❌ Failed to save logo to Supabase');
+        }
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('Error uploading logo:', error);
+      alert('Failed to upload logo. Please try again.');
+    }
+  };
+
+  const navigateToStart = () => {
+    setCurrentPage("about");
+  };
+
+  // Supabase test navigation removed
+
+  const navigateHome = () => {
+    setCurrentPage("home");
+    setSelectedProject(null);
+  };
+
+  const navigateToProject = (project: ProjectData, updateCallback: (project: ProjectData) => void) => {
+    // Always get the latest data from localStorage to ensure freshness
+    let freshProject = null;
+    
+    try {
+      // Try case studies first
+      const caseStudiesData = localStorage.getItem('caseStudies');
+      if (caseStudiesData) {
+        const caseStudies = JSON.parse(caseStudiesData);
+        if (Array.isArray(caseStudies)) {
+          freshProject = caseStudies.find((p: ProjectData) => p.id === project.id);
+        }
+      }
+      
+      // If not found, try design projects
+      if (!freshProject) {
+        const designProjectsData = localStorage.getItem('designProjects');
+        if (designProjectsData) {
+          const designProjects = JSON.parse(designProjectsData);
+          if (Array.isArray(designProjects)) {
+            freshProject = designProjects.find((p: ProjectData) => p.id === project.id);
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Error loading project data:', e);
+      // Continue with the project passed in as fallback
+    }
+    
+    // Use fresh data if found, otherwise use the project passed in
+    const projectToSet = freshProject || project;
+    
+    console.log('📂 Loading project:', {
+      id: projectToSet.id,
+      imageCount: projectToSet.caseStudyImages?.length || 0,
+      imageIds: projectToSet.caseStudyImages?.map(img => img.id) || [],
+      source: freshProject ? 'localStorage' : 'prop',
+      requiresPassword: projectToSet.requiresPassword,
+      isAuthenticated: isAuthenticated
+    });
+    
+    // Check if project requires password and user is not authenticated (site owner)
+    // Site owners can view password-protected projects in both edit and preview modes
+    if (projectToSet.requiresPassword && !isAuthenticated) {
+      setPendingProtectedProject({ project: projectToSet, updateCallback });
+      return;
+    }
+    
+    // Add a navigation timestamp to force remount when coming back to the same project
+    setSelectedProject({
+      ...projectToSet,
+      _navTimestamp: Date.now() // This will force a new key without affecting the actual data
+    } as any);
+    setProjectUpdateCallback({ fn: updateCallback });
+    setCurrentPage("project-detail");
+  };
+
+  const handlePasswordCorrect = () => {
+    if (pendingProtectedProject) {
+      const { project, updateCallback } = pendingProtectedProject;
+      setSelectedProject({
+        ...project,
+        _navTimestamp: Date.now()
+      } as any);
+      setProjectUpdateCallback({ fn: updateCallback });
+      setCurrentPage("project-detail");
+      setPendingProtectedProject(null);
+    }
+  };
+
+  const handlePasswordCancel = () => {
+    setPendingProtectedProject(null);
+  };
+
+  const handleUpdateProject = (updatedProject: ProjectData) => {
+    const { _navTimestamp, ...cleanProject } = updatedProject as any;
+    
+    setSelectedProject({
+      ...cleanProject,
+      _navTimestamp: (selectedProject as any)?._navTimestamp || Date.now()
+    } as any);
+    
+    if (projectUpdateCallback) {
+      projectUpdateCallback.fn(cleanProject);
+      
+      // Silent verification - log warnings to console only (no annoying alerts)
+      setTimeout(() => {
+        try {
+          const caseStudiesData = localStorage.getItem('caseStudies');
+          if (caseStudiesData) {
+            const caseStudies = JSON.parse(caseStudiesData);
+            const savedProject = caseStudies.find((p: ProjectData) => p.id === cleanProject.id);
+            
+            if (!savedProject) {
+              console.warn('⚠️ Save verification: Project not found in localStorage after save');
+            } else if ((cleanProject.caseStudyImages?.length || 0) !== (savedProject?.caseStudyImages?.length || 0)) {
+              console.warn('⚠️ Save verification: Image count mismatch', {
+                expected: cleanProject.caseStudyImages?.length || 0,
+                actual: savedProject?.caseStudyImages?.length || 0
+              });
+            } else {
+              console.log('✅ Save verified successfully');
+            }
+          }
+        } catch (e) {
+          console.warn('Save verification failed:', e);
+        }
+      }, 100);
+      
+      setShowSaveIndicator(true);
+      setTimeout(() => setShowSaveIndicator(false), 3000);
+    } else {
+      console.error('⚠️ ERROR: Cannot save - no update callback!');
+    }
+  };
+
+  const handleSignIn = (password: string) => {
+    setIsAuthenticated(true);
+    // Persist authentication to localStorage
+    localStorage.setItem('isAuthenticated', 'true');
+    setShowSignIn(false);
+    // Automatically enable edit mode after signing in
+    setIsEditMode(true);
+    console.log('✅ Signed in - authentication persisted to localStorage');
+  };
+
+  const handleSignOut = () => {
+    setIsAuthenticated(false);
+    setIsEditMode(false);
+    // Clear authentication from localStorage
+    localStorage.removeItem('isAuthenticated');
+    console.log('👋 Signed out - authentication cleared from localStorage');
+  };
+
+  // Shared export function - PLACEHOLDER MODE: Strip images from export
+  const handleExportData = () => {
+    try {
+      const now = new Date();
+      const timestamp = now.toISOString().replace(/[:.]/g, '-').slice(0, -5);
+      
+      // PLACEHOLDER MODE: Remove all image data before export
+      const cleanCaseStudies = () => {
+        const data = localStorage.getItem('caseStudies');
+        if (!data) return null;
+        const parsed = JSON.parse(data);
+        return JSON.stringify(parsed.map((cs: any) => ({
+          ...cs,
+          url: undefined, // Remove hero image
+          caseStudyImages: [], // Clear project images gallery
+          flowDiagramImages: [], // Clear flow diagrams gallery
+        })));
+      };
+      
+      const cleanDesignProjects = () => {
+        const data = localStorage.getItem('designProjects');
+        if (!data) return null;
+        const parsed = JSON.parse(data);
+        return JSON.stringify(parsed.map((dp: any) => ({
+          ...dp,
+          url: undefined, // Remove thumbnail
+        })));
+      };
+      
+      const exportData = {
+        logo: undefined, // Don't export logo in placeholder mode
+        heroText: localStorage.getItem('heroText'),
+        caseStudies: cleanCaseStudies(),
+        designProjects: cleanDesignProjects(),
+        pageVisibility: localStorage.getItem('pageVisibility'),
+        theme: localStorage.getItem('theme'),
+        aboutPageContent: localStorage.getItem('aboutPageContent'),
+        contactPageContent: localStorage.getItem('contactPageContent'),
+        musicPageContent: localStorage.getItem('musicPageContent'),
+        visualsPageContent: localStorage.getItem('visualsPageContent'),
+        exportDate: now.toISOString(),
+        _mode: 'PLACEHOLDER',
+        _note: 'Exported in PLACEHOLDER MODE - images excluded for testing. Add Supabase URLs before production use.'
+      };
+      
+      const jsonString = JSON.stringify(exportData, null, 2);
+      const fileSizeMB = (jsonString.length * 2 / 1024 / 1024).toFixed(2);
+      
+      console.log('📦 Export info (PLACEHOLDER MODE):');
+      console.log(`  File size: ${fileSizeMB} MB`);
+      console.log(`  Images: EXCLUDED (for testing)`);
+      
+      const blob = new Blob([jsonString], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `portfolio-backup-placeholder-${timestamp}.json`;
+      a.style.display = 'none';
+      
+      // Append to body, click, then remove - required for some browsers
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      
+      // Clean up the blob URL after a short delay
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+      }, 100);
+      
+      const caseStudiesData = exportData.caseStudies;
+      const caseStudiesCount = caseStudiesData ? JSON.parse(caseStudiesData).length : 0;
+      
+      // Log success info to console
+      console.log('✅ Export Complete (PLACEHOLDER MODE)!');
+      console.log(`📊 ${caseStudiesCount} case studies`);
+      console.log(`📦 File size: ${fileSizeMB} MB`);
+      console.log(`🖼️  Images: EXCLUDED`);
+      
+      // Show non-blocking success indicator instead of alert
+      setShowSaveIndicator(true);
+      setTimeout(() => setShowSaveIndicator(false), 4000);
+      
+    } catch (error) {
+      console.error('Export error:', error);
+      alert(`❌ Export failed: ${error}\n\nCheck console for details.`);
+    }
+  };
+
+  // Shared import function to avoid duplication
+  const handleImportData = () => {
+    console.log('\n🔵 ========== IMPORT STARTED ==========');
+    console.log('⏰ Timestamp:', new Date().toISOString());
+    console.log('👤 Authenticated:', isAuthenticated);
+    console.log('✏️ Edit mode:', isEditMode);
+    
+    if (!confirm('⚠️ IMPORT WARNING\n\nImporting will REPLACE all current data with the data from the JSON file.\n\nMake sure you have exported your current changes FIRST!\n\nClick OK only if you want to proceed with import.')) {
+      console.log('❌ Import cancelled by user');
+      return;
+    }
+    
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        console.log('\n📤 FILE SELECTED:', file.name);
+        console.log('📏 File size:', (file.size / 1024).toFixed(2), 'KB');
+        console.log('📅 Last modified:', new Date(file.lastModified).toISOString());
+        
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          try {
+            const jsonString = event.target?.result as string;
+            if (!jsonString) {
+              throw new Error('File is empty');
+            }
+            
+            const data = JSON.parse(jsonString);
+            console.log('📤 Parsed JSON successfully');
+            
+            // Validate the imported data structure
+            if (!data.caseStudies && !data.designProjects && !data.logo && !data.heroText) {
+              alert('❌ Invalid backup file - no data found');
+              return;
+            }
+            
+            // Validate case studies if present
+            if (data.caseStudies) {
+              try {
+                console.log('DEBUG: About to parse case studies');
+                const caseStudies = JSON.parse(data.caseStudies);
+                if (!Array.isArray(caseStudies)) {
+                  throw new Error('Case studies must be an array');
+                }
+                // Migrate to add missing video fields
+                console.log('🔄 Migrating case studies...');
+                const migratedCaseStudies = migrateProjectsArray(caseStudies);
+                console.log('✅ Migration complete, re-stringifying...');
+                data.caseStudies = JSON.stringify(migratedCaseStudies);
+                console.log(`✅ Validated and migrated ${migratedCaseStudies.length} case studies`);
+              } catch (e) {
+                console.error('CASE STUDIES IMPORT ERROR:', e);
+                if (e instanceof Error) console.error('Stack:', e.stack);
+                alert(`❌ Import Error: Case studies data is invalid.\n\n${e}\n\nPlease check your backup file.`);
+                return;
+              }
+            }
+            
+            // Validate design projects if present
+            if (data.designProjects) {
+              try {
+                console.log('DEBUG: About to parse design projects');
+                const designProjects = JSON.parse(data.designProjects);
+                if (!Array.isArray(designProjects)) {
+                  throw new Error('Design projects must be an array');
+                }
+                // Migrate to add missing video fields
+                console.log('🔄 Migrating design projects...');
+                const migratedDesignProjects = migrateProjectsArray(designProjects);
+                console.log('✅ Migration complete, re-stringifying...');
+                data.designProjects = JSON.stringify(migratedDesignProjects);
+                console.log(`✅ Validated and migrated ${migratedDesignProjects.length} design projects`);
+              } catch (e) {
+                console.error('DESIGN PROJECTS IMPORT ERROR:', e);
+                if (e instanceof Error) console.error('Stack:', e.stack);
+                alert(`❌ Import Error: Design projects data is invalid.\n\n${e}\n\nPlease check your backup file.`);
+                return;
+              }
+            }
+            
+            // Validate page visibility if present
+            if (data.pageVisibility) {
+              try {
+                const pageVis = JSON.parse(data.pageVisibility);
+                if (typeof pageVis !== 'object' || pageVis === null) {
+                  throw new Error('Page visibility must be an object');
+                }
+                console.log('✅ Validated page visibility');
+              } catch (e) {
+                console.warn('⚠️ Page visibility invalid, skipping:', e);
+                delete data.pageVisibility;
+              }
+            }
+            
+            // Calculate total size of data to import
+            const totalSize = 
+              (data.logo?.length || 0) +
+              (data.heroText?.length || 0) +
+              (data.caseStudies?.length || 0) +
+              (data.designProjects?.length || 0) +
+              (data.pageVisibility?.length || 0) +
+              (data.theme?.length || 0);
+            
+            const totalSizeMB = (totalSize * 2 / 1024 / 1024).toFixed(2); // UTF-16 = 2 bytes per char
+            console.log('📏 Total import size:', totalSizeMB, 'MB');
+            
+            // Check current localStorage usage
+            let currentSize = 0;
+            for (let key in localStorage) {
+              if (localStorage.hasOwnProperty(key)) {
+                currentSize += (localStorage[key].length + key.length) * 2;
+              }
+            }
+            const currentSizeMB = (currentSize / 1024 / 1024).toFixed(2);
+            console.log('💾 Current localStorage usage:', currentSizeMB, 'MB');
+            
+            // Warn if size is large (typically 5-10MB limit)
+            if (totalSize * 2 > 5 * 1024 * 1024) {
+              const proceed = confirm(
+                `⚠️ LARGE DATA WARNING\n\n` +
+                `Import size: ${totalSizeMB} MB\n` +
+                `Current usage: ${currentSizeMB} MB\n\n` +
+                `This data is very large and may exceed browser storage limits (typically 5-10MB).\n\n` +
+                `If the import fails:\n` +
+                `1. Go to /emergency.html\n` +
+                `2. Consider removing large images\n` +
+                `3. Split your data into smaller files\n\n` +
+                `Proceed anyway?`
+              );
+              
+              if (!proceed) {
+                console.log('❌ Import cancelled by user (large data)');
+                return;
+              }
+            }
+            
+            // All validations passed - write to localStorage
+            console.log('💾 Writing validated data to localStorage...');
+            
+            try {
+              if (data.logo) localStorage.setItem('logo', data.logo);
+              if (data.heroText) localStorage.setItem('heroText', data.heroText);
+              if (data.caseStudies) {
+                localStorage.setItem('caseStudies', data.caseStudies);
+                // Immediately verify it was written correctly
+                const verify = localStorage.getItem('caseStudies');
+                if (verify !== data.caseStudies) {
+                  throw new Error('Case studies verification failed after write');
+                }
+              }
+              if (data.designProjects) {
+                localStorage.setItem('designProjects', data.designProjects);
+                // Immediately verify it was written correctly
+                const verify = localStorage.getItem('designProjects');
+                if (verify !== data.designProjects) {
+                  throw new Error('Design projects verification failed after write');
+                }
+              }
+              if (data.pageVisibility) localStorage.setItem('pageVisibility', data.pageVisibility);
+              if (data.theme) localStorage.setItem('theme', data.theme);
+              if (data.aboutPageContent) localStorage.setItem('aboutPageContent', data.aboutPageContent);
+              if (data.contactPageContent) localStorage.setItem('contactPageContent', data.contactPageContent);
+              if (data.musicPageContent) localStorage.setItem('musicPageContent', data.musicPageContent);
+              if (data.visualsPageContent) localStorage.setItem('visualsPageContent', data.visualsPageContent);
+              
+              console.log('✅ All data written to localStorage');
+              console.log('📊 Verification check...');
+              
+              // Final verification before reload
+              const finalCheck = {
+                caseStudies: localStorage.getItem('caseStudies') ? 'OK' : 'MISSING',
+                designProjects: localStorage.getItem('designProjects') ? 'OK' : 'MISSING',
+                logo: localStorage.getItem('logo') ? 'OK' : 'MISSING'
+              };
+              
+              console.log('Final check:', finalCheck);
+              
+              // Set flag for success notification
+              localStorage.setItem('freshImport', 'true');
+              
+              console.log('✅ Import complete - ALL DATA WRITTEN SUCCESSFULLY');
+              console.log('🔵 ========== IMPORT COMPLETE - RELOADING ==========\n');
+              
+              // Slight delay to ensure localStorage is fully written and flushed
+              setTimeout(() => {
+                console.log('🔄 Triggering page reload NOW...');
+                window.location.reload();
+              }, 1000); // Increased to 1 second to ensure write completes
+              
+            } catch (writeError: any) {
+              console.error('❌ Error writing to localStorage:', writeError);
+              
+              // Check if it's a quota exceeded error
+              const isQuotaError = 
+                writeError.name === 'QuotaExceededError' ||
+                writeError.message?.includes('quota') ||
+                writeError.message?.includes('QuotaExceeded');
+              
+              if (isQuotaError) {
+                alert(
+                  `❌ STORAGE QUOTA EXCEEDED!\n\n` +
+                  `Your data is too large for browser storage.\n` +
+                  `Import size: ${totalSizeMB} MB\n` +
+                  `Browser limit: ~5-10 MB\n\n` +
+                  `SOLUTIONS:\n\n` +
+                  `1. REDUCE IMAGE SIZES (recommended):\n` +
+                  `   • Use smaller/compressed images\n` +
+                  `   • Remove unused images\n` +
+                  `   • Use external image hosting\n\n` +
+                  `2. SPLIT YOUR DATA:\n` +
+                  `   • Create multiple smaller imports\n` +
+                  `   • Keep only recent/important content\n\n` +
+                  `3. CLEAR OLD DATA:\n` +
+                  `   • Go to /emergency.html\n` +
+                  `   • Clear All Data\n` +
+                  `   • Then try importing again\n\n` +
+                  `Your import was NOT saved - your previous data is still intact.`
+                );
+              } else {
+                alert(
+                  `❌ Error saving imported data:\n\n${writeError}\n\n` +
+                  `Your import was not saved.\n\n` +
+                  `Possible causes:\n` +
+                  `- localStorage is full (${totalSizeMB} MB)\n` +
+                  `- Browser security settings\n` +
+                  `- Data is corrupted\n\n` +
+                  `Try:\n` +
+                  `1. Go to /emergency.html\n` +
+                  `2. Clear old data\n` +
+                  `3. Import smaller data files`
+                );
+              }
+              return;
+            }
+            
+          } catch (err) {
+            console.error('❌ Import error:', err);
+            alert(`❌ Error importing data:\n\n${err}\n\nYour previous data is still intact.\n\nPlease check:\n1. The file is a valid JSON export\n2. The file is not corrupted\n3. The console for more details`);
+          }
+        };
+        
+        reader.onerror = () => {
+          alert('❌ Error reading file. Please try again.');
+        };
+        
+        reader.readAsText(file);
+      }
+    };
+    input.click();
+  };
+
+  const handleEditModeClick = () => {
+    if (!isAuthenticated) {
+      setShowSignIn(true);
+    } else {
+      const newMode = !isEditMode;
+      
+      // When switching FROM edit mode TO preview mode, remind about exporting
+      if (isEditMode && !newMode) {
+        const shouldSwitch = confirm(
+          '💾 Switching to Preview Mode\n\n' +
+          'Have you exported your latest changes?\n\n' +
+          '✅ If YES: Click OK to continue\n' +
+          '❌ If NO: Click Cancel and export first using the "📥 Export Now" button in Edit Mode'
+        );
+        
+        if (!shouldSwitch) {
+          return; // Don't switch modes
+        }
+      }
+      
+      setIsEditMode(newMode);
+      
+      // When switching to preview mode, log current state
+      if (!newMode) {
+        console.log('👁️ Switching to Preview Mode');
+        console.log('📊 Current localStorage data:');
+        const caseStudies = localStorage.getItem('caseStudies');
+        const designProjects = localStorage.getItem('designProjects');
+        if (caseStudies) {
+          const parsed = JSON.parse(caseStudies);
+          console.log('  - Case Studies:', parsed.length, 'projects');
+          parsed.forEach((p: any) => {
+            console.log(`    • ${p.title}: ${p.caseStudyImages?.length || 0} images, ${p.caseStudyContent?.length || 0} chars`);
+          });
+        }
+        if (designProjects) {
+          const parsed = JSON.parse(designProjects);
+          console.log('  - Design Projects:', parsed.length, 'projects');
+        }
+      }
+    }
+  };
+
+  // No loading screen - render immediately for better performance
+  
+  // Debug log to verify render is called
+  console.log('🎨 App rendering, currentPage:', currentPage);
+  
+  // Safeguard: Check if localStorage is accessible
+  try {
+    const test = localStorage.getItem('test');
+  } catch (e) {
+    console.error('❌ localStorage is not accessible:', e);
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-6">
+        <div className="max-w-2xl w-full bg-card border border-border rounded-2xl p-8 shadow-2xl">
+          <div className="flex items-center gap-4 mb-6">
+            <div className="p-3 bg-red-500/10 rounded-full">
+              <AlertTriangle className="w-8 h-8 text-red-500" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold">localStorage Error</h1>
+              <p className="text-muted-foreground">Cannot access browser storage</p>
+            </div>
+          </div>
+          <p className="text-sm mb-4">
+            This app requires localStorage to function. Please check your browser settings and reload.
+          </p>
+          <Button onClick={() => window.location.reload()}>Reload Page</Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <ErrorBoundary>
+      <div className="min-h-screen relative" data-react-root="true">
+        {/* Fixed backgrounds that show on all pages */}
+        <AnimatedBackground />
+        <AbstractPattern />
+      
+      {/* Sign In Modal */}
+      {showSignIn && (
+        <SignIn 
+          onSignIn={handleSignIn} 
+          onCancel={() => setShowSignIn(false)}
+        />
+      )}
+      
+      {/* Case Study Password Prompt */}
+      <AnimatePresence>
+        {pendingProtectedProject && (
+          <CaseStudyPasswordPrompt
+            projectTitle={pendingProtectedProject.project.title}
+            onCorrectPassword={handlePasswordCorrect}
+            onCancel={handlePasswordCancel}
+          />
+        )}
+      </AnimatePresence>
+      
+      {/* SEO Editor */}
+      <SEOEditor 
+        isOpen={showSEOEditor}
+        onClose={() => setShowSEOEditor(false)}
+      />
+      
+      
+      {/* Header - separate from content to avoid z-index stacking context issues */}
+      <Header 
+        logo={logo} 
+        onLogoUpload={handleLogoUpload} 
+        onLogoClick={navigateHome} 
+        isEditMode={isEditMode}
+      />
+
+      {/* Theme Toggle - Top Left */}
+      <motion.div
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ delay: 0.5 }}
+        className="fixed top-6 left-6 z-50"
+      >
+        <Button
+          onClick={(e) => {
+            setTheme(theme === 'light' ? 'dark' : 'light');
+            e.currentTarget.blur(); // Remove focus after click
+          }}
+          variant="secondary"
+          className="rounded-full shadow-lg backdrop-blur-sm p-2.5 md:px-4 md:py-2"
+          aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+        >
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={theme}
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              transition={{ duration: 0.2 }}
+              className="flex items-center"
+            >
+              {theme === 'light' ? (
+                <>
+                  <Moon className="w-4 h-4 md:mr-2" />
+                  <span className="hidden md:inline">Dark Mode</span>
+                </>
+              ) : (
+                <>
+                  <Sun className="w-4 h-4 md:mr-2" />
+                  <span className="hidden md:inline">Light Mode</span>
+                </>
+              )}
+            </motion.div>
+          </AnimatePresence>
+        </Button>
+      </motion.div>
+
+      {/* Save Indicator - Top Right Corner */}
+      <AnimatePresence>
+        {showSaveIndicator && (
+          <motion.div
+            initial={{ opacity: 0, y: -20, x: 20 }}
+            animate={{ opacity: 1, y: 0, x: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="fixed top-24 right-6 z-50 bg-green-500 text-white px-6 py-3 rounded-2xl shadow-2xl backdrop-blur-sm border-2 border-green-400"
+          >
+            <div className="flex items-center gap-3">
+              <Save className="w-5 h-5" />
+              <div>
+                <div className="font-bold text-base">
+                  {isImportSuccess ? 'Import Successful!' : 'Changes Saved to localStorage!'}
+                </div>
+                <div className="text-xs opacity-90 mt-0.5">
+                  {isImportSuccess 
+                    ? 'Your data has been imported and is now active' 
+                    : 'Click "📥 Export Now" to backup to file'}
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Edit Mode Toggle & Status - Top Right */}
+      <motion.div
+        initial={{ opacity: 0, x: 20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ delay: 0.5 }}
+        className="fixed top-6 right-6 z-50 flex flex-col items-end gap-3"
+      >
+        {/* Overflow menu with three dots (both desktop and mobile) */}
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            className={`rounded-full shadow-lg backdrop-blur-sm p-2.5 inline-flex items-center justify-center ${
+              isEditMode 
+                ? "bg-primary text-primary-foreground hover:bg-primary/90" 
+                : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+            } transition-colors`}
+            aria-label="Menu"
+            onMouseUp={(e) => e.currentTarget.blur()} // Remove focus after mouse click
+          >
+            <MoreHorizontal className="w-5 h-5" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuItem 
+              onClick={(e) => {
+                handleEditModeClick();
+                // Blur the dropdown item after click
+                setTimeout(() => document.activeElement instanceof HTMLElement && document.activeElement.blur(), 0);
+              }}
+            >
+              {isEditMode ? (
+                <>
+                  <Eye className="w-4 h-4 mr-2" />
+                  Preview Mode
+                </>
+              ) : (
+                <>
+                  <Edit3 className="w-4 h-4 mr-2" />
+                  {isAuthenticated ? "Edit Mode" : "Sign In"}
+                </>
+              )}
+            </DropdownMenuItem>
+            {isEditMode && (
+              <DropdownMenuItem 
+                onClick={(e) => {
+                  setShowComponentLibrary(true);
+                  setTimeout(() => document.activeElement instanceof HTMLElement && document.activeElement.blur(), 0);
+                }}
+              >
+                <BookOpen className="w-4 h-4 mr-2" />
+                Component Library
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+        {isEditMode && (
+          <>
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-yellow-500/20 border border-yellow-500/50 text-yellow-900 dark:text-yellow-100 px-4 py-2 rounded-full text-sm backdrop-blur-sm"
+            >
+              ✏️ Editing Mode Active
+            </motion.div>
+
+            
+            {/* Verify Saved button - toggles panel and always refreshes data */}
+            <Button
+              onClick={() => {
+                if (showDebugPanel) {
+                  // Panel is open - close it
+                  setShowDebugPanel(false);
+                } else {
+                  // Panel is closed - open it and refresh data
+                  refreshDebugInfo();
+                  setShowDebugPanel(true);
+                }
+              }}
+              variant={showDebugPanel ? "outline" : "default"}
+              size="sm"
+              className={`rounded-full shadow-sm backdrop-blur-sm ${
+                showDebugPanel 
+                  ? "" 
+                  : "bg-green-600 hover:bg-green-700 text-white"
+              }`}
+            >
+              {showDebugPanel ? '✖️ Close Storage Info' : '💾 Verify Saved'}
+            </Button>
+            
+            {/* Export/Import/Refresh buttons in Edit Mode */}
+            <div className="flex gap-2">
+              <Button
+                onClick={() => window.location.reload()}
+                variant="secondary"
+                size="sm"
+                className="rounded-full shadow-sm backdrop-blur-sm"
+                title="Reload page to see latest changes"
+              >
+                🔄 Refresh
+              </Button>
+              <Button
+                onClick={handleExportData}
+                variant="default"
+                size="sm"
+                className="rounded-full shadow-sm backdrop-blur-sm bg-green-600 hover:bg-green-700 text-white"
+              >
+                📥 Export Now
+              </Button>
+              <Button
+                onClick={handleImportData}
+                variant="outline"
+                size="sm"
+                className="rounded-full shadow-sm backdrop-blur-sm"
+              >
+                📤 Import
+              </Button>
+            </div>
+            
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="bg-amber-500/30 border-2 border-amber-500 text-amber-900 dark:text-amber-100 px-4 py-3 rounded-xl text-xs backdrop-blur-sm max-w-xs text-right font-semibold shadow-lg"
+            >
+              <strong className="block mb-1 text-sm">💾 Save Your Work!</strong>
+              <div className="space-y-1 text-[11px]">
+                <div>1. Wait for "Changes saved!" message</div>
+                <div>2. Click "�� Export Now" above</div>
+                <div>3. Save with descriptive name</div>
+                <div>4. Keep multiple backups!</div>
+              </div>
+            </motion.div>
+          </>
+        )}
+        {isAuthenticated && !isEditMode && (
+          <>
+            {/* Export/Import in Preview Mode for quick access */}
+            <div className="flex gap-2">
+              <Button
+                onClick={handleExportData}
+                variant="outline"
+                size="sm"
+                className="rounded-full shadow-sm backdrop-blur-sm bg-green-50 hover:bg-green-100 dark:bg-green-900/20 dark:hover:bg-green-900/30 border-green-500/50"
+              >
+                📥 Export Now
+              </Button>
+              <Button
+                onClick={handleImportData}
+                variant="outline"
+                size="sm"
+                className="rounded-full shadow-sm backdrop-blur-sm"
+              >
+                📤 Import
+              </Button>
+            </div>
+
+            <div className="flex flex-col gap-2 bg-card/80 backdrop-blur-sm rounded-2xl p-3 border border-border">
+              <div className="text-xs font-semibold text-muted-foreground mb-1">Page Visibility</div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  onClick={() => setPageVisibility({ ...pageVisibility, about: !pageVisibility.about })}
+                  variant={pageVisibility.about ? "default" : "secondary"}
+                  size="sm"
+                  className="text-xs"
+                >
+                  About: {pageVisibility.about ? "Live" : "Draft"}
+                </Button>
+                <Button
+                  onClick={() => setPageVisibility({ ...pageVisibility, contact: !pageVisibility.contact })}
+                  variant={pageVisibility.contact ? "default" : "secondary"}
+                  size="sm"
+                  className="text-xs"
+                >
+                  Contact: {pageVisibility.contact ? "Live" : "Draft"}
+                </Button>
+                <Button
+                  onClick={() => setPageVisibility({ ...pageVisibility, music: !pageVisibility.music })}
+                  variant={pageVisibility.music ? "default" : "secondary"}
+                  size="sm"
+                  className="text-xs"
+                >
+                  Music: {pageVisibility.music ? "Live" : "Draft"}
+                </Button>
+                <Button
+                  onClick={() => setPageVisibility({ ...pageVisibility, visuals: !pageVisibility.visuals })}
+                  variant={pageVisibility.visuals ? "default" : "secondary"}
+                  size="sm"
+                  className="text-xs"
+                >
+                  Visuals: {pageVisibility.visuals ? "Live" : "Draft"}
+                </Button>
+              </div>
+            </div>
+
+            <Button
+              onClick={() => setShowPasswordReset(!showPasswordReset)}
+              variant="outline"
+              size="sm"
+              className="rounded-full shadow-sm backdrop-blur-sm"
+            >
+              🔑 Case Study Password
+            </Button>
+            <Button
+              onClick={() => setShowSEOEditor(true)}
+              variant="outline"
+              size="sm"
+              className="rounded-full shadow-sm backdrop-blur-sm bg-purple-50 hover:bg-purple-100 dark:bg-purple-900/20 dark:hover:bg-purple-900/30 border-purple-500/50"
+            >
+              <Search className="w-3 h-3 mr-1" />
+              SEO Settings
+            </Button>
+            <Button
+              onClick={() => {
+                if (confirm('Reset all data to defaults? This will clear all your edits.')) {
+                  localStorage.clear();
+                  window.location.reload();
+                }
+              }}
+              variant="outline"
+              size="sm"
+              className="rounded-full shadow-sm backdrop-blur-sm"
+            >
+              Reset Data
+            </Button>
+            <Button
+              onClick={handleSignOut}
+              variant="ghost"
+              size="sm"
+              className="rounded-full shadow-sm backdrop-blur-sm"
+            >
+              <LogOut className="w-3 h-3 mr-1" />
+              Sign Out
+            </Button>
+          </>
+        )}
+      </motion.div>
+
+      {/* Debug Panel */}
+      <AnimatePresence>
+        {showDebugPanel && debugInfo && (
+          <motion.div
+            initial={{ opacity: 0, x: 300 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 300 }}
+            className="fixed right-6 top-48 z-50 w-96 max-h-[70vh] overflow-auto bg-slate-900 text-white p-6 rounded-2xl shadow-2xl border border-slate-700"
+          >
+            <h3 className="text-xl font-bold mb-4 text-yellow-400">Storage Debug Info</h3>
+            
+            <div className="space-y-4 text-sm font-mono">
+              <div>
+                <div className="text-muted-foreground mb-1">Logo:</div>
+                <div className={debugInfo.hasLogo ? 'text-green-400' : 'text-red-400'}>
+                  {debugInfo.hasLogo ? '✅ Present' : '❌ Not found'}
+                </div>
+              </div>
+
+              <div>
+                <div className="text-muted-foreground mb-1">Case Studies:</div>
+                <div className={debugInfo.caseStudiesCount > 0 ? 'text-green-400' : 'text-red-400'}>
+                  {debugInfo.caseStudiesCount > 0 ? 
+                    `✅ ${debugInfo.caseStudiesCount} projects` : 
+                    '❌ Not found'}
+                </div>
+              </div>
+
+              <div>
+                <div className="text-muted-foreground mb-1">Design Projects:</div>
+                <div className={debugInfo.designProjectsCount > 0 ? 'text-green-400' : 'text-red-400'}>
+                  {debugInfo.designProjectsCount > 0 ? 
+                    `✅ ${debugInfo.designProjectsCount} projects` : 
+                    '❌ Not found'}
+                </div>
+              </div>
+
+              <div className="border-t border-border pt-4">
+                <div className="text-muted-foreground mb-2">Total Storage Used:</div>
+                <div className="text-cyan-400">{debugInfo.totalSize}</div>
+              </div>
+
+              {debugInfo.caseStudies.length > 0 && (
+                <div className="border-t border-border pt-4">
+                  <div className="text-muted-foreground mb-2">Case Study Images:</div>
+                  {debugInfo.caseStudies.map((p: any) => {
+                    const galleryCount = p.caseStudyImages?.length || 0;
+                    const hasHeroImage = p.url ? 1 : 0;
+                    const totalImages = hasHeroImage + galleryCount;
+                    
+                    return (
+                      <div key={p.id} className="mb-2 p-2 bg-muted rounded">
+                        <div className="text-foreground mb-1">{p.title}</div>
+                        <div className="text-muted-foreground text-xs space-y-0.5">
+                          <div>Hero image: {hasHeroImage ? '✅' : '❌'}</div>
+                          <div>Gallery: {galleryCount} {galleryCount === 1 ? 'image' : 'images'}</div>
+                          <div className="text-cyan-400 font-semibold">Total: {totalImages} {totalImages === 1 ? 'image' : 'images'}</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div className="mt-4 flex gap-2">
+              <button
+                onClick={refreshDebugInfo}
+                className="flex-1 bg-cyan-600 hover:bg-cyan-700 text-white py-2 rounded-lg transition-colors font-semibold"
+              >
+                🔄 Refresh
+              </button>
+              <button
+                onClick={() => setShowDebugPanel(false)}
+                className="flex-1 bg-slate-800 hover:bg-slate-700 text-white py-2 rounded-lg transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Password Reset Modal */}
+      <AnimatePresence>
+        {showPasswordReset && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-6"
+            onClick={() => setShowPasswordReset(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: "spring", duration: 0.5 }}
+              className="bg-card border border-border rounded-2xl shadow-2xl p-8 max-w-md w-full"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 className="text-2xl font-bold mb-4">Case Study Password</h2>
+              <p className="text-sm text-muted-foreground mb-6">
+                Set or reset the password required to view password-protected case studies. 
+                Default password is "0p3n".
+              </p>
+
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (newPassword.trim()) {
+                    localStorage.setItem('caseStudyPassword', newPassword);
+                    alert('Password updated successfully!');
+                    setNewPassword("");
+                    setShowPasswordReset(false);
+                  }
+                }}
+                className="space-y-4"
+              >
+                <div>
+                  <label htmlFor="newPassword" className="block mb-2 text-sm font-medium">
+                    New Password
+                  </label>
+                  <Input
+                    id="newPassword"
+                    type="text"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Enter new password"
+                    autoFocus
+                  />
+                </div>
+
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                  <p className="text-xs text-blue-900 dark:text-blue-100">
+                    <strong>Current password:</strong> {localStorage.getItem('caseStudyPassword') || '0p3n (default)'}
+                  </p>
+                </div>
+
+                <div className="flex gap-3">
+                  <Button type="submit" className="flex-1">
+                    Update Password
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      if (confirm('Reset to default password "0p3n"?')) {
+                        localStorage.removeItem('caseStudyPassword');
+                        alert('Password reset to default: 0p3n');
+                        setNewPassword("");
+                        setShowPasswordReset(false);
+                      }
+                    }}
+                    className="flex-1"
+                  >
+                    Reset to Default
+                  </Button>
+                </div>
+
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => {
+                    setNewPassword("");
+                    setShowPasswordReset(false);
+                  }}
+                  className="w-full"
+                >
+                  Cancel
+                </Button>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className="relative z-10">
+        {currentPage === "home" && (
+          <Home 
+            onStartClick={navigateToStart} 
+            isEditMode={isEditMode}
+            onProjectClick={navigateToProject}
+            currentPage={currentPage}
+          />
+        )}
+        {currentPage === "about" && (isEditMode || pageVisibility.about) && (
+          <About onBack={navigateHome} onHoverChange={setIsBlurringBackground} isEditMode={isEditMode} />
+        )}
+        {currentPage === "contact" && (isEditMode || pageVisibility.contact) && (
+          <Contact onBack={navigateHome} isEditMode={isEditMode} />
+        )}
+        {currentPage === "music" && (isEditMode || pageVisibility.music) && (
+          <Music onBack={navigateHome} isEditMode={isEditMode} />
+        )}
+        {currentPage === "visuals" && (isEditMode || pageVisibility.visuals) && (
+          <Visuals onBack={navigateHome} isEditMode={isEditMode} />
+        )}
+        {currentPage === "project-detail" && selectedProject && (
+          <ProjectDetail
+            key={(selectedProject as any)._navTimestamp || selectedProject.id}
+            project={selectedProject}
+            onBack={navigateHome}
+            onUpdate={handleUpdateProject}
+            isEditMode={isEditMode}
+          />
+        )}
+        {currentPage === "supabase-test" && (
+          <SupabaseTest />
+        )}
+        {/* Supabase test page removed */}
+      </div>
+
+      {currentPage !== "home" && currentPage !== "project-detail" && (() => {
+        // Filter visible pages based on edit mode and page visibility
+        const visiblePages = [
+          { key: 'about', label: 'About', visible: isEditMode || pageVisibility.about },
+          { key: 'contact', label: 'Contact', visible: isEditMode || pageVisibility.contact },
+          { key: 'music', label: 'Music', visible: isEditMode || pageVisibility.music },
+          { key: 'visuals', label: 'Visuals', visible: isEditMode || pageVisibility.visuals }
+        ].filter(page => page.visible);
+
+        // Only show navigation if there are 2 or more visible pages
+        if (visiblePages.length <= 1) return null;
+
+        return (
+          <motion.nav
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.5, duration: 0.5 }}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 lg:bottom-auto lg:top-[6.5rem] bg-card/80 backdrop-blur-lg border border-border rounded-full shadow-2xl px-1 py-1 flex items-center gap-2 z-40 h-[54px]"
+          >
+            {visiblePages.map(page => (
+              <motion.button
+                key={page.key}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={(e) => {
+                  setCurrentPage(page.key as Page);
+                  e.currentTarget.blur(); // Remove focus after click
+                }}
+                className={`px-6 py-2.5 rounded-full transition-all duration-200 font-bold compact-focus h-[48px] flex items-center justify-center my-0.5 ${
+                  currentPage === page.key
+                    ? "bg-primary text-primary-foreground"
+                    : "hover:bg-accent hover:scale-[1.02]"
+                } ${isEditMode && !pageVisibility[page.key as keyof typeof pageVisibility] ? 'opacity-50 border border-dashed border-yellow-500' : ''}`}
+              >
+                {page.label}
+                {isEditMode && !pageVisibility[page.key as keyof typeof pageVisibility] && (
+                  <span className="ml-2 text-xs">📝</span>
+                )}
+              </motion.button>
+            ))}
+          </motion.nav>
+        );
+      })()}
+      </div>
+
+      {/* Component Library Modal */}
+      <ComponentLibrary 
+        isOpen={showComponentLibrary} 
+        onClose={() => setShowComponentLibrary(false)} 
+      />
+      
+      {/* Toast notifications */}
+      <Toaster position="bottom-right" />
+    </ErrorBoundary>
+  );
+}
