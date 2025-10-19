@@ -297,7 +297,8 @@ export function convertToLegacyFormat(caseStudy: FlexibleCaseStudyTemplate): any
   const flowDiagramsSection = caseStudy.sections.find(s => s.type === 'flowDiagrams');
   const solutionCardsSection = caseStudy.sections.find(s => s.type === 'solutionCards');
 
-  return {
+  // Only include positions for sections that actually exist
+  const result: any = {
     id: `cs-${Math.random().toString(36).substr(2, 9)}`,
     title: caseStudy.title,
     description: caseStudy.description,
@@ -306,12 +307,24 @@ export function convertToLegacyFormat(caseStudy: FlexibleCaseStudyTemplate): any
     scale: 1,
     published: false,
     caseStudyContent: markdownContent,
-    projectImagesPosition: projectImagesSection ? projectImagesSection.position : caseStudy.metadata.projectImagesPosition,
-    videosPosition: videosSection ? videosSection.position : caseStudy.metadata.videosPosition,
-    flowDiagramsPosition: flowDiagramsSection ? flowDiagramsSection.position : caseStudy.metadata.flowDiagramsPosition,
-    solutionCardsPosition: solutionCardsSection ? solutionCardsSection.position : caseStudy.metadata.solutionCardsPosition,
     caseStudyImages: [],
     flowDiagramImages: [],
     videoItems: []
   };
+
+  // Only set positions for sections that actually exist
+  if (projectImagesSection) {
+    result.projectImagesPosition = projectImagesSection.position;
+  }
+  if (videosSection) {
+    result.videosPosition = videosSection.position;
+  }
+  if (flowDiagramsSection) {
+    result.flowDiagramsPosition = flowDiagramsSection.position;
+  }
+  if (solutionCardsSection) {
+    result.solutionCardsPosition = solutionCardsSection.position;
+  }
+
+  return result;
 }

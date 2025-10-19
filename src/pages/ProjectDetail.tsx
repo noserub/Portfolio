@@ -1951,7 +1951,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
             actualPositions={actualPositions}
             totalSections={totalSections}
             imageGallerySlot={
-              (caseStudyImages.length > 0 || isEditMode) ? (
+              (caseStudyImages.length > 0 || (isEditMode && project.projectImagesPosition !== undefined)) ? (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -2056,7 +2056,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
               ) : undefined
             }
             videoSlot={
-              (videoItems.length > 0 || isEditMode) ? (
+              (videoItems.length > 0 || (isEditMode && project.videosPosition !== undefined)) ? (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -2161,7 +2161,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
               ) : undefined
             }
             flowDiagramSlot={
-              (flowDiagramImages.length > 0 || isEditMode) ? (
+              (flowDiagramImages.length > 0 || (isEditMode && project.flowDiagramsPosition !== undefined)) ? (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
