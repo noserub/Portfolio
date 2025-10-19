@@ -14,7 +14,6 @@ import { AtAGlanceSidebar } from "../components/features/AtAGlanceSidebar";
 import { ImpactSidebar } from "../components/features/ImpactSidebar";
 import { FlowDiagramGallery } from "../components/FlowDiagramGallery";
 import { VideoGallery } from "../components/VideoGallery";
-import { SectionManager } from "../components/SectionManager";
 import { useCaseStudySEO } from "../hooks/useSEO";
 
 interface ProjectDetailProps {
@@ -424,77 +423,6 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     project.videosPosition !== undefined ? project.videosPosition : 998
   );
   
-  // Section management state
-  const [showSectionManager, setShowSectionManager] = useState(false);
-  const [projectSections, setProjectSections] = useState<Array<{
-    id: string;
-    title: string;
-    content: string;
-    type: string;
-    position: number;
-    isVisible: boolean;
-  }>>(() => {
-    // Initialize sections based on project data
-    const sections = [];
-    
-    // Add sections based on what exists in the project
-    if (project.caseStudyContent) {
-      sections.push({
-        id: 'overview',
-        title: 'Overview',
-        content: project.caseStudyContent,
-        type: 'markdown',
-        position: 0,
-        isVisible: true
-      });
-    }
-    
-    if (project.projectImagesPosition !== undefined) {
-      sections.push({
-        id: 'project-images',
-        title: 'Project Images',
-        content: '',
-        type: 'gallery',
-        position: project.projectImagesPosition,
-        isVisible: true
-      });
-    }
-    
-    if (project.videosPosition !== undefined) {
-      sections.push({
-        id: 'videos',
-        title: 'Videos',
-        content: '',
-        type: 'gallery',
-        position: project.videosPosition,
-        isVisible: true
-      });
-    }
-    
-    if (project.flowDiagramsPosition !== undefined) {
-      sections.push({
-        id: 'flow-diagrams',
-        title: 'Flow Diagrams',
-        content: '',
-        type: 'gallery',
-        position: project.flowDiagramsPosition,
-        isVisible: true
-      });
-    }
-    
-    if (project.solutionCardsPosition !== undefined) {
-      sections.push({
-        id: 'solution-cards',
-        title: 'Solution Cards',
-        content: '',
-        type: 'gallery',
-        position: project.solutionCardsPosition,
-        isVisible: true
-      });
-    }
-    
-    return sections.sort((a, b) => a.position - b.position);
-  });
   const [flowDiagramsPosition, setFlowDiagramsPosition] = useState<number>(
     project.flowDiagramsPosition !== undefined ? project.flowDiagramsPosition : 1000
   );
@@ -502,40 +430,6 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     project.solutionCardsPosition !== undefined ? project.solutionCardsPosition : 3
   );
   
-  // Handle section changes
-  const handleSectionsChange = (newSections: typeof projectSections) => {
-    setProjectSections(newSections);
-    
-    // Update project positions based on section changes
-    const projectImagesSection = newSections.find(s => s.type === 'gallery' && s.id.includes('project-images'));
-    const videosSection = newSections.find(s => s.type === 'gallery' && s.id.includes('videos'));
-    const flowDiagramsSection = newSections.find(s => s.type === 'gallery' && s.id.includes('flow-diagrams'));
-    const solutionCardsSection = newSections.find(s => s.type === 'gallery' && s.id.includes('solution-cards'));
-    
-    if (projectImagesSection) {
-      setProjectImagesPosition(projectImagesSection.position);
-    }
-    if (videosSection) {
-      setVideosPosition(videosSection.position);
-    }
-    if (flowDiagramsSection) {
-      setFlowDiagramsPosition(flowDiagramsSection.position);
-    }
-    if (solutionCardsSection) {
-      setSolutionCardsPosition(solutionCardsSection.position);
-    }
-    
-    // Update the project with new section configuration
-    const updatedProject: ProjectData = {
-      ...project,
-      projectImagesPosition: projectImagesSection?.position,
-      videosPosition: videosSection?.position,
-      flowDiagramsPosition: flowDiagramsSection?.position,
-      solutionCardsPosition: solutionCardsSection?.position,
-    };
-    
-    onUpdate(updatedProject);
-  };
   
   // NEW: Track positions for ALL sections (markdown + sidebars + galleries)
   const [sectionPositions, setSectionPositions] = useState<Record<string, number>>(() => {
@@ -2376,22 +2270,6 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
               ) : undefined
             }
           />
-          
-          {/* Section Manager - Only in Edit Mode */}
-          {isEditMode && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.8 }}
-              className="mt-8 p-6 bg-gradient-to-br from-slate-50/10 via-white/15 to-gray-50/8 dark:from-slate-800/30 dark:via-slate-900/25 dark:to-slate-800/20 backdrop-blur-md rounded-2xl border border-border/30 shadow-lg"
-            >
-              <SectionManager
-                sections={projectSections}
-                onSectionsChange={handleSectionsChange}
-                isEditMode={isEditMode}
-              />
-            </motion.div>
-          )}
           </div>
         )}
 

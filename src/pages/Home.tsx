@@ -2794,10 +2794,10 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         gallery_columns: projectData.galleryColumns || 1,
         flow_diagram_columns: projectData.flowDiagramColumns || 1,
         video_columns: projectData.videoColumns || 1,
-        project_images_position: projectData.projectImagesPosition || 2,
-        videos_position: projectData.videosPosition || 998,
-        flow_diagrams_position: projectData.flowDiagramsPosition || 1000,
-        solution_cards_position: projectData.solutionCardsPosition || 999,
+        project_images_position: projectData.projectImagesPosition,
+        videos_position: projectData.videosPosition,
+        flow_diagrams_position: projectData.flowDiagramsPosition,
+        solution_cards_position: projectData.solutionCardsPosition,
         section_positions: projectData.sectionPositions || {},
         sort_order: 0
       };
