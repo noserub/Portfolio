@@ -426,8 +426,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
   const [flowDiagramsPosition, setFlowDiagramsPosition] = useState<number>(
     project.flowDiagramsPosition !== undefined ? project.flowDiagramsPosition : 1000
   );
-  const [solutionCardsPosition, setSolutionCardsPosition] = useState<number>(
-    project.solutionCardsPosition !== undefined ? project.solutionCardsPosition : 3
+  const [solutionCardsPosition, setSolutionCardsPosition] = useState<number | undefined>(
+    project.solutionCardsPosition
   );
   
   
@@ -1290,7 +1290,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       }
       
       // Check if Solution Cards is at this position
-      if (solutionCardsPosition === i) {
+      if (solutionCardsPosition !== undefined && solutionCardsPosition === i) {
         combined.push({ title: '__SOLUTION_CARDS__', type: 'special', position: i });
         continue;
       }
@@ -1669,7 +1669,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       return !isDecorative && !isSolution;
     });
     
-    if (hasCards || isEditMode) {
+    if ((hasCards || isEditMode) && solutionCardsPosition !== undefined) {
       insertions.push({ 
         pos: solutionCardsPosition, 
         item: { title: '__SOLUTION_CARDS__', type: 'gallery' }
