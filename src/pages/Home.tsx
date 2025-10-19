@@ -10,9 +10,10 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Textarea } from "../components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
-import { Plus, ChevronLeft, ChevronRight, Edit2, Save, GripVertical, Linkedin, FileText, Trash2, Eye } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, Edit2, Save, GripVertical, Linkedin, FileText, Trash2, Eye, Wand2 } from "lucide-react";
 import { createCaseStudyFromTemplate } from "../utils/caseStudyTemplate";
 import { loadMigratedProjects } from "../utils/migrateVideoFields";
+import { BlankProjectCreator } from "../components/BlankProjectCreator";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -763,6 +764,9 @@ export function Home({ onStartClick, isEditMode, onProjectClick, currentPage }: 
   
   // State to trigger re-rendering when localStorage changes
   const [localStorageVersion, setLocalStorageVersion] = useState(0);
+  
+  // State for blank project creator
+  const [showBlankProjectCreator, setShowBlankProjectCreator] = useState(false);
   
   // Function to clean up blank/invalid case studies
   const cleanupBlankCaseStudies = () => {
@@ -2758,6 +2762,67 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     }
   };
 
+  const handleCreateBlankProject = async (projectData: any) => {
+    console.log('🖱️ Creating blank project:', projectData);
+    try {
+      // Get current user for the project
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.error('❌ No authenticated user for creating project');
+        return;
+      }
+
+      // Convert to Supabase format and create in database
+      const supabaseProjectData = {
+        user_id: user.id,
+        title: projectData.title,
+        description: projectData.description,
+        url: projectData.url || "",
+        position_x: projectData.position?.x || 50,
+        position_y: projectData.position?.y || 50,
+        scale: projectData.scale || 1,
+        published: projectData.published || false,
+        requires_password: projectData.requires_password || false,
+        password: projectData.password,
+        case_study_content: projectData.caseStudyContent || "",
+        case_study_images: projectData.caseStudyImages || [],
+        flow_diagram_images: projectData.flowDiagramImages || [],
+        video_items: projectData.videoItems || [],
+        gallery_aspect_ratio: projectData.galleryAspectRatio || '3x4',
+        flow_diagram_aspect_ratio: projectData.flowDiagramAspectRatio || '3x4',
+        video_aspect_ratio: projectData.videoAspectRatio || '3x4',
+        gallery_columns: projectData.galleryColumns || 1,
+        flow_diagram_columns: projectData.flowDiagramColumns || 1,
+        video_columns: projectData.videoColumns || 1,
+        project_images_position: projectData.projectImagesPosition || 2,
+        videos_position: projectData.videosPosition || 998,
+        flow_diagrams_position: projectData.flowDiagramsPosition || 1000,
+        solution_cards_position: projectData.solutionCardsPosition || 999,
+        section_positions: projectData.sectionPositions || {},
+        sort_order: 0
+      };
+
+      const createdProject = await createProject(supabaseProjectData);
+      if (createdProject) {
+        console.log('✅ Blank project created in Supabase:', createdProject.id);
+        setShowBlankProjectCreator(false);
+        // Scroll to show the new case study was added
+        setTimeout(() => {
+          if (caseStudyScrollRef.current) {
+            caseStudyScrollRef.current.scrollTo({
+              left: caseStudyScrollRef.current.scrollWidth,
+              behavior: 'smooth'
+            });
+          }
+        }, 100);
+      } else {
+        console.error('❌ Failed to create blank project in Supabase');
+      }
+    } catch (error) {
+      console.error('❌ Error creating blank project:', error);
+    }
+  };
+
   const handleDeleteProject = (projectId: string, projectTitle: string, type: 'caseStudies' | 'design') => {
     setDeleteConfirmation({ projectId, projectTitle, type });
   };
@@ -3644,6 +3709,33 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                       className="snap-center flex-shrink-0 flex items-center justify-center px-2"
                     >
                       <button
+                        type="button"
+                        onClick={() => setShowBlankProjectCreator(true)}
+                        className="w-[280px] aspect-[3/4] rounded-2xl border-2 border-dashed border-blue-500/30 hover:border-blue-500 hover:bg-blue-500/10 transition-all flex flex-col items-center justify-center gap-3 group cursor-pointer"
+                        style={{ cursor: 'pointer', pointerEvents: 'auto' }}
+                        disabled={false}
+                      >
+                        <Wand2 className="w-12 h-12 text-blue-500/70 group-hover:text-blue-500 transition-colors" />
+                        <div className="text-center px-4">
+                          <span className="block text-blue-500/70 group-hover:text-blue-500 transition-colors font-semibold">
+                            Create Blank Project
+                          </span>
+                          <span className="block text-xs text-muted-foreground mt-1">
+                            Start with empty canvas
+                          </span>
+                          <span className="block text-xs text-blue-500 mt-1">
+                            Add sections as needed
+                          </span>
+                        </div>
+                      </button>
+                    </motion.div>
+                    <motion.div
+                      initial={{ opacity: 0, x: 50 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: displayCaseStudies.length * 0.1 + 0.2 }}
+                      className="snap-center flex-shrink-0 flex items-center justify-center px-2"
+                    >
+                      <button
                         onClick={() => handleAddProject('caseStudies')}
                         className="w-[280px] aspect-[3/4] rounded-2xl border-2 border-dashed border-muted-foreground/30 hover:border-primary hover:bg-accent/50 transition-all flex flex-col items-center justify-center gap-3 group"
                       >
@@ -3698,6 +3790,14 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Blank Project Creator */}
+      <BlankProjectCreator
+        isOpen={showBlankProjectCreator}
+        onClose={() => setShowBlankProjectCreator(false)}
+        onCreateProject={handleCreateBlankProject}
+        isEditMode={isEditMode}
+      />
     </div>
   );
 }
