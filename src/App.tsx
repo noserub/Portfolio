@@ -968,19 +968,6 @@ export default function App() {
               SEO Settings
             </Button>
             <Button
-              onClick={() => {
-                if (confirm('Reset all data to defaults? This will clear all your edits.')) {
-                  localStorage.clear();
-                  window.location.reload();
-                }
-              }}
-              variant="outline"
-              size="sm"
-              className="rounded-full shadow-sm backdrop-blur-sm"
-            >
-              Reset Data
-            </Button>
-            <Button
               onClick={async () => {
                 if (confirm('Fix Skype Qik image and restore Tandem case study?')) {
                   // Call the global fix function
