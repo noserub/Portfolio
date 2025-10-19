@@ -892,21 +892,6 @@ export default function App() {
                 🔄 Refresh
               </Button>
             </div>
-            
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="bg-amber-500/30 border-2 border-amber-500 text-amber-900 dark:text-amber-100 px-4 py-3 rounded-xl text-xs backdrop-blur-sm max-w-xs text-right font-semibold shadow-lg"
-            >
-              <strong className="block mb-1 text-sm">💾 Save Your Work!</strong>
-              <div className="space-y-1 text-[11px]">
-                <div>1. Wait for "Changes saved!" message</div>
-                <div>2. Click "�� Export Now" above</div>
-                <div>3. Save with descriptive name</div>
-                <div>4. Keep multiple backups!</div>
-              </div>
-            </motion.div>
           </>
         )}
         {isAuthenticated && !isEditMode && (
