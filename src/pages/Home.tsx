@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Plus, ChevronLeft, ChevronRight, Edit2, Save, GripVertical, Linkedin, FileText, Trash2, Eye, Wand2 } from "lucide-react";
 import { createCaseStudyFromTemplate } from "../utils/caseStudyTemplate";
 import { loadMigratedProjects } from "../utils/migrateVideoFields";
-import { BlankProjectCreator } from "../components/BlankProjectCreator";
+import { UnifiedProjectCreator } from "../components/UnifiedProjectCreator";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -765,8 +765,8 @@ export function Home({ onStartClick, isEditMode, onProjectClick, currentPage }: 
   // State to trigger re-rendering when localStorage changes
   const [localStorageVersion, setLocalStorageVersion] = useState(0);
   
-  // State for blank project creator
-  const [showBlankProjectCreator, setShowBlankProjectCreator] = useState(false);
+  // State for unified project creator
+  const [showUnifiedProjectCreator, setShowUnifiedProjectCreator] = useState(false);
   
   // Function to clean up blank/invalid case studies
   const cleanupBlankCaseStudies = () => {
@@ -2762,7 +2762,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     }
   };
 
-  const handleCreateBlankProject = async (projectData: any) => {
+  const handleCreateUnifiedProject = async (projectData: any) => {
     console.log('🖱️ Creating blank project:', projectData);
     try {
       // Get current user for the project
@@ -2804,8 +2804,8 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
 
       const createdProject = await createProject(supabaseProjectData);
       if (createdProject) {
-        console.log('✅ Blank project created in Supabase:', createdProject.id);
-        setShowBlankProjectCreator(false);
+        console.log('✅ Unified project created in Supabase:', createdProject.id);
+        setShowUnifiedProjectCreator(false);
         // Scroll to show the new case study was added
         setTimeout(() => {
           if (caseStudyScrollRef.current) {
@@ -3683,69 +3683,21 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                     >
                       <button
                         type="button"
-                        onClick={handleAddFromTemplate}
-                        className="w-[280px] aspect-[3/4] rounded-2xl border-2 border-dashed border-purple-500/30 hover:border-purple-500 hover:bg-purple-500/10 transition-all flex flex-col items-center justify-center gap-3 group cursor-pointer"
+                        onClick={() => setShowUnifiedProjectCreator(true)}
+                        className="w-[280px] aspect-[3/4] rounded-2xl border-2 border-dashed border-primary/30 hover:border-primary hover:bg-primary/10 transition-all flex flex-col items-center justify-center gap-3 group cursor-pointer"
                         style={{ cursor: 'pointer', pointerEvents: 'auto' }}
                         disabled={false}
                       >
-                        <FileText className="w-12 h-12 text-purple-500/70 group-hover:text-purple-500 transition-colors" />
+                        <Plus className="w-12 h-12 text-primary/70 group-hover:text-primary transition-colors" />
                         <div className="text-center px-4">
-                          <span className="block text-purple-500/70 group-hover:text-purple-500 transition-colors font-semibold">
-                            New from Template
+                          <span className="block text-primary/70 group-hover:text-primary transition-colors font-semibold">
+                            New Project
                           </span>
                           <span className="block text-xs text-muted-foreground mt-1">
-                            Pre-filled case study structure
+                            Choose project type and customize
                           </span>
-                          <span className="block text-xs text-red-500 mt-1">
-                            Click me!
-                          </span>
-                        </div>
-                      </button>
-                    </motion.div>
-                    <motion.div
-                      initial={{ opacity: 0, x: 50 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: displayCaseStudies.length * 0.1 + 0.1 }}
-                      className="snap-center flex-shrink-0 flex items-center justify-center px-2"
-                    >
-                      <button
-                        type="button"
-                        onClick={() => setShowBlankProjectCreator(true)}
-                        className="w-[280px] aspect-[3/4] rounded-2xl border-2 border-dashed border-blue-500/30 hover:border-blue-500 hover:bg-blue-500/10 transition-all flex flex-col items-center justify-center gap-3 group cursor-pointer"
-                        style={{ cursor: 'pointer', pointerEvents: 'auto' }}
-                        disabled={false}
-                      >
-                        <Wand2 className="w-12 h-12 text-blue-500/70 group-hover:text-blue-500 transition-colors" />
-                        <div className="text-center px-4">
-                          <span className="block text-blue-500/70 group-hover:text-blue-500 transition-colors font-semibold">
-                            Create Blank Project
-                          </span>
-                          <span className="block text-xs text-muted-foreground mt-1">
-                            Start with empty canvas
-                          </span>
-                          <span className="block text-xs text-blue-500 mt-1">
-                            Add sections as needed
-                          </span>
-                        </div>
-                      </button>
-                    </motion.div>
-                    <motion.div
-                      initial={{ opacity: 0, x: 50 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: displayCaseStudies.length * 0.1 + 0.2 }}
-                      className="snap-center flex-shrink-0 flex items-center justify-center px-2"
-                    >
-                      <button
-                        onClick={() => handleAddProject('caseStudies')}
-                        className="w-[280px] aspect-[3/4] rounded-2xl border-2 border-dashed border-muted-foreground/30 hover:border-primary hover:bg-accent/50 transition-all flex flex-col items-center justify-center gap-3 group"
-                      >
-                        <Plus className="w-12 h-12 text-muted-foreground group-hover:text-primary transition-colors" />
-                        <div className="text-center px-4">
-                          <span className="block text-muted-foreground group-hover:text-primary transition-colors">
-                            Add Blank Project
-                          </span>
-                          <span className="block text-xs text-muted-foreground mt-1">
-                            Start from scratch
+                          <span className="block text-xs text-primary mt-1">
+                            Smart templates available
                           </span>
                         </div>
                       </button>
@@ -3791,11 +3743,11 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Blank Project Creator */}
-      <BlankProjectCreator
-        isOpen={showBlankProjectCreator}
-        onClose={() => setShowBlankProjectCreator(false)}
-        onCreateProject={handleCreateBlankProject}
+      {/* Unified Project Creator */}
+      <UnifiedProjectCreator
+        isOpen={showUnifiedProjectCreator}
+        onClose={() => setShowUnifiedProjectCreator(false)}
+        onCreateProject={handleCreateUnifiedProject}
         isEditMode={isEditMode}
       />
     </div>
