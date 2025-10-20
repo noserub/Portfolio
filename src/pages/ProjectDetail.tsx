@@ -416,15 +416,15 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     project.videoItems || (project as any).video_items || []
   );
   
-  const [projectImagesPosition, setProjectImagesPosition] = useState<number>(
-    project.projectImagesPosition !== undefined ? project.projectImagesPosition : 1
+  const [projectImagesPosition, setProjectImagesPosition] = useState<number | undefined>(
+    project.projectImagesPosition
   );
-  const [videosPosition, setVideosPosition] = useState<number>(
-    project.videosPosition !== undefined ? project.videosPosition : 998
+  const [videosPosition, setVideosPosition] = useState<number | undefined>(
+    project.videosPosition
   );
   
-  const [flowDiagramsPosition, setFlowDiagramsPosition] = useState<number>(
-    project.flowDiagramsPosition !== undefined ? project.flowDiagramsPosition : 1000
+  const [flowDiagramsPosition, setFlowDiagramsPosition] = useState<number | undefined>(
+    project.flowDiagramsPosition
   );
   const [solutionCardsPosition, setSolutionCardsPosition] = useState<number | undefined>(
     project.solutionCardsPosition
@@ -433,23 +433,18 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
   
   // NEW: Track positions for ALL sections (markdown + sidebars + galleries)
   const [sectionPositions, setSectionPositions] = useState<Record<string, number>>(() => {
-    // Load from project or set intelligent defaults
+    // Use provided positions if present
     if (project.sectionPositions && Object.keys(project.sectionPositions).length > 0) {
       return project.sectionPositions;
     }
-    
-    // Default positions: sidebars early, then markdown sections in order, then galleries at end
-    return {
-      '__AT_A_GLANCE__': 0,
-      'Overview': 1,
-      '__IMPACT__': 2,
-      'My role': 3,
-      'The Solution': 4,
-      '__PROJECT_IMAGES__': 5,
-      '__SOLUTION_CARDS__': 6,
-      '__FLOW_DIAGRAMS__': 7,
-      // Additional sections will be added dynamically as they're parsed
-    };
+    // Minimal sensible defaults: only include sections that exist
+    const positions: Record<string, number> = { 'Overview': 0 };
+    let next = 1;
+    if (project.projectImagesPosition !== undefined) positions['__PROJECT_IMAGES__'] = next++;
+    if (project.videosPosition !== undefined) positions['__VIDEOS__'] = next++;
+    if (project.flowDiagramsPosition !== undefined) positions['__FLOW_DIAGRAMS__'] = next++;
+    if (project.solutionCardsPosition !== undefined) positions['__SOLUTION_CARDS__'] = next++;
+    return positions;
   });
   
   // Use refs to track latest values to avoid stale state in callbacks
