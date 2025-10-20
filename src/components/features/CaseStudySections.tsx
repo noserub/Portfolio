@@ -54,6 +54,10 @@ interface CaseStudySectionsProps {
   onMoveVideos?: (direction: 'up' | 'down') => void;
   onMoveFlowDiagrams?: (direction: 'up' | 'down') => void;
   onMoveSolutionCards?: (direction: 'up' | 'down') => void;
+  onRemoveProjectImages?: () => void;
+  onRemoveVideos?: () => void;
+  onRemoveFlowDiagrams?: () => void;
+  onRemoveSolutionCards?: () => void;
   onMoveMarkdownSection?: (sectionTitle: string, direction: 'up' | 'down') => void;
   sectionPositions?: Record<string, number>;
   actualPositions?: {
@@ -179,6 +183,10 @@ export function CaseStudySections({
   onMoveVideos,
   onMoveFlowDiagrams,
   onMoveSolutionCards,
+  onRemoveProjectImages,
+  onRemoveVideos,
+  onRemoveFlowDiagrams,
+  onRemoveSolutionCards,
   onMoveMarkdownSection,
   totalSections = 1000
 }: CaseStudySectionsProps) {
@@ -743,6 +751,9 @@ export function CaseStudySections({
                       🖼️ Project Images Gallery
                     </span>
                   </div>
+                  {onRemoveProjectImages && (
+                    <Button size="sm" variant="destructive" onClick={() => onRemoveProjectImages()} className="rounded-full">Remove</Button>
+                  )}
                 </motion.div>
               )}
               {imageGallerySlot}
@@ -787,6 +798,9 @@ export function CaseStudySections({
                       📹 Videos Gallery
                     </span>
                   </div>
+                  {onRemoveVideos && (
+                    <Button size="sm" variant="destructive" onClick={() => onRemoveVideos()} className="rounded-full">Remove</Button>
+                  )}
                 </motion.div>
               )}
               {videoSlot}
@@ -831,6 +845,9 @@ export function CaseStudySections({
                       📊 Flow Diagrams Gallery
                     </span>
                   </div>
+                  {onRemoveFlowDiagrams && (
+                    <Button size="sm" variant="destructive" onClick={() => onRemoveFlowDiagrams()} className="rounded-full">Remove</Button>
+                  )}
                 </motion.div>
               )}
               {flowDiagramSlot}
@@ -885,6 +902,9 @@ export function CaseStudySections({
                       💡 Solution Cards Grid
                     </span>
                   </div>
+                  {onRemoveSolutionCards && (
+                    <Button size="sm" variant="destructive" onClick={() => onRemoveSolutionCards()} className="rounded-full">Remove</Button>
+                  )}
                 </motion.div>
               )}
               
@@ -1300,6 +1320,29 @@ export function CaseStudySections({
                 <h2>{section.title}</h2>
                 {isEditMode && editingSection !== section.title && (
                   <div className="flex gap-2">
+                    {/* Move up/down arrows */}
+                    {index > 0 && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => moveSectionUp(section.title)}
+                        className="rounded-full p-2"
+                        title="Move section up"
+                      >
+                        <ArrowUp className="w-4 h-4" />
+                      </Button>
+                    )}
+                    {index < sectionsWithInserts.length - 1 && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => moveSectionDown(section.title)}
+                        className="rounded-full p-2"
+                        title="Move section down"
+                      >
+                        <ArrowDown className="w-4 h-4" />
+                      </Button>
+                    )}
                     <Button
                       size="sm"
                       variant="outline"
@@ -1440,6 +1483,15 @@ export function CaseStudySections({
                     >
                       <Edit2 className="w-4 h-4 mr-2" />
                       Edit Insights
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => removeCard(section.title)}
+                      className="rounded-full text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                      title="Delete this section"
+                    >
+                      <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
                 )}
@@ -1853,6 +1905,15 @@ export function CaseStudySections({
                       <Edit2 className="w-4 h-4 mr-2" />
                       Edit Analysis
                     </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => removeCard(section.title)}
+                    className="rounded-full text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                    title="Delete this section"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
                   </div>
                 )}
               </div>

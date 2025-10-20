@@ -10,6 +10,14 @@ import { Lightbox } from "../components/Lightbox";
 import { ProjectData } from "../components/ProjectImage";
 import { CaseStudySections } from "../components/features/CaseStudySections";
 import { PageLayout } from "../components/layout/PageLayout";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuItem,
+  DropdownMenuSeparator
+} from "../components/ui/dropdown-menu";
 import { AtAGlanceSidebar } from "../components/features/AtAGlanceSidebar";
 import { ImpactSidebar } from "../components/features/ImpactSidebar";
 import { FlowDiagramGallery } from "../components/FlowDiagramGallery";
@@ -447,6 +455,53 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     return positions;
   });
   
+  // (Handlers moved below after aspect/columns state to avoid TDZ)
+
+  // Use refs to track latest values to avoid stale state in callbacks
+  const caseStudyImagesRef = useRef(caseStudyImages);
+  const flowDiagramImagesRef = useRef(flowDiagramImages);
+  const videoItemsRef = useRef(videoItems);
+  
+  // Keep refs in sync with state
+  useEffect(() => {
+    caseStudyImagesRef.current = caseStudyImages;
+  }, [caseStudyImages]);
+  
+  useEffect(() => {
+    flowDiagramImagesRef.current = flowDiagramImages;
+  }, [flowDiagramImages]);
+  
+  useEffect(() => {
+    videoItemsRef.current = videoItems;
+  }, [videoItems]);
+  const [galleryAspectRatio, setGalleryAspectRatio] = useState<"3x4" | "4x3" | "2x3" | "3x2" | "16x9">(
+    project.galleryAspectRatio || (project as any).gallery_aspect_ratio || "3x4"
+  );
+  const [flowDiagramAspectRatio, setFlowDiagramAspectRatio] = useState<"3x4" | "4x3" | "2x3" | "3x2" | "16x9">(
+    project.flowDiagramAspectRatio || (project as any).flow_diagram_aspect_ratio || "16x9"
+  );
+  const [galleryColumns, setGalleryColumns] = useState<1 | 2 | 3>(
+    project.galleryColumns || (project as any).gallery_columns || 2
+  );
+  const [flowDiagramColumns, setFlowDiagramColumns] = useState<1 | 2 | 3>(
+    project.flowDiagramColumns || (project as any).flow_diagram_columns || 1
+  );
+  const [videoAspectRatio, setVideoAspectRatio] = useState<"3x4" | "4x3" | "2x3" | "3x2" | "16x9" | "9x16">(
+    project.videoAspectRatio || (project as any).video_aspect_ratio || "16x9"
+  );
+  const [videoColumns, setVideoColumns] = useState<1 | 2 | 3>(
+    project.videoColumns || (project as any).video_columns || 1
+  );
+  const [lightboxImage, setLightboxImage] = useState<CaseStudyImage | null>(null);
+  const [flowDiagramLightboxImage, setFlowDiagramLightboxImage] = useState<{
+    id: string; 
+    url: string; 
+    alt: string;
+    caption?: string;
+    scale?: number;
+    position?: { x: number; y: number };
+  } | null>(null);
+  const [isEditingHeroImage, setIsEditingHeroImage] = useState(false);
   // Helper: compute next available position index for gallery-type sections
   const getNextPosition = useCallback(() => {
     const candidates: number[] = [];
@@ -464,6 +519,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     const base = caseStudyContent || '';
     const prefix = base.trim().length > 0 ? '\n\n---\n\n' : '';
     const newContent = `${base}${prefix}# Overview\n\nAdd an overview of the project.`;
+    setCaseStudyContent(newContent);
     const updatedProject: ProjectData = {
       ...project,
       title: editedTitle,
@@ -485,6 +541,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       sectionPositions,
     };
     onUpdate(updatedProject);
+    console.log('✅ Overview section added');
   }, [caseStudyContent, project, editedTitle, editedDescription, galleryAspectRatio, flowDiagramAspectRatio, videoAspectRatio, galleryColumns, flowDiagramColumns, videoColumns, projectImagesPosition, videosPosition, flowDiagramsPosition, solutionCardsPosition, sectionPositions, onUpdate]);
 
   const handleAddVideosSection = useCallback(() => {
@@ -591,51 +648,92 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     onUpdate(updatedProject);
   }, [getNextPosition, project, editedTitle, editedDescription, caseStudyContent, galleryAspectRatio, flowDiagramAspectRatio, videoAspectRatio, galleryColumns, flowDiagramColumns, videoColumns, projectImagesPosition, videosPosition, flowDiagramsPosition, sectionPositions, onUpdate]);
 
-  // Use refs to track latest values to avoid stale state in callbacks
-  const caseStudyImagesRef = useRef(caseStudyImages);
-  const flowDiagramImagesRef = useRef(flowDiagramImages);
-  const videoItemsRef = useRef(videoItems);
-  
-  // Keep refs in sync with state
-  useEffect(() => {
-    caseStudyImagesRef.current = caseStudyImages;
-  }, [caseStudyImages]);
-  
-  useEffect(() => {
-    flowDiagramImagesRef.current = flowDiagramImages;
-  }, [flowDiagramImages]);
-  
-  useEffect(() => {
-    videoItemsRef.current = videoItems;
-  }, [videoItems]);
-  const [galleryAspectRatio, setGalleryAspectRatio] = useState<"3x4" | "4x3" | "2x3" | "3x2" | "16x9">(
-    project.galleryAspectRatio || (project as any).gallery_aspect_ratio || "3x4"
-  );
-  const [flowDiagramAspectRatio, setFlowDiagramAspectRatio] = useState<"3x4" | "4x3" | "2x3" | "3x2" | "16x9">(
-    project.flowDiagramAspectRatio || (project as any).flow_diagram_aspect_ratio || "16x9"
-  );
-  const [galleryColumns, setGalleryColumns] = useState<1 | 2 | 3>(
-    project.galleryColumns || (project as any).gallery_columns || 2
-  );
-  const [flowDiagramColumns, setFlowDiagramColumns] = useState<1 | 2 | 3>(
-    project.flowDiagramColumns || (project as any).flow_diagram_columns || 1
-  );
-  const [videoAspectRatio, setVideoAspectRatio] = useState<"3x4" | "4x3" | "2x3" | "3x2" | "16x9" | "9x16">(
-    project.videoAspectRatio || (project as any).video_aspect_ratio || "16x9"
-  );
-  const [videoColumns, setVideoColumns] = useState<1 | 2 | 3>(
-    project.videoColumns || (project as any).video_columns || 1
-  );
-  const [lightboxImage, setLightboxImage] = useState<CaseStudyImage | null>(null);
-  const [flowDiagramLightboxImage, setFlowDiagramLightboxImage] = useState<{
-    id: string; 
-    url: string; 
-    alt: string;
-    caption?: string;
-    scale?: number;
-    position?: { x: number; y: number };
-  } | null>(null);
-  const [isEditingHeroImage, setIsEditingHeroImage] = useState(false);
+  // Helpers to detect presence of markdown sections
+  const hasMarkdownTitle = useCallback((title: string) => {
+    const lines = (caseStudyContent || '').split('\n');
+    return lines.some(l => l.trim().match(/^# (.+)$/)?.[1].trim() === title);
+  }, [caseStudyContent]);
+
+  const addMarkdownSection = useCallback((title: string, body: string) => {
+    const base = caseStudyContent || '';
+    const prefix = base.trim().length > 0 ? '\n\n---\n\n' : '';
+    // Seed sensible starter content so sections render immediately
+    let seeded = body;
+    const lower = title.toLowerCase();
+    if (lower.includes('research insights')) {
+      seeded = '## Insight 1\nDescribe the insight and evidence.\n';
+    } else if (lower.includes('key features')) {
+      seeded = '## Feature 1\nDescribe the feature and impact.\n';
+    } else if (lower.includes('competitive analysis')) {
+      seeded = '## Competitor 1\nSummary with strengths and limitations.\n- Strength 1\n- Limitation 1\n';
+    } else if (lower.includes('my role')) {
+      seeded = '## Design\n- Contribution 1\n- Contribution 2\n\n## Research\n- Contribution 1\n';
+    } else if (lower.includes('the solution')) {
+      seeded = 'Describe your solution approach and why it works.';
+    }
+    const newContent = `${base}${prefix}# ${title}\n\n${seeded}`;
+    setCaseStudyContent(newContent);
+    onUpdate({
+      ...project,
+      title: editedTitle,
+      description: editedDescription,
+      caseStudyContent: newContent,
+      caseStudyImages: caseStudyImagesRef.current,
+      flowDiagramImages: flowDiagramImagesRef.current,
+      videoItems: videoItemsRef.current,
+      galleryAspectRatio,
+      flowDiagramAspectRatio,
+      videoAspectRatio,
+      galleryColumns,
+      flowDiagramColumns,
+      videoColumns,
+      projectImagesPosition,
+      videosPosition,
+      flowDiagramsPosition,
+      solutionCardsPosition,
+      sectionPositions,
+    });
+  }, [caseStudyContent, project, editedTitle, editedDescription, galleryAspectRatio, flowDiagramAspectRatio, videoAspectRatio, galleryColumns, flowDiagramColumns, videoColumns, projectImagesPosition, videosPosition, flowDiagramsPosition, solutionCardsPosition, sectionPositions, onUpdate]);
+
+  const removeMarkdownSection = useCallback((title: string) => {
+    const lines = (caseStudyContent || '').split('\n');
+    const newLines: string[] = [];
+    let inTarget = false;
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const header = line.trim().match(/^# (.+)$/);
+      if (header && header[1].trim() === title) {
+        inTarget = true; // start skipping
+        continue;
+      }
+      if (inTarget && line.trim().match(/^# (.+)$/)) {
+        inTarget = false; // hit next section
+      }
+      if (!inTarget) newLines.push(line);
+    }
+    const newContent = newLines.join('\n');
+    setCaseStudyContent(newContent);
+    onUpdate({
+      ...project,
+      title: editedTitle,
+      description: editedDescription,
+      caseStudyContent: newContent,
+      caseStudyImages: caseStudyImagesRef.current,
+      flowDiagramImages: flowDiagramImagesRef.current,
+      videoItems: videoItemsRef.current,
+      galleryAspectRatio,
+      flowDiagramAspectRatio,
+      videoAspectRatio,
+      galleryColumns,
+      flowDiagramColumns,
+      videoColumns,
+      projectImagesPosition,
+      videosPosition,
+      flowDiagramsPosition,
+      solutionCardsPosition,
+      sectionPositions,
+    });
+  }, [caseStudyContent, project, editedTitle, editedDescription, galleryAspectRatio, flowDiagramAspectRatio, videoAspectRatio, galleryColumns, flowDiagramColumns, videoColumns, projectImagesPosition, videosPosition, flowDiagramsPosition, solutionCardsPosition, sectionPositions, onUpdate]);
   // Hero image positioning - completely independent from home screen
   // Case study detail screen has its own positioning that doesn't affect home screen
   const [heroScale, setHeroScale] = useState(1);
@@ -1870,12 +1968,54 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
   return (
     <PageLayout title={project.description || project.title} onBack={handleBack} overline={project.title}>
       {isEditMode && (
-        <div className="mb-4 flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" onClick={handleAddOverviewSection} className="rounded-full">+ Overview</Button>
-          <Button variant="outline" size="sm" onClick={handleAddVideosSection} className="rounded-full">+ Videos</Button>
-          <Button variant="outline" size="sm" onClick={handleAddImagesSection} className="rounded-full">+ Images</Button>
-          <Button variant="outline" size="sm" onClick={handleAddFlowsSection} className="rounded-full">+ Flows</Button>
-          <Button variant="outline" size="sm" onClick={handleAddSolutionCardsSection} className="rounded-full">+ Solution Cards</Button>
+        <div className="mb-4 flex flex-wrap gap-3 items-center">
+          <div className="text-sm font-medium">Add:</div>
+
+          {/* Galleries dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="rounded-full">Galleries</Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuLabel>Galleries</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem disabled={videosPosition !== undefined} onClick={handleAddVideosSection}>Videos</DropdownMenuItem>
+              <DropdownMenuItem disabled={projectImagesPosition !== undefined} onClick={handleAddImagesSection}>Project Images</DropdownMenuItem>
+              <DropdownMenuItem disabled={flowDiagramsPosition !== undefined} onClick={handleAddFlowsSection}>Flow Diagrams</DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem disabled={solutionCardsPosition !== undefined} onClick={handleAddSolutionCardsSection}>Solution Cards</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Content dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="rounded-full">Content</Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuLabel>Content</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem disabled={hasMarkdownTitle('Overview')} onClick={handleAddOverviewSection}>Overview</DropdownMenuItem>
+              <DropdownMenuItem disabled={hasMarkdownTitle('My role & impact')} onClick={() => addMarkdownSection('My role & impact', 'Describe your role and impact.')}>My role & impact</DropdownMenuItem>
+              <DropdownMenuItem disabled={hasMarkdownTitle('Research insights')} onClick={() => addMarkdownSection('Research insights', 'Add your key research insights here.')}>Research insights</DropdownMenuItem>
+              <DropdownMenuItem disabled={hasMarkdownTitle('Competitive analysis')} onClick={() => addMarkdownSection('Competitive analysis', 'Add your competitive analysis here.')}>Competitive analysis</DropdownMenuItem>
+              <DropdownMenuItem disabled={hasMarkdownTitle('The solution')} onClick={() => addMarkdownSection('The solution', 'Describe your solution and approach.')}>The solution</DropdownMenuItem>
+              <DropdownMenuItem disabled={hasMarkdownTitle('Key features')} onClick={() => addMarkdownSection('Key features', 'List key features and their impact.')}>Key features</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Sidebars dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="rounded-full">Sidebars</Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuLabel>Sidebars</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem disabled={!!atGlanceContent} onClick={() => addMarkdownSection('At a glance', 'Add quick project facts here.')}>At a glance</DropdownMenuItem>
+              <DropdownMenuItem disabled={!!impactContent} onClick={() => addMarkdownSection('Impact', 'Summarize the impact and outcomes.')}>Impact</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       )}
       <div className={!isEditing && atGlanceContent ? "flex flex-col lg:flex-row gap-16" : "space-y-16"}>
@@ -2105,6 +2245,101 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
             onMoveVideos={handleMoveVideos}
             onMoveFlowDiagrams={handleMoveFlowDiagrams}
             onMoveSolutionCards={handleMoveSolutionCards}
+            onRemoveProjectImages={() => {
+              setCaseStudyImages([]);
+              setProjectImagesPosition(undefined);
+              onUpdate({
+                ...project,
+                title: editedTitle,
+                description: editedDescription,
+                caseStudyContent,
+                caseStudyImages: [],
+                flowDiagramImages: flowDiagramImagesRef.current,
+                videoItems: videoItemsRef.current,
+                galleryAspectRatio,
+                flowDiagramAspectRatio,
+                videoAspectRatio,
+                galleryColumns,
+                flowDiagramColumns,
+                videoColumns,
+                projectImagesPosition: undefined,
+                videosPosition,
+                flowDiagramsPosition,
+                solutionCardsPosition,
+                sectionPositions,
+              });
+            }}
+            onRemoveVideos={() => {
+              setVideoItems([]);
+              setVideosPosition(undefined);
+              onUpdate({
+                ...project,
+                title: editedTitle,
+                description: editedDescription,
+                caseStudyContent,
+                caseStudyImages: caseStudyImagesRef.current,
+                flowDiagramImages: flowDiagramImagesRef.current,
+                videoItems: [],
+                galleryAspectRatio,
+                flowDiagramAspectRatio,
+                videoAspectRatio,
+                galleryColumns,
+                flowDiagramColumns,
+                videoColumns,
+                projectImagesPosition,
+                videosPosition: undefined,
+                flowDiagramsPosition,
+                solutionCardsPosition,
+                sectionPositions,
+              });
+            }}
+            onRemoveFlowDiagrams={() => {
+              setFlowDiagramImages([]);
+              setFlowDiagramsPosition(undefined);
+              onUpdate({
+                ...project,
+                title: editedTitle,
+                description: editedDescription,
+                caseStudyContent,
+                caseStudyImages: caseStudyImagesRef.current,
+                flowDiagramImages: [],
+                videoItems: videoItemsRef.current,
+                galleryAspectRatio,
+                flowDiagramAspectRatio,
+                videoAspectRatio,
+                galleryColumns,
+                flowDiagramColumns,
+                videoColumns,
+                projectImagesPosition,
+                videosPosition,
+                flowDiagramsPosition: undefined,
+                solutionCardsPosition,
+                sectionPositions,
+              });
+            }}
+            onRemoveSolutionCards={() => {
+              setSolutionCardsPosition(undefined);
+              onUpdate({
+                ...project,
+                title: editedTitle,
+                description: editedDescription,
+                caseStudyContent,
+                caseStudyImages: caseStudyImagesRef.current,
+                flowDiagramImages: flowDiagramImagesRef.current,
+                videoItems: videoItemsRef.current,
+                galleryAspectRatio,
+                flowDiagramAspectRatio,
+                videoAspectRatio,
+                galleryColumns,
+                flowDiagramColumns,
+                videoColumns,
+                projectImagesPosition,
+                videosPosition,
+                flowDiagramsPosition,
+                solutionCardsPosition: undefined,
+                sectionPositions,
+              });
+            }}
             onMoveMarkdownSection={handleMoveMarkdownSection}
             actualPositions={actualPositions}
             totalSections={totalSections}
