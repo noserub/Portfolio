@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { motion } from 'motion/react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -240,19 +241,21 @@ export const UnifiedProjectCreator = React.memo(function UnifiedProjectCreator({
     return null;
   }
 
-  return (
+  return createPortal(
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/50 flex items-center justify-center z-[99999] p-4 overflow-y-auto"
+      className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 overflow-y-auto"
+      style={{ zIndex: 999999 }}
       onClick={onClose}
     >
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
-        className="bg-background rounded-xl border border-border shadow-lg max-w-4xl w-full max-h-[75vh] flex flex-col my-4 relative z-[99999]"
+        className="bg-background rounded-xl border border-border shadow-lg max-w-4xl w-full max-h-[75vh] flex flex-col my-4 relative"
+        style={{ zIndex: 999999 }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -589,6 +592,7 @@ export const UnifiedProjectCreator = React.memo(function UnifiedProjectCreator({
           </Button>
         </div>
       </motion.div>
-    </motion.div>
+    </motion.div>,
+    document.body
   );
 });
