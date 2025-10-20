@@ -82,6 +82,11 @@ const sectionConfig: Record<string, { icon: any; gradient: string; iconColor: st
     gradient: "linear-gradient(135deg, #3b82f6, #8b5cf6)",
     iconColor: "text-blue-600 dark:text-blue-400"
   },
+  "The challenge": { 
+    icon: AlertCircle, 
+    gradient: "linear-gradient(135deg, #ef4444, #f97316)",
+    iconColor: "text-red-600 dark:text-red-400"
+  },
   "My role & impact": { 
     icon: Award, 
     gradient: "linear-gradient(135deg, #8b5cf6, #ec4899)",
@@ -574,6 +579,7 @@ export function CaseStudySections({
   // Sections that should always render in decorative card style (not grid style)
   const decorativeCardSections = [
     "Overview",
+    "The challenge",
     "My role",
     "Research insights",
     "Competitive analysis",
