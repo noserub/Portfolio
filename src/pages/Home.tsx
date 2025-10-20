@@ -2762,7 +2762,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     }
   };
 
-  const handleCreateUnifiedProject = async (projectData: any) => {
+  const handleCreateUnifiedProject = useCallback(async (projectData: any) => {
     console.log('🖱️ Creating blank project:', projectData);
     try {
       // Get current user for the project
@@ -2821,7 +2821,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     } catch (error) {
       console.error('❌ Error creating blank project:', error);
     }
-  };
+  }, [createProject, caseStudyScrollRef]);
 
   const handleDeleteProject = (projectId: string, projectTitle: string, type: 'caseStudies' | 'design') => {
     setDeleteConfirmation({ projectId, projectTitle, type });
@@ -3749,7 +3749,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
       {/* Unified Project Creator */}
       <UnifiedProjectCreator
         isOpen={showUnifiedProjectCreator}
-        onClose={() => setShowUnifiedProjectCreator(false)}
+        onClose={useCallback(() => setShowUnifiedProjectCreator(false), [])}
         onCreateProject={handleCreateUnifiedProject}
         isEditMode={isEditMode}
       />
