@@ -2077,6 +2077,30 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
 
   return (
     <PageLayout title={project.description || project.title} onBack={handleBack} overline={project.title}>
+      {/* Editable Title and Description */}
+      {isEditMode && (
+        <div className="mb-8 space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-2">Project Title</label>
+            <Input
+              value={editedTitle}
+              onChange={(e) => setEditedTitle(e.target.value)}
+              placeholder="Enter project title"
+              className="text-lg font-semibold"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2">Project Description</label>
+            <Textarea
+              value={editedDescription}
+              onChange={(e) => setEditedDescription(e.target.value)}
+              placeholder="Enter project description"
+              className="min-h-[80px]"
+            />
+          </div>
+        </div>
+      )}
+      
       {isEditMode && (
         <div className="mb-4 flex flex-wrap gap-3 items-center">
           <div className="text-sm font-medium">Add:</div>

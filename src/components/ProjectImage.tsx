@@ -257,20 +257,6 @@ export function ProjectImage({
               ease: "easeOut",
             }}
           >
-            {/* Click hint overlay */}
-            {!isEditMode && isHovered && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="absolute inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center pointer-events-none"
-              >
-                <div className="text-white text-center px-4">
-                  <p className="text-lg font-semibold mb-1">View Case Study</p>
-                  <p className="text-sm opacity-90">Click to see full details</p>
-                </div>
-              </motion.div>
-            )}
 
             {/* Fun sparkle effect on hover */}
             {!isEditMode && isHovered && (
@@ -328,30 +314,37 @@ export function ProjectImage({
           </div>
         )}
 
-        {/* Viewer Hover State */}
+        {/* Persistent Project Title */}
+        {!isEditMode && (
+          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent rounded-b-2xl p-4">
+            <h3 className="text-white text-lg font-semibold mb-1">
+              {project.title}
+            </h3>
+            {project.description && (
+              <p className="text-white/85 text-sm line-clamp-2">
+                {project.description}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Enhanced Hover State */}
         {!isEditMode && isHovered && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.2 }}
-            className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent rounded-2xl flex flex-col justify-end p-5"
+            className="absolute inset-0 bg-black/20 backdrop-blur-sm rounded-2xl flex items-center justify-center"
           >
-            <motion.h3 
-              className="text-white mb-1.5 text-lg"
+            <motion.div
               initial={{ y: 8, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.05, duration: 0.2 }}
+              className="text-white text-center px-4"
             >
-              {project.title}
-            </motion.h3>
-            <motion.p 
-              className="text-white/85 text-sm"
-              initial={{ y: 8, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.1, duration: 0.2 }}
-            >
-              {project.description}
-            </motion.p>
+              <p className="text-lg font-semibold mb-1">Show project</p>
+              <p className="text-sm opacity-90">Click to see full details</p>
+            </motion.div>
           </motion.div>
         )}
 
