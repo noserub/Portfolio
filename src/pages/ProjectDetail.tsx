@@ -1890,6 +1890,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     }
     
     const updatedContent = newLines.join('\n');
+    setCaseStudyContent(updatedContent);
+    
     const updatedProject = {
       ...project,
       case_study_content: updatedContent
@@ -1930,6 +1932,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     }
     
     const updatedContent = newLines.join('\n');
+    setCaseStudyContent(updatedContent);
+    
     const updatedProject = {
       ...project,
       case_study_content: updatedContent
