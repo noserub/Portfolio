@@ -258,51 +258,52 @@ export function ProjectImage({
             }}
           >
 
-            {/* Fun sparkle effect on hover */}
-            {!isEditMode && isHovered && (
-              <>
-                <motion.div
-                  className="absolute top-4 right-4 w-3 h-3 bg-yellow-300 rounded-full z-30"
-                  animate={{
-                    scale: [0, 1.5, 0],
-                    opacity: [0, 1, 0],
-                  }}
-                  transition={{
-                    duration: 0.6,
-                    repeat: Infinity,
-                    repeatDelay: 0.3,
-                  }}
-                />
-                <motion.div
-                  className="absolute top-6 right-8 w-2 h-2 bg-pink-300 rounded-full z-30"
-                  animate={{
-                    scale: [0, 1.3, 0],
-                    opacity: [0, 1, 0],
-                  }}
-                  transition={{
-                    duration: 0.6,
-                    repeat: Infinity,
-                    repeatDelay: 0.5,
-                    delay: 0.2,
-                  }}
-                />
-                <motion.div
-                  className="absolute top-8 right-6 w-2 h-2 bg-blue-300 rounded-full z-30"
-                  animate={{
-                    scale: [0, 1.2, 0],
-                    opacity: [0, 1, 0],
-                  }}
-                  transition={{
-                    duration: 0.6,
-                    repeat: Infinity,
-                    repeatDelay: 0.4,
-                    delay: 0.4,
-                  }}
-                />
-              </>
-            )}
           </motion.div>
         </div>
+
+        {/* Fun sparkle effect on hover - moved outside background container */}
+        {!isEditMode && isHovered && (
+          <>
+            <motion.div
+              className="absolute top-4 right-4 w-3 h-3 bg-yellow-300 rounded-full z-30"
+              animate={{
+                scale: [0, 1.5, 0],
+                opacity: [0, 1, 0],
+              }}
+              transition={{
+                duration: 0.6,
+                repeat: Infinity,
+                repeatDelay: 0.3,
+              }}
+            />
+            <motion.div
+              className="absolute top-6 right-8 w-2 h-2 bg-pink-300 rounded-full z-30"
+              animate={{
+                scale: [0, 1.3, 0],
+                opacity: [0, 1, 0],
+              }}
+              transition={{
+                duration: 0.6,
+                repeat: Infinity,
+                repeatDelay: 0.5,
+                delay: 0.2,
+              }}
+            />
+            <motion.div
+              className="absolute top-8 right-6 w-2 h-2 bg-blue-300 rounded-full z-30"
+              animate={{
+                scale: [0, 1.2, 0],
+                opacity: [0, 1, 0],
+              }}
+              transition={{
+                duration: 0.6,
+                repeat: Infinity,
+                repeatDelay: 0.4,
+                delay: 0.4,
+              }}
+            />
+          </>
+        )}
 
         {/* Lock Badge for Password-Protected Projects (Preview Mode) */}
         {!isEditMode && project.requiresPassword && (
