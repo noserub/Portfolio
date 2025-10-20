@@ -651,10 +651,13 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
   // Helpers to detect presence of markdown sections
   const hasMarkdownTitle = useCallback((title: string) => {
     const lines = (caseStudyContent || '').split('\n');
-    return lines.some(l => l.trim().match(/^# (.+)$/)?.[1].trim() === title);
+    const hasTitle = lines.some(l => l.trim().match(/^# (.+)$/)?.[1].trim() === title);
+    console.log('🔍 hasMarkdownTitle check:', { title, hasTitle, caseStudyContent: caseStudyContent?.substring(0, 200) });
+    return hasTitle;
   }, [caseStudyContent]);
 
   const addMarkdownSection = useCallback((title: string, body: string) => {
+    console.log('🔄 addMarkdownSection called:', { title, body });
     const base = caseStudyContent || '';
     const prefix = base.trim().length > 0 ? '\n\n---\n\n' : '';
     // Seed sensible starter content so sections render immediately
@@ -670,8 +673,11 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       seeded = '## Design\n- Contribution 1\n- Contribution 2\n\n## Research\n- Contribution 1\n';
     } else if (lower.includes('the solution')) {
       seeded = 'Describe your solution approach and why it works.';
+    } else if (lower.includes('the challenge')) {
+      seeded = '## Problem statement\nDescribe the main problem or challenge.\n\n## Context\nProvide background and context.\n\n## Impact\nExplain the impact of not solving this challenge.';
     }
     const newContent = `${base}${prefix}# ${title}\n\n${seeded}`;
+    console.log('📝 Adding markdown section:', { title, newContentLength: newContent.length });
     setCaseStudyContent(newContent);
     onUpdate({
       ...project,
