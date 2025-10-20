@@ -2101,9 +2101,9 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
           </DropdownMenu>
         </div>
       )}
-      <div className={!isEditing && atGlanceContent ? "flex flex-col lg:flex-row gap-16" : "space-y-16"}>
+      <div className={!isEditing && (atGlanceContent || impactContent) ? "flex flex-col lg:flex-row gap-16" : "space-y-16"}>
         {/* Main Content */}
-        <div className={!isEditing && atGlanceContent ? "flex-1 space-y-16 min-w-0 w-full lg:w-auto" : "space-y-16"}>
+        <div className={!isEditing && (atGlanceContent || impactContent) ? "flex-1 space-y-16 min-w-0 w-full lg:w-auto" : "space-y-16"}>
         {/* Hero Image Section - Order 2 on mobile (after title, before sidebars) */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
