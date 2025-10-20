@@ -1905,7 +1905,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       return;
     }
     
-    // Remove the "Impact" subsection from the markdown content
+    // Remove the "Impact" section (can be either top-level # Impact or subsection ## Impact)
     const lines = caseStudyContent?.split('\n') || [];
     const newLines: string[] = [];
     let inImpact = false;
@@ -1914,18 +1914,19 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       const subsectionMatch = line.trim().match(/^## (.+)$/);
       const topLevelMatch = line.trim().match(/^# (.+)$/);
       
-      // Check if this is the start of the "Impact" subsection
-      if (subsectionMatch && subsectionMatch[1].trim() === "Impact") {
+      // Check if this is the start of the "Impact" section (either top-level or subsection)
+      if ((topLevelMatch && topLevelMatch[1].trim() === "Impact") || 
+          (subsectionMatch && subsectionMatch[1].trim() === "Impact")) {
         inImpact = true;
         continue; // Skip the header line
       }
       
-      // If we hit another subsection or top-level section, stop skipping
-      if (inImpact && (subsectionMatch || topLevelMatch)) {
+      // If we hit another section (top-level or subsection), stop skipping
+      if (inImpact && (topLevelMatch || subsectionMatch)) {
         inImpact = false;
       }
       
-      // Only keep lines that are not in the "Impact" subsection
+      // Only keep lines that are not in the "Impact" section
       if (!inImpact) {
         newLines.push(line);
       }
