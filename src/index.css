@@ -6453,7 +6453,4 @@ kbd {
 /* Dialog scroll lock */
 body.dialog-open {
   overflow: hidden;
-  position: fixed;
-  width: 100%;
-  height: 100%;
 }
