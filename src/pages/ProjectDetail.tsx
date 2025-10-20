@@ -1264,6 +1264,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     let newFlowDiagramsPos = flowDiagramsPosition;
     let newSolutionCardsPos = solutionCardsPosition;
     
+    // Check if another gallery section is at the target position
     if (videosPosition === targetPos) {
       // Swap with Videos
       newVideosPos = currentPos;
@@ -1276,9 +1277,14 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       // Swap with Solution Cards
       newSolutionCardsPos = currentPos;
       newProjectImagesPos = targetPos;
+    } else {
+      // Target position is occupied by a regular markdown section
+      // Just move the project images to that position
+      // The markdown section will automatically shift down
+      newProjectImagesPos = targetPos;
     }
     
-    console.log(`📦 Swapping Project Images: ${currentPos} ↔ ${targetPos}`);
+    console.log(`📦 Moving Project Images: ${currentPos} → ${targetPos}`);
     
     setProjectImagesPosition(newProjectImagesPos);
     setVideosPosition(newVideosPos);
@@ -1300,7 +1306,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       flowDiagramColumns,
       videoColumns,
       projectImagesPosition: newProjectImagesPos,
-      videosPosition,
+      videosPosition: newVideosPos,
       flowDiagramsPosition: newFlowDiagramsPos,
       solutionCardsPosition: newSolutionCardsPos,
     };
@@ -1320,6 +1326,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     let newFlowDiagramsPos = flowDiagramsPosition;
     let newSolutionCardsPos = solutionCardsPosition;
     
+    // Check if another gallery section is at the target position
     if (projectImagesPosition === targetPos) {
       // Swap with Project Images
       newProjectImagesPos = currentPos;
@@ -1332,9 +1339,14 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       // Swap with Solution Cards
       newSolutionCardsPos = currentPos;
       newVideosPos = targetPos;
+    } else {
+      // Target position is occupied by a regular markdown section
+      // Just move the videos to that position
+      // The markdown section will automatically shift down
+      newVideosPos = targetPos;
     }
     
-    console.log(`📹 Swapping Videos: ${currentPos} ↔ ${targetPos}`);
+    console.log(`📹 Moving Videos: ${currentPos} → ${targetPos}`);
     
     setProjectImagesPosition(newProjectImagesPos);
     setVideosPosition(newVideosPos);
@@ -1376,6 +1388,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     let newFlowDiagramsPos = targetPos;
     let newSolutionCardsPos = solutionCardsPosition;
     
+    // Check if another gallery section is at the target position
     if (projectImagesPosition === targetPos) {
       // Swap with Project Images
       newProjectImagesPos = currentPos;
@@ -1388,9 +1401,14 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       // Swap with Solution Cards
       newSolutionCardsPos = currentPos;
       newFlowDiagramsPos = targetPos;
+    } else {
+      // Target position is occupied by a regular markdown section
+      // Just move the flow diagrams to that position
+      // The markdown section will automatically shift down
+      newFlowDiagramsPos = targetPos;
     }
     
-    console.log(`📊 Swapping Flow Diagrams: ${currentPos} ↔ ${targetPos}`);
+    console.log(`📊 Moving Flow Diagrams: ${currentPos} → ${targetPos}`);
     
     setProjectImagesPosition(newProjectImagesPos);
     setVideosPosition(newVideosPos);
