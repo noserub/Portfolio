@@ -3683,7 +3683,10 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                     >
                       <button
                         type="button"
-                        onClick={() => setShowUnifiedProjectCreator(true)}
+                        onClick={() => {
+                          console.log('🎯 New Project button clicked - opening unified project creator');
+                          setShowUnifiedProjectCreator(true);
+                        }}
                         className="w-[280px] aspect-[3/4] rounded-2xl border-2 border-dashed border-primary/30 hover:border-primary hover:bg-primary/10 transition-all flex flex-col items-center justify-center gap-3 group cursor-pointer"
                         style={{ cursor: 'pointer', pointerEvents: 'auto' }}
                         disabled={false}
