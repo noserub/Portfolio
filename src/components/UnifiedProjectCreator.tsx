@@ -259,7 +259,7 @@ export const UnifiedProjectCreator = React.memo(function UnifiedProjectCreator({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-border bg-background sticky top-0 z-10 flex-shrink-0" style={{ position: 'sticky' }}>
+        <div className="flex items-center justify-between p-6 border-b border-border bg-background absolute top-0 left-0 right-0 z-10 flex-shrink-0" style={{ position: 'absolute' }}>
           <div className="flex items-center space-x-3">
             <div className="p-2 bg-primary/10 rounded-lg">
               <Plus className="w-5 h-5 text-primary" />
@@ -284,7 +284,7 @@ export const UnifiedProjectCreator = React.memo(function UnifiedProjectCreator({
         </div>
 
         {/* Content */}
-        <div className="flex-1 p-6 space-y-6 overflow-y-auto min-h-0 relative">
+        <div className="flex-1 p-6 space-y-6 overflow-y-auto min-h-0 pt-20 pb-20">
           {/* Step 1: Project Type Selection */}
           {step === 'type' && (
             <div className="space-y-4">
@@ -565,7 +565,7 @@ export const UnifiedProjectCreator = React.memo(function UnifiedProjectCreator({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end space-x-3 p-6 border-t border-border bg-background sticky bottom-0 z-10 flex-shrink-0" style={{ position: 'sticky' }}>
+        <div className="flex items-center justify-end space-x-3 p-6 border-t border-border bg-background absolute bottom-0 left-0 right-0 z-10 flex-shrink-0" style={{ position: 'absolute' }}>
           <Button
             variant="outline"
             onClick={handleCancel}
