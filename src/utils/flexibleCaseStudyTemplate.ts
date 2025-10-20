@@ -289,6 +289,9 @@ export function convertToMarkdownContent(caseStudy: FlexibleCaseStudyTemplate): 
 
 // Convert flexible case study to legacy format for Supabase
 export function convertToLegacyFormat(caseStudy: FlexibleCaseStudyTemplate): any {
+  console.log('🔄 convertToLegacyFormat: Converting case study:', caseStudy);
+  console.log('🔄 convertToLegacyFormat: Sections:', caseStudy.sections);
+  
   const markdownContent = convertToMarkdownContent(caseStudy);
   
   // Find positions of special sections
@@ -296,6 +299,13 @@ export function convertToLegacyFormat(caseStudy: FlexibleCaseStudyTemplate): any
   const videosSection = caseStudy.sections.find(s => s.type === 'videos');
   const flowDiagramsSection = caseStudy.sections.find(s => s.type === 'flowDiagrams');
   const solutionCardsSection = caseStudy.sections.find(s => s.type === 'solutionCards');
+  
+  console.log('🔄 convertToLegacyFormat: Found sections:', {
+    projectImagesSection,
+    videosSection,
+    flowDiagramsSection,
+    solutionCardsSection
+  });
 
   // Only include positions for sections that actually exist
   const result: any = {
@@ -326,5 +336,6 @@ export function convertToLegacyFormat(caseStudy: FlexibleCaseStudyTemplate): any
     result.solutionCardsPosition = solutionCardsSection.position;
   }
 
+  console.log('🔄 convertToLegacyFormat: Final result:', result);
   return result;
 }
