@@ -2187,15 +2187,37 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
       });
     });
     
+    // Sort projects: published first, then by creation date (newest first)
+    const sortedProjects = uniqueProjects.sort((a, b) => {
+      // First priority: published status (published projects first)
+      const aPublished = a.published === true;
+      const bPublished = b.published === true;
+      
+      if (aPublished && !bPublished) return -1;
+      if (!aPublished && bPublished) return 1;
+      
+      // Second priority: creation date (newest first)
+      const aDate = new Date(a.created_at || a.id).getTime();
+      const bDate = new Date(b.created_at || b.id).getTime();
+      
+      return bDate - aDate;
+    });
+    
+    console.log('🏠 Home: Sorted case studies (published first):', sortedProjects.map(p => ({ 
+      title: p.title, 
+      published: p.published,
+      created_at: p.created_at 
+    })));
+    
     // If no projects at all, use hardcoded defaults
-    if (uniqueProjects.length === 0 && !loading) {
+    if (sortedProjects.length === 0 && !loading) {
       console.log('🏠 Home: No projects found, using hardcoded defaults');
       console.log('🏠 Home: Default case studies:', defaultCaseStudies);
       return defaultCaseStudies;
     }
     
-    console.log('🏠 Home: Returning unique projects (not defaults)');
-    return uniqueProjects;
+    console.log('🏠 Home: Returning sorted projects (published first)');
+    return sortedProjects;
   }, [projects, loading, localStorageVersion]);
   
   const designProjects = useMemo(() => {
@@ -2252,13 +2274,35 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     
     console.log('🏠 Home: Combined design projects (after deduplication):', uniqueProjects.length);
     
+    // Sort design projects: published first, then by creation date (newest first)
+    const sortedProjects = uniqueProjects.sort((a, b) => {
+      // First priority: published status (published projects first)
+      const aPublished = a.published === true;
+      const bPublished = b.published === true;
+      
+      if (aPublished && !bPublished) return -1;
+      if (!aPublished && bPublished) return 1;
+      
+      // Second priority: creation date (newest first)
+      const aDate = new Date(a.created_at || a.id).getTime();
+      const bDate = new Date(b.created_at || b.id).getTime();
+      
+      return bDate - aDate;
+    });
+    
+    console.log('🏠 Home: Sorted design projects (published first):', sortedProjects.map(p => ({ 
+      title: p.title, 
+      published: p.published,
+      created_at: p.created_at 
+    })));
+    
     // If no projects at all, use hardcoded defaults
-    if (uniqueProjects.length === 0 && !loading) {
+    if (sortedProjects.length === 0 && !loading) {
       console.log('🏠 Home: No design projects found, using hardcoded defaults');
       return defaultDesignProjects;
     }
     
-    return uniqueProjects;
+    return sortedProjects;
   }, [projects, loading, localStorageVersion]);
   
   // Home page hero text - editable in edit mode

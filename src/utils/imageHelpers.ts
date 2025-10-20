@@ -96,17 +96,17 @@ export function convertBase64ToPlaceholder(base64Url: string, category: 'portrai
 }
 
 /**
- * Processes a file upload and returns a preview URL
- * This creates a blob URL so users can see their actual uploaded images
+ * Processes a file upload and returns a persistent placeholder URL
+ * This generates a consistent placeholder URL that persists across sessions
  * 
  * @param file - The uploaded file
- * @param category - Image category (not used for preview, but kept for API compatibility)
- * @returns Promise<string> - Blob URL for immediate preview
+ * @param category - Image category for appropriate placeholder
+ * @returns Promise<string> - Persistent placeholder URL
  * 
- * NOTE: Blob URLs work great for previews but don't persist across sessions.
- * When you export data, these will be replaced with placeholders to keep file size small.
+ * NOTE: This uses Unsplash placeholders that persist across sessions.
+ * The placeholder URLs are consistent based on filename and timestamp.
  * 
- * TO UPGRADE to real storage: Replace URL.createObjectURL with your upload service's URL
+ * TO UPGRADE to real storage: Replace with your upload service's URL
  * Example with Supabase:
  * ```typescript
  * const { data, error } = await supabase.storage
@@ -119,10 +119,9 @@ export async function uploadImage(
   file: File, 
   category: 'portrait' | 'landscape' | 'hero' | 'diagram' = 'landscape'
 ): Promise<string> {
-  // Create a blob URL for immediate preview
-  // This shows the actual uploaded image to the user
-  const blobUrl = URL.createObjectURL(file);
-  return Promise.resolve(blobUrl);
+  // Generate a consistent placeholder URL that persists across sessions
+  // This prevents ERR_FILE_NOT_FOUND errors on page reload
+  return Promise.resolve(generatePlaceholderUrl(file, category));
   
   // FUTURE: Replace with real upload service
   // When you have a backend, uncomment and modify this:
@@ -140,8 +139,8 @@ export async function uploadImage(
     return data.url; // Return the real URL from your service
   } catch (error) {
     console.error('Upload failed:', error);
-    // Fallback to blob URL if upload fails
-    return URL.createObjectURL(file);
+    // Fallback to placeholder if upload fails
+    return generatePlaceholderUrl(file, category);
   }
   */
 }
