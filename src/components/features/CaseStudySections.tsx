@@ -648,7 +648,8 @@ export function CaseStudySections({
     });
   }
   
-  if (afterSolution.length > 0 || isEditMode) {
+  // Only insert Solution Cards when an explicit position is provided
+  if ((afterSolution.length > 0 || isEditMode) && solutionCardsPosition !== undefined) {
     insertions.push({
       pos: solutionCardsPosition,
       item: { 
