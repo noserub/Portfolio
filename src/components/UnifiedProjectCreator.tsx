@@ -583,10 +583,10 @@ export const UnifiedProjectCreator = React.memo(function UnifiedProjectCreator({
             variant="outline"
             onClick={handleCancel}
             disabled={isCreating}
-            className="mr-8"
           >
             Cancel
           </Button>
+          <div className="w-8"></div>
           <Button
             onClick={handleCreateProject}
             disabled={isCreating || !caseStudy.title.trim()}
