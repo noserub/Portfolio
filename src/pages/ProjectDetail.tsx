@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { motion } from "motion/react";
 import { supabase } from '../lib/supabaseClient';
-import { ArrowLeft, Plus, X, Edit2, Image as ImageIcon, Video as VideoIcon, GripVertical, ZoomIn, ZoomOut, Move, RotateCcw } from "lucide-react";
+import { ArrowLeft, Plus, X, Edit2, Image as ImageIcon, Video as VideoIcon, GripVertical, ZoomIn, ZoomOut, Move, RotateCcw, ChevronDown } from "lucide-react";
 import { useDrag, useDrop } from "react-dnd";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -2076,7 +2076,10 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
           {/* Galleries dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="rounded-full">Galleries</Button>
+              <Button variant="outline" size="sm" className="rounded-full flex items-center gap-1">
+                Galleries
+                <ChevronDown className="w-3 h-3" />
+              </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start">
               <DropdownMenuLabel>Galleries</DropdownMenuLabel>
@@ -2084,15 +2087,16 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
               <DropdownMenuItem disabled={videosPosition !== undefined} onClick={handleAddVideosSection}>Videos</DropdownMenuItem>
               <DropdownMenuItem disabled={projectImagesPosition !== undefined} onClick={handleAddImagesSection}>Project Images</DropdownMenuItem>
               <DropdownMenuItem disabled={flowDiagramsPosition !== undefined} onClick={handleAddFlowsSection}>Flow Diagrams</DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem disabled={solutionCardsPosition !== undefined} onClick={handleAddSolutionCardsSection}>Solution Cards</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
           {/* Content dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="rounded-full">Content</Button>
+              <Button variant="outline" size="sm" className="rounded-full flex items-center gap-1">
+                Content
+                <ChevronDown className="w-3 h-3" />
+              </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start">
               <DropdownMenuLabel>Content</DropdownMenuLabel>
@@ -2103,13 +2107,18 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
               <DropdownMenuItem disabled={hasMarkdownTitle('Competitive analysis')} onClick={() => addMarkdownSection('Competitive analysis', 'Add your competitive analysis here.')}>Competitive analysis</DropdownMenuItem>
               <DropdownMenuItem disabled={hasMarkdownTitle('The solution')} onClick={() => addMarkdownSection('The solution', 'Describe your solution and approach.')}>The solution</DropdownMenuItem>
               <DropdownMenuItem disabled={hasMarkdownTitle('Key features')} onClick={() => addMarkdownSection('Key features', 'List key features and their impact.')}>Key features</DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem disabled={solutionCardsPosition !== undefined} onClick={handleAddSolutionCardsSection}>Solution Cards</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
           {/* Sidebars dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="rounded-full">Sidebars</Button>
+              <Button variant="outline" size="sm" className="rounded-full flex items-center gap-1">
+                Sidebars
+                <ChevronDown className="w-3 h-3" />
+              </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start">
               <DropdownMenuLabel>Sidebars</DropdownMenuLabel>
