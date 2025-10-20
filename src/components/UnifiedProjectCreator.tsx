@@ -246,7 +246,7 @@ export const UnifiedProjectCreator = React.memo(function UnifiedProjectCreator({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 overflow-y-auto"
+      className="fixed inset-0 bg-black/50 flex items-start justify-center p-4 overflow-y-auto h-screen"
       style={{ zIndex: 999999 }}
       onClick={onClose}
     >
@@ -254,7 +254,7 @@ export const UnifiedProjectCreator = React.memo(function UnifiedProjectCreator({
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
-        className="bg-background rounded-xl border border-border shadow-lg max-w-4xl w-full max-h-[85vh] flex flex-col my-4 relative"
+        className="bg-background rounded-xl border border-border shadow-lg max-w-4xl w-full h-[90vh] flex flex-col my-8 relative overflow-hidden"
         style={{ zIndex: 999999 }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -415,7 +415,7 @@ export const UnifiedProjectCreator = React.memo(function UnifiedProjectCreator({
                   </p>
                 </div>
               ) : (
-                <div className="space-y-2 max-h-96 overflow-y-auto">
+                <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-2">
                   {caseStudy.sections
                     .sort((a, b) => a.position - b.position)
                     .map((section, index) => (
