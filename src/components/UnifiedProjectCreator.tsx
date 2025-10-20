@@ -108,6 +108,20 @@ export const UnifiedProjectCreator = React.memo(function UnifiedProjectCreator({
   const [selectedProjectType, setSelectedProjectType] = useState<string | null>(null);
   const [step, setStep] = useState<'type' | 'details' | 'sections'>('type');
 
+  // Lock body scroll when dialog is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    
+    // Cleanup on unmount
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
+
   const handleProjectTypeSelect = (typeId: string) => {
     const projectType = PROJECT_TYPES.find(t => t.id === typeId);
     if (!projectType) return;
