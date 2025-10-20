@@ -245,14 +245,14 @@ export const UnifiedProjectCreator = React.memo(function UnifiedProjectCreator({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/50 flex items-center justify-center z-[10000] p-4 overflow-y-auto"
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-[99999] p-4 overflow-y-auto"
       onClick={onClose}
     >
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
-        className="bg-background rounded-xl border border-border shadow-lg max-w-4xl w-full max-h-[80vh] flex flex-col my-8"
+        className="bg-background rounded-xl border border-border shadow-lg max-w-4xl w-full max-h-[75vh] flex flex-col my-4 relative z-[99999]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
