@@ -1669,7 +1669,15 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       return !isDecorative && !isSolution;
     });
     
+    console.log('🔍 Solution Cards Debug:', {
+      hasCards,
+      isEditMode,
+      solutionCardsPosition,
+      shouldInsert: (hasCards || isEditMode) && solutionCardsPosition !== undefined
+    });
+    
     if ((hasCards || isEditMode) && solutionCardsPosition !== undefined) {
+      console.log('🎴 Inserting Solution Cards at position:', solutionCardsPosition);
       insertions.push({ 
         pos: solutionCardsPosition, 
         item: { title: '__SOLUTION_CARDS__', type: 'gallery' }
