@@ -119,30 +119,41 @@ export async function uploadImage(
   file: File, 
   category: 'portrait' | 'landscape' | 'hero' | 'diagram' = 'landscape'
 ): Promise<string> {
-  // Generate a consistent placeholder URL that persists across sessions
-  // This prevents ERR_FILE_NOT_FOUND errors on page reload
-  return Promise.resolve(generatePlaceholderUrl(file, category));
-  
-  // FUTURE: Replace with real upload service
-  // When you have a backend, uncomment and modify this:
-  /*
   try {
-    const formData = new FormData();
-    formData.append('file', file);
+    // Import Supabase client
+    const { supabase } = await import('../lib/supabaseClient');
     
-    const response = await fetch('YOUR_UPLOAD_ENDPOINT', {
-      method: 'POST',
-      body: formData,
-    });
+    // Generate a unique filename
+    const timestamp = Date.now();
+    const filename = `${timestamp}_${file.name}`;
     
-    const data = await response.json();
-    return data.url; // Return the real URL from your service
+    // Upload to Supabase Storage
+    const { data, error } = await supabase.storage
+      .from('portfolio-images')
+      .upload(filename, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
+    
+    if (error) {
+      console.error('Supabase upload error:', error);
+      // Fallback to placeholder if upload fails
+      return generatePlaceholderUrl(file, category);
+    }
+    
+    // Get the public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from('portfolio-images')
+      .getPublicUrl(filename);
+    
+    console.log('✅ Image uploaded to Supabase:', publicUrl);
+    return publicUrl;
+    
   } catch (error) {
     console.error('Upload failed:', error);
     // Fallback to placeholder if upload fails
     return generatePlaceholderUrl(file, category);
   }
-  */
 }
 
 /**
