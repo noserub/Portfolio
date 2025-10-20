@@ -561,14 +561,14 @@ export const UnifiedProjectCreator = React.memo(function UnifiedProjectCreator({
           )}
 
           {/* Info */}
-          <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+          <div className="bg-muted/50 dark:bg-muted/30 border border-border rounded-lg p-4">
             <div className="flex items-start space-x-3">
-              <div className="p-1 bg-blue-100 dark:bg-blue-900/30 rounded">
-                <Wand2 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              <div className="p-1 bg-muted rounded">
+                <Wand2 className="w-4 h-4 text-muted-foreground" />
               </div>
               <div>
-                <h4 className="font-medium text-blue-900 dark:text-blue-100">Smart Project Creation</h4>
-                <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                <h4 className="font-medium text-foreground">Smart Project Creation</h4>
+                <p className="text-sm text-muted-foreground mt-1">
                   {getProjectType()?.name} projects come with relevant sections pre-configured. 
                   You can add, remove, and customize sections as needed.
                 </p>
@@ -578,7 +578,7 @@ export const UnifiedProjectCreator = React.memo(function UnifiedProjectCreator({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end space-x-3 p-6 border-t border-border bg-background flex-shrink-0 sticky bottom-0 z-10">
+        <div className="flex items-center justify-end space-x-4 p-6 border-t border-border bg-background flex-shrink-0 sticky bottom-0 z-10">
           <Button
             variant="outline"
             onClick={handleCancel}
