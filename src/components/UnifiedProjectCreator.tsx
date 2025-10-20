@@ -578,7 +578,7 @@ export const UnifiedProjectCreator = React.memo(function UnifiedProjectCreator({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-8 p-6 border-t border-border bg-background flex-shrink-0 sticky bottom-0 z-10">
+        <div className="flex items-center justify-end gap-4 p-6 border-t border-border bg-background flex-shrink-0 sticky bottom-0 z-10">
           <Button
             variant="outline"
             onClick={handleCancel}
