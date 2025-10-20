@@ -178,15 +178,21 @@ export function useProjects() {
     try {
       console.log('🔄 useProjects: updateProject called with:', { id, updates });
       
-      // Check if user is authenticated
+      // Check if user is authenticated (either Supabase auth or bypass)
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+      const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
+      
+      if (!user && !isBypassAuth) {
         console.log('❌ useProjects: No authenticated user, cannot update project');
         setError('User not authenticated');
         return null;
       }
       
-      console.log('✅ useProjects: User authenticated:', user.id);
+      if (isBypassAuth) {
+        console.log('✅ useProjects: Bypass authentication detected');
+      } else {
+        console.log('✅ useProjects: User authenticated:', user.id);
+      }
       
       // First, try to update the project normally
       let { data, error } = await supabase

@@ -120,12 +120,16 @@ export async function uploadImage(
   category: 'portrait' | 'landscape' | 'hero' | 'diagram' = 'landscape'
 ): Promise<string> {
   try {
+    console.log('🚀 Starting image upload:', { filename: file.name, size: file.size, type: file.type });
+    
     // Import Supabase client
     const { supabase } = await import('../lib/supabaseClient');
     
     // Generate a unique filename
     const timestamp = Date.now();
     const filename = `${timestamp}_${file.name}`;
+    
+    console.log('📤 Uploading to Supabase Storage:', { filename, bucket: 'portfolio-images' });
     
     // Upload to Supabase Storage
     const { data, error } = await supabase.storage
@@ -136,10 +140,14 @@ export async function uploadImage(
       });
     
     if (error) {
-      console.error('Supabase upload error:', error);
+      console.error('❌ Supabase upload error:', error);
+      console.error('❌ Error details:', { message: error.message, statusCode: error.statusCode });
       // Fallback to placeholder if upload fails
+      console.log('🔄 Falling back to placeholder URL');
       return generatePlaceholderUrl(file, category);
     }
+    
+    console.log('✅ Upload successful:', data);
     
     // Get the public URL
     const { data: { publicUrl } } = supabase.storage
@@ -150,8 +158,9 @@ export async function uploadImage(
     return publicUrl;
     
   } catch (error) {
-    console.error('Upload failed:', error);
+    console.error('❌ Upload failed:', error);
     // Fallback to placeholder if upload fails
+    console.log('🔄 Falling back to placeholder URL');
     return generatePlaceholderUrl(file, category);
   }
 }

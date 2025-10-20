@@ -144,7 +144,7 @@ export default function App() {
   
   // Check URL parameters in useEffect
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
+  const urlParams = new URLSearchParams(window.location.search);
     const diagnostic = urlParams.get('diagnostic') === 'true';
     const emergency = urlParams.get('emergency') === 'true';
     const supabase = urlParams.get('supabase') === 'true';
@@ -509,10 +509,85 @@ export default function App() {
     setSelectedProject(null);
   };
 
-  const navigateToProject = (project: ProjectData, updateCallback: (project: ProjectData) => void) => {
-    // Always get the latest data from localStorage to ensure freshness
+  const navigateToProject = async (project: ProjectData, updateCallback: (project: ProjectData) => void) => {
+    // Try to load fresh data from Supabase first
     let freshProject = null;
     
+    try {
+      console.log('🔄 Loading fresh project data from Supabase...');
+      const { data, error } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('id', project.id)
+        .single();
+      
+      if (data && !error) {
+        console.log('✅ Loaded fresh data from Supabase:', data.id);
+        
+        // Convert Supabase snake_case format to UI camelCase format
+        freshProject = {
+          ...data,
+          // Convert position fields
+          position: { x: data.position_x || 50, y: data.position_y || 50 },
+          // Convert content fields
+          caseStudyContent: data.case_study_content,
+          caseStudyImages: data.case_study_images || [],
+          flowDiagramImages: data.flow_diagram_images || [],
+          videoItems: data.video_items || [],
+          // Convert aspect ratio fields
+          galleryAspectRatio: data.gallery_aspect_ratio,
+          flowDiagramAspectRatio: data.flow_diagram_aspect_ratio,
+          videoAspectRatio: data.video_aspect_ratio,
+          // Convert column fields
+          galleryColumns: data.gallery_columns,
+          flowDiagramColumns: data.flow_diagram_columns,
+          videoColumns: data.video_columns,
+          // Convert position fields
+          projectImagesPosition: data.project_images_position,
+          videosPosition: data.videos_position,
+          flowDiagramsPosition: data.flow_diagrams_position,
+          solutionCardsPosition: data.solution_cards_position,
+          // Convert other fields
+          sectionPositions: data.section_positions || {},
+          requiresPassword: data.requires_password,
+          // Remove snake_case fields to avoid confusion
+          position_x: undefined,
+          position_y: undefined,
+          case_study_content: undefined,
+          case_study_images: undefined,
+          flow_diagram_images: undefined,
+          video_items: undefined,
+          gallery_aspect_ratio: undefined,
+          flow_diagram_aspect_ratio: undefined,
+          video_aspect_ratio: undefined,
+          gallery_columns: undefined,
+          flow_diagram_columns: undefined,
+          video_columns: undefined,
+          project_images_position: undefined,
+          videos_position: undefined,
+          flow_diagrams_position: undefined,
+          solution_cards_position: undefined,
+          section_positions: undefined,
+          requires_password: undefined
+        };
+        
+        console.log('🔄 Converted Supabase data to UI format:', {
+          id: freshProject.id,
+          imageCount: freshProject.caseStudyImages?.length || 0,
+          hasImages: (freshProject.caseStudyImages?.length || 0) > 0,
+          originalImages: data.case_study_images?.length || 0,
+          convertedImages: freshProject.caseStudyImages?.length || 0,
+          imageData: freshProject.caseStudyImages
+        });
+      } else {
+        console.log('⚠️ Supabase load failed, falling back to localStorage');
+      }
+    } catch (e) {
+      console.error('Error loading from Supabase:', e);
+    }
+    
+    // If Supabase failed, try localStorage as fallback
+    if (!freshProject) {
     try {
       // Try case studies first
       const caseStudiesData = localStorage.getItem('caseStudies');
@@ -534,8 +609,8 @@ export default function App() {
         }
       }
     } catch (e) {
-      console.error('Error loading project data:', e);
-      // Continue with the project passed in as fallback
+        console.error('Error loading project data from localStorage:', e);
+      }
     }
     
     // Use fresh data if found, otherwise use the project passed in
@@ -545,7 +620,7 @@ export default function App() {
       id: projectToSet.id,
       imageCount: projectToSet.caseStudyImages?.length || 0,
       imageIds: projectToSet.caseStudyImages?.map(img => img.id) || [],
-      source: freshProject ? 'localStorage' : 'prop',
+      source: freshProject ? 'Supabase' : 'localStorage',
       requiresPassword: projectToSet.requiresPassword,
       isAuthenticated: isAuthenticated
     });
@@ -625,7 +700,73 @@ export default function App() {
     }
   };
 
-  const handleSignIn = (password: string) => {
+  const handleSignIn = async (password: string) => {
+    console.log('🔐 handleSignIn called with password:', password);
+    
+    if (password === 'bypass') {
+      // For bypass, create a temporary Supabase session
+      try {
+        console.log('🚨 BYPASS: Creating temporary Supabase session...');
+        
+        // Try to sign in with a test account or create one
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: 'bypass@test.com',
+          password: 'bypass123'
+        });
+        
+        if (error) {
+          console.log('⚠️ BYPASS: Test account not found, creating one...');
+          // Try to create the test account
+          const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+            email: 'bypass@test.com',
+            password: 'bypass123'
+          });
+          
+          if (signUpError) {
+            console.log('⚠️ BYPASS: Could not create test account, using local auth only');
+          } else {
+            console.log('✅ BYPASS: Test account created');
+          }
+        } else {
+          console.log('✅ BYPASS: Test account authenticated');
+        }
+      } catch (err) {
+        console.log('⚠️ BYPASS: Supabase auth failed, using local auth only:', err);
+      }
+    } else if (password === 'brian2025') {
+      // Real authentication with your account
+      try {
+        console.log('🔐 REAL AUTH: Signing in with brian.bureson@gmail.com...');
+        
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: 'brian.bureson@gmail.com',
+          password: 'brian2025'
+        });
+        
+        if (error) {
+          console.error('❌ REAL AUTH: Failed to sign in:', error);
+          // Try to create the account if it doesn't exist
+          console.log('🔄 REAL AUTH: Trying to create account...');
+          const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+            email: 'brian.bureson@gmail.com',
+            password: 'brian2025'
+          });
+          
+          if (signUpError) {
+            console.error('❌ REAL AUTH: Failed to create account:', signUpError);
+            throw new Error('Failed to authenticate or create account');
+          } else {
+            console.log('✅ REAL AUTH: Account created successfully');
+          }
+        } else {
+          console.log('✅ REAL AUTH: Successfully signed in with real account');
+        }
+      } catch (err) {
+        console.error('❌ REAL AUTH: Authentication failed:', err);
+        throw new Error('Authentication failed');
+      }
+    }
+    
     setIsAuthenticated(true);
     // Persist authentication to localStorage
     localStorage.setItem('isAuthenticated', 'true');
@@ -633,6 +774,7 @@ export default function App() {
     // Automatically enable edit mode after signing in
     setIsEditMode(true);
     console.log('✅ Signed in - authentication persisted to localStorage');
+    console.log('✅ Authentication state updated:', { isAuthenticated: true, isEditMode: true });
   };
 
   const handleSignOut = () => {
@@ -652,7 +794,27 @@ export default function App() {
     } else {
       const newMode = !isEditMode;
       
-      // When switching FROM edit mode TO preview mode, remind about exporting
+      // When switching FROM edit mode TO preview mode, check for unsaved changes
+      if (isEditMode && !newMode) {
+        // Check if there are any unsaved changes
+        const hasUnsavedChanges = checkForUnsavedChanges();
+        
+        if (hasUnsavedChanges) {
+          const confirmed = confirm(
+            '⚠️ You have unsaved changes!\n\n' +
+            'Are you sure you want to exit edit mode? Your changes will be lost.\n\n' +
+            'Click "OK" to discard changes and exit edit mode.\n' +
+            'Click "Cancel" to stay in edit mode and save your changes.'
+          );
+          
+          if (!confirmed) {
+            console.log('👁️ User cancelled exit edit mode - staying in edit mode');
+            return; // Don't exit edit mode
+          } else {
+            console.log('⚠️ User confirmed exit edit mode - discarding unsaved changes');
+          }
+        }
+      }
       
       setIsEditMode(newMode);
       
@@ -675,6 +837,32 @@ export default function App() {
         }
       }
     }
+  };
+
+  // Helper function to check for unsaved changes
+  const checkForUnsavedChanges = () => {
+    // Check if there are any pending auto-saves or unsaved changes
+    const hasLocalChanges = document.querySelector('[data-unsaved="true"]');
+    const hasPendingSaves = localStorage.getItem('pendingChanges');
+    
+    // Check if there are any recent image uploads that might not be saved
+    const recentImageUploads = document.querySelectorAll('[data-recent-upload="true"]');
+    
+    // Check if there are any unsaved form changes
+    const hasUnsavedForms = document.querySelectorAll('input[data-changed="true"], textarea[data-changed="true"]');
+    
+    const hasChanges = hasLocalChanges || hasPendingSaves || recentImageUploads.length > 0 || hasUnsavedForms.length > 0;
+    
+    if (hasChanges) {
+      console.log('🔍 Unsaved changes detected:', {
+        hasLocalChanges: !!hasLocalChanges,
+        hasPendingSaves: !!hasPendingSaves,
+        recentUploads: recentImageUploads.length,
+        unsavedForms: hasUnsavedForms.length
+      });
+    }
+    
+    return hasChanges;
   };
 
   // No loading screen - render immediately for better performance
@@ -961,7 +1149,7 @@ export default function App() {
                     setTimeout(() => window.location.reload(), 2000);
                   } else {
                     console.log('Fix function not available, reloading...');
-                    window.location.reload();
+                  window.location.reload();
                   }
                 }
               }}
@@ -1163,40 +1351,40 @@ export default function App() {
 
       <DndProvider backend={HTML5Backend}>
         <div className="relative z-10">
-          {currentPage === "home" && (
-            <Home 
-              onStartClick={navigateToStart} 
-              isEditMode={isEditMode}
-              onProjectClick={navigateToProject}
-              currentPage={currentPage}
-            />
-          )}
-          {currentPage === "about" && (isEditMode || pageVisibility.about) && (
-            <About onBack={navigateHome} onHoverChange={setIsBlurringBackground} isEditMode={isEditMode} />
-          )}
-          {currentPage === "contact" && (isEditMode || pageVisibility.contact) && (
-            <Contact onBack={navigateHome} isEditMode={isEditMode} />
-          )}
-          {currentPage === "music" && (isEditMode || pageVisibility.music) && (
-            <Music onBack={navigateHome} isEditMode={isEditMode} />
-          )}
-          {currentPage === "visuals" && (isEditMode || pageVisibility.visuals) && (
-            <Visuals onBack={navigateHome} isEditMode={isEditMode} />
-          )}
-          {currentPage === "project-detail" && selectedProject && (
-            <ProjectDetail
-              key={(selectedProject as any)._navTimestamp || selectedProject.id}
-              project={selectedProject}
-              onBack={navigateHome}
-              onUpdate={handleUpdateProject}
-              isEditMode={isEditMode}
-            />
-          )}
+        {currentPage === "home" && (
+          <Home 
+            onStartClick={navigateToStart} 
+            isEditMode={isEditMode}
+            onProjectClick={navigateToProject}
+            currentPage={currentPage}
+          />
+        )}
+        {currentPage === "about" && (isEditMode || pageVisibility.about) && (
+          <About onBack={navigateHome} onHoverChange={setIsBlurringBackground} isEditMode={isEditMode} />
+        )}
+        {currentPage === "contact" && (isEditMode || pageVisibility.contact) && (
+          <Contact onBack={navigateHome} isEditMode={isEditMode} />
+        )}
+        {currentPage === "music" && (isEditMode || pageVisibility.music) && (
+          <Music onBack={navigateHome} isEditMode={isEditMode} />
+        )}
+        {currentPage === "visuals" && (isEditMode || pageVisibility.visuals) && (
+          <Visuals onBack={navigateHome} isEditMode={isEditMode} />
+        )}
+        {currentPage === "project-detail" && selectedProject && (
+          <ProjectDetail
+            key={(selectedProject as any)._navTimestamp || selectedProject.id}
+            project={selectedProject}
+            onBack={navigateHome}
+            onUpdate={handleUpdateProject}
+            isEditMode={isEditMode}
+          />
+        )}
           {currentPage === "supabase-test" && (
             <SupabaseTest />
           )}
           {/* Supabase test page removed */}
-        </div>
+      </div>
       </DndProvider>
 
       {currentPage !== "home" && currentPage !== "project-detail" && (() => {

@@ -98,7 +98,7 @@ export const UnifiedProjectCreator = React.memo(function UnifiedProjectCreator({
   onCreateProject,
   isEditMode 
 }: UnifiedProjectCreatorProps) {
-  console.log('🎯 UnifiedProjectCreator: Component rendered', { isOpen, isEditMode });
+  // console.log('🎯 UnifiedProjectCreator: Component rendered', { isOpen, isEditMode });
   const [caseStudy, setCaseStudy] = useState<FlexibleCaseStudyTemplate>(() => createBlankCaseStudy());
   const [isCreating, setIsCreating] = useState(false);
   const [showAddSection, setShowAddSection] = useState(false);

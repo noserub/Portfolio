@@ -388,11 +388,44 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     console.log('📄 ProjectDetail: Project data received:', project);
     console.log('📄 ProjectDetail: caseStudyContent:', project.caseStudyContent);
     console.log('📄 ProjectDetail: caseStudyContent length:', project.caseStudyContent?.length || 0);
+    console.log('📄 ProjectDetail: caseStudyImages from project:', project.caseStudyImages);
+    console.log('📄 ProjectDetail: case_study_images from project:', (project as any).case_study_images);
+    console.log('📄 ProjectDetail: caseStudyImages length:', project.caseStudyImages?.length || 0);
+    console.log('📄 ProjectDetail: case_study_images length:', (project as any).case_study_images?.length || 0);
+    console.log('📄 ProjectDetail: ALL project keys:', Object.keys(project));
+    console.log('📄 ProjectDetail: Project has caseStudyImages key:', 'caseStudyImages' in project);
+    console.log('📄 ProjectDetail: Project has case_study_images key:', 'case_study_images' in project);
+    console.log('📄 ProjectDetail: Project has case_study_images key (any):', 'case_study_images' in (project as any));
+    
+    // Check if we need to convert snake_case to camelCase
+    const hasSnakeCase = 'case_study_images' in (project as any);
+    const hasCamelCase = 'caseStudyImages' in project;
+    
+    if (hasSnakeCase && !hasCamelCase) {
+      console.log('🔄 ProjectDetail: Converting snake_case to camelCase format');
+      
+      // Update the image arrays with converted data
+      const snakeCaseImages = (project as any).case_study_images || [];
+      const snakeCaseFlowDiagrams = (project as any).flow_diagram_images || [];
+      const snakeCaseVideos = (project as any).video_items || [];
+      
+      console.log('🔄 ProjectDetail: Converting images:', {
+        caseStudyImages: snakeCaseImages.length,
+        flowDiagrams: snakeCaseFlowDiagrams.length,
+        videos: snakeCaseVideos.length
+      });
+      
+      // Update the state with converted data
+      setCaseStudyImages(snakeCaseImages);
+      setFlowDiagramImages(snakeCaseFlowDiagrams);
+      setVideoItems(snakeCaseVideos);
+    }
     
     // Check authentication status
     const checkAuth = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      console.log('📄 ProjectDetail: Current user:', user ? user.email : 'Not authenticated');
+      const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
+      console.log('📄 ProjectDetail: Current user:', user ? user.email : (isBypassAuth ? 'Bypass authenticated' : 'Not authenticated'));
     };
     checkAuth();
   }, [project]);
@@ -402,9 +435,25 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
   const [caseStudyContent, setCaseStudyContent] = useState(
     project.caseStudyContent || (project as any).case_study_content || "Add your detailed case study content here. Describe the challenge, process, solution, and results."
   );
-  const [caseStudyImages, setCaseStudyImages] = useState<CaseStudyImage[]>(
-    project.caseStudyImages || (project as any).case_study_images || []
-  );
+  const [caseStudyImages, setCaseStudyImages] = useState<CaseStudyImage[]>(() => {
+    // Handle both camelCase and snake_case formats
+    const camelCaseImages = project.caseStudyImages;
+    const snakeCaseImages = (project as any).case_study_images;
+    const images = camelCaseImages || snakeCaseImages || [];
+    
+    console.log('🖼️ ProjectDetail: Initializing caseStudyImages:', {
+      camelCase: camelCaseImages?.length || 0,
+      snakeCase: snakeCaseImages?.length || 0,
+      final: images.length,
+      camelCaseData: camelCaseImages,
+      snakeCaseData: snakeCaseImages,
+      finalData: images,
+      projectKeys: Object.keys(project),
+      hasCamelCase: 'caseStudyImages' in project,
+      hasSnakeCase: 'case_study_images' in (project as any)
+    });
+    return images;
+  });
   const [flowDiagramImages, setFlowDiagramImages] = useState<Array<{
     id: string; 
     url: string; 
@@ -412,30 +461,45 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     caption?: string;
     scale?: number;
     position?: { x: number; y: number };
-  }>>( project.flowDiagramImages || (project as any).flow_diagram_images || []
-  );
+  }>>(() => {
+    // Handle both camelCase and snake_case formats
+    const images = project.flowDiagramImages || (project as any).flow_diagram_images || [];
+    console.log('🖼️ ProjectDetail: Initializing flowDiagramImages:', {
+      camelCase: project.flowDiagramImages?.length || 0,
+      snakeCase: (project as any).flow_diagram_images?.length || 0,
+      final: images.length
+    });
+    return images;
+  });
   const [videoItems, setVideoItems] = useState<Array<{
     id: string;
     url: string;
     type: 'youtube' | 'vimeo' | 'upload' | 'url';
     caption?: string;
     thumbnail?: string;
-  }>>(
-    project.videoItems || (project as any).video_items || []
-  );
+  }>>(() => {
+    // Handle both camelCase and snake_case formats
+    const videos = project.videoItems || (project as any).video_items || [];
+    console.log('🖼️ ProjectDetail: Initializing videoItems:', {
+      camelCase: project.videoItems?.length || 0,
+      snakeCase: (project as any).video_items?.length || 0,
+      final: videos.length
+    });
+    return videos;
+  });
   
   const [projectImagesPosition, setProjectImagesPosition] = useState<number | undefined>(
-    project.projectImagesPosition
+    project.projectImagesPosition || (project as any).project_images_position
   );
   const [videosPosition, setVideosPosition] = useState<number | undefined>(
-    project.videosPosition
+    project.videosPosition || (project as any).videos_position
   );
   
   const [flowDiagramsPosition, setFlowDiagramsPosition] = useState<number | undefined>(
-    project.flowDiagramsPosition
+    project.flowDiagramsPosition || (project as any).flow_diagrams_position
   );
   const [solutionCardsPosition, setSolutionCardsPosition] = useState<number | undefined>(
-    project.solutionCardsPosition
+    project.solutionCardsPosition || (project as any).solution_cards_position
   );
   
   
@@ -456,7 +520,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
   });
   
   // (Handlers moved below after aspect/columns state to avoid TDZ)
-
+  
   // Use refs to track latest values to avoid stale state in callbacks
   const caseStudyImagesRef = useRef(caseStudyImages);
   const flowDiagramImagesRef = useRef(flowDiagramImages);
@@ -830,6 +894,9 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
   const prevContentRef = useRef<string>('');
   const prevTitleRef = useRef<string>('');
   const prevDescriptionRef = useRef<string>('');
+  const prevImagesRef = useRef<string>('');
+  const prevFlowDiagramsRef = useRef<string>('');
+  const prevVideosRef = useRef<string>('');
 
   // Auto-save content changes with debouncing
   useEffect(() => {
@@ -837,10 +904,34 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     const currentTitle = editedTitle || '';
     const currentDescription = editedDescription || '';
     
+    // Initialize refs on first render
+    if (prevContentRef.current === '' && currentContent) {
+      prevContentRef.current = currentContent;
+      prevTitleRef.current = currentTitle;
+      prevDescriptionRef.current = currentDescription;
+      prevImagesRef.current = JSON.stringify(caseStudyImages);
+      prevFlowDiagramsRef.current = JSON.stringify(flowDiagramImagesRef.current);
+      prevVideosRef.current = JSON.stringify(videoItemsRef.current);
+      console.log('🔄 Initialized refs with current state');
+      return; // Skip save on first render
+    }
+    
     // Check if content actually changed
     const contentChanged = currentContent !== prevContentRef.current;
     const titleChanged = currentTitle !== prevTitleRef.current;
     const descriptionChanged = currentDescription !== prevDescriptionRef.current;
+    
+    // Check for image changes by comparing with previous state
+    const currentImagesStr = JSON.stringify(caseStudyImages);
+    const currentFlowDiagramsStr = JSON.stringify(flowDiagramImagesRef.current);
+    const currentVideosStr = JSON.stringify(videoItemsRef.current);
+    
+    const imagesChanged = currentImagesStr !== prevImagesRef.current;
+    const flowDiagramsChanged = currentFlowDiagramsStr !== prevFlowDiagramsRef.current;
+    const videosChanged = currentVideosStr !== prevVideosRef.current;
+    
+    // Check for unsaved changes flag
+    const hasUnsavedFlag = document.body.hasAttribute('data-unsaved');
     
     console.log('🔄 Auto-save useEffect triggered:', {
       isEditMode,
@@ -849,13 +940,40 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       contentChanged,
       titleChanged,
       descriptionChanged,
+      imagesChanged,
+      flowDiagramsChanged,
+      videosChanged,
+      hasUnsavedFlag,
       contentPreview: caseStudyContent?.substring(0, 50) + '...',
-      hasBlobUrls: caseStudyContent?.includes('blob:') || false
+      hasBlobUrls: caseStudyContent?.includes('blob:') || false,
+      currentImages: caseStudyImages?.length || 0,
+      projectImages: (project.caseStudyImages || (project as any).case_study_images)?.length || 0,
+      currentFlowDiagrams: flowDiagramImagesRef.current?.length || 0,
+      projectFlowDiagrams: (project.flowDiagramImages || (project as any).flow_diagram_images)?.length || 0
     });
 
-    // Only proceed if something actually changed
-    if (!contentChanged && !titleChanged && !descriptionChanged) {
-      console.log('⏭️ Auto-save skipped - no changes detected');
+    // Debug image state
+    console.log('🔍 Image state debug:', {
+      caseStudyImages: caseStudyImages?.length || 0,
+      flowDiagrams: flowDiagramImagesRef.current?.length || 0,
+      videos: videoItemsRef.current?.length || 0,
+      hasImages: (caseStudyImages?.length > 0 || flowDiagramImagesRef.current?.length > 0 || videoItemsRef.current?.length > 0),
+      hasUnsavedFlag: hasUnsavedFlag,
+      unsavedFlagValue: document.body.getAttribute('data-unsaved')
+    });
+
+    // Only proceed if something actually changed OR unsaved flag is set
+    if (!contentChanged && !titleChanged && !descriptionChanged && !imagesChanged && !flowDiagramsChanged && !videosChanged && !hasUnsavedFlag) {
+      console.log('⏭️ Auto-save skipped - no changes detected', {
+        contentChanged,
+        titleChanged,
+        descriptionChanged,
+        imagesChanged,
+        flowDiagramsChanged,
+        videosChanged,
+        hasUnsavedFlag,
+        reason: 'All change checks returned false'
+      });
       return;
     }
 
@@ -885,6 +1003,9 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
         prevContentRef.current = currentContent;
         prevTitleRef.current = currentTitle;
         prevDescriptionRef.current = currentDescription;
+        prevImagesRef.current = currentImagesStr;
+        prevFlowDiagramsRef.current = currentFlowDiagramsStr;
+        prevVideosRef.current = currentVideosStr;
         
         console.log('📤 ProjectDetail: Calling onUpdate with:', {
           id: project.id,
@@ -898,6 +1019,19 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
           title: editedTitle,
           description: editedDescription,
           caseStudyContent: cleanedContent,
+          caseStudyImages,
+          flowDiagramImages: flowDiagramImagesRef.current,
+          videoItems: videoItemsRef.current,
+          galleryAspectRatio,
+          flowDiagramAspectRatio,
+          videoAspectRatio,
+          galleryColumns,
+          flowDiagramColumns,
+          videoColumns,
+          projectImagesPosition,
+          videosPosition,
+          flowDiagramsPosition,
+          solutionCardsPosition,
         });
       } else {
         console.log('❌ Auto-save skipped - DETAILED REASON:', {
@@ -1037,7 +1171,20 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
             newImageId: newImage.id,
             placeholderUrl: url
           });
+          
+          // Mark the project as having unsaved changes
+          document.body.setAttribute('data-unsaved', 'true');
+          console.log('📸 SET data-unsaved flag to true');
+          
+          // Force immediate save
+          console.log('📸 FORCING IMMEDIATE SAVE due to image upload');
           onUpdate(updatedProject);
+          
+          // Clear the unsaved flag after a longer delay to ensure auto-save catches it
+          setTimeout(() => {
+            console.log('📸 CLEARING data-unsaved flag');
+            document.body.removeAttribute('data-unsaved');
+          }, 5000);
         } catch (error) {
           console.error('Error adding image:', error);
           alert('Failed to add image. Please try again.');
@@ -1080,38 +1227,41 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       const file = (e.target as HTMLInputElement).files?.[0];
       if (file) {
         try {
-          // Convert file to base64 data URL for persistence
-          const reader = new FileReader();
-          reader.onloadend = async () => {
-            const newImageUrl = reader.result as string;
-            
-            // New images default to 100% zoom, centered (for both detail and home views)
-            const newScale = 1;
-            const newPosition = { x: 50, y: 50 };
-            
-            // Update local display state
-            setHeroScale(newScale);
-            setHeroPosition(newPosition);
-            
-            // CRITICAL: Use refs for image arrays to avoid stale state
-            const updatedProject: ProjectData = {
-              ...project,
-              url: newImageUrl,
-              scale: newScale, // This is for the home carousel
-              position: newPosition, // This is for the home carousel
-              title: editedTitle,
-              description: editedDescription,
-              caseStudyContent,
-              caseStudyImages: caseStudyImagesRef.current,
-              flowDiagramImages: flowDiagramImagesRef.current,
-              galleryAspectRatio,
-              flowDiagramAspectRatio,
-              galleryColumns,
-              flowDiagramColumns,
-              projectImagesPosition,
-              flowDiagramsPosition,
-              solutionCardsPosition,
-            };
+          // Upload to Supabase Storage instead of base64
+          const { uploadImage } = await import('../utils/imageHelpers');
+          const newImageUrl = await uploadImage(file, 'hero');
+          
+          // New images default to 100% zoom, centered (for both detail and home views)
+          const newScale = 1;
+          const newPosition = { x: 50, y: 50 };
+          
+          // Update local display state
+          setHeroScale(newScale);
+          setHeroPosition(newPosition);
+          
+          // Mark the project as having unsaved changes
+          document.body.setAttribute('data-unsaved', 'true');
+          console.log('🖼️ SET data-unsaved flag to true for hero image');
+          
+          // CRITICAL: Use refs for image arrays to avoid stale state
+          const updatedProject: ProjectData = {
+            ...project,
+            url: newImageUrl,
+            scale: newScale, // This is for the home carousel
+            position: newPosition, // This is for the home carousel
+            title: editedTitle,
+            description: editedDescription,
+            caseStudyContent,
+            caseStudyImages: caseStudyImagesRef.current,
+            flowDiagramImages: flowDiagramImagesRef.current,
+            galleryAspectRatio,
+            flowDiagramAspectRatio,
+            galleryColumns,
+            flowDiagramColumns,
+            projectImagesPosition,
+            flowDiagramsPosition,
+            solutionCardsPosition,
+          };
             
             console.log('🖼️ ProjectDetail: Hero image changed, calling onUpdate with:', {
               id: updatedProject.id,
@@ -1120,9 +1270,15 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
               position: newPosition
             });
             
-            onUpdate(updatedProject);
-          };
-          reader.readAsDataURL(file);
+          // Force immediate save for hero image changes
+          console.log('🖼️ FORCING IMMEDIATE SAVE for hero image upload');
+          onUpdate(updatedProject);
+          
+          // Clear the unsaved flag after a delay
+          setTimeout(() => {
+            console.log('🖼️ CLEARING data-unsaved flag for hero image');
+            document.body.removeAttribute('data-unsaved');
+          }, 5000);
         } catch (error) {
           console.error('Error uploading hero image:', error);
           alert('Failed to upload image. Please try again.');

@@ -2015,7 +2015,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
   useEffect(() => {
     populateSupabaseCaseStudies();
     cleanupBlobUrls();
-    manualFixIssues(); // Manual fix for specific issues
+    // manualFixIssues(); // Manual fix for specific issues - DISABLED to prevent infinite loop
     
     // Temporarily disable aggressive database cleanup to prevent removing legitimate projects
     // const hasRunCleanup = sessionStorage.getItem('databaseCleanupRun');
@@ -2583,6 +2583,51 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
       const result = await updateProject(updatedProject.id, projectData);
       if (result) {
         console.log('✅ Project updated in Supabase:', updatedProject.id);
+        
+        // CRITICAL: Also update localStorage to keep it in sync
+        try {
+          const storageKey = type === 'caseStudies' ? 'caseStudies' : 'designProjects';
+          const savedProjects = localStorage.getItem(storageKey);
+          let projects = [];
+          
+          if (savedProjects) {
+            projects = JSON.parse(savedProjects);
+          }
+          
+          // Find and update the project
+          const projectIndex = projects.findIndex((p: any) => p.id === updatedProject.id);
+          if (projectIndex !== -1) {
+            // Update the project with new content
+            (projects as any)[projectIndex] = {
+              ...(projects as any)[projectIndex],
+              title: updatedProject.title,
+              description: updatedProject.description,
+              caseStudyContent: updatedProject.caseStudyContent,
+              caseStudyImages: updatedProject.caseStudyImages,
+              flowDiagramImages: updatedProject.flowDiagramImages,
+              videoItems: updatedProject.videoItems,
+              galleryAspectRatio: updatedProject.galleryAspectRatio,
+              flowDiagramAspectRatio: updatedProject.flowDiagramAspectRatio,
+              videoAspectRatio: updatedProject.videoAspectRatio,
+              galleryColumns: updatedProject.galleryColumns,
+              flowDiagramColumns: updatedProject.flowDiagramColumns,
+              videoColumns: updatedProject.videoColumns,
+              projectImagesPosition: updatedProject.projectImagesPosition,
+              videosPosition: updatedProject.videosPosition,
+              flowDiagramsPosition: updatedProject.flowDiagramsPosition,
+              solutionCardsPosition: updatedProject.solutionCardsPosition,
+              lastModified: new Date().toISOString()
+            };
+            
+            localStorage.setItem(storageKey, JSON.stringify(projects));
+            console.log('✅ Updated localStorage to sync with Supabase');
+            
+            // Trigger re-render
+            setLocalStorageVersion(prev => prev + 1);
+          }
+        } catch (e) {
+          console.error('❌ Failed to update localStorage:', e);
+        }
       } else {
         console.log('⚠️ Supabase update failed, trying localStorage fallback...');
         
@@ -2714,6 +2759,33 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
 
   // REMOVED: handleAddFromTemplate - using unified project creator instead
 
+  // Function to normalize project data structure for ProjectDetail
+  const normalizeProjectData = (project: any): ProjectData => {
+    const nn = (v: any) => (v === null || v === undefined ? undefined : v);
+    return {
+      ...project,
+      // Ensure camelCase fields are available
+      caseStudyContent: project.caseStudyContent || project.case_study_content,
+      caseStudyImages: project.caseStudyImages || project.case_study_images || [],
+      flowDiagramImages: project.flowDiagramImages || project.flow_diagram_images || [],
+      videoItems: project.videoItems || project.video_items || [],
+      galleryAspectRatio: project.galleryAspectRatio || project.gallery_aspect_ratio || "3x4",
+      flowDiagramAspectRatio: project.flowDiagramAspectRatio || project.flow_diagram_aspect_ratio || "16x9",
+      videoAspectRatio: project.videoAspectRatio || project.video_aspect_ratio || "16x9",
+      galleryColumns: project.galleryColumns || project.gallery_columns || 3,
+      flowDiagramColumns: project.flowDiagramColumns || project.flow_diagram_columns || 2,
+      videoColumns: project.videoColumns || project.video_columns || 1,
+      // Map section positions from snake_case → camelCase, coercing null → undefined
+      projectImagesPosition: nn(project.projectImagesPosition ?? project.project_images_position),
+      videosPosition: nn(project.videosPosition ?? project.videos_position),
+      flowDiagramsPosition: nn(project.flowDiagramsPosition ?? project.flow_diagrams_position),
+      solutionCardsPosition: nn(project.solutionCardsPosition ?? project.solution_cards_position),
+      sectionPositions: project.sectionPositions ?? project.section_positions ?? {},
+      // Ensure position is an object
+      position: project.position || { x: project.position_x || 50, y: project.position_y || 50 }
+    };
+  };
+
   const handleCreateUnifiedProject = useCallback(async (projectData: any) => {
     console.log('🖱️ Creating blank project:', projectData);
     try {
@@ -2785,7 +2857,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     } catch (error) {
       console.error('❌ Error creating blank project:', error);
     }
-  }, [createProject]);
+  }, [createProject, onProjectClick, handleUpdateProject, normalizeProjectData]);
 
   const handleDeleteProject = (projectId: string, projectTitle: string, type: 'caseStudies' | 'design') => {
     setDeleteConfirmation({ projectId, projectTitle, type });
@@ -2841,33 +2913,6 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     }
     
     setDeleteConfirmation(null);
-  };
-
-  // Function to normalize project data structure for ProjectDetail
-  const normalizeProjectData = (project: any): ProjectData => {
-    const nn = (v: any) => (v === null || v === undefined ? undefined : v);
-    return {
-      ...project,
-      // Ensure camelCase fields are available
-      caseStudyContent: project.caseStudyContent || project.case_study_content,
-      caseStudyImages: project.caseStudyImages || project.case_study_images || [],
-      flowDiagramImages: project.flowDiagramImages || project.flow_diagram_images || [],
-      videoItems: project.videoItems || project.video_items || [],
-      galleryAspectRatio: project.galleryAspectRatio || project.gallery_aspect_ratio || "3x4",
-      flowDiagramAspectRatio: project.flowDiagramAspectRatio || project.flow_diagram_aspect_ratio || "16x9",
-      videoAspectRatio: project.videoAspectRatio || project.video_aspect_ratio || "16x9",
-      galleryColumns: project.galleryColumns || project.gallery_columns || 3,
-      flowDiagramColumns: project.flowDiagramColumns || project.flow_diagram_columns || 2,
-      videoColumns: project.videoColumns || project.video_columns || 1,
-      // Map section positions from snake_case → camelCase, coercing null → undefined
-      projectImagesPosition: nn(project.projectImagesPosition ?? project.project_images_position),
-      videosPosition: nn(project.videosPosition ?? project.videos_position),
-      flowDiagramsPosition: nn(project.flowDiagramsPosition ?? project.flow_diagrams_position),
-      solutionCardsPosition: nn(project.solutionCardsPosition ?? project.solution_cards_position),
-      sectionPositions: project.sectionPositions ?? project.section_positions ?? {},
-      // Ensure position is an object
-      position: project.position || { x: project.position_x || 50, y: project.position_y || 50 }
-    };
   };
 
   const handleNavigateToProject = (project: ProjectData, type: 'caseStudies' | 'design') => {
@@ -3724,6 +3769,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         onCreateProject={handleCreateUnifiedProject}
         isEditMode={isEditMode}
       />
+
     </div>
   );
 }

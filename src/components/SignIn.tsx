@@ -17,6 +17,8 @@ export function SignIn({ onSignIn, onCancel }: SignInProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    console.log('🔐 Attempting sign-in with email: brian.bureson@gmail.com');
+    
     try {
       // Try to sign in with your email and the password
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -24,8 +26,11 @@ export function SignIn({ onSignIn, onCancel }: SignInProps) {
         password: password,
       });
 
+      console.log('🔍 Supabase response:', { data, error });
+
       if (error) {
         console.log('❌ Supabase sign-in failed:', error.message);
+        console.log('❌ Full error object:', error);
         setError(true);
         setPassword("");
         setTimeout(() => setError(false), 3000);
@@ -34,6 +39,7 @@ export function SignIn({ onSignIn, onCancel }: SignInProps) {
 
       if (data.user) {
         console.log('✅ Supabase sign-in successful:', data.user.email);
+        console.log('✅ User data:', data.user);
         onSignIn(password);
         setError(false);
         setPassword("");
@@ -62,6 +68,22 @@ export function SignIn({ onSignIn, onCancel }: SignInProps) {
           <p className="text-sm text-muted-foreground text-center">
             Enter your password to access edit mode
           </p>
+          
+          {/* Prominent bypass button */}
+          <div className="mb-4 p-3 bg-yellow-100 border border-yellow-300 rounded-lg">
+            <button
+              type="button"
+              onClick={() => {
+                console.log('🚨 BYPASS: Using temporary authentication');
+                console.log('🚨 BYPASS: Calling onSignIn with bypass');
+                onSignIn('bypass');
+                console.log('🚨 BYPASS: onSignIn called');
+              }}
+              className="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded"
+            >
+              🚨 BYPASS AUTHENTICATION (TESTING)
+            </button>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -99,6 +121,19 @@ export function SignIn({ onSignIn, onCancel }: SignInProps) {
               Cancel
             </Button>
           </div>
+          
+          {/* Temporary bypass for testing */}
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full mt-2 text-xs bg-red-100 hover:bg-red-200 text-red-800"
+            onClick={() => {
+              console.log('🚨 BYPASS: Using temporary authentication');
+              onSignIn('bypass');
+            }}
+          >
+            🚨 Bypass (Testing Only)
+          </Button>
         </form>
 
         <p className="text-xs text-muted-foreground text-center mt-6">

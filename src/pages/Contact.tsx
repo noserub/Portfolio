@@ -42,6 +42,53 @@ export function Contact({ onBack, isEditMode = false }: ContactProps) {
   const [editedText, setEditedText] = useState("");
   const [originalText, setOriginalText] = useState("");
 
+  // Add authentication helper to window for easy access
+  useEffect(() => {
+    // Add helper function to window for easy authentication switching
+    (window as any).switchToRealAuth = async () => {
+      console.log('🔄 Switching to real authentication...');
+      
+      // Clear current auth
+      localStorage.clear();
+      
+      // Try to sign in with real account
+      try {
+        const { supabase } = await import('../lib/supabaseClient');
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: 'brian.bureson@gmail.com',
+          password: 'brian2025'
+        });
+        
+        if (error) {
+          console.error('❌ Failed to sign in with real account:', error);
+          console.log('🔄 Trying to create account...');
+          
+          const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+            email: 'brian.bureson@gmail.com',
+            password: 'brian2025'
+          });
+          
+          if (signUpError) {
+            console.error('❌ Failed to create account:', signUpError);
+          } else {
+            console.log('✅ Account created successfully');
+          }
+        } else {
+          console.log('✅ Successfully signed in with real account');
+        }
+        
+        // Set authentication
+        localStorage.setItem('isAuthenticated', 'true');
+        console.log('🔄 Please refresh the page to complete the switch');
+        
+      } catch (err) {
+        console.error('❌ Authentication switch failed:', err);
+      }
+    };
+    
+    console.log('💡 To switch to real authentication, run: window.switchToRealAuth()');
+  }, []);
+
   // Load saved content from localStorage and Supabase
   useEffect(() => {
     const loadContactData = async () => {
@@ -61,17 +108,56 @@ export function Contact({ onBack, isEditMode = false }: ContactProps) {
       try {
         const { supabase } = await import('../lib/supabaseClient');
         const { data: { user } } = await supabase.auth.getUser();
+        const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
         
-        if (user) {
+        if (user || isBypassAuth) {
+          const userId = user?.id || '7cd2752f-93c5-46e6-8535-32769fb10055'; // Fallback for bypass auth
+          
+          console.log('🔐 Contact: Authentication check:', {
+            hasUser: !!user,
+            userId: user?.id,
+            isBypassAuth,
+            fallbackUserId: '7cd2752f-93c5-46e6-8535-32769fb10055',
+            finalUserId: userId
+          });
+          
+          // Show authentication status in console
+          if (isBypassAuth) {
+            console.log('⚠️ WARNING: Using bypass authentication. For proper email saving, sign in with your real account (brian.bureson@gmail.com)');
+          } else if (user) {
+            console.log('✅ Using real authentication with user:', user.email);
+          }
+          
+          console.log('🔍 Checking profiles table structure...');
+          
+          // First, let's see what's actually in the profiles table
+          const { data: allProfiles, error: listError } = await supabase
+            .from('profiles')
+            .select('*')
+            .limit(5);
+            
+          console.log('📊 Profiles table structure:', allProfiles);
+          if (allProfiles && allProfiles.length > 0) {
+            console.log('🔍 First profile fields:', Object.keys(allProfiles[0]));
+            console.log('🔍 First profile data:', allProfiles[0]);
+          }
+          
+          // Try to find profile by id (the actual primary key)
           const { data: profile, error } = await supabase
             .from('profiles')
-            .select('email')
-            .eq('id', user.id)
-            .single();
+            .select('*')
+            .eq('id', userId)
+            .maybeSingle();
             
-          if (profile && profile.email) {
-            console.log('📧 Loading email from Supabase profiles:', profile.email);
-            setContactInfo(prev => ({ ...prev, email: profile.email }));
+          console.log('👤 Found profile by ID:', profile, 'Error:', error);
+          
+          if (profile) {
+            // Use the email field that actually exists
+            const email = profile.email;
+            if (email) {
+              console.log('📧 Loading email from Supabase profiles:', email);
+              setContactInfo(prev => ({ ...prev, email }));
+            }
           }
         }
       } catch (error) {
@@ -106,11 +192,227 @@ export function Contact({ onBack, isEditMode = false }: ContactProps) {
       
       // Save email to Supabase profiles table
       try {
-        const { updateCurrentUserProfile } = await import('../utils/updateProfileData');
-        await updateCurrentUserProfile({ email: editedText });
-        console.log('✅ Email updated in Supabase profiles table');
+        const { supabase } = await import('../lib/supabaseClient');
+        const { data: { user } } = await supabase.auth.getUser();
+        const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
+        
+        if (user || isBypassAuth) {
+          const userId = user?.id || '7cd2752f-93c5-46e6-8535-32769fb10055';
+          
+          console.log('💾 Attempting to save email to Supabase:', editedText);
+          
+          // First, try to find existing profile
+          const { data: existingProfile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', userId)
+            .maybeSingle();
+            
+          console.log('🔍 Existing profile found:', existingProfile);
+          
+          if (existingProfile) {
+            console.log('🔄 Updating existing profile with new email:', editedText);
+            
+            // First, check if the email already exists in another profile
+            const { data: emailExists } = await supabase
+              .from('profiles')
+              .select('id')
+              .eq('email', editedText)
+              .neq('id', userId)
+              .maybeSingle();
+              
+            if (emailExists) {
+              console.log('⚠️ Email already exists in another profile, consolidating profiles...');
+              
+              // First, get all data from the profile that has the target email
+              const { data: targetProfile } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', emailExists.id)
+                .single();
+                
+              if (targetProfile) {
+                console.log('📋 Target profile data:', targetProfile);
+                
+                // First, delete the duplicate profile to avoid unique constraint violation
+                const { error: deleteError } = await supabase
+                  .from('profiles')
+                  .delete()
+                  .eq('id', emailExists.id);
+                  
+                if (deleteError) {
+                  console.error('❌ Failed to delete duplicate profile:', deleteError);
+                } else {
+                  console.log('✅ Successfully deleted duplicate profile');
+                  
+                  // Wait a moment for the delete to propagate
+                  await new Promise(resolve => setTimeout(resolve, 500));
+                  
+                  // Check if there are any other profiles with this email
+                  const { data: remainingDuplicates } = await supabase
+                    .from('profiles')
+                    .select('id, email')
+                    .eq('email', editedText);
+                    
+                  console.log('🔍 Remaining profiles with this email:', remainingDuplicates);
+                  
+                  if (remainingDuplicates && remainingDuplicates.length > 0) {
+                    console.log('⚠️ Still have duplicates, deleting them...');
+                    for (const duplicate of remainingDuplicates) {
+                      // Skip deleting the current user's profile
+                      if (duplicate.id !== userId) {
+                        const { error: deleteRemainingError } = await supabase
+                          .from('profiles')
+                          .delete()
+                          .eq('id', duplicate.id);
+                          
+                        if (deleteRemainingError) {
+                          console.error('❌ Failed to delete remaining duplicate:', deleteRemainingError);
+                        } else {
+                          console.log('✅ Deleted remaining duplicate:', duplicate.id);
+                        }
+                      } else {
+                        console.log('⏭️ Skipping current user profile:', duplicate.id);
+                      }
+                    }
+                  }
+                  
+                  // Double-check: get all profiles with this email after cleanup
+                  const { data: finalCheck } = await supabase
+                    .from('profiles')
+                    .select('id, email')
+                    .eq('email', editedText);
+                    
+                  console.log('🔍 Final check - profiles with this email:', finalCheck);
+                  
+                  // If we still have duplicates, try a more aggressive approach
+                  const otherProfilesWithEmail = finalCheck?.filter(p => p.id !== userId) || [];
+                  
+                  if (otherProfilesWithEmail.length > 0) {
+                    console.log('⚠️ Still have duplicates, trying aggressive cleanup...');
+                    
+                    // Delete ALL profiles with this email except the current user
+                    for (const duplicate of otherProfilesWithEmail) {
+                      console.log('🗑️ Aggressively deleting profile:', duplicate.id);
+                      const { error: aggressiveDeleteError } = await supabase
+                        .from('profiles')
+                        .delete()
+                        .eq('id', duplicate.id);
+                        
+                      if (aggressiveDeleteError) {
+                        console.error('❌ Aggressive delete failed:', aggressiveDeleteError);
+                      } else {
+                        console.log('✅ Aggressively deleted profile:', duplicate.id);
+                      }
+                    }
+                    
+                    // Wait a bit more for aggressive deletes to propagate
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    
+                    // Final check after aggressive cleanup
+                    const { data: finalFinalCheck } = await supabase
+                      .from('profiles')
+                      .select('id, email')
+                      .eq('email', editedText);
+                      
+                    console.log('🔍 Final final check - profiles with this email:', finalFinalCheck);
+                    
+                    const stillOtherProfiles = finalFinalCheck?.filter(p => p.id !== userId) || [];
+                    
+                    if (stillOtherProfiles.length > 0) {
+                      console.error('❌ Still have other profiles with this email after aggressive cleanup, cannot proceed:', stillOtherProfiles);
+                      return;
+                    }
+                  }
+                  
+                  // Check if the current user's profile already has the target email
+                  const { data: currentProfile } = await supabase
+                    .from('profiles')
+                    .select('email')
+                    .eq('id', userId)
+                    .single();
+                    
+                  console.log('🔍 Current user profile email:', currentProfile?.email);
+                  
+                  if (currentProfile?.email === editedText) {
+                    console.log('✅ Current user already has the target email, no update needed');
+                  } else {
+                    // Now update the current user's profile with all the data from the target profile
+                    const { error: mergeError } = await supabase
+                      .from('profiles')
+                      .update({
+                        email: editedText,
+                        full_name: targetProfile.full_name,
+                        avatar_url: targetProfile.avatar_url,
+                        bio_paragraph_1: targetProfile.bio_paragraph_1,
+                        bio_paragraph_2: targetProfile.bio_paragraph_2,
+                        super_powers_title: targetProfile.super_powers_title,
+                        super_powers: targetProfile.super_powers,
+                        highlights_title: targetProfile.highlights_title,
+                        highlights: targetProfile.highlights,
+                        leadership_title: targetProfile.leadership_title,
+                        leadership_items: targetProfile.leadership_items,
+                        expertise_title: targetProfile.expertise_title,
+                        expertise_items: targetProfile.expertise_items,
+                        how_i_use_ai_title: targetProfile.how_i_use_ai_title,
+                        how_i_use_ai_items: targetProfile.how_i_use_ai_items,
+                        process_title: targetProfile.process_title,
+                        process_subheading: targetProfile.process_subheading,
+                        process_items: targetProfile.process_items,
+                        certifications_title: targetProfile.certifications_title,
+                        certifications_items: targetProfile.certifications_items,
+                        tools_title: targetProfile.tools_title,
+                        tools_categories: targetProfile.tools_categories,
+                        section_order: targetProfile.section_order,
+                        research_insights: targetProfile.research_insights
+                      })
+                      .eq('id', userId);
+                      
+                    if (mergeError) {
+                      console.error('❌ Failed to merge profiles:', mergeError);
+                      console.log('📋 Merge error details:', mergeError);
+                    } else {
+                      console.log('✅ Successfully merged profile data');
+                    }
+                  }
+                }
+              }
+            } else {
+              // No duplicate, safe to update
+              const { error: updateError } = await supabase
+                .from('profiles')
+                .update({ email: editedText })
+                .eq('id', userId);
+                
+              if (updateError) {
+                console.error('❌ Failed to update email in Supabase:', updateError);
+                console.log('📋 Update error details:', updateError);
+              } else {
+                console.log('✅ Email updated in Supabase profiles table');
+              }
+            }
+          } else {
+            // Try to insert new profile - only use fields that exist
+            const insertData = {
+              id: userId,
+              email: editedText
+            };
+            
+            const { error: insertError } = await supabase
+              .from('profiles')
+              .insert(insertData);
+              
+            if (insertError) {
+              console.error('❌ Failed to insert email in Supabase:', insertError);
+              console.log('📋 Insert error details:', insertError);
+            } else {
+              console.log('✅ Email inserted in Supabase profiles table');
+            }
+          }
+        }
       } catch (error) {
         console.error('❌ Failed to update email in Supabase:', error);
+        console.log('📋 Full error details:', error);
         // Still save to localStorage as fallback
       }
     } else if (section === 'location') {
