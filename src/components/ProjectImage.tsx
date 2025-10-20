@@ -315,7 +315,7 @@ export function ProjectImage({
         )}
 
         {/* Persistent Project Title - Always visible */}
-        <div className="absolute bottom-0 left-0 right-0 p-4" style={{ 
+        <div className="absolute bottom-0 left-0 right-0 p-4 z-0" style={{ 
           background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.5) 50%, transparent 100%)',
           borderRadius: '0 0 1rem 1rem'
         }}>
