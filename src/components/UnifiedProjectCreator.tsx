@@ -111,15 +111,15 @@ export const UnifiedProjectCreator = React.memo(function UnifiedProjectCreator({
   // Lock body scroll when dialog is open
   useEffect(() => {
     if (isOpen) {
+      // Store original overflow value
+      const originalOverflow = document.body.style.overflow;
       document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
+      
+      // Cleanup function
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
     }
-    
-    // Cleanup on unmount
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
   }, [isOpen]);
 
   const handleProjectTypeSelect = (typeId: string) => {
@@ -268,7 +268,7 @@ export const UnifiedProjectCreator = React.memo(function UnifiedProjectCreator({
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
-        className="bg-background rounded-xl border border-border shadow-lg max-w-4xl w-full h-[90vh] flex flex-col my-8 relative"
+        className="bg-background rounded-xl border border-border shadow-lg max-w-4xl w-full h-[90vh] flex flex-col my-8 relative overflow-hidden"
         style={{ zIndex: 999999 }}
         onClick={(e) => e.stopPropagation()}
       >
