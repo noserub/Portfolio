@@ -674,7 +674,9 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     } else if (lower.includes('the solution')) {
       seeded = 'Describe your solution approach and why it works.';
     } else if (lower.includes('the challenge')) {
-      seeded = '## Problem statement\nDescribe the main problem or challenge.\n\n## Context\nProvide background and context.\n\n## Impact\nExplain the impact of not solving this challenge.';
+      // IMPORTANT: Avoid using a subsection titled "Impact" here, because the sidebar parser
+      // extracts any "Impact" subsection as the Impact sidebar. Use a different heading.
+      seeded = '## Problem statement\nDescribe the main problem or challenge.\n\n## Context\nProvide background and context.\n\n## Consequences\nExplain what happens if this challenge is not solved.';
     }
     const newContent = `${base}${prefix}# ${title}\n\n${seeded}`;
     console.log('📝 Adding markdown section:', { title, newContentLength: newContent.length });
