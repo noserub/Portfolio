@@ -208,12 +208,7 @@ export function createBlankCaseStudy(): FlexibleCaseStudyTemplate {
     title: "New Case Study",
     description: "Add your project description here",
     sections: [],
-    metadata: {
-      projectImagesPosition: 2,
-      videosPosition: 998,
-      flowDiagramsPosition: 1000,
-      solutionCardsPosition: 999
-    }
+    metadata: {}
   };
 }
 

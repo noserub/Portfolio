@@ -252,7 +252,7 @@ export const UnifiedProjectCreator = React.memo(function UnifiedProjectCreator({
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
-        className="bg-background rounded-xl border border-border shadow-lg max-w-4xl w-full max-h-[90vh] overflow-hidden"
+        className="bg-background rounded-xl border border-border shadow-lg max-w-4xl w-full max-h-[85vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -281,7 +281,7 @@ export const UnifiedProjectCreator = React.memo(function UnifiedProjectCreator({
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+        <div className="flex-1 p-6 space-y-6 overflow-y-auto">
           {/* Step 1: Project Type Selection */}
           {step === 'type' && (
             <div className="space-y-4">
@@ -562,7 +562,7 @@ export const UnifiedProjectCreator = React.memo(function UnifiedProjectCreator({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end space-x-3 p-6 border-t border-border bg-muted/30">
+        <div className="flex items-center justify-end space-x-3 p-6 border-t border-border bg-muted/30 flex-shrink-0">
           <Button
             variant="outline"
             onClick={handleCancel}
