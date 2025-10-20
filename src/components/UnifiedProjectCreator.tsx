@@ -108,18 +108,18 @@ export const UnifiedProjectCreator = React.memo(function UnifiedProjectCreator({
   const [selectedProjectType, setSelectedProjectType] = useState<string | null>(null);
   const [step, setStep] = useState<'type' | 'details' | 'sections'>('type');
 
-  // Lock body scroll when dialog is open
+  // Prevent background scrolling by adding a class to body
   useEffect(() => {
     if (isOpen) {
-      // Store original overflow value
-      const originalOverflow = document.body.style.overflow;
-      document.body.style.overflow = 'hidden';
-      
-      // Cleanup function
-      return () => {
-        document.body.style.overflow = originalOverflow;
-      };
+      document.body.classList.add('dialog-open');
+    } else {
+      document.body.classList.remove('dialog-open');
     }
+    
+    // Cleanup on unmount
+    return () => {
+      document.body.classList.remove('dialog-open');
+    };
   }, [isOpen]);
 
   const handleProjectTypeSelect = (typeId: string) => {
