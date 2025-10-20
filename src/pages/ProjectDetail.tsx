@@ -1858,6 +1858,85 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     onUpdate(updatedProject);
   };
 
+  // Handler for removing "At a glance" sidebar
+  const handleRemoveAtAGlance = () => {
+    if (!confirm('Are you sure you want to remove the "At a glance" section?\n\nThis action cannot be undone.')) {
+      return;
+    }
+    
+    // Remove the "At a glance" section from the markdown content
+    const lines = caseStudyContent?.split('\n') || [];
+    const newLines: string[] = [];
+    let inAtAGlance = false;
+    
+    for (const line of lines) {
+      const topLevelMatch = line.trim().match(/^# (.+)$/);
+      
+      // Check if this is the start of the "At a glance" section
+      if (topLevelMatch && topLevelMatch[1].trim() === "At a glance") {
+        inAtAGlance = true;
+        continue; // Skip the header line
+      }
+      
+      // If we hit another top-level section, stop skipping
+      if (inAtAGlance && topLevelMatch) {
+        inAtAGlance = false;
+      }
+      
+      // Only keep lines that are not in the "At a glance" section
+      if (!inAtAGlance) {
+        newLines.push(line);
+      }
+    }
+    
+    const updatedContent = newLines.join('\n');
+    const updatedProject = {
+      ...project,
+      case_study_content: updatedContent
+    };
+    onUpdate(updatedProject);
+  };
+
+  // Handler for removing "Impact" sidebar
+  const handleRemoveImpact = () => {
+    if (!confirm('Are you sure you want to remove the "Impact" section?\n\nThis action cannot be undone.')) {
+      return;
+    }
+    
+    // Remove the "Impact" subsection from the markdown content
+    const lines = caseStudyContent?.split('\n') || [];
+    const newLines: string[] = [];
+    let inImpact = false;
+    
+    for (const line of lines) {
+      const subsectionMatch = line.trim().match(/^## (.+)$/);
+      const topLevelMatch = line.trim().match(/^# (.+)$/);
+      
+      // Check if this is the start of the "Impact" subsection
+      if (subsectionMatch && subsectionMatch[1].trim() === "Impact") {
+        inImpact = true;
+        continue; // Skip the header line
+      }
+      
+      // If we hit another subsection or top-level section, stop skipping
+      if (inImpact && (subsectionMatch || topLevelMatch)) {
+        inImpact = false;
+      }
+      
+      // Only keep lines that are not in the "Impact" subsection
+      if (!inImpact) {
+        newLines.push(line);
+      }
+    }
+    
+    const updatedContent = newLines.join('\n');
+    const updatedProject = {
+      ...project,
+      case_study_content: updatedContent
+    };
+    onUpdate(updatedProject);
+  };
+
   // Memoize expensive position calculations to prevent timeout
   const { actualPositions, totalSections } = useMemo(() => {
     console.log('🔄 Calculating actualPositions and totalSections...');
@@ -2228,6 +2307,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                 content={atGlanceContent.content} 
                 isEditMode={isEditMode}
                 onUpdate={handleUpdateAtAGlance}
+                onRemove={handleRemoveAtAGlance}
               />
             ) : undefined}
             impactSidebar={impactContent ? (
@@ -2235,6 +2315,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                 content={impactContent.content}
                 isEditMode={isEditMode}
                 onUpdate={handleUpdateImpact}
+                onRemove={handleRemoveImpact}
               />
             ) : undefined}
             projectImagesPosition={projectImagesPosition}
@@ -2690,6 +2771,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                   content={atGlanceContent.content}
                   isEditMode={isEditMode}
                   onUpdate={handleUpdateAtAGlance}
+                  onRemove={handleRemoveAtAGlance}
                 />
               )}
               {impactContent && (
@@ -2697,6 +2779,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                   content={impactContent.content}
                   isEditMode={isEditMode}
                   onUpdate={handleUpdateImpact}
+                  onRemove={handleRemoveImpact}
                 />
               )}
             </div>

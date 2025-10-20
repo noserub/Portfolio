@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "motion/react";
-import { TrendingUp, Edit2, Save, X } from "lucide-react";
+import { TrendingUp, Edit2, Save, X, Trash2 } from "lucide-react";
 import { MarkdownRenderer } from "../MarkdownRenderer";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -10,9 +10,10 @@ interface ImpactSidebarProps {
   content: string;
   isEditMode?: boolean;
   onUpdate?: (title: string, content: string) => void;
+  onRemove?: () => void;
 }
 
-export function ImpactSidebar({ content, isEditMode, onUpdate }: ImpactSidebarProps) {
+export function ImpactSidebar({ content, isEditMode, onUpdate, onRemove }: ImpactSidebarProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedTitle, setEditedTitle] = useState("Impact");
   const [editedContent, setEditedContent] = useState(content);
@@ -99,14 +100,27 @@ export function ImpactSidebar({ content, isEditMode, onUpdate }: ImpactSidebarPr
           )}
           
           {isEditMode && !isEditing && (
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={handleEdit}
-              className="rounded-full"
-            >
-              <Edit2 className="w-3 h-3" />
-            </Button>
+            <div className="flex gap-1">
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={handleEdit}
+                className="rounded-full"
+              >
+                <Edit2 className="w-3 h-3" />
+              </Button>
+              {onRemove && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={onRemove}
+                  className="rounded-full text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                  title="Delete this section"
+                >
+                  <Trash2 className="w-3 h-3" />
+                </Button>
+              )}
+            </div>
           )}
         </div>
 

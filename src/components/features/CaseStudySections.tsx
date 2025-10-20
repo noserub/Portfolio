@@ -2205,6 +2205,15 @@ export function CaseStudySections({
                     <Edit2 className="w-4 h-4 mr-2" />
                     Edit
                   </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => removeCard(section.title)}
+                    className="rounded-full text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                    title="Delete this section"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
                 </div>
               )}
             </div>
