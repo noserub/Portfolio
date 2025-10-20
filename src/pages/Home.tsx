@@ -11,7 +11,7 @@ import { Input } from "../components/ui/input";
 import { Textarea } from "../components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { Plus, ChevronLeft, ChevronRight, Edit2, Save, GripVertical, Linkedin, FileText, Trash2, Eye, Wand2 } from "lucide-react";
-import { createCaseStudyFromTemplate } from "../utils/caseStudyTemplate";
+// import { createCaseStudyFromTemplate } from "../utils/caseStudyTemplate"; // REMOVED - using unified project creator
 import { loadMigratedProjects } from "../utils/migrateVideoFields";
 import { UnifiedProjectCreator } from "../components/UnifiedProjectCreator";
 import {
@@ -2674,93 +2674,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     input.click();
   };
 
-  const handleAddFromTemplate = async () => {
-    console.log('🖱️ New from Template button clicked!');
-    try {
-    const newCaseStudy = createCaseStudyFromTemplate();
-      
-      // Get current user for the project
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        console.error('❌ No authenticated user for creating project');
-        return;
-      }
-
-      // Convert to Supabase format and create in database
-      const projectData = {
-        user_id: user.id,
-        title: newCaseStudy.title,
-        description: newCaseStudy.description,
-        url: newCaseStudy.url,
-        position_x: newCaseStudy.position?.x || newCaseStudy.position_x || 50,
-        position_y: newCaseStudy.position?.y || newCaseStudy.position_y || 50,
-        scale: newCaseStudy.scale || 1,
-        published: newCaseStudy.published || false,
-        requires_password: newCaseStudy.requires_password || false,
-        password: newCaseStudy.password,
-        case_study_content: newCaseStudy.caseStudyContent,
-        case_study_images: newCaseStudy.case_study_images || [],
-        flow_diagram_images: newCaseStudy.flow_diagram_images || [],
-        video_items: newCaseStudy.video_items || [],
-        gallery_aspect_ratio: newCaseStudy.gallery_aspect_ratio || '3x4',
-        flow_diagram_aspect_ratio: newCaseStudy.flow_diagram_aspect_ratio || '3x4',
-        video_aspect_ratio: newCaseStudy.video_aspect_ratio || '3x4',
-        gallery_columns: newCaseStudy.gallery_columns || 1,
-        flow_diagram_columns: newCaseStudy.flow_diagram_columns || 1,
-        video_columns: newCaseStudy.video_columns || 1,
-        project_images_position: newCaseStudy.project_images_position,
-        videos_position: newCaseStudy.videos_position,
-        flow_diagrams_position: newCaseStudy.flow_diagrams_position,
-        solution_cards_position: newCaseStudy.solution_cards_position,
-        section_positions: newCaseStudy.section_positions || {},
-        sort_order: newCaseStudy.sort_order || 0
-      };
-
-      console.log('🔄 Creating new project from template:', projectData);
-      const createdProject = await createProject(projectData);
-      
-      if (createdProject) {
-        console.log('✅ New case study created in Supabase:', createdProject.id);
-        // Scroll to show the new case study was added
-        setTimeout(() => {
-          if (caseStudyScrollRef.current) {
-            caseStudyScrollRef.current.scrollTo({
-              left: caseStudyScrollRef.current.scrollWidth,
-              behavior: 'smooth'
-            });
-          }
-        }, 100);
-      } else {
-        console.log('⚠️ Supabase creation failed (likely not authenticated), saving to localStorage instead');
-        
-        // Fallback to localStorage
-        const savedProjects = JSON.parse(localStorage.getItem('caseStudies') || '[]');
-        const newProject = {
-          ...newCaseStudy,
-          id: `cs-${Date.now()}`, // Generate unique ID
-          created_at: new Date().toISOString()
-        };
-        savedProjects.push(newProject);
-               localStorage.setItem('caseStudies', JSON.stringify(savedProjects));
-               
-               console.log('✅ New case study saved to localStorage:', newProject.id);
-               // Trigger re-render by updating localStorage version
-               setLocalStorageVersion(prev => prev + 1);
-        
-    // Scroll to show the new case study was added
-    setTimeout(() => {
-      if (caseStudyScrollRef.current) {
-        caseStudyScrollRef.current.scrollTo({
-          left: caseStudyScrollRef.current.scrollWidth,
-          behavior: 'smooth'
-        });
-      }
-    }, 100);
-      }
-    } catch (error) {
-      console.error('❌ Error creating project from template:', error);
-    }
-  };
+  // REMOVED: handleAddFromTemplate - using unified project creator instead
 
   const handleCreateUnifiedProject = useCallback(async (projectData: any) => {
     console.log('🖱️ Creating blank project:', projectData);
