@@ -2822,6 +2822,12 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
       galleryColumns: project.galleryColumns || project.gallery_columns || 3,
       flowDiagramColumns: project.flowDiagramColumns || project.flow_diagram_columns || 2,
       videoColumns: project.videoColumns || project.video_columns || 1,
+      // Map section positions from snake_case → camelCase
+      projectImagesPosition: project.projectImagesPosition ?? project.project_images_position,
+      videosPosition: project.videosPosition ?? project.videos_position,
+      flowDiagramsPosition: project.flowDiagramsPosition ?? project.flow_diagrams_position,
+      solutionCardsPosition: project.solutionCardsPosition ?? project.solution_cards_position,
+      sectionPositions: project.sectionPositions ?? project.section_positions ?? {},
       // Ensure position is an object
       position: project.position || { x: project.position_x || 50, y: project.position_y || 50 }
     };
