@@ -254,7 +254,7 @@ export const UnifiedProjectCreator = React.memo(function UnifiedProjectCreator({
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
-        className="bg-background rounded-xl border border-border shadow-lg max-w-4xl w-full max-h-[75vh] flex flex-col my-4 relative"
+        className="bg-background rounded-xl border border-border shadow-lg max-w-4xl w-full max-h-[85vh] flex flex-col my-4 relative"
         style={{ zIndex: 999999 }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -284,7 +284,7 @@ export const UnifiedProjectCreator = React.memo(function UnifiedProjectCreator({
         </div>
 
         {/* Content */}
-        <div className="flex-1 p-6 space-y-6 overflow-y-auto">
+        <div className="flex-1 p-6 space-y-6 overflow-y-auto min-h-0">
           {/* Step 1: Project Type Selection */}
           {step === 'type' && (
             <div className="space-y-4">
@@ -415,7 +415,7 @@ export const UnifiedProjectCreator = React.memo(function UnifiedProjectCreator({
                   </p>
                 </div>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-2 max-h-96 overflow-y-auto">
                   {caseStudy.sections
                     .sort((a, b) => a.position - b.position)
                     .map((section, index) => (
