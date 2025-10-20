@@ -194,6 +194,9 @@ export function UnifiedProjectCreator({
   };
 
   const handleCreateProject = async () => {
+    console.log('🎯 UnifiedProjectCreator: handleCreateProject called');
+    console.log('🎯 UnifiedProjectCreator: caseStudy:', caseStudy);
+    
     if (!caseStudy.title.trim()) {
       alert('Please enter a project title');
       return;
@@ -201,8 +204,13 @@ export function UnifiedProjectCreator({
 
     setIsCreating(true);
     try {
+      console.log('🎯 UnifiedProjectCreator: Converting to legacy format...');
       const projectData = convertToLegacyFormat(caseStudy);
+      console.log('🎯 UnifiedProjectCreator: Converted project data:', projectData);
+      
+      console.log('🎯 UnifiedProjectCreator: Calling onCreateProject...');
       await onCreateProject(projectData);
+      
       onClose();
       // Reset form
       setCaseStudy(createBlankCaseStudy());
