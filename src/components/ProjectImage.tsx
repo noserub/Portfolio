@@ -315,18 +315,20 @@ export function ProjectImage({
         )}
 
         {/* Persistent Project Title - Always visible */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 z-0" style={{ 
-          background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.5) 50%, transparent 100%)',
-          borderRadius: '0 0 1rem 1rem'
-        }}>
-          <h3 className="text-white text-lg font-semibold mb-1">
-            {project.title}
-          </h3>
-          {project.description && (
-            <p className="text-white/85 text-sm line-clamp-2">
-              {project.description}
-            </p>
-          )}
+        <div className="absolute bottom-0 left-0 right-0 p-4 z-10">
+          <div className="relative">
+            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent rounded-b-2xl"></div>
+            <div className="relative z-10">
+              <h3 className="text-white text-lg font-semibold mb-1">
+                {project.title}
+              </h3>
+              {project.description && (
+                <p className="text-white/85 text-sm line-clamp-2">
+                  {project.description}
+                </p>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Enhanced Hover State */}
