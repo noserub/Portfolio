@@ -298,7 +298,7 @@ export const UnifiedProjectCreator = React.memo(function UnifiedProjectCreator({
         </div>
 
         {/* Content */}
-        <div className="flex-1 px-6 space-y-6 overflow-y-auto min-h-0 pt-20 pb-20">
+        <div className="flex-1 px-6 space-y-6 overflow-y-auto min-h-0 pt-20 pb-20" style={{ height: 'calc(100% - 160px)' }}>
           {/* Step 1: Project Type Selection */}
           {step === 'type' && (
             <div className="space-y-4">
