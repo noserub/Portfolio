@@ -156,12 +156,6 @@ function DraggableProjectItem({
             )}
           </div>
           
-          {/* Unpublished indicator */}
-          {!project.published && (
-            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 z-30 bg-yellow-500 text-white text-xs px-3 py-1 rounded-full shadow-lg font-semibold">
-              📝 Draft
-            </div>
-          )}
         </>
       )}
       <ProjectImage
