@@ -262,7 +262,7 @@ export function ProjectImage({
             {!isEditMode && isHovered && (
               <>
                 <motion.div
-                  className="absolute top-4 right-4 w-3 h-3 bg-yellow-300 rounded-full z-20"
+                  className="absolute top-4 right-4 w-3 h-3 bg-yellow-300 rounded-full z-30"
                   animate={{
                     scale: [0, 1.5, 0],
                     opacity: [0, 1, 0],
@@ -274,7 +274,7 @@ export function ProjectImage({
                   }}
                 />
                 <motion.div
-                  className="absolute top-6 right-8 w-2 h-2 bg-pink-300 rounded-full z-20"
+                  className="absolute top-6 right-8 w-2 h-2 bg-pink-300 rounded-full z-30"
                   animate={{
                     scale: [0, 1.3, 0],
                     opacity: [0, 1, 0],
@@ -287,7 +287,7 @@ export function ProjectImage({
                   }}
                 />
                 <motion.div
-                  className="absolute top-8 right-6 w-2 h-2 bg-blue-300 rounded-full z-20"
+                  className="absolute top-8 right-6 w-2 h-2 bg-blue-300 rounded-full z-30"
                   animate={{
                     scale: [0, 1.2, 0],
                     opacity: [0, 1, 0],
@@ -315,20 +315,15 @@ export function ProjectImage({
         )}
 
         {/* Persistent Project Title - Always visible */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 z-20">
-          <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent rounded-b-2xl"></div>
-            <div className="relative z-10">
-              <h3 className="text-white text-lg font-semibold mb-1">
-                {project.title}
-              </h3>
-              {project.description && (
-                <p className="text-white/85 text-sm line-clamp-2">
-                  {project.description}
-                </p>
-              )}
-            </div>
-          </div>
+        <div className="absolute bottom-0 left-0 right-0 p-4 z-30">
+          <h3 className="text-white text-lg font-semibold mb-1 drop-shadow-lg">
+            {project.title}
+          </h3>
+          {project.description && (
+            <p className="text-white/90 text-sm line-clamp-2 drop-shadow-lg">
+              {project.description}
+            </p>
+          )}
         </div>
 
         {/* Enhanced Hover State */}
