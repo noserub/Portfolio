@@ -2102,6 +2102,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
               <DropdownMenuLabel>Content</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem disabled={hasMarkdownTitle('Overview')} onClick={handleAddOverviewSection}>Overview</DropdownMenuItem>
+              <DropdownMenuItem disabled={hasMarkdownTitle('The challenge')} onClick={() => addMarkdownSection('The challenge', 'Describe the problem or challenge you were solving.')}>The challenge</DropdownMenuItem>
               <DropdownMenuItem disabled={hasMarkdownTitle('My role & impact')} onClick={() => addMarkdownSection('My role & impact', 'Describe your role and impact.')}>My role & impact</DropdownMenuItem>
               <DropdownMenuItem disabled={hasMarkdownTitle('Research insights')} onClick={() => addMarkdownSection('Research insights', 'Add your key research insights here.')}>Research insights</DropdownMenuItem>
               <DropdownMenuItem disabled={hasMarkdownTitle('Competitive analysis')} onClick={() => addMarkdownSection('Competitive analysis', 'Add your competitive analysis here.')}>Competitive analysis</DropdownMenuItem>
