@@ -246,7 +246,7 @@ export const UnifiedProjectCreator = React.memo(function UnifiedProjectCreator({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/50 flex items-start justify-center p-4 overflow-y-auto h-screen"
+      className="fixed inset-0 bg-black/50 flex items-center justify-center p-4"
       style={{ zIndex: 999999 }}
       onClick={onClose}
     >
@@ -254,12 +254,12 @@ export const UnifiedProjectCreator = React.memo(function UnifiedProjectCreator({
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
-        className="bg-background rounded-xl border border-border shadow-lg max-w-4xl w-full h-[90vh] flex flex-col my-8 relative overflow-hidden"
+        className="bg-background rounded-xl border border-border shadow-lg max-w-4xl w-full h-[90vh] flex flex-col my-8 relative"
         style={{ zIndex: 999999 }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-border bg-background flex-shrink-0 sticky top-0 z-10">
+        <div className="flex items-center justify-between p-6 border-b border-border bg-background absolute top-0 left-0 right-0 z-10">
           <div className="flex items-center space-x-3">
             <div className="p-2 bg-primary/10 rounded-lg">
               <Plus className="w-5 h-5 text-primary" />
@@ -284,7 +284,7 @@ export const UnifiedProjectCreator = React.memo(function UnifiedProjectCreator({
         </div>
 
         {/* Content */}
-        <div className="flex-1 p-6 space-y-6 overflow-y-auto min-h-0">
+        <div className="flex-1 p-6 space-y-6 overflow-y-auto min-h-0 pt-20 pb-20">
           {/* Step 1: Project Type Selection */}
           {step === 'type' && (
             <div className="space-y-4">
@@ -564,7 +564,7 @@ export const UnifiedProjectCreator = React.memo(function UnifiedProjectCreator({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end space-x-3 p-6 border-t border-border bg-background flex-shrink-0 sticky bottom-0 z-10">
+        <div className="flex items-center justify-end space-x-3 p-6 border-t border-border bg-background absolute bottom-0 left-0 right-0 z-10">
           <Button
             variant="outline"
             onClick={handleCancel}
