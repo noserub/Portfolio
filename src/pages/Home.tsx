@@ -2720,6 +2720,19 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
       const createdProject = await createProject(supabaseProjectData);
       if (createdProject) {
         console.log('✅ Unified project created in Supabase:', createdProject.id);
+
+        // Post-create cleanup: ensure unrelated positions are null (in case DB defaulted them)
+        const stored: any = createdProject;
+        const cleanup: Record<string, any> = {};
+        if (projectData.projectImagesPosition === undefined && stored.project_images_position != null) cleanup.project_images_position = null;
+        if (projectData.videosPosition === undefined && stored.videos_position != null) cleanup.videos_position = null;
+        if (projectData.flowDiagramsPosition === undefined && stored.flow_diagrams_position != null) cleanup.flow_diagrams_position = null;
+        if (projectData.solutionCardsPosition === undefined && stored.solution_cards_position != null) cleanup.solution_cards_position = null;
+        if (Object.keys(cleanup).length > 0) {
+          console.log('🧹 Cleaning unintended section positions on new project:', cleanup);
+          await updateProject(createdProject.id, cleanup);
+        }
+
         setShowUnifiedProjectCreator(false);
         // Scroll to show the new case study was added
         setTimeout(() => {
