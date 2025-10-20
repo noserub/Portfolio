@@ -2821,7 +2821,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     } catch (error) {
       console.error('❌ Error creating blank project:', error);
     }
-  }, [createProject, caseStudyScrollRef]);
+  }, [createProject]);
 
   const handleDeleteProject = (projectId: string, projectTitle: string, type: 'caseStudies' | 'design') => {
     setDeleteConfirmation({ projectId, projectTitle, type });

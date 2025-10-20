@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion } from 'motion/react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -91,14 +91,14 @@ const PROJECT_TYPES = [
   }
 ];
 
-export function UnifiedProjectCreator({ 
+export const UnifiedProjectCreator = React.memo(function UnifiedProjectCreator({ 
   isOpen, 
   onClose, 
   onCreateProject,
   isEditMode 
 }: UnifiedProjectCreatorProps) {
   console.log('🎯 UnifiedProjectCreator: Component rendered', { isOpen, isEditMode });
-  const [caseStudy, setCaseStudy] = useState<FlexibleCaseStudyTemplate>(createBlankCaseStudy());
+  const [caseStudy, setCaseStudy] = useState<FlexibleCaseStudyTemplate>(() => createBlankCaseStudy());
   const [isCreating, setIsCreating] = useState(false);
   const [showAddSection, setShowAddSection] = useState(false);
   const [editingSection, setEditingSection] = useState<string | null>(null);
@@ -591,4 +591,4 @@ export function UnifiedProjectCreator({
       </motion.div>
     </motion.div>
   );
-}
+});
