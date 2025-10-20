@@ -2778,15 +2778,13 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         }
 
         setShowUnifiedProjectCreator(false);
-    // Scroll to show the new case study was added
-    setTimeout(() => {
-      if (caseStudyScrollRef.current) {
-        caseStudyScrollRef.current.scrollTo({
-          left: caseStudyScrollRef.current.scrollWidth,
-          behavior: 'smooth'
-        });
-      }
-    }, 100);
+        
+        // Navigate to the new project detail page
+        const normalizedProject = normalizeProjectData(createdProject);
+        const updateCallback = (updatedProject: ProjectData) => {
+          handleUpdateProject(updatedProject, 'caseStudies');
+        };
+        onProjectClick(normalizedProject, updateCallback);
       } else {
         console.error('❌ Failed to create blank project in Supabase');
       }
