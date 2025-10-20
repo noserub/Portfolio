@@ -383,9 +383,8 @@ export default function App() {
                 updated = true;
                 return {
                   ...project,
-                  projectImagesPosition: 2,
-                  solutionCardsPosition: 999,
-                  flowDiagramsPosition: 1000
+                  projectImagesPosition: 2
+                  // Removed hardcoded solutionCardsPosition and flowDiagramsPosition
                 };
               }
               return project;

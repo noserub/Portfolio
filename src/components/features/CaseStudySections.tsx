@@ -173,7 +173,7 @@ export function CaseStudySections({
   actualPositions,
   projectImagesPosition = 2, // Default: after Overview (position 2)
   videosPosition = 998, // Default: before Flow Diagrams
-  solutionCardsPosition = 999, // Default: at END (after all markdown sections)
+  solutionCardsPosition, // No default - only show if explicitly set
   flowDiagramsPosition = 1000,  // Default: at END (after Solution Cards)
   onMoveProjectImages,
   onMoveVideos,
