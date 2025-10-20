@@ -242,7 +242,7 @@ export function ProjectImage({
           />
           
           <motion.div
-            className="w-full h-full relative"
+            className="w-full h-full relative rounded-2xl overflow-hidden"
             style={{
               backgroundImage: `url(${getImageUrl()})`,
               backgroundSize: `${editedProject.scale * 100}%`,
@@ -315,7 +315,7 @@ export function ProjectImage({
         )}
 
         {/* Persistent Project Title - Always visible */}
-        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-4">
+        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-4 rounded-b-2xl">
           <h3 className="text-white text-lg font-semibold mb-1">
             {project.title}
           </h3>
