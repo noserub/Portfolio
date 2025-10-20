@@ -447,6 +447,150 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     return positions;
   });
   
+  // Helper: compute next available position index for gallery-type sections
+  const getNextPosition = useCallback(() => {
+    const candidates: number[] = [];
+    if (projectImagesPosition !== undefined) candidates.push(projectImagesPosition);
+    if (videosPosition !== undefined) candidates.push(videosPosition);
+    if (flowDiagramsPosition !== undefined) candidates.push(flowDiagramsPosition);
+    if (solutionCardsPosition !== undefined) candidates.push(solutionCardsPosition);
+    const markdownCount = (caseStudyContent?.split('\n').filter(l => /^#\s+/.test((l||'').trim())).length) || 1;
+    const maxPos = candidates.length > 0 ? Math.max(...candidates, markdownCount) : markdownCount;
+    return (isFinite(maxPos) ? maxPos : 0) + 1;
+  }, [projectImagesPosition, videosPosition, flowDiagramsPosition, solutionCardsPosition, caseStudyContent]);
+
+  // Add sections after project creation (for Custom/blank or any project)
+  const handleAddOverviewSection = useCallback(() => {
+    const base = caseStudyContent || '';
+    const prefix = base.trim().length > 0 ? '\n\n---\n\n' : '';
+    const newContent = `${base}${prefix}# Overview\n\nAdd an overview of the project.`;
+    const updatedProject: ProjectData = {
+      ...project,
+      title: editedTitle,
+      description: editedDescription,
+      caseStudyContent: newContent,
+      caseStudyImages: caseStudyImagesRef.current,
+      flowDiagramImages: flowDiagramImagesRef.current,
+      videoItems: videoItemsRef.current,
+      galleryAspectRatio,
+      flowDiagramAspectRatio,
+      videoAspectRatio,
+      galleryColumns,
+      flowDiagramColumns,
+      videoColumns,
+      projectImagesPosition,
+      videosPosition,
+      flowDiagramsPosition,
+      solutionCardsPosition,
+      sectionPositions,
+    };
+    onUpdate(updatedProject);
+  }, [caseStudyContent, project, editedTitle, editedDescription, galleryAspectRatio, flowDiagramAspectRatio, videoAspectRatio, galleryColumns, flowDiagramColumns, videoColumns, projectImagesPosition, videosPosition, flowDiagramsPosition, solutionCardsPosition, sectionPositions, onUpdate]);
+
+  const handleAddVideosSection = useCallback(() => {
+    const next = getNextPosition();
+    setVideosPosition(next);
+    const updatedProject: ProjectData = {
+      ...project,
+      title: editedTitle,
+      description: editedDescription,
+      caseStudyContent,
+      caseStudyImages: caseStudyImagesRef.current,
+      flowDiagramImages: flowDiagramImagesRef.current,
+      videoItems: videoItemsRef.current,
+      galleryAspectRatio,
+      flowDiagramAspectRatio,
+      videoAspectRatio,
+      galleryColumns,
+      flowDiagramColumns,
+      videoColumns,
+      projectImagesPosition,
+      videosPosition: next,
+      flowDiagramsPosition,
+      solutionCardsPosition,
+      sectionPositions,
+    };
+    onUpdate(updatedProject);
+  }, [getNextPosition, project, editedTitle, editedDescription, caseStudyContent, galleryAspectRatio, flowDiagramAspectRatio, videoAspectRatio, galleryColumns, flowDiagramColumns, videoColumns, projectImagesPosition, flowDiagramsPosition, solutionCardsPosition, sectionPositions, onUpdate]);
+
+  const handleAddImagesSection = useCallback(() => {
+    const next = getNextPosition();
+    setProjectImagesPosition(next);
+    const updatedProject: ProjectData = {
+      ...project,
+      title: editedTitle,
+      description: editedDescription,
+      caseStudyContent,
+      caseStudyImages: caseStudyImagesRef.current,
+      flowDiagramImages: flowDiagramImagesRef.current,
+      videoItems: videoItemsRef.current,
+      galleryAspectRatio,
+      flowDiagramAspectRatio,
+      videoAspectRatio,
+      galleryColumns,
+      flowDiagramColumns,
+      videoColumns,
+      projectImagesPosition: next,
+      videosPosition,
+      flowDiagramsPosition,
+      solutionCardsPosition,
+      sectionPositions,
+    };
+    onUpdate(updatedProject);
+  }, [getNextPosition, project, editedTitle, editedDescription, caseStudyContent, galleryAspectRatio, flowDiagramAspectRatio, videoAspectRatio, galleryColumns, flowDiagramColumns, videoColumns, videosPosition, flowDiagramsPosition, solutionCardsPosition, sectionPositions, onUpdate]);
+
+  const handleAddFlowsSection = useCallback(() => {
+    const next = getNextPosition();
+    setFlowDiagramsPosition(next);
+    const updatedProject: ProjectData = {
+      ...project,
+      title: editedTitle,
+      description: editedDescription,
+      caseStudyContent,
+      caseStudyImages: caseStudyImagesRef.current,
+      flowDiagramImages: flowDiagramImagesRef.current,
+      videoItems: videoItemsRef.current,
+      galleryAspectRatio,
+      flowDiagramAspectRatio,
+      videoAspectRatio,
+      galleryColumns,
+      flowDiagramColumns,
+      videoColumns,
+      projectImagesPosition,
+      videosPosition,
+      flowDiagramsPosition: next,
+      solutionCardsPosition,
+      sectionPositions,
+    };
+    onUpdate(updatedProject);
+  }, [getNextPosition, project, editedTitle, editedDescription, caseStudyContent, galleryAspectRatio, flowDiagramAspectRatio, videoAspectRatio, galleryColumns, flowDiagramColumns, videoColumns, projectImagesPosition, videosPosition, solutionCardsPosition, sectionPositions, onUpdate]);
+
+  const handleAddSolutionCardsSection = useCallback(() => {
+    const next = getNextPosition();
+    setSolutionCardsPosition(next);
+    const updatedProject: ProjectData = {
+      ...project,
+      title: editedTitle,
+      description: editedDescription,
+      caseStudyContent,
+      caseStudyImages: caseStudyImagesRef.current,
+      flowDiagramImages: flowDiagramImagesRef.current,
+      videoItems: videoItemsRef.current,
+      galleryAspectRatio,
+      flowDiagramAspectRatio,
+      videoAspectRatio,
+      galleryColumns,
+      flowDiagramColumns,
+      videoColumns,
+      projectImagesPosition,
+      videosPosition,
+      flowDiagramsPosition,
+      solutionCardsPosition: next,
+      sectionPositions,
+    };
+    onUpdate(updatedProject);
+  }, [getNextPosition, project, editedTitle, editedDescription, caseStudyContent, galleryAspectRatio, flowDiagramAspectRatio, videoAspectRatio, galleryColumns, flowDiagramColumns, videoColumns, projectImagesPosition, videosPosition, flowDiagramsPosition, sectionPositions, onUpdate]);
+
   // Use refs to track latest values to avoid stale state in callbacks
   const caseStudyImagesRef = useRef(caseStudyImages);
   const flowDiagramImagesRef = useRef(flowDiagramImages);
@@ -1725,6 +1869,15 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
 
   return (
     <PageLayout title={project.description || project.title} onBack={handleBack} overline={project.title}>
+      {isEditMode && (
+        <div className="mb-4 flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" onClick={handleAddOverviewSection} className="rounded-full">+ Overview</Button>
+          <Button variant="outline" size="sm" onClick={handleAddVideosSection} className="rounded-full">+ Videos</Button>
+          <Button variant="outline" size="sm" onClick={handleAddImagesSection} className="rounded-full">+ Images</Button>
+          <Button variant="outline" size="sm" onClick={handleAddFlowsSection} className="rounded-full">+ Flows</Button>
+          <Button variant="outline" size="sm" onClick={handleAddSolutionCardsSection} className="rounded-full">+ Solution Cards</Button>
+        </div>
+      )}
       <div className={!isEditing && atGlanceContent ? "flex flex-col lg:flex-row gap-16" : "space-y-16"}>
         {/* Main Content */}
         <div className={!isEditing && atGlanceContent ? "flex-1 space-y-16 min-w-0 w-full lg:w-auto" : "space-y-16"}>
