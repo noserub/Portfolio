@@ -2708,10 +2708,11 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         gallery_columns: projectData.galleryColumns || 1,
         flow_diagram_columns: projectData.flowDiagramColumns || 1,
         video_columns: projectData.videoColumns || 1,
-        project_images_position: projectData.projectImagesPosition,
-        videos_position: projectData.videosPosition,
-        flow_diagrams_position: projectData.flowDiagramsPosition,
-        solution_cards_position: projectData.solutionCardsPosition,
+        // Explicitly send null when a section is not part of the template
+        project_images_position: (projectData.projectImagesPosition ?? null),
+        videos_position: (projectData.videosPosition ?? null),
+        flow_diagrams_position: (projectData.flowDiagramsPosition ?? null),
+        solution_cards_position: (projectData.solutionCardsPosition ?? null),
         section_positions: projectData.sectionPositions || {},
         sort_order: 0
       };
