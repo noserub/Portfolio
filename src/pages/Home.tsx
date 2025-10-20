@@ -2734,15 +2734,15 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         }
 
         setShowUnifiedProjectCreator(false);
-        // Scroll to show the new case study was added
-        setTimeout(() => {
-          if (caseStudyScrollRef.current) {
-            caseStudyScrollRef.current.scrollTo({
-              left: caseStudyScrollRef.current.scrollWidth,
-              behavior: 'smooth'
-            });
-          }
-        }, 100);
+    // Scroll to show the new case study was added
+    setTimeout(() => {
+      if (caseStudyScrollRef.current) {
+        caseStudyScrollRef.current.scrollTo({
+          left: caseStudyScrollRef.current.scrollWidth,
+          behavior: 'smooth'
+        });
+      }
+    }, 100);
       } else {
         console.error('❌ Failed to create blank project in Supabase');
       }
@@ -2809,6 +2809,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
 
   // Function to normalize project data structure for ProjectDetail
   const normalizeProjectData = (project: any): ProjectData => {
+    const nn = (v: any) => (v === null || v === undefined ? undefined : v);
     return {
       ...project,
       // Ensure camelCase fields are available
@@ -2822,11 +2823,11 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
       galleryColumns: project.galleryColumns || project.gallery_columns || 3,
       flowDiagramColumns: project.flowDiagramColumns || project.flow_diagram_columns || 2,
       videoColumns: project.videoColumns || project.video_columns || 1,
-      // Map section positions from snake_case → camelCase
-      projectImagesPosition: project.projectImagesPosition ?? project.project_images_position,
-      videosPosition: project.videosPosition ?? project.videos_position,
-      flowDiagramsPosition: project.flowDiagramsPosition ?? project.flow_diagrams_position,
-      solutionCardsPosition: project.solutionCardsPosition ?? project.solution_cards_position,
+      // Map section positions from snake_case → camelCase, coercing null → undefined
+      projectImagesPosition: nn(project.projectImagesPosition ?? project.project_images_position),
+      videosPosition: nn(project.videosPosition ?? project.videos_position),
+      flowDiagramsPosition: nn(project.flowDiagramsPosition ?? project.flow_diagrams_position),
+      solutionCardsPosition: nn(project.solutionCardsPosition ?? project.solution_cards_position),
       sectionPositions: project.sectionPositions ?? project.section_positions ?? {},
       // Ensure position is an object
       position: project.position || { x: project.position_x || 50, y: project.position_y || 50 }
