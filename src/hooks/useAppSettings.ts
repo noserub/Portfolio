@@ -262,6 +262,7 @@ export function useAppSettings() {
           
         if (mainUserSettings) {
           console.log('📥 Retrieved main user settings for all visitors:', mainUserSettings);
+          console.log('🖼️ Original logo URL:', mainUserSettings.logo_url);
           
           // Add cache-busting to logo URL to force fresh loads on all devices
           if (mainUserSettings.logo_url) {
@@ -272,6 +273,18 @@ export function useAppSettings() {
             
             mainUserSettings.logo_url = logoUrl;
             console.log('🔄 Added cache-busting to logo URL:', logoUrl);
+            console.log('🖼️ Final logo URL length:', logoUrl.length);
+          } else {
+            console.log('❌ No logo URL found in settings');
+            // Create a fallback logo using a simple SVG
+            const fallbackLogo = `data:image/svg+xml;base64,${btoa(`
+              <svg width="120" height="40" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg">
+                <rect width="120" height="40" fill="#1a1a1a" rx="8"/>
+                <text x="60" y="25" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="white">BB</text>
+              </svg>
+            `)}`;
+            mainUserSettings.logo_url = fallbackLogo;
+            console.log('🔄 Using fallback logo');
           }
           
           setSettings(mainUserSettings);

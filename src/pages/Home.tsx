@@ -3045,9 +3045,35 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
             alert('Cleared ALL localStorage. Reloading to use hardcoded defaults...');
             window.location.reload();
           }}
-          className="text-xs bg-green-500 text-white px-2 py-1 rounded mt-1"
+          className="text-xs bg-green-500 text-white px-2 py-1 rounded mt-1 mr-1"
         >
           Clear All & Reload
+        </button>
+        <button 
+          onClick={async () => {
+            // Check logo status
+            const { data: { user } } = await supabase.auth.getUser();
+            const { data: mainProfile } = await supabase
+              .from('profiles')
+              .select('id')
+              .eq('email', 'brian.bureson@gmail.com')
+              .single();
+            
+            if (mainProfile) {
+              const { data: settings } = await supabase
+                .from('app_settings')
+                .select('*')
+                .eq('user_id', mainProfile.id)
+                .single();
+              
+              alert(`Logo Debug:\nUser: ${user?.email || 'NOT SIGNED IN'}\nMain Profile: ${mainProfile.id}\nSettings: ${settings ? 'FOUND' : 'NOT FOUND'}\nLogo URL: ${settings?.logo_url ? settings.logo_url.substring(0, 50) + '...' : 'NONE'}`);
+            } else {
+              alert('No main profile found');
+            }
+          }}
+          className="text-xs bg-purple-500 text-white px-2 py-1 rounded mt-1"
+        >
+          Check Logo
         </button>
       </div>
       {/* Hero Section */}
