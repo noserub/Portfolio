@@ -1777,9 +1777,9 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       const lines = caseStudyContent?.split('\n') || [];
       const allSections: Array<{ title: string; startLine: number; endLine: number }> = [];
       
-      // Find all section boundaries
+      // Find all section boundaries - use same regex as CaseStudySections
       for (let i = 0; i < lines.length; i++) {
-        const headerMatch = lines[i].match(/^# (.+)$/);
+        const headerMatch = lines[i].match(/^#{1,2} (.+)$/);
         if (headerMatch) {
           const title = headerMatch[1].trim();
           allSections.push({ title, startLine: i, endLine: -1 });
@@ -1794,11 +1794,18 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
         allSections[allSections.length - 1].endLine = lines.length - 1;
       }
       
+      console.log('📋 All sections found in markdown:', allSections.map(s => s.title));
+      
       const currentSection = allSections.find(s => s.title === sectionTitle);
       const targetSection = allSections.find(s => s.title === target.title);
       
+      console.log(`🔍 Looking for sections: "${sectionTitle}" and "${target.title}"`);
+      console.log(`📍 Current section found:`, currentSection ? 'Yes' : 'No');
+      console.log(`📍 Target section found:`, targetSection ? 'Yes' : 'No');
+      
       if (!currentSection || !targetSection) {
         console.error('❌ Sections not found in markdown');
+        console.error('Available sections:', allSections.map(s => s.title));
         return;
       }
       
