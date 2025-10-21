@@ -3022,8 +3022,18 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
   return (
     <div className="min-h-screen relative">
       {/* SIMPLE TEST - This should definitely be visible */}
-      <div className="fixed top-4 left-4 bg-green-500 text-white px-4 py-2 rounded-lg text-lg font-bold z-50 shadow-lg">
+      <div className="fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg text-lg font-bold z-50 shadow-lg">
         🚀 TEST BUTTON VISIBLE
+        <button 
+          onClick={() => {
+            localStorage.removeItem('portfolio_logo_url');
+            alert('Test logo cleared! Reloading to get your real logo...');
+            window.location.reload();
+          }}
+          className="block w-full mt-2 bg-red-600 text-white px-2 py-1 rounded text-sm font-bold"
+        >
+          CLEAR TEST LOGO
+        </button>
       </div>
       
       {/* DEPLOYMENT TEST - Remove after confirming deployment */}
