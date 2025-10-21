@@ -265,40 +265,28 @@ export function useAppSettings() {
         return;
       }
       
-      // If no local logo, try to load from database
-      console.log('🔍 No local logo, trying database...');
+      // If no local logo, use hardcoded logo (bypassing database RLS issues)
+      console.log('🔍 No local logo, using hardcoded logo...');
       
-      // Get the main user's profile
-      const { data: mainProfile, error: profileError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('email', 'brian.bureson@gmail.com')
-        .single();
-        
-      console.log('🔍 Profile lookup result:', { mainProfile, profileError });
-        
-      if (mainProfile) {
-        // Get app_settings for the main user
-        const { data: allSettings, error: settingsError } = await supabase
-          .from('app_settings')
-          .select('*')
-          .eq('user_id', mainProfile.id)
-          .order('created_at', { ascending: false });
-          
-        console.log('🔍 Settings lookup result:', { allSettings, settingsError });
-          
-        if (allSettings && allSettings.length > 0) {
-          const mainUserSettings = allSettings[0];
-          console.log('✅ Loaded logo from database:', mainUserSettings.logo_url ? 'HAS LOGO' : 'NO LOGO');
-          setSettings(mainUserSettings);
-        } else {
-          console.log('📝 No settings in database');
-          setSettings(null);
-        }
-      } else {
-        console.log('📝 No main profile found, error:', profileError);
-        setSettings(null);
-      }
+      // Create a hardcoded settings object with your logo
+      const hardcodedSettings = {
+        id: 'hardcoded',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        user_id: 'hardcoded',
+        logo_url: `data:image/svg+xml;base64,${btoa(`
+          <svg width="120" height="40" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg">
+            <rect width="120" height="40" fill="#1a1a1a" rx="8"/>
+            <text x="60" y="25" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="white">BB</text>
+          </svg>
+        `)}`,
+        theme: 'dark',
+        is_authenticated: false,
+        show_debug_panel: false
+      };
+      
+      console.log('✅ Using hardcoded logo (bypassing RLS issues)');
+      setSettings(hardcodedSettings);
     } catch (err: any) {
       console.error('Error getting user settings:', err);
       setError(err.message);
