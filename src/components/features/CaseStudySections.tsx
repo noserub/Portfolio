@@ -500,8 +500,8 @@ export function CaseStudySections({
         currentSection = { title, content: '' };
         skipImpactSubsection = false;
       } else if (currentSection) {
-        // Check if this is the ## Impact subsection header
-        if (line.trim() === '## Impact') {
+        // Check if this is the ## Impact subsection header (only skip if we're in the Impact section)
+        if (line.trim() === '## Impact' && currentSection.title === 'Impact') {
           skipImpactSubsection = true;
           return; // Don't add this line
         }
