@@ -3508,6 +3508,17 @@ This will help debug the logo upload.`);
         >
           Test Upload
         </button>
+        <button 
+          onClick={() => {
+            // Clear localStorage and force database lookup
+            localStorage.removeItem('portfolio_logo_url');
+            alert('localStorage cleared! Reloading to get logo from database...');
+            window.location.reload();
+          }}
+          className="text-xs bg-orange-500 text-white px-2 py-1 rounded mt-1"
+        >
+          Force DB Load
+        </button>
       </div>
 
       {/* Hero Section */}
