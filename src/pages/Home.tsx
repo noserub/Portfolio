@@ -3120,9 +3120,40 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
             alert('Forcing logo refresh... This will reload the page to clear mobile cache.');
             window.location.reload();
           }}
-          className="text-xs bg-yellow-500 text-white px-2 py-1 rounded mt-1"
+          className="text-xs bg-yellow-500 text-white px-2 py-1 rounded mt-1 mr-1"
         >
           Force Mobile Refresh
+        </button>
+        <button 
+          onClick={() => {
+            // Mobile logo debug - show what's actually happening
+            const userAgent = navigator.userAgent;
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+            const logoElement = document.querySelector('img[alt="Logo"]') as HTMLImageElement;
+            const logoSrc = logoElement?.src || 'NO LOGO ELEMENT FOUND';
+            
+            alert(`Mobile Debug Info:
+Device: ${isMobile ? 'MOBILE' : 'DESKTOP'}
+User Agent: ${userAgent.substring(0, 50)}...
+Logo Element: ${logoElement ? 'FOUND' : 'NOT FOUND'}
+Logo Src Length: ${logoSrc.length}
+Logo Src Preview: ${logoSrc.substring(0, 100)}...
+Logo Src Type: ${logoSrc.startsWith('data:') ? 'DATA URL' : 'REGULAR URL'}
+
+Check console for more details.`);
+            
+            console.log('🔍 Mobile Debug Details:', {
+              userAgent,
+              isMobile,
+              logoElement,
+              logoSrc,
+              logoSrcLength: logoSrc.length,
+              logoSrcType: logoSrc.startsWith('data:') ? 'DATA URL' : 'REGULAR URL'
+            });
+          }}
+          className="text-xs bg-blue-500 text-white px-2 py-1 rounded mt-1"
+        >
+          Mobile Debug
         </button>
       </div>
       {/* Hero Section */}
