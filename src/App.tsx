@@ -502,7 +502,7 @@ export default function App() {
         console.log('📊 FileReader progress...');
       };
       
-      reader.onload = () => {
+      reader.onload = async () => {
         console.log('✅ FileReader onload triggered');
         const logoUrl = reader.result as string;
         console.log('🖼️ Logo converted to base64, length:', logoUrl.length);

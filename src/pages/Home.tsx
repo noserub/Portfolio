@@ -2328,7 +2328,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     word2: "collaboration",
     word3: "empathy",
     word4: "design",
-    buttonText: "About Brian - DEPLOYMENT TEST"
+    buttonText: "🚀 DEPLOYMENT TEST - IF YOU SEE THIS, CODE IS WORKING!"
   };
     
     try {
