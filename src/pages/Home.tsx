@@ -3373,6 +3373,17 @@ This will help debug the logo upload.`);
         >
           Set Test Logo
         </button>
+        <button 
+          onClick={() => {
+            // Clear test logo and force database reload
+            localStorage.removeItem('portfolio_logo_url');
+            alert('Test logo cleared! Reloading to get your real logo from database...');
+            window.location.reload();
+          }}
+          className="text-xs bg-red-500 text-white px-2 py-1 rounded mt-1"
+        >
+          Clear Test Logo
+        </button>
       </div>
       {/* Hero Section */}
       <section className="min-h-screen flex flex-col items-center justify-center px-6 pt-20 md:pt-32 pb-20">
