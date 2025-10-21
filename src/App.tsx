@@ -491,10 +491,19 @@ export default function App() {
         return;
       }
       
-      // Convert file to base64 data URL
+      // Convert file to base64 data URL with multiple event handlers
       const reader = new FileReader();
       
+      reader.onloadstart = () => {
+        console.log('🔄 FileReader started reading file');
+      };
+      
+      reader.onprogress = () => {
+        console.log('📊 FileReader progress...');
+      };
+      
       reader.onload = () => {
+        console.log('✅ FileReader onload triggered');
         const logoUrl = reader.result as string;
         console.log('🖼️ Logo converted to base64, length:', logoUrl.length);
         console.log('🖼️ Logo preview:', logoUrl.substring(0, 100) + '...');
@@ -522,11 +531,21 @@ export default function App() {
         alert('Logo uploaded successfully! Your logo is now visible.');
       };
       
+      reader.onloadend = () => {
+        console.log('🏁 FileReader onloadend triggered');
+      };
+      
       reader.onerror = () => {
         console.error('❌ Error reading file');
         alert('Error reading the selected file. Please try a different image.');
       };
       
+      reader.onabort = () => {
+        console.error('❌ FileReader aborted');
+        alert('File reading was aborted. Please try again.');
+      };
+      
+      console.log('🚀 Starting to read file as data URL...');
       reader.readAsDataURL(file);
     } catch (error) {
       console.error('Error uploading logo:', error);
