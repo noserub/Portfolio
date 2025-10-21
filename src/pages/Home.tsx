@@ -3433,57 +3433,80 @@ This will help debug the logo upload.`);
         </button>
         <button 
           onClick={async () => {
-            // Create a simple logo for the main user
-            const { data: mainProfile } = await supabase
-              .from('profiles')
-              .select('id')
-              .eq('email', 'brian.bureson@gmail.com')
-              .single();
-            
-            if (mainProfile) {
-              // Create a simple SVG logo
-              const logoData = `data:image/svg+xml;base64,${btoa(`
-                <svg width="120" height="40" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg">
-                  <rect width="120" height="40" fill="#1a1a1a" rx="8"/>
-                  <text x="60" y="25" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="white">BB</text>
-                </svg>
-              `)}`;
-              
-              // Try to update existing settings
-              const { error: updateError } = await supabase
-                .from('app_settings')
-                .update({ logo_url: logoData })
-                .eq('user_id', mainProfile.id);
-              
-              if (updateError) {
-                // If update fails, try to insert new settings
-                const { error: insertError } = await supabase
-                  .from('app_settings')
-                  .insert({
-                    user_id: mainProfile.id,
-                    logo_url: logoData,
-                    theme: 'dark',
-                    is_authenticated: false,
-                    show_debug_panel: false
-                  });
-                
-                if (insertError) {
-                  alert(`Error creating logo: ${insertError.message}`);
-                } else {
-                  alert('Logo created successfully! Reloading...');
-                  window.location.reload();
-                }
-              } else {
-                alert('Logo updated successfully! Reloading...');
-                window.location.reload();
+            // Test the upload function directly
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.onchange = async (e) => {
+              const file = (e.target as HTMLInputElement).files?.[0];
+              if (file) {
+                // Use the same logic as the upload function
+                const reader = new FileReader();
+                reader.onload = async () => {
+                  const logoUrl = reader.result as string;
+                  console.log('🖼️ Testing upload with file:', file.name);
+                  
+                  // Save to localStorage
+                  localStorage.setItem('portfolio_logo_url', logoUrl);
+                  console.log('✅ Saved to localStorage');
+                  
+                  // Try to save to database
+                  try {
+                    const { data: mainProfile } = await supabase
+                      .from('profiles')
+                      .select('id')
+                      .eq('email', 'brian.bureson@gmail.com')
+                      .single();
+                    
+                    if (mainProfile) {
+                      // Try to update existing settings
+                      const { error: updateError } = await supabase
+                        .from('app_settings')
+                        .update({ logo_url: logoUrl })
+                        .eq('user_id', mainProfile.id);
+                      
+                      if (updateError) {
+                        console.log('📝 No existing settings, creating new ones...');
+                        console.log('🔍 Update error:', updateError);
+                        // If update fails, try to insert new settings
+                        const { error: insertError } = await supabase
+                          .from('app_settings')
+                          .insert({
+                            user_id: mainProfile.id,
+                            logo_url: logoUrl,
+                            theme: 'dark',
+                            is_authenticated: false,
+                            show_debug_panel: false
+                          });
+                        
+                        if (insertError) {
+                          console.log('⚠️ Could not save to database (RLS issue)');
+                          console.log('🔍 Insert error:', insertError);
+                          alert(`Logo saved locally but failed to save to database: ${insertError.message}`);
+                        } else {
+                          console.log('✅ Logo saved to database');
+                          alert('✅ Logo saved to database successfully! Reloading...');
+                          window.location.reload();
+                        }
+                      } else {
+                        console.log('✅ Logo updated in database');
+                        alert('✅ Logo updated in database successfully! Reloading...');
+                        window.location.reload();
+                      }
+                    }
+                  } catch (dbError) {
+                    console.log('⚠️ Database save failed:', dbError);
+                    alert(`Database error: ${dbError}`);
+                  }
+                };
+                reader.readAsDataURL(file);
               }
-            } else {
-              alert('No main profile found');
-            }
+            };
+            input.click();
           }}
-          className="text-xs bg-green-500 text-white px-2 py-1 rounded mt-1"
+          className="text-xs bg-blue-500 text-white px-2 py-1 rounded mt-1"
         >
-          Create Logo
+          Test Upload
         </button>
       </div>
       {/* Clear Test Logo Button - Always Visible */}

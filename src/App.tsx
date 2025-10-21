@@ -530,6 +530,7 @@ export default function App() {
               
             if (updateError) {
               console.log('📝 No existing settings, creating new ones...');
+              console.log('🔍 Update error:', updateError);
               // If update fails, try to insert new settings
               const { error: insertError } = await supabase
                 .from('app_settings')
@@ -543,11 +544,15 @@ export default function App() {
                 
               if (insertError) {
                 console.log('⚠️ Could not save to database (RLS issue), but localStorage works');
+                console.log('🔍 Insert error:', insertError);
+                alert(`Logo saved locally but failed to save to database: ${insertError.message}`);
               } else {
                 console.log('✅ Logo saved to database');
+                alert('✅ Logo saved to database successfully!');
               }
             } else {
               console.log('✅ Logo updated in database');
+              alert('✅ Logo updated in database successfully!');
             }
           }
         } catch (dbError) {
