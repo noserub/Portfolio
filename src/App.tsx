@@ -200,6 +200,8 @@ export default function App() {
   useEffect(() => {
     console.log('🎨 Current settings:', settings);
     console.log('🖼️ Current logo URL:', logo);
+    console.log('🔍 Logo length:', logo?.length);
+    console.log('🔍 Logo type:', typeof logo);
   }, [settings, logo]);
   
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
@@ -1033,6 +1035,27 @@ export default function App() {
         onLogoClick={navigateHome} 
         isEditMode={isEditMode}
       />
+      
+      {/* DEBUG: Force logo test */}
+      <div className="fixed top-20 left-4 bg-red-500 text-white p-2 rounded z-50">
+        <div>Logo: {logo ? 'FOUND' : 'MISSING'}</div>
+        <div>Length: {logo?.length || 0}</div>
+        <button 
+          onClick={() => {
+            const testLogo = `data:image/svg+xml;base64,${btoa(`
+              <svg width="120" height="40" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg">
+                <rect width="120" height="40" fill="#ff0000" rx="8"/>
+                <text x="60" y="25" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="white">TEST</text>
+              </svg>
+            `)}`;
+            updateSettings({ logo_url: testLogo });
+            alert('Test logo set!');
+          }}
+          className="bg-white text-black px-2 py-1 rounded text-xs"
+        >
+          Set Test Logo
+        </button>
+      </div>
 
       {/* Theme Toggle - Top Left */}
       <motion.div
