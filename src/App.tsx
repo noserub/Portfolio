@@ -4,6 +4,7 @@ import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { supabase } from "./lib/supabaseClient";
 import { Edit3, Eye, LogOut, Save, AlertTriangle, Moon, Sun, MoreHorizontal, Search, BookOpen } from "lucide-react";
+import { Analytics } from "@vercel/analytics/react";
 import { 
   Header, 
   AnimatedBackground, 
@@ -1451,6 +1452,9 @@ export default function App() {
       
       {/* Toast notifications */}
       <Toaster position="bottom-right" />
+      
+      {/* Vercel Analytics */}
+      <Analytics />
     </ErrorBoundary>
   );
 }
