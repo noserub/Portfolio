@@ -3023,7 +3023,16 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         <button 
           onClick={async () => {
             const { data: { user } } = await supabase.auth.getUser();
-            alert(`Current User: ${user?.email || 'NOT SIGNED IN'}\nHero Text: ${heroText.subtitle} | ${heroText.description}\nNote: Hero text is stored in localStorage, not database`);
+            const defaultHeroText = {
+              subtitle: "Product design leader",
+              description: "building high quality products and teams through",
+              word1: "planning",
+              word2: "collaboration",
+              word3: "empathy",
+              word4: "design",
+              buttonText: "More about Brian"
+            };
+            alert(`Current User: ${user?.email || 'NOT SIGNED IN'}\nCurrent: ${heroText.subtitle} | ${heroText.description}\nDefaults: ${defaultHeroText.subtitle} | ${defaultHeroText.description}\nButton: ${heroText.buttonText} | Default: ${defaultHeroText.buttonText}`);
           }}
           className="text-xs bg-blue-500 text-white px-2 py-1 rounded mt-1 mr-1"
         >
@@ -3031,14 +3040,14 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         </button>
         <button 
           onClick={() => {
-            // Clear localStorage and reload to use hardcoded defaults
-            localStorage.removeItem('heroText');
-            alert('Cleared localStorage. Reloading to use hardcoded defaults...');
+            // Clear all localStorage and reload to use hardcoded defaults
+            localStorage.clear();
+            alert('Cleared ALL localStorage. Reloading to use hardcoded defaults...');
             window.location.reload();
           }}
           className="text-xs bg-green-500 text-white px-2 py-1 rounded mt-1"
         >
-          Reset & Reload
+          Clear All & Reload
         </button>
       </div>
       {/* Hero Section */}
