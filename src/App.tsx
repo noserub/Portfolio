@@ -191,6 +191,11 @@ export default function App() {
   const { settings, updateSettings, getCurrentUserSettings } = useAppSettings();
   const logo = settings?.logo_url;
   
+  // Load settings on mount
+  useEffect(() => {
+    getCurrentUserSettings();
+  }, [getCurrentUserSettings]);
+  
   // Debug logging
   useEffect(() => {
     console.log('🎨 Current settings:', settings);
