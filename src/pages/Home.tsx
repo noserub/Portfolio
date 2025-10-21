@@ -3638,8 +3638,24 @@ This will help debug the logo upload.`);
                   // Save to localStorage
                   localStorage.setItem('portfolio_logo_url', logoUrl);
                   
-                  // Show the data
-                  alert(`Logo uploaded and saved!\n\nLogo Data (first 200 chars):\n${logoUrl.substring(0, 200)}...\n\nFull length: ${logoUrl.length} characters\n\nPlease copy this data and send it to me so I can hardcode it!`);
+                  // Create a textarea to show the full data
+                  const textarea = document.createElement('textarea');
+                  textarea.value = logoUrl;
+                  textarea.style.width = '100%';
+                  textarea.style.height = '200px';
+                  textarea.style.position = 'fixed';
+                  textarea.style.top = '50%';
+                  textarea.style.left = '50%';
+                  textarea.style.transform = 'translate(-50%, -50%)';
+                  textarea.style.zIndex = '9999';
+                  textarea.style.background = 'white';
+                  textarea.style.border = '2px solid #000';
+                  textarea.style.padding = '10px';
+                  
+                  document.body.appendChild(textarea);
+                  textarea.select();
+                  
+                  alert('Logo uploaded! A text box with the full data has appeared. Please copy all the text and send it to me.');
                 };
                 reader.readAsDataURL(file);
               }
@@ -3648,7 +3664,7 @@ This will help debug the logo upload.`);
           }}
           className="text-xs bg-purple-500 text-white px-2 py-1 rounded mt-1"
         >
-          Upload & Get Data
+          Upload & Show Full Data
         </button>
       </div>
 
