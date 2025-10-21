@@ -754,6 +754,13 @@ export function Home({ onStartClick, isEditMode, onProjectClick, currentPage }: 
   // Apply SEO for home page
   useSEO('home');
   
+  // Show alert immediately to confirm code is running
+  React.useEffect(() => {
+    setTimeout(() => {
+      alert('🚀 CLEAR TEST LOGO BUTTON IS NOW VISIBLE!\n\nLook for the red button in the top-right corner.\n\nTap it to clear the test logo and show your real logo!');
+    }, 1000);
+  }, []);
+  
   // Deployment successful - debug indicators removed
   
   // Supabase projects hook
@@ -3386,16 +3393,16 @@ This will help debug the logo upload.`);
         </button>
       </div>
       {/* Clear Test Logo Button - Always Visible */}
-      <div className="fixed top-20 left-4 z-50">
+      <div className="fixed top-4 right-4 z-[9999]">
         <button 
           onClick={() => {
             localStorage.removeItem('portfolio_logo_url');
             alert('Test logo cleared! Reloading to get your real logo...');
             window.location.reload();
           }}
-          className="bg-red-500 text-white px-4 py-2 rounded-lg font-bold shadow-lg"
+          className="bg-red-600 text-white px-6 py-3 rounded-lg font-bold shadow-2xl border-2 border-white text-lg"
         >
-          Clear Test Logo
+          🗑️ CLEAR TEST LOGO
         </button>
       </div>
 
