@@ -490,7 +490,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
   });
   
   const [projectImagesPosition, setProjectImagesPosition] = useState<number | undefined>(
-    project.projectImagesPosition || (project as any).project_images_position
+    project.projectImagesPosition || (project as any).project_images_position || 
+    (caseStudyImages.length > 0 ? 2 : undefined) // Default position 2 if images exist but no position set
   );
   const [videosPosition, setVideosPosition] = useState<number | undefined>(
     project.videosPosition || (project as any).videos_position
@@ -1417,7 +1418,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
   };
 
   const handleMoveProjectImages = (direction: 'up' | 'down') => {
-    const currentPos = projectImagesPosition;
+    const currentPos = projectImagesPosition ?? 2; // Default to position 2 if undefined
     const targetPos = direction === 'up' ? currentPos - 1 : currentPos + 1;
     
     // Don't move if at boundary
