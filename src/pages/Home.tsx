@@ -3624,7 +3624,7 @@ This will help debug the logo upload.`);
         </button>
         <button 
           onClick={async () => {
-            // Upload logo and save to localStorage
+            // Upload logo and copy to clipboard
             const input = document.createElement('input');
             input.type = 'file';
             input.accept = 'image/*';
@@ -3632,30 +3632,20 @@ This will help debug the logo upload.`);
               const file = (e.target as HTMLInputElement).files?.[0];
               if (file) {
                 const reader = new FileReader();
-                reader.onload = () => {
+                reader.onload = async () => {
                   const logoUrl = reader.result as string;
                   
                   // Save to localStorage
                   localStorage.setItem('portfolio_logo_url', logoUrl);
                   
-                  // Create a textarea to show the full data
-                  const textarea = document.createElement('textarea');
-                  textarea.value = logoUrl;
-                  textarea.style.width = '100%';
-                  textarea.style.height = '200px';
-                  textarea.style.position = 'fixed';
-                  textarea.style.top = '50%';
-                  textarea.style.left = '50%';
-                  textarea.style.transform = 'translate(-50%, -50%)';
-                  textarea.style.zIndex = '9999';
-                  textarea.style.background = 'white';
-                  textarea.style.border = '2px solid #000';
-                  textarea.style.padding = '10px';
-                  
-                  document.body.appendChild(textarea);
-                  textarea.select();
-                  
-                  alert('Logo uploaded! A text box with the full data has appeared. Please copy all the text and send it to me.');
+                  // Copy to clipboard
+                  try {
+                    await navigator.clipboard.writeText(logoUrl);
+                    alert('Logo uploaded and copied to clipboard! Please paste it here in the chat so I can hardcode it.');
+                  } catch (err) {
+                    // Fallback: show in alert (truncated but better than nothing)
+                    alert(`Logo uploaded! Please copy this data:\n\n${logoUrl.substring(0, 500)}...\n\n(Data is truncated - please try the clipboard method)`);
+                  }
                 };
                 reader.readAsDataURL(file);
               }
@@ -3664,7 +3654,7 @@ This will help debug the logo upload.`);
           }}
           className="text-xs bg-purple-500 text-white px-2 py-1 rounded mt-1"
         >
-          Upload & Show Full Data
+          Upload & Copy Data
         </button>
       </div>
 
