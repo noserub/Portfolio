@@ -2318,12 +2318,12 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
       ],
       greetingFont: "Inter, sans-serif",
       lastGreetingPauseDuration: 30000,
-      subtitle: "Product design leader",
-      description: "building high quality products and teams through",
-      word1: "planning",
-      word2: "collaboration",
-      word3: "empathy",
-      word4: "design",
+      subtitle: "Senior Product Designer",
+      description: "crafting exceptional user experiences through",
+      word1: "research",
+      word2: "design",
+      word3: "collaboration",
+      word4: "innovation",
       buttonText: "More about Brian"
     };
     
