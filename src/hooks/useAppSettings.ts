@@ -262,18 +262,21 @@ export function useAppSettings() {
           
         if (mainUserSettings) {
           console.log('📥 Retrieved main user settings for all visitors:', mainUserSettings);
+          console.log('🖼️ Original logo URL:', mainUserSettings.logo_url);
           
-          // Create a simple text-based logo using data URL
-          const cleanLogo = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`
-            <svg width="120" height="40" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg">
-              <rect width="120" height="40" fill="#1a1a1a" rx="8"/>
-              <text x="60" y="26" font-family="Arial, sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="white">BB</text>
-            </svg>
-          `)}`;
-          
-          // Use the clean logo instead of corrupted data
-          mainUserSettings.logo_url = cleanLogo;
-          console.log('🖼️ Using clean fallback logo');
+          // Add cache-busting to logo URL to force fresh loads on all devices
+          if (mainUserSettings.logo_url) {
+            const cacheBuster = `?v=${Date.now()}`;
+            const logoUrl = mainUserSettings.logo_url.includes('?') 
+              ? mainUserSettings.logo_url.split('?')[0] + cacheBuster
+              : mainUserSettings.logo_url + cacheBuster;
+            
+            mainUserSettings.logo_url = logoUrl;
+            console.log('🔄 Added cache-busting to logo URL:', logoUrl);
+            console.log('🖼️ Final logo URL length:', logoUrl.length);
+          } else {
+            console.log('❌ No logo URL found in settings');
+          }
           
           setSettings(mainUserSettings);
         } else {
