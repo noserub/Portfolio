@@ -3548,6 +3548,42 @@ This will help debug the logo upload.`);
         >
           Test DB Lookup
         </button>
+        <button 
+          onClick={async () => {
+            // Manually load logo from database and set it
+            try {
+              const { data: mainProfile } = await supabase
+                .from('profiles')
+                .select('id')
+                .eq('email', 'brian.bureson@gmail.com')
+                .single();
+                
+              if (mainProfile) {
+                const { data: allSettings } = await supabase
+                  .from('app_settings')
+                  .select('*')
+                  .eq('user_id', mainProfile.id)
+                  .order('created_at', { ascending: false });
+                
+                if (allSettings && allSettings.length > 0 && allSettings[0].logo_url) {
+                  // Set the logo directly in localStorage to force it to show
+                  localStorage.setItem('portfolio_logo_url', allSettings[0].logo_url);
+                  alert('Logo loaded from database and set in localStorage! Reloading...');
+                  window.location.reload();
+                } else {
+                  alert('No logo found in database settings');
+                }
+              } else {
+                alert('No main profile found');
+              }
+            } catch (err) {
+              alert(`Error loading logo: ${err}`);
+            }
+          }}
+          className="text-xs bg-green-500 text-white px-2 py-1 rounded mt-1"
+        >
+          Load Logo Now
+        </button>
       </div>
 
       {/* Hero Section */}
