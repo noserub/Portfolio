@@ -3403,6 +3403,34 @@ This will help debug the logo upload.`);
         >
           CLEAR TEST LOGO
         </button>
+        <button 
+          onClick={async () => {
+            // Check logo status
+            const logoFromStorage = localStorage.getItem('portfolio_logo_url');
+            const { data: { user } } = await supabase.auth.getUser();
+            const { data: mainProfile } = await supabase
+              .from('profiles')
+              .select('id')
+              .eq('email', 'brian.bureson@gmail.com')
+              .single();
+            
+            if (mainProfile) {
+              const { data: settings } = await supabase
+                .from('app_settings')
+                .select('*')
+                .eq('user_id', mainProfile.id)
+                .order('created_at', { ascending: false });
+              
+              const latestSettings = settings?.[0];
+              alert(`Logo Status:\nStorage: ${logoFromStorage ? 'FOUND' : 'NOT FOUND'}\nDatabase: ${latestSettings?.logo_url ? 'FOUND' : 'NOT FOUND'}\nUser: ${user?.email || 'NOT SIGNED IN'}\nProfile: ${mainProfile.id}`);
+            } else {
+              alert('No main profile found');
+            }
+          }}
+          className="text-xs bg-purple-500 text-white px-2 py-1 rounded mt-1"
+        >
+          Check Logo
+        </button>
       </div>
       {/* Clear Test Logo Button - Always Visible */}
       <div className="fixed top-4 right-4 z-[9999]">
