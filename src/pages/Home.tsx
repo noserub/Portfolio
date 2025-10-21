@@ -2367,46 +2367,42 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     type: 'caseStudies' | 'design';
   } | null>(null);
   
-  // Load hero text from Supabase profile
+  // Load hero text from Supabase profile (for all visitors)
   useEffect(() => {
     const loadHeroTextFromProfile = async () => {
       try {
         console.log('🏠 Home: Loading hero text from Supabase profile...');
-        const { data: { user } } = await supabase.auth.getUser();
         
-        if (user) {
-          console.log('👤 Authenticated user:', user.email);
-          const { data: profile, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', user.id)
-            .single();
-            
-          if (error) {
-            console.error('❌ Error loading profile:', error);
-            return;
-          }
+        // Load your main profile (brian.bureson@gmail.com) for all visitors
+        // This ensures the portfolio shows correct data to everyone
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('email', 'brian.bureson@gmail.com')
+          .single();
           
-          if (profile && (profile.subtitle || profile.description)) {
-            console.log('✅ Found profile with hero text:', profile);
-            const newHeroText = {
-              ...heroText,
-              subtitle: profile.subtitle || heroText.subtitle,
-              description: profile.description || heroText.description,
-              word1: profile.word1 || heroText.word1,
-              word2: profile.word2 || heroText.word2,
-              word3: profile.word3 || heroText.word3,
-              word4: profile.word4 || heroText.word4,
-              buttonText: profile.buttonText || heroText.buttonText
-            };
-            
-            setHeroText(newHeroText);
-            console.log('✅ Updated hero text from Supabase profile');
-          } else {
-            console.log('📝 No hero text found in profile, keeping current');
-          }
+        if (error) {
+          console.error('❌ Error loading profile:', error);
+          return;
+        }
+        
+        if (profile && (profile.subtitle || profile.description)) {
+          console.log('✅ Found profile with hero text:', profile);
+          const newHeroText = {
+            ...heroText,
+            subtitle: profile.subtitle || heroText.subtitle,
+            description: profile.description || heroText.description,
+            word1: profile.word1 || heroText.word1,
+            word2: profile.word2 || heroText.word2,
+            word3: profile.word3 || heroText.word3,
+            word4: profile.word4 || heroText.word4,
+            buttonText: profile.buttonText || heroText.buttonText
+          };
+          
+          setHeroText(newHeroText);
+          console.log('✅ Updated hero text from Supabase profile for all visitors');
         } else {
-          console.log('👤 No authenticated user, keeping current hero text');
+          console.log('📝 No hero text found in profile, keeping current');
         }
       } catch (error) {
         console.error('❌ Error loading hero text from profile:', error);
@@ -3069,17 +3065,13 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         <button 
           onClick={async () => {
             const { data: { user } } = await supabase.auth.getUser();
-            const { data: dbData, error } = await supabase
+            const { data: mainProfile, error } = await supabase
               .from('profiles')
-              .select('*');
-            console.log('🗄️ Database data:', dbData, 'Error:', error);
-            if (dbData && dbData.length > 0) {
-              const firstProfile = dbData[0];
-              const currentUserProfile = dbData.find(p => p.id === user?.id);
-              alert(`Current User: ${user?.email || 'NOT SIGNED IN'}\nProfile 1: ${firstProfile.subtitle || 'NO SUBTITLE'} | ${firstProfile.description || 'NO DESCRIPTION'}\nYour Profile: ${currentUserProfile ? (currentUserProfile.subtitle || 'NO SUBTITLE') : 'NOT FOUND'}`);
-            } else {
-              alert(`Current User: ${user?.email || 'NOT SIGNED IN'}\nDB Data: ${dbData?.length || 0} profiles found. Error: ${error?.message || 'None'}`);
-            }
+              .select('*')
+              .eq('email', 'brian.bureson@gmail.com')
+              .single();
+            console.log('🗄️ Main profile data:', mainProfile, 'Error:', error);
+            alert(`Current User: ${user?.email || 'NOT SIGNED IN'}\nMain Profile: ${mainProfile ? (mainProfile.subtitle || 'NO SUBTITLE') : 'NOT FOUND'} | ${mainProfile ? (mainProfile.description || 'NO DESCRIPTION') : 'NOT FOUND'}`);
           }}
           className="text-xs bg-blue-500 text-white px-2 py-1 rounded mt-1 mr-1"
         >
