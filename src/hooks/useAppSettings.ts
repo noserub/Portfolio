@@ -184,7 +184,7 @@ export const useAppSettings = () => {
   // Get current user's settings
   const getCurrentUserSettings = async () => {
     try {
-      console.log('🔍 Using direct Supabase Storage logo URL...');
+      console.log('🔍 Using direct Supabase Storage logo URL (clean version)...');
       
       // Clear any old localStorage data to prevent conflicts
       localStorage.removeItem('portfolio_logo_url');
