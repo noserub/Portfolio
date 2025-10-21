@@ -3408,6 +3408,20 @@ This will help debug the logo upload.`);
 
       {/* Hero Section */}
       <section className="min-h-screen flex flex-col items-center justify-center px-6 pt-20 md:pt-32 pb-20">
+        {/* SIMPLE CLEAR BUTTON - GUARANTEED VISIBLE */}
+        <div className="mb-8">
+          <button 
+            onClick={() => {
+              localStorage.removeItem('portfolio_logo_url');
+              alert('Test logo cleared! Reloading...');
+              window.location.reload();
+            }}
+            className="bg-red-600 text-white px-8 py-4 rounded-lg font-bold text-xl shadow-2xl border-4 border-white"
+          >
+            🗑️ CLEAR TEST LOGO
+          </button>
+        </div>
+        
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
