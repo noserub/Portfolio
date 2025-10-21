@@ -245,29 +245,31 @@ export function useAppSettings() {
   // Get current user's settings
   const getCurrentUserSettings = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        setSettings(null);
-        return;
-      }
-      
-      // Try to get existing settings
-      const userSettings = await getAppSettingsByUserId(user.id);
-      if (userSettings) {
-        console.log('📥 Retrieved user settings:', userSettings);
-        setSettings(userSettings);
-      } else {
-        // If no settings exist, create default ones
-        const defaultSettings = {
-          user_id: user.id,
-          theme: 'dark',
-          is_authenticated: true,
-          show_debug_panel: false
-        };
-        const newSettings = await createAppSettings(defaultSettings);
-        if (newSettings) {
-          setSettings(newSettings);
+      // Load settings for the main user (brian.bureson@gmail.com) for all visitors
+      // This ensures logo and favicon show for everyone
+      const { data: mainProfile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', 'brian.bureson@gmail.com')
+        .single();
+        
+      if (mainProfile) {
+        const { data: mainUserSettings } = await supabase
+          .from('app_settings')
+          .select('*')
+          .eq('user_id', mainProfile.id)
+          .single();
+          
+        if (mainUserSettings) {
+          console.log('📥 Retrieved main user settings for all visitors:', mainUserSettings);
+          setSettings(mainUserSettings);
+        } else {
+          console.log('📝 No main user settings found');
+          setSettings(null);
         }
+      } else {
+        console.log('📝 No main profile found');
+        setSettings(null);
       }
     } catch (err: any) {
       console.error('Error getting user settings:', err);
