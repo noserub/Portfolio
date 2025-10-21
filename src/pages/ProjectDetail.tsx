@@ -1681,47 +1681,110 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
   const handleMoveMarkdownSection = (sectionTitle: string, direction: 'up' | 'down') => {
     console.log(`📝 Moving markdown section "${sectionTitle}" ${direction}`);
     
+    // Build the combined sections list to find actual positions
     const lines = caseStudyContent?.split('\n') || [];
-    const allSections: Array<{ title: string; startLine: number; endLine: number }> = [];
+    const markdownSections: Array<{ title: string; startLine: number; endLine: number }> = [];
     
-    // Find all section boundaries
+    // Find all markdown section boundaries
     for (let i = 0; i < lines.length; i++) {
       const headerMatch = lines[i].match(/^#{1,2} (.+)$/);
       if (headerMatch) {
         const title = headerMatch[1].trim();
-        allSections.push({ title, startLine: i, endLine: -1 });
+        markdownSections.push({ title, startLine: i, endLine: -1 });
         
-        if (allSections.length > 1) {
-          allSections[allSections.length - 2].endLine = i - 1;
+        if (markdownSections.length > 1) {
+          markdownSections[markdownSections.length - 2].endLine = i - 1;
         }
       }
     }
     
-    if (allSections.length > 0) {
-      allSections[allSections.length - 1].endLine = lines.length - 1;
+    if (markdownSections.length > 0) {
+      markdownSections[markdownSections.length - 1].endLine = lines.length - 1;
     }
     
-    console.log('📋 All sections found:', allSections.map(s => s.title));
+    console.log('📋 Markdown sections found:', markdownSections.map(s => s.title));
     
-    // Find current section index
-    const currentIndex = allSections.findIndex(s => s.title === sectionTitle);
+    // Build combined list with positions (same logic as CaseStudySections)
+    const combined: Array<{ title: string; type: 'markdown' | 'special'; position: number }> = [];
+    let markdownIndex = 0;
+    
+    for (let i = 0; i < 20; i++) { // Max 20 positions
+      // Check if Project Images is at this position
+      if (projectImagesPosition === i && (caseStudyImages.length > 0 || isEditMode)) {
+        combined.push({ title: '__PROJECT_IMAGES__', type: 'special', position: i });
+        continue;
+      }
+      
+      // Check if Flow Diagrams is at this position
+      if (flowDiagramsPosition === i && (flowDiagramImages.length > 0 || isEditMode)) {
+        combined.push({ title: '__FLOW_DIAGRAMS__', type: 'special', position: i });
+        continue;
+      }
+      
+      // Check if Solution Cards is at this position
+      if (solutionCardsPosition !== undefined && solutionCardsPosition === i) {
+        combined.push({ title: '__SOLUTION_CARDS__', type: 'special', position: i });
+        continue;
+      }
+      
+      // Otherwise, add next markdown section if available
+      if (markdownIndex < markdownSections.length) {
+        combined.push({ 
+          title: markdownSections[markdownIndex].title, 
+          type: 'markdown', 
+          position: i 
+        });
+        markdownIndex++;
+      }
+    }
+    
+    console.log('📋 Combined sections:', combined.map(c => `${c.title} (${c.type}) @${c.position}`));
+    
+    // Find current section in combined list
+    const currentIndex = combined.findIndex(c => c.title === sectionTitle);
     if (currentIndex === -1) {
-      console.error('❌ Section not found:', sectionTitle);
+      console.error('❌ Section not found in combined list');
       return;
     }
     
     const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
     
     // Check boundaries
-    if (targetIndex < 0 || targetIndex >= allSections.length) {
+    if (targetIndex < 0 || targetIndex >= combined.length) {
       console.log('⚠️ Already at boundary');
       return;
     }
     
-    const currentSection = allSections[currentIndex];
-    const targetSection = allSections[targetIndex];
+    const current = combined[currentIndex];
+    const target = combined[targetIndex];
     
-    console.log(`↔️ Swapping "${currentSection.title}" with "${targetSection.title}"`);
+    console.log(`↔️ Swapping "${current.title}" (${current.type}) with "${target.title}" (${target.type})`);
+    
+    if (target.type === 'special') {
+      // Cannot swap markdown sections with special sections
+      console.log('⚠️ Cannot swap markdown section with special section');
+      alert(
+        '⚠️ Cannot Move Past Special Sections\n\n' +
+        `"${sectionTitle}" is adjacent to "${target.title?.replace(/__/g, '')?.replace(/_/g, ' ') || 'Unknown'}".\n\n` +
+        'To reorder around special sections:\n\n' +
+        '1. Use the PURPLE CONTROL BAR arrows on:\n' +
+        '   • Project Images\n' +
+        '   • Flow Diagrams\n' +
+        '   • Solution Cards\n\n' +
+        '2. Move the special section up/down\n' +
+        '3. Then move this markdown section'
+      );
+      return;
+    }
+    
+    // Swapping with another markdown section - update markdown content
+    const currentSection = markdownSections.find(s => s.title === sectionTitle);
+    const targetSection = markdownSections.find(s => s.title === target.title);
+    
+    if (!currentSection || !targetSection) {
+      console.error('❌ Sections not found in markdown');
+      return;
+    }
     
     // Extract section content
     const currentLines = lines.slice(currentSection.startLine, currentSection.endLine + 1);
