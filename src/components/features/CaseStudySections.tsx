@@ -360,8 +360,8 @@ export function CaseStudySections({
     let skipImpactSubsection = false;
 
     lines.forEach(line => {
-      // Check for top-level header (# Title or ## Title)
-      if (line.trim().match(/^#{1,2} (.+)$/)) {
+      // Check for top-level header (# Title only, not ## subsections)
+      if (line.trim().match(/^# (.+)$/)) {
         // Save previous section if exists
         if (currentSection) {
           sections.push(currentSection);
