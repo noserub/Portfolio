@@ -1155,6 +1155,9 @@ export function CaseStudySections({
 
         // Special handling for My role & impact section (also matches "My role")
         if (section.title.toLowerCase().includes("my role")) {
+          console.log('🔍 My role & impact section found:', section.title);
+          console.log('📄 Section content:', section.content);
+          
           // Parse subsections (## Leadership, ## Design, ## Research, etc.)
           const subsectionRegex = /## (.+?)(?=\n##|\n#|$)/gs;
           const subsections: Array<{ title: string; content: string }> = [];
@@ -1163,9 +1166,12 @@ export function CaseStudySections({
           while ((match = subsectionRegex.exec(section.content)) !== null) {
             const title = (match[1] || '').split('\n')[0].trim();
             const content = (match[1] || '').substring(title.length).trim();
+            console.log(`📋 Found subsection: "${title}" with content: "${content}"`);
             // Add section even if content is empty - we'll handle it in rendering
             subsections.push({ title, content: content || '(No content yet - add bullets in edit mode)' });
           }
+          
+          console.log('📊 Total subsections found:', subsections.length);
           
           // Icon mapping for specific subsection names
           const iconMap: Record<string, any> = {
