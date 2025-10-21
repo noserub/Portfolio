@@ -8,6 +8,14 @@ const supabaseAnonKey = (import.meta as any).env.VITE_SUPABASE_ANON_KEY
 const url = supabaseUrl || 'https://placeholder.supabase.co'
 const key = supabaseAnonKey || 'placeholder-key'
 
+// Debug environment variables
+console.log('🔍 Supabase Debug:', {
+  supabaseUrl: supabaseUrl ? 'SET' : 'NOT SET',
+  supabaseAnonKey: supabaseAnonKey ? 'SET' : 'NOT SET',
+  actualUrl: supabaseUrl,
+  actualKey: supabaseAnonKey ? supabaseAnonKey.substring(0, 20) + '...' : 'NOT SET'
+});
+
 // Log warning if using placeholder values
 if (!supabaseUrl || !supabaseAnonKey) {
   console.warn('⚠️ Supabase environment variables not set. Using placeholder values. Please configure .env.local with your Supabase credentials.')
