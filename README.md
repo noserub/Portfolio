@@ -4,7 +4,7 @@ A modern, interactive portfolio application built with React, TypeScript, and Su
 
 ## 🚀 Live Demo
 
-[View Live Portfolio](https://your-portfolio-url.com) <!-- Replace with your actual URL -->
+[View Live Portfolio](https://portfolio-three-ochre-48.vercel.app/) <!-- Replace with your actual URL -->
 
 ## ✨ Features
 
@@ -135,8 +135,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 👨‍💻 Author
 
 **Brian Bureson**
-- Portfolio: [your-portfolio-url.com](https://your-portfolio-url.com)
-- LinkedIn: [Your LinkedIn](https://linkedin.com/in/yourprofile)
+- Portfolio: [your-portfolio-url.com](https://www.bureson.com)
+- LinkedIn: [Your LinkedIn]([https://linkedin.com/in/yourprofile](https://www.linkedin.com/in/bureson/))
 - Email: brian.bureson@gmail.com
 
 ## 🙏 Acknowledgments
@@ -145,6 +145,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [Tailwind CSS](https://tailwindcss.com) for styling
 - [Framer Motion](https://www.framer.com/motion/) for animations
 - [Lucide](https://lucide.dev) for icons
+- [Cursor](https://cursor.com/) for AI coding
 
 ---
 
