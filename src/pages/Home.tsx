@@ -3018,8 +3018,27 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
           Data: {heroText.subtitle} | {heroText.description}
         </div>
         <button 
-          onClick={() => {
+          onClick={async () => {
+            const { data: dbData } = await supabase
+              .from('profiles')
+              .select('*')
+              .single();
+            console.log('🗄️ Database data:', dbData);
+            alert(`DB Data: ${dbData?.subtitle || 'NO SUBTITLE'} | ${dbData?.description || 'NO DESCRIPTION'}`);
+          }}
+          className="text-xs bg-blue-500 text-white px-2 py-1 rounded mt-1 mr-1"
+        >
+          Check DB
+        </button>
+        <button 
+          onClick={async () => {
             localStorage.clear();
+            // Force fresh Supabase fetch
+            const { data: freshData } = await supabase
+              .from('profiles')
+              .select('*')
+              .single();
+            console.log('🔄 Fresh Supabase data:', freshData);
             window.location.reload();
           }}
           className="text-xs bg-white text-red-500 px-2 py-1 rounded mt-1"
