@@ -32,7 +32,7 @@ export function Header({ logo, onLogoUpload, onLogoClick, isEditMode = false }: 
             <img 
               src={logo} 
               alt="Logo" 
-              className="h-12 object-contain dark:brightness-0 dark:invert transition-all duration-300 hover:opacity-80" 
+              className="h-12 object-contain transition-all duration-300 hover:opacity-80" 
               onLoad={() => console.log('🖼️ Logo loaded successfully:', logo.substring(0, 50) + '...')}
               onError={() => console.error('❌ Logo failed to load:', logo.substring(0, 50) + '...')}
             />
