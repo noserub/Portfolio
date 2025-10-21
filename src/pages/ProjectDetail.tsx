@@ -1761,20 +1761,41 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     console.log(`↔️ Swapping "${current.title}" (${current.type}) with "${target.title}" (${target.type})`);
     
     if (target.type === 'special') {
-      // Cannot swap markdown sections with special sections
-      console.log('⚠️ Cannot swap markdown section with special section');
-      alert(
-        '⚠️ Cannot Move Past Special Sections\n\n' +
-        `"${sectionTitle}" is adjacent to "${target.title?.replace(/__/g, '')?.replace(/_/g, ' ') || 'Unknown'}".\n\n` +
-        'To reorder around special sections:\n\n' +
-        '1. Use the PURPLE CONTROL BAR arrows on:\n' +
-        '   • Project Images\n' +
-        '   • Flow Diagrams\n' +
-        '   • Solution Cards\n\n' +
-        '2. Move the special section up/down\n' +
-        '3. Then move this markdown section'
-      );
-      return;
+      // Move the special section to make room for the markdown section
+      console.log('🔄 Moving special section to make room for markdown section');
+      
+      if (target.title === '__PROJECT_IMAGES__') {
+        // Move project images to the next available position
+        const newProjectImagesPos = direction === 'up' ? projectImagesPosition - 1 : projectImagesPosition + 1;
+        setProjectImagesPosition(newProjectImagesPos);
+        
+        // Update the project
+        const updatedProject: ProjectData = {
+          ...project,
+          title: editedTitle,
+          description: editedDescription,
+          caseStudyContent,
+          caseStudyImages: caseStudyImagesRef.current,
+          flowDiagramImages: flowDiagramImagesRef.current,
+          videoItems: videoItemsRef.current,
+          galleryAspectRatio,
+          flowDiagramAspectRatio,
+          videoAspectRatio,
+          galleryColumns,
+          flowDiagramColumns,
+          videoColumns,
+          projectImagesPosition: newProjectImagesPos,
+          videosPosition,
+          flowDiagramsPosition,
+          solutionCardsPosition,
+          sectionPositions,
+        };
+        onUpdate(updatedProject);
+        return;
+      }
+      
+      // For other special sections, just allow the movement
+      console.log('✅ Allowing movement past special section');
     }
     
     // Swapping with another markdown section - update markdown content
