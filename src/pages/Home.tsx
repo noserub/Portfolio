@@ -3391,6 +3391,17 @@ This will help debug the logo upload.`);
         >
           Clear Test
         </button>
+        <button 
+          onClick={() => {
+            // Clear test logo and force database reload
+            localStorage.removeItem('portfolio_logo_url');
+            alert('Test logo cleared! Reloading to get your real logo from database...');
+            window.location.reload();
+          }}
+          className="text-xs bg-red-600 text-white px-2 py-1 rounded mt-1 font-bold"
+        >
+          CLEAR TEST LOGO
+        </button>
       </div>
       {/* Clear Test Logo Button - Always Visible */}
       <div className="fixed top-4 right-4 z-[9999]">
