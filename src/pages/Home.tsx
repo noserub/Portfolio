@@ -3380,11 +3380,25 @@ This will help debug the logo upload.`);
             alert('Test logo cleared! Reloading to get your real logo from database...');
             window.location.reload();
           }}
-          className="text-xs bg-red-500 text-white px-2 py-1 rounded mt-1"
+          className="text-xs bg-red-500 text-white px-2 py-1 rounded mt-1 mr-1"
+        >
+          Clear Test
+        </button>
+      </div>
+      {/* Clear Test Logo Button - Always Visible */}
+      <div className="fixed top-20 left-4 z-50">
+        <button 
+          onClick={() => {
+            localStorage.removeItem('portfolio_logo_url');
+            alert('Test logo cleared! Reloading to get your real logo...');
+            window.location.reload();
+          }}
+          className="bg-red-500 text-white px-4 py-2 rounded-lg font-bold shadow-lg"
         >
           Clear Test Logo
         </button>
       </div>
+
       {/* Hero Section */}
       <section className="min-h-screen flex flex-col items-center justify-center px-6 pt-20 md:pt-32 pb-20">
         <motion.div
