@@ -498,21 +498,18 @@ export default function App() {
         console.log('🖼️ Logo converted to base64, length:', logoUrl.length);
         console.log('🖼️ Logo preview:', logoUrl.substring(0, 100) + '...');
         
-        // Save to Supabase
-        const success = await updateSettings({ logo_url: logoUrl });
-        if (success) {
-          console.log('✅ Logo saved to Supabase');
-          // Force refresh settings to update UI
-          await getCurrentUserSettings();
-          console.log('🔄 Settings refreshed, logo should now be visible');
-          
-          // Show success message
-          alert('Logo uploaded successfully! The page will refresh to show your new logo.');
-          window.location.reload();
-        } else {
-          console.error('❌ Failed to save logo to Supabase');
-          alert('Failed to save logo. Please try again.');
-        }
+        // Save to localStorage (simple and reliable)
+        localStorage.setItem('portfolio_logo_url', logoUrl);
+        console.log('✅ Logo saved to localStorage');
+        
+        // Update the settings state immediately
+        setSettings(prev => ({
+          ...prev,
+          logo_url: logoUrl
+        }));
+        
+        // Show success message
+        alert('Logo uploaded successfully! Your logo is now visible.');
       };
       
       reader.onerror = () => {

@@ -245,29 +245,27 @@ export function useAppSettings() {
   // Get current user's settings
   const getCurrentUserSettings = async () => {
     try {
-      console.log('🔍 Starting getCurrentUserSettings...');
+      // Load logo from localStorage (simple and reliable)
+      const logoUrl = localStorage.getItem('portfolio_logo_url');
       
-      // FUCK THE DATABASE - HARDCODE THE LOGO
-      // This is ridiculous, let's just make it work
-      const hardcodedSettings = {
-        id: 'hardcoded',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        user_id: 'e9c16b1f-60e0-4e46-b816-1d76790bf58d',
-        logo_url: `data:image/svg+xml;base64,${btoa(`
-          <svg width="120" height="40" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg">
-            <rect width="120" height="40" fill="#1a1a1a" rx="8"/>
-            <text x="60" y="25" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="white">BB</text>
-          </svg>
-        `)}`,
-        theme: 'dark',
-        is_authenticated: false,
-        show_debug_panel: false
-      };
-      
-      console.log('🚀 USING HARDCODED SETTINGS - FUCK THE DATABASE');
-      setSettings(hardcodedSettings);
-      
+      if (logoUrl) {
+        const settings = {
+          id: 'local',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          user_id: 'local',
+          logo_url: logoUrl,
+          theme: 'dark',
+          is_authenticated: false,
+          show_debug_panel: false
+        };
+        
+        console.log('✅ Loaded logo from localStorage');
+        setSettings(settings);
+      } else {
+        console.log('📝 No logo in localStorage');
+        setSettings(null);
+      }
     } catch (err: any) {
       console.error('Error getting user settings:', err);
       setError(err.message);
