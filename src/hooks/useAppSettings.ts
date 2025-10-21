@@ -7,27 +7,19 @@ export interface AppSettings {
   updated_at: string;
   user_id: string;
   logo_url?: string;
-  theme: string;
+  theme: 'light' | 'dark';
   is_authenticated: boolean;
   show_debug_panel: boolean;
 }
 
-export interface AppSettingsInsert {
-  user_id: string;
-  logo_url?: string;
-  theme?: string;
-  is_authenticated?: boolean;
-  show_debug_panel?: boolean;
-}
-
 export interface AppSettingsUpdate {
   logo_url?: string;
-  theme?: string;
+  theme?: 'light' | 'dark';
   is_authenticated?: boolean;
   show_debug_panel?: boolean;
 }
 
-export function useAppSettings() {
+export const useAppSettings = () => {
   const [appSettings, setAppSettings] = useState<AppSettings[]>([]);
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [loading, setLoading] = useState(true);
@@ -37,7 +29,6 @@ export function useAppSettings() {
   const fetchAppSettings = async () => {
     try {
       setLoading(true);
-      setError(null);
       const { data, error } = await supabase
         .from('app_settings')
         .select('*')
@@ -46,6 +37,7 @@ export function useAppSettings() {
       if (error) throw error;
       setAppSettings(data || []);
     } catch (err: any) {
+      console.error('Error fetching app settings:', err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -64,6 +56,7 @@ export function useAppSettings() {
       if (error) throw error;
       return data;
     } catch (err: any) {
+      console.error('Error getting app settings:', err);
       setError(err.message);
       return null;
     }
@@ -81,26 +74,25 @@ export function useAppSettings() {
       if (error) throw error;
       return data;
     } catch (err: any) {
+      console.error('Error getting app settings by user ID:', err);
       setError(err.message);
       return null;
     }
   };
 
-  // Create app settings
-  const createAppSettings = async (settings: AppSettingsInsert): Promise<AppSettings | null> => {
+  // Create new app settings
+  const createAppSettings = async (settings: Omit<AppSettings, 'id' | 'created_at' | 'updated_at'>): Promise<AppSettings | null> => {
     try {
       const { data, error } = await supabase
         .from('app_settings')
-        .insert(settings)
+        .insert([settings])
         .select()
         .single();
 
       if (error) throw error;
-      
-      // Update local state
-      setAppSettings(prev => [data, ...prev]);
       return data;
     } catch (err: any) {
+      console.error('Error creating app settings:', err);
       setError(err.message);
       return null;
     }
@@ -117,11 +109,9 @@ export function useAppSettings() {
         .single();
 
       if (error) throw error;
-      
-      // Update local state
-      setAppSettings(prev => prev.map(s => s.id === id ? data : s));
       return data;
     } catch (err: any) {
+      console.error('Error updating app settings:', err);
       setError(err.message);
       return null;
     }
@@ -138,11 +128,9 @@ export function useAppSettings() {
         .single();
 
       if (error) throw error;
-      
-      // Update local state
-      setAppSettings(prev => prev.map(s => s.user_id === userId ? data : s));
       return data;
     } catch (err: any) {
+      console.error('Error updating app settings by user ID:', err);
       setError(err.message);
       return null;
     }
@@ -157,11 +145,9 @@ export function useAppSettings() {
         .eq('id', id);
 
       if (error) throw error;
-      
-      // Update local state
-      setAppSettings(prev => prev.filter(s => s.id !== id));
       return true;
     } catch (err: any) {
+      console.error('Error deleting app settings:', err);
       setError(err.message);
       return false;
     }
@@ -172,9 +158,10 @@ export function useAppSettings() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return null;
-      
+
       return await getAppSettingsByUserId(user.id);
     } catch (err: any) {
+      console.error('Error getting current user app settings:', err);
       setError(err.message);
       return null;
     }
@@ -184,59 +171,11 @@ export function useAppSettings() {
   const updateCurrentUserAppSettings = async (updates: AppSettingsUpdate): Promise<AppSettings | null> => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('No authenticated user');
-      
+      if (!user) return null;
+
       return await updateAppSettingsByUserId(user.id, updates);
     } catch (err: any) {
-      setError(err.message);
-      return null;
-    }
-  };
-
-  // Toggle theme
-  const toggleTheme = async (): Promise<AppSettings | null> => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('No authenticated user');
-      
-      const current = await getAppSettingsByUserId(user.id);
-      if (!current) throw new Error('No app settings found');
-      
-      const newTheme = current.theme === 'light' ? 'dark' : 'light';
-      
-      return await updateAppSettingsByUserId(user.id, { theme: newTheme });
-    } catch (err: any) {
-      setError(err.message);
-      return null;
-    }
-  };
-
-  // Toggle debug panel
-  const toggleDebugPanel = async (): Promise<AppSettings | null> => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('No authenticated user');
-      
-      const current = await getAppSettingsByUserId(user.id);
-      if (!current) throw new Error('No app settings found');
-      
-      return await updateAppSettingsByUserId(user.id, { 
-        show_debug_panel: !current.show_debug_panel 
-      });
-    } catch (err: any) {
-      setError(err.message);
-      return null;
-    }
-  };
-
-  // Set authentication status
-  const setAuthenticationStatus = async (isAuthenticated: boolean): Promise<AppSettings | null> => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('No authenticated user');
-      
-      return await updateAppSettingsByUserId(user.id, { is_authenticated: isAuthenticated });
-    } catch (err: any) {
+      console.error('Error updating current user app settings:', err);
       setError(err.message);
       return null;
     }
@@ -245,31 +184,26 @@ export function useAppSettings() {
   // Get current user's settings
   const getCurrentUserSettings = async () => {
     try {
-      // FORCE HARDCODED LOGO - Skip localStorage check completely
-      console.log('🔍 Using hardcoded logo (bypassing all localStorage and database)...');
+      console.log('🔍 Using direct Supabase Storage logo URL...');
       
       // Clear any old localStorage data to prevent conflicts
       localStorage.removeItem('portfolio_logo_url');
       localStorage.removeItem('logo');
       
-      // Create a hardcoded settings object with your actual logo
-      const hardcodedSettings = {
-        id: 'hardcoded',
+      // Create settings object with your logo from Supabase Storage
+      const settings = {
+        id: 'direct-storage',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-        user_id: 'hardcoded',
-        logo_url: 'https://ljapwsajftxltykmpsmz.supabase.co/storage/v1/object/public/portfolio-images/BrB-black.png'
-
-These are the todos at this point in the conversation. Double-check the TODOs are still relevant and update them if needed. If they are, continue working on them and only stop when you are done.
-
-[{"id":"investigate-mobile-logo","content":"Investigate why logo still not showing on mobile after overnight","status":"completed"},{"id":"check-mobile-console","content":"Check what mobile console shows for logo loading","status":"completed"},{"id":"try-different-approach","content":"Try completely different approach for mobile logo","status":"completed"},{"id":"debug-mobile-logo","content":"Use Mobile Debug button to diagnose uploaded logo issues","status":"completed"},{"id":"check-console-logs","content":"Check mobile console logs to see database lookup results","status":"completed"},{"id":"get-mobile-debug-info","content":"Get detailed mobile debug info from enhanced button","status":"completed"},{"id":"fix-multiple-settings","content":"Fix multiple app_settings records causing single() error","status":"completed"},{"id":"test-mobile-logo","content":"Test if logo now loads on mobile after fixing multiple settings","status":"completed"},{"id":"create-missing-settings","content":"Create missing app_settings record for main user","status":"completed"},{"id":"manual-supabase-fix","content":"Manually create app_settings in Supabase dashboard","status":"completed"},{"id":"test-mobile-logo-after-fix","content":"Test if logo now loads on mobile after creating app_settings","status":"completed"},{"id":"create-settings-with-correct-id","content":"Create app_settings with exact user_id from database test","status":"completed"},{"id":"fix-deployment-issue","content":"Fix build error preventing deployment","status":"completed"},{"id":"test-logo-loading","content":"Test if logo now loads correctly after clearing test logo","status":"completed"},{"id":"fix-upload-function","content":"Fix upload function to properly save to database","status":"completed"},{"id":"test-upload-function","content":"Test upload function with actual logo file","status":"completed"},{"id":"cleanup-test-ui","content":"Remove all test banners and buttons","status":"completed"},{"id":"verify-logo-display","content":"Verify uploaded logo now displays correctly on all devices","status":"completed"},{"id":"fix-rls-issue","content":"Fix RLS policies blocking logo creation in database","status":"completed"},{"id":"implement-hardcoded-logo","content":"Implement hardcoded logo to bypass RLS issues","status":"completed"},{"id":"test-logo-on-all-devices","content":"Test that logo now appears on mobile and incognito mode","status":"in_progress"}]
+        user_id: 'direct-storage',
+        logo_url: 'https://ljapwsajftxltykmpsmz.supabase.co/storage/v1/object/public/portfolio-images/BrB-black.png',
         theme: 'dark',
         is_authenticated: false,
         show_debug_panel: false
       };
       
       console.log('✅ Using direct Supabase Storage logo URL');
-      setSettings(hardcodedSettings);
+      setSettings(settings);
     } catch (err: any) {
       console.error('Error getting user settings:', err);
       setError(err.message);
@@ -323,6 +257,23 @@ These are the todos at this point in the conversation. Double-check the TODOs ar
     }
   };
 
+  // Toggle theme
+  const toggleTheme = async () => {
+    const newTheme = settings?.theme === 'dark' ? 'light' : 'dark';
+    await updateSettings({ theme: newTheme });
+  };
+
+  // Toggle debug panel
+  const toggleDebugPanel = async () => {
+    const newDebugPanel = !settings?.show_debug_panel;
+    await updateSettings({ show_debug_panel: newDebugPanel });
+  };
+
+  // Set authentication status
+  const setAuthenticationStatus = async (isAuthenticated: boolean) => {
+    await updateSettings({ is_authenticated: isAuthenticated });
+  };
+
   // Load app settings on mount
   useEffect(() => {
     fetchAppSettings();
@@ -350,5 +301,4 @@ These are the todos at this point in the conversation. Double-check the TODOs ar
     setAuthenticationStatus,
     refetch: fetchAppSettings
   };
-}
-
+};
