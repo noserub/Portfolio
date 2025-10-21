@@ -231,31 +231,32 @@ export default function App() {
       : 'blur(0px) saturate(100%)'
     );
   }, [isBlurringBackground]);
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    try {
-      // Load authentication state from localStorage
-      const savedAuth = localStorage.getItem('isAuthenticated');
-      return savedAuth === 'true';
-    } catch (e) {
-      console.error('Error loading auth state:', e);
-      return false;
-    }
-  });
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // Listen for Supabase auth state changes
+  // Check authentication state on mount and listen for changes
   useEffect(() => {
+    // Check current auth state
+    const checkAuthState = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      const isAuth = !!user;
+      setIsAuthenticated(isAuth);
+      console.log('🔐 Initial auth check:', { isAuthenticated: isAuth, user: user?.email });
+    };
+
+    checkAuthState();
+
+    // Listen for Supabase auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log('🔐 Supabase auth state changed:', { event, user: session?.user?.email });
       
-      if (session?.user) {
-        // User is authenticated in Supabase
-        setIsAuthenticated(true);
+      const isAuth = !!session?.user;
+      setIsAuthenticated(isAuth);
+      
+      if (isAuth) {
         localStorage.setItem('isAuthenticated', 'true');
         console.log('✅ Signed in - authentication persisted to localStorage');
       } else {
-        // User is not authenticated in Supabase
-        setIsAuthenticated(false);
-        localStorage.setItem('isAuthenticated', 'false');
+        localStorage.removeItem('isAuthenticated');
         console.log('👋 Signed out - authentication cleared from localStorage');
       }
     });
@@ -869,12 +870,26 @@ export default function App() {
     console.log('✅ Authentication state updated:', { isAuthenticated: true, isEditMode: true });
   };
 
-  const handleSignOut = () => {
-    setIsAuthenticated(false);
-    setIsEditMode(false);
-    // Clear authentication from localStorage
-    localStorage.removeItem('isAuthenticated');
-    console.log('👋 Signed out - authentication cleared from localStorage');
+  const handleSignOut = async () => {
+    try {
+      // Sign out from Supabase
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('Error signing out:', error);
+      }
+      
+      // Clear local state
+      setIsAuthenticated(false);
+      setIsEditMode(false);
+      localStorage.removeItem('isAuthenticated');
+      console.log('👋 Signed out - authentication cleared from Supabase and localStorage');
+    } catch (error) {
+      console.error('Error during sign out:', error);
+      // Still clear local state even if Supabase sign out fails
+      setIsAuthenticated(false);
+      setIsEditMode(false);
+      localStorage.removeItem('isAuthenticated');
+    }
   };
 
 
