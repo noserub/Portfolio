@@ -2311,25 +2311,25 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
   
   // Home page hero text - editable in edit mode
   const [heroText, setHeroText] = useState(() => {
-    const defaultHeroText = {
-      greeting: "Welcome,",
-      greetings: [
-        "Welcome,",
-        "I'm Brian.",
-        "Designer.",
-        "Researcher.",
-        "Product Builder."
-      ],
-      greetingFont: "Inter, sans-serif",
-      lastGreetingPauseDuration: 30000,
-      subtitle: "Brian Bureson is a (super rad) product design leader",
-      description: "building high quality products and teams through",
-      word1: "planning",
-      word2: "collaboration",
-      word3: "empathy",
-      word4: "design",
-      buttonText: "About Brian"
-    };
+  const defaultHeroText = {
+    greeting: "Welcome,",
+    greetings: [
+      "Welcome,",
+      "I'm Brian.",
+      "Designer.",
+      "Researcher.",
+      "Product Builder."
+    ],
+    greetingFont: "Inter, sans-serif",
+    lastGreetingPauseDuration: 30000,
+    subtitle: "Brian Bureson is a (super rad) product design leader",
+    description: "building high quality products and teams through",
+    word1: "planning",
+    word2: "collaboration",
+    word3: "empathy",
+    word4: "design",
+    buttonText: "About Brian - DEPLOYMENT TEST"
+  };
     
     try {
       console.log('🏠 Home: Loading hero text...');
