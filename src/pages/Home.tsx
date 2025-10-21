@@ -750,8 +750,12 @@ const defaultDesignProjects: ProjectData[] = [
 ];
 
 export function Home({ onStartClick, isEditMode, onProjectClick, currentPage }: HomeProps) {
+  // DEBUG: Latest deployment test - if you see this, the new code is deployed
   // Apply SEO for home page
   useSEO('home');
+  
+  // DEBUG: Add visible indicator that new code is deployed
+  console.log('🚀 LATEST DEPLOYMENT TEST - If you see this in console, new code is live!');
   
   // Supabase projects hook
   const { projects, loading, createProject, updateProject, deleteProject, reorderProjects } = useProjects();
