@@ -3624,53 +3624,32 @@ This will help debug the logo upload.`);
         </button>
         <button 
           onClick={async () => {
-            // Create a simple logo that will work for everyone
-            try {
-              // Get the main user's profile
-              const { data: mainProfile } = await supabase
-                .from('profiles')
-                .select('id')
-                .eq('email', 'brian.bureson@gmail.com')
-                .single();
-              
-              if (mainProfile) {
-                // Create a simple SVG logo
-                const logoData = `data:image/svg+xml;base64,${btoa(`
-                  <svg width="120" height="40" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg">
-                    <rect width="120" height="40" fill="#1a1a1a" rx="8"/>
-                    <text x="60" y="25" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="white">BB</text>
-                  </svg>
-                `)}`;
-                
-                // Try to insert directly (bypassing RLS)
-                const { data, error } = await supabase
-                  .from('app_settings')
-                  .insert({
-                    user_id: mainProfile.id,
-                    logo_url: logoData,
-                    theme: 'dark',
-                    is_authenticated: false,
-                    show_debug_panel: false
-                  })
-                  .select()
-                  .single();
-                
-                if (error) {
-                  alert(`Error creating logo: ${error.message}\n\nThis is likely due to RLS policies blocking unauthenticated users.`);
-                } else {
-                  alert('Logo created successfully! Reloading...');
+            // Upload your actual logo and hardcode it
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.onchange = async (e) => {
+              const file = (e.target as HTMLInputElement).files?.[0];
+              if (file) {
+                const reader = new FileReader();
+                reader.onload = () => {
+                  const logoUrl = reader.result as string;
+                  console.log('🖼️ Your actual logo:', logoUrl.substring(0, 100) + '...');
+                  
+                  // Save to localStorage immediately
+                  localStorage.setItem('portfolio_logo_url', logoUrl);
+                  
+                  alert(`Your actual logo has been saved! Logo length: ${logoUrl.length} characters. Reloading to show your logo...`);
                   window.location.reload();
-                }
-              } else {
-                alert('No main profile found');
+                };
+                reader.readAsDataURL(file);
               }
-            } catch (err) {
-              alert(`Error creating logo: ${err}`);
-            }
+            };
+            input.click();
           }}
           className="text-xs bg-purple-500 text-white px-2 py-1 rounded mt-1"
         >
-          Create Simple Logo
+          Upload YOUR Logo
         </button>
       </div>
 
