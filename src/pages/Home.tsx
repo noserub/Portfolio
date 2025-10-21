@@ -3014,6 +3014,18 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
       {/* DEPLOYMENT TEST - Remove after confirming deployment */}
       <div className="fixed top-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-bold z-50 shadow-lg">
         🚀 DEPLOYED v{Date.now().toString().slice(-6)}
+        <div className="text-xs mt-1">
+          Data: {heroText.subtitle} | {heroText.description}
+        </div>
+        <button 
+          onClick={() => {
+            localStorage.clear();
+            window.location.reload();
+          }}
+          className="text-xs bg-white text-red-500 px-2 py-1 rounded mt-1"
+        >
+          Clear Cache & Reload
+        </button>
       </div>
       {/* Hero Section */}
       <section className="min-h-screen flex flex-col items-center justify-center px-6 pt-20 md:pt-32 pb-20">
