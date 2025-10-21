@@ -483,26 +483,47 @@ export default function App() {
 
   const handleLogoUpload = async (file: File) => {
     try {
+      console.log('📤 Starting logo upload:', file.name, file.type, file.size);
+      
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        alert('Please select an image file (PNG, JPG, GIF, etc.)');
+        return;
+      }
+      
       // Convert file to base64 data URL
       const reader = new FileReader();
       reader.onloadend = async () => {
         const logoUrl = reader.result as string;
+        console.log('🖼️ Logo converted to base64, length:', logoUrl.length);
+        console.log('🖼️ Logo preview:', logoUrl.substring(0, 100) + '...');
         
         // Save to Supabase
         const success = await updateSettings({ logo_url: logoUrl });
         if (success) {
           console.log('✅ Logo saved to Supabase');
-          // Refresh settings to update UI
+          // Force refresh settings to update UI
           await getCurrentUserSettings();
           console.log('🔄 Settings refreshed, logo should now be visible');
+          
+          // Show success message
+          alert('Logo uploaded successfully! The page will refresh to show your new logo.');
+          window.location.reload();
         } else {
           console.error('❌ Failed to save logo to Supabase');
+          alert('Failed to save logo. Please try again.');
         }
       };
+      
+      reader.onerror = () => {
+        console.error('❌ Error reading file');
+        alert('Error reading the selected file. Please try a different image.');
+      };
+      
       reader.readAsDataURL(file);
     } catch (error) {
       console.error('Error uploading logo:', error);
-      alert('Failed to upload logo. Please try again.');
+      alert('Error uploading logo. Please try again.');
     }
   };
 
