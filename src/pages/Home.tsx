@@ -756,6 +756,7 @@ export function Home({ onStartClick, isEditMode, onProjectClick, currentPage }: 
   
   // DEBUG: Add visible indicator that new code is deployed
   console.log('🚀 LATEST DEPLOYMENT TEST - If you see this in console, new code is live!');
+  console.log('🕒 Deployment timestamp:', new Date().toISOString());
   
   // Supabase projects hook
   const { projects, loading, createProject, updateProject, deleteProject, reorderProjects } = useProjects();
