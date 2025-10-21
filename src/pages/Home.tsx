@@ -3431,6 +3431,60 @@ This will help debug the logo upload.`);
         >
           Check Logo
         </button>
+        <button 
+          onClick={async () => {
+            // Create a simple logo for the main user
+            const { data: mainProfile } = await supabase
+              .from('profiles')
+              .select('id')
+              .eq('email', 'brian.bureson@gmail.com')
+              .single();
+            
+            if (mainProfile) {
+              // Create a simple SVG logo
+              const logoData = `data:image/svg+xml;base64,${btoa(`
+                <svg width="120" height="40" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg">
+                  <rect width="120" height="40" fill="#1a1a1a" rx="8"/>
+                  <text x="60" y="25" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="white">BB</text>
+                </svg>
+              `)}`;
+              
+              // Try to update existing settings
+              const { error: updateError } = await supabase
+                .from('app_settings')
+                .update({ logo_url: logoData })
+                .eq('user_id', mainProfile.id);
+              
+              if (updateError) {
+                // If update fails, try to insert new settings
+                const { error: insertError } = await supabase
+                  .from('app_settings')
+                  .insert({
+                    user_id: mainProfile.id,
+                    logo_url: logoData,
+                    theme: 'dark',
+                    is_authenticated: false,
+                    show_debug_panel: false
+                  });
+                
+                if (insertError) {
+                  alert(`Error creating logo: ${insertError.message}`);
+                } else {
+                  alert('Logo created successfully! Reloading...');
+                  window.location.reload();
+                }
+              } else {
+                alert('Logo updated successfully! Reloading...');
+                window.location.reload();
+              }
+            } else {
+              alert('No main profile found');
+            }
+          }}
+          className="text-xs bg-green-500 text-white px-2 py-1 rounded mt-1"
+        >
+          Create Logo
+        </button>
       </div>
       {/* Clear Test Logo Button - Always Visible */}
       <div className="fixed top-4 right-4 z-[9999]">
