@@ -3519,6 +3519,35 @@ This will help debug the logo upload.`);
         >
           Force DB Load
         </button>
+        <button 
+          onClick={async () => {
+            // Test database lookup directly
+            try {
+              const { data: mainProfile, error: profileError } = await supabase
+                .from('profiles')
+                .select('id')
+                .eq('email', 'brian.bureson@gmail.com')
+                .single();
+                
+              if (mainProfile) {
+                const { data: allSettings, error: settingsError } = await supabase
+                  .from('app_settings')
+                  .select('*')
+                  .eq('user_id', mainProfile.id)
+                  .order('created_at', { ascending: false });
+                
+                alert(`Database Test:\nProfile: ${mainProfile.id}\nSettings Count: ${allSettings?.length || 0}\nSettings Error: ${settingsError?.message || 'None'}\nProfile Error: ${profileError?.message || 'None'}\nLogo URL: ${allSettings?.[0]?.logo_url ? 'FOUND' : 'NOT FOUND'}`);
+              } else {
+                alert(`Database Test:\nProfile: NOT FOUND\nProfile Error: ${profileError?.message || 'None'}`);
+              }
+            } catch (err) {
+              alert(`Database Test Error: ${err}`);
+            }
+          }}
+          className="text-xs bg-yellow-500 text-white px-2 py-1 rounded mt-1"
+        >
+          Test DB Lookup
+        </button>
       </div>
 
       {/* Hero Section */}

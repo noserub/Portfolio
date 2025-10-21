@@ -275,6 +275,8 @@ export function useAppSettings() {
         .eq('email', 'brian.bureson@gmail.com')
         .single();
         
+      console.log('🔍 Profile lookup result:', { mainProfile, profileError });
+        
       if (mainProfile) {
         // Get app_settings for the main user
         const { data: allSettings, error: settingsError } = await supabase
@@ -283,16 +285,18 @@ export function useAppSettings() {
           .eq('user_id', mainProfile.id)
           .order('created_at', { ascending: false });
           
+        console.log('🔍 Settings lookup result:', { allSettings, settingsError });
+          
         if (allSettings && allSettings.length > 0) {
           const mainUserSettings = allSettings[0];
-          console.log('✅ Loaded logo from database');
+          console.log('✅ Loaded logo from database:', mainUserSettings.logo_url ? 'HAS LOGO' : 'NO LOGO');
           setSettings(mainUserSettings);
         } else {
           console.log('📝 No settings in database');
           setSettings(null);
         }
       } else {
-        console.log('📝 No main profile found');
+        console.log('📝 No main profile found, error:', profileError);
         setSettings(null);
       }
     } catch (err: any) {
