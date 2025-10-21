@@ -263,7 +263,6 @@ export default function App() {
   }, []);
   const [showSignIn, setShowSignIn] = useState(false);
   const [showSaveIndicator, setShowSaveIndicator] = useState(false);
-  const [showDebugPanel, setShowDebugPanel] = useState(false);
   const [pendingProtectedProject, setPendingProtectedProject] = useState<{
     project: ProjectData;
     updateCallback: (project: ProjectData) => void;
@@ -296,13 +295,6 @@ export default function App() {
     };
   });
   
-  const [debugInfo, setDebugInfo] = useState<{
-    hasLogo: boolean;
-    caseStudiesCount: number;
-    designProjectsCount: number;
-    totalSize: string;
-    caseStudies: any[];
-  } | null>(null);
 
   const refreshDebugInfo = () => {
     try {
@@ -1272,88 +1264,6 @@ export default function App() {
         )}
       </motion.div>
 
-      {/* Debug Panel */}
-      <AnimatePresence>
-        {showDebugPanel && debugInfo && (
-          <motion.div
-            initial={{ opacity: 0, x: 300 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 300 }}
-            className="fixed right-6 top-48 z-50 w-96 max-h-[70vh] overflow-auto bg-slate-900 text-white p-6 rounded-2xl shadow-2xl border border-slate-700"
-          >
-            <h3 className="text-xl font-bold mb-4 text-yellow-400">Storage Debug Info</h3>
-            
-            <div className="space-y-4 text-sm font-mono">
-              <div>
-                <div className="text-muted-foreground mb-1">Logo:</div>
-                <div className={debugInfo.hasLogo ? 'text-green-400' : 'text-red-400'}>
-                  {debugInfo.hasLogo ? '✅ Present' : '❌ Not found'}
-                </div>
-              </div>
-
-              <div>
-                <div className="text-muted-foreground mb-1">Case Studies:</div>
-                <div className={debugInfo.caseStudiesCount > 0 ? 'text-green-400' : 'text-red-400'}>
-                  {debugInfo.caseStudiesCount > 0 ? 
-                    `✅ ${debugInfo.caseStudiesCount} projects` : 
-                    '❌ Not found'}
-                </div>
-              </div>
-
-              <div>
-                <div className="text-muted-foreground mb-1">Design Projects:</div>
-                <div className={debugInfo.designProjectsCount > 0 ? 'text-green-400' : 'text-red-400'}>
-                  {debugInfo.designProjectsCount > 0 ? 
-                    `✅ ${debugInfo.designProjectsCount} projects` : 
-                    '❌ Not found'}
-                </div>
-              </div>
-
-              <div className="border-t border-border pt-4">
-                <div className="text-muted-foreground mb-2">Total Storage Used:</div>
-                <div className="text-cyan-400">{debugInfo.totalSize}</div>
-              </div>
-
-              {debugInfo.caseStudies.length > 0 && (
-                <div className="border-t border-border pt-4">
-                  <div className="text-muted-foreground mb-2">Case Study Images:</div>
-                  {debugInfo.caseStudies.map((p: any) => {
-                    const galleryCount = p.caseStudyImages?.length || 0;
-                    const hasHeroImage = p.url ? 1 : 0;
-                    const totalImages = hasHeroImage + galleryCount;
-                    
-                    return (
-                      <div key={p.id} className="mb-2 p-2 bg-muted rounded">
-                        <div className="text-foreground mb-1">{p.title}</div>
-                        <div className="text-muted-foreground text-xs space-y-0.5">
-                          <div>Hero image: {hasHeroImage ? '✅' : '❌'}</div>
-                          <div>Gallery: {galleryCount} {galleryCount === 1 ? 'image' : 'images'}</div>
-                          <div className="text-cyan-400 font-semibold">Total: {totalImages} {totalImages === 1 ? 'image' : 'images'}</div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            <div className="mt-4 flex gap-2">
-              <button
-                onClick={refreshDebugInfo}
-                className="flex-1 bg-cyan-600 hover:bg-cyan-700 text-white py-2 rounded-lg transition-colors font-semibold"
-              >
-                🔄 Refresh
-              </button>
-              <button
-                onClick={() => setShowDebugPanel(false)}
-                className="flex-1 bg-slate-800 hover:bg-slate-700 text-white py-2 rounded-lg transition-colors"
-              >
-                Close
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Password Reset Modal */}
       <AnimatePresence>
