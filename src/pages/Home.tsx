@@ -3550,43 +3550,43 @@ This will help debug the logo upload.`);
         </button>
         <button 
           onClick={async () => {
-            // Manually load logo from database and set it
+            // Check ALL app_settings records
             try {
-              const { data: mainProfile } = await supabase
-                .from('profiles')
-                .select('id')
-                .eq('email', 'brian.bureson@gmail.com')
-                .single();
+              const { data: allSettings, error } = await supabase
+                .from('app_settings')
+                .select('*')
+                .order('created_at', { ascending: false });
+              
+              console.log('🔍 All Settings:', allSettings);
+              console.log('🔍 Settings Error:', error);
+              
+              if (allSettings && allSettings.length > 0) {
+                let logoFound = false;
+                for (let i = 0; i < allSettings.length; i++) {
+                  const setting = allSettings[i];
+                  if (setting.logo_url) {
+                    // Found a logo! Set it in localStorage
+                    localStorage.setItem('portfolio_logo_url', setting.logo_url);
+                    alert(`Logo found in setting ${i + 1}! User ID: ${setting.user_id}, Logo URL: ${setting.logo_url.substring(0, 50)}... Reloading...`);
+                    window.location.reload();
+                    logoFound = true;
+                    break;
+                  }
+                }
                 
-              if (mainProfile) {
-                const { data: allSettings } = await supabase
-                  .from('app_settings')
-                  .select('*')
-                  .eq('user_id', mainProfile.id)
-                  .order('created_at', { ascending: false });
-                
-                console.log('🔍 Load Logo Now - Settings:', allSettings);
-                console.log('🔍 Load Logo Now - First setting:', allSettings?.[0]);
-                console.log('🔍 Load Logo Now - Logo URL:', allSettings?.[0]?.logo_url);
-                
-                if (allSettings && allSettings.length > 0 && allSettings[0].logo_url) {
-                  // Set the logo directly in localStorage to force it to show
-                  localStorage.setItem('portfolio_logo_url', allSettings[0].logo_url);
-                  alert('Logo loaded from database and set in localStorage! Reloading...');
-                  window.location.reload();
-                } else {
-                  alert(`No logo found in database settings. Settings count: ${allSettings?.length || 0}, First setting: ${JSON.stringify(allSettings?.[0] || {})}`);
+                if (!logoFound) {
+                  alert(`Found ${allSettings.length} settings but no logo_url in any of them. Settings: ${JSON.stringify(allSettings)}`);
                 }
               } else {
-                alert('No main profile found');
+                alert(`No app_settings records found. Error: ${error?.message || 'None'}`);
               }
             } catch (err) {
-              alert(`Error loading logo: ${err}`);
+              alert(`Error checking all settings: ${err}`);
             }
           }}
           className="text-xs bg-green-500 text-white px-2 py-1 rounded mt-1"
         >
-          Load Logo Now
+          Check All Settings
         </button>
       </div>
 
