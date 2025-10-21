@@ -3079,34 +3079,37 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         </button>
         <button 
           onClick={async () => {
-            // Force load first profile from database
-            const { data: profiles } = await supabase
+            // Update main profile with hero text data
+            const { data: mainProfile, error: updateError } = await supabase
               .from('profiles')
-              .select('*')
-              .limit(1);
+              .update({
+                subtitle: 'Product design leader',
+                description: 'building high quality products and teams through',
+                word1: 'planning',
+                word2: 'collaboration',
+                word3: 'empathy',
+                word4: 'design',
+                buttonText: 'More about Brian'
+              })
+              .eq('email', 'brian.bureson@gmail.com')
+              .select();
+              
+            if (updateError) {
+              alert('Error updating profile: ' + updateError.message);
+              return;
+            }
             
-            if (profiles && profiles.length > 0) {
-              const profile = profiles[0];
-              // Store in localStorage to override defaults
-              localStorage.setItem('heroText', JSON.stringify({
-                subtitle: profile.subtitle || 'Product design leader',
-                description: profile.description || 'building high quality products and teams through',
-                word1: profile.word1 || 'planning',
-                word2: profile.word2 || 'collaboration',
-                word3: profile.word3 || 'empathy',
-                word4: profile.word4 || 'design',
-                buttonText: profile.buttonText || 'More about Brian'
-              }));
-              alert('Profile loaded from database!');
+            if (mainProfile && mainProfile.length > 0) {
+              alert('Profile updated successfully!');
             } else {
-              alert('No profiles found in database');
+              alert('No profile found to update');
             }
             
             window.location.reload();
           }}
           className="text-xs bg-green-500 text-white px-2 py-1 rounded mt-1"
         >
-          Load Profile & Reload
+          Update Profile & Reload
         </button>
       </div>
       {/* Hero Section */}
