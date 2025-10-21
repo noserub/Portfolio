@@ -260,13 +260,16 @@ export function useAppSettings() {
       if (mainProfile) {
         console.log('✅ Found main profile:', mainProfile.id);
         
-        const { data: mainUserSettings, error: settingsError } = await supabase
+        // Get the most recent settings (there might be multiple)
+        const { data: allSettings, error: settingsError } = await supabase
           .from('app_settings')
           .select('*')
           .eq('user_id', mainProfile.id)
-          .single();
+          .order('created_at', { ascending: false });
           
-        console.log('🔍 Settings lookup result:', { mainUserSettings, settingsError });
+        console.log('🔍 Settings lookup result:', { allSettings, settingsError });
+        
+        const mainUserSettings = allSettings && allSettings.length > 0 ? allSettings[0] : null;
           
         if (mainUserSettings) {
           console.log('📥 Retrieved main user settings for all visitors:', mainUserSettings);

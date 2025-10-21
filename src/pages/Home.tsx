@@ -3141,16 +3141,18 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
               
             let settingsInfo = 'NO PROFILE FOUND';
             if (mainProfile) {
-              const { data: mainUserSettings, error: settingsError } = await supabase
+              // Get the most recent settings (there might be multiple)
+              const { data: allSettings, error: allSettingsError } = await supabase
                 .from('app_settings')
                 .select('*')
                 .eq('user_id', mainProfile.id)
-                .single();
+                .order('created_at', { ascending: false });
                 
-              if (mainUserSettings) {
-                settingsInfo = `SETTINGS FOUND: Logo URL Length: ${mainUserSettings.logo_url?.length || 0}`;
+              if (allSettings && allSettings.length > 0) {
+                const mainUserSettings = allSettings[0]; // Get the most recent
+                settingsInfo = `SETTINGS FOUND (${allSettings.length} total): Logo URL Length: ${mainUserSettings.logo_url?.length || 0}`;
               } else {
-                settingsInfo = `NO SETTINGS FOUND. Error: ${settingsError?.message || 'Unknown'}`;
+                settingsInfo = `NO SETTINGS FOUND. Error: ${allSettingsError?.message || 'Unknown'}`;
               }
             } else {
               settingsInfo = `PROFILE ERROR: ${profileError?.message || 'Unknown'}`;
