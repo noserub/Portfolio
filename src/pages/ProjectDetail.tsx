@@ -1677,181 +1677,94 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     onUpdate(updatedProject);
   };
 
-  // Markdown section move handler - only swaps with other markdown sections
+  // Simplified markdown section move handler
   const handleMoveMarkdownSection = (sectionTitle: string, direction: 'up' | 'down') => {
     console.log(`📝 Moving markdown section "${sectionTitle}" ${direction}`);
     
-    // Build the combined sections list to find actual positions
-    // Parse sections using the same logic as CaseStudySections
     const lines = caseStudyContent?.split('\n') || [];
-    const sections: string[] = [];
+    const allSections: Array<{ title: string; startLine: number; endLine: number }> = [];
     
+    // Find all section boundaries
     for (let i = 0; i < lines.length; i++) {
       const headerMatch = lines[i].match(/^#{1,2} (.+)$/);
       if (headerMatch) {
         const title = headerMatch[1].trim();
-        sections.push(title);
+        allSections.push({ title, startLine: i, endLine: -1 });
+        
+        if (allSections.length > 1) {
+          allSections[allSections.length - 2].endLine = i - 1;
+        }
       }
     }
     
-    // Filter out special sections
-    const markdownSections = sections.filter(s => 
-      s !== 'At a glance' && s !== 'Impact'
-    );
-    
-    // Build combined list with positions
-    const combined: Array<{ title: string; type: 'markdown' | 'special'; position: number }> = [];
-    let markdownIndex = 0;
-    
-    for (let i = 0; i < 20; i++) { // Max 20 positions
-      // Check if Project Images is at this position
-      if (projectImagesPosition === i && (caseStudyImages.length > 0 || isEditMode)) {
-        combined.push({ title: '__PROJECT_IMAGES__', type: 'special', position: i });
-        continue;
-      }
-      
-      // Check if Flow Diagrams is at this position
-      if (flowDiagramsPosition === i && (flowDiagramImages.length > 0 || isEditMode)) {
-        combined.push({ title: '__FLOW_DIAGRAMS__', type: 'special', position: i });
-        continue;
-      }
-      
-      // Check if Solution Cards is at this position
-      if (solutionCardsPosition !== undefined && solutionCardsPosition === i) {
-        combined.push({ title: '__SOLUTION_CARDS__', type: 'special', position: i });
-        continue;
-      }
-      
-      // Otherwise, add next markdown section if available
-      if (markdownIndex < markdownSections.length) {
-        combined.push({ 
-          title: markdownSections[markdownIndex], 
-          type: 'markdown', 
-          position: i 
-        });
-        markdownIndex++;
-      }
+    if (allSections.length > 0) {
+      allSections[allSections.length - 1].endLine = lines.length - 1;
     }
     
-    console.log('📋 Combined sections:', combined.map(c => `${c.title} (${c.type}) @${c.position}`));
+    console.log('📋 All sections found:', allSections.map(s => s.title));
     
-    // Find current section in combined list
-    const currentIndex = combined.findIndex(c => c.title === sectionTitle);
+    // Find current section index
+    const currentIndex = allSections.findIndex(s => s.title === sectionTitle);
     if (currentIndex === -1) {
-      console.error('❌ Section not found in combined list');
+      console.error('❌ Section not found:', sectionTitle);
       return;
     }
     
     const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
     
     // Check boundaries
-    if (targetIndex < 0 || targetIndex >= combined.length) {
+    if (targetIndex < 0 || targetIndex >= allSections.length) {
       console.log('⚠️ Already at boundary');
       return;
     }
     
-    const current = combined[currentIndex];
-    const target = combined[targetIndex];
+    const currentSection = allSections[currentIndex];
+    const targetSection = allSections[targetIndex];
     
-    console.log(`↔️ Swapping "${current.title}" (${current.type}) with "${target.title}" (${target.type})`);
-    console.log(`  Current at position ${currentIndex}, Target at position ${targetIndex}`);
-    console.log(`  Direction: ${direction}`);
+    console.log(`↔️ Swapping "${currentSection.title}" with "${targetSection.title}"`);
     
-    if (target.type === 'special') {
-      // Cannot swap markdown sections with special sections
-      // Use the purple control bars on special sections instead
-      console.log('⚠️ Cannot swap markdown section with special section');
-      console.log('💡 Use the purple control bar arrows on the special section instead');
-      alert(
-        '⚠️ Cannot Move Past Special Sections\n\n' +
-        `"${sectionTitle}" is adjacent to "${target.title?.replace(/__/g, '')?.replace(/_/g, ' ') || 'Unknown'}".\n\n` +
-        'To reorder around special sections:\n\n' +
-        '1. Use the PURPLE CONTROL BAR arrows on:\n' +
-        '   • Project Images\n' +
-        '   • Flow Diagrams\n' +
-        '   • Solution Cards\n\n' +
-        '2. Move the special section up/down\n' +
-        '3. Then move this markdown section'
-      );
-      return;
-      
-    } else {
-      // Swapping with another markdown section - update markdown content
-      console.log('📝 Swapping markdown sections in content');
-      
-      const lines = caseStudyContent?.split('\n') || [];
-      const allSections: Array<{ title: string; startLine: number; endLine: number }> = [];
-      
-      // Find all section boundaries - use same regex as CaseStudySections
-      for (let i = 0; i < lines.length; i++) {
-        const headerMatch = lines[i].match(/^#{1,2} (.+)$/);
-        if (headerMatch) {
-          const title = headerMatch[1].trim();
-          allSections.push({ title, startLine: i, endLine: -1 });
-          
-          if (allSections.length > 1) {
-            allSections[allSections.length - 2].endLine = i - 1;
-          }
-        }
-      }
-      
-      if (allSections.length > 0) {
-        allSections[allSections.length - 1].endLine = lines.length - 1;
-      }
-      
-      console.log('📋 All sections found in markdown:', allSections.map(s => s.title));
-      
-      const currentSection = allSections.find(s => s.title === sectionTitle);
-      const targetSection = allSections.find(s => s.title === target.title);
-      
-      console.log(`🔍 Looking for sections: "${sectionTitle}" and "${target.title}"`);
-      console.log(`📍 Current section found:`, currentSection ? 'Yes' : 'No');
-      console.log(`📍 Target section found:`, targetSection ? 'Yes' : 'No');
-      
-      if (!currentSection || !targetSection) {
-        console.error('❌ Sections not found in markdown');
-        console.error('Available sections:', allSections.map(s => s.title));
-        return;
-      }
-      
-      // Extract section content
-      const currentLines = lines.slice(currentSection.startLine, currentSection.endLine + 1);
-      const targetLines = lines.slice(targetSection.startLine, targetSection.endLine + 1);
-      
-      // Rebuild content with swapped sections
-      const newLines = direction === 'up' ? [
-        ...lines.slice(0, targetSection.startLine),
-        ...currentLines,
-        ...targetLines,
-        ...lines.slice(currentSection.endLine + 1)
-      ] : [
-        ...lines.slice(0, currentSection.startLine),
-        ...targetLines,
-        ...currentLines,
-        ...lines.slice(targetSection.endLine + 1)
-      ];
-      
-      const newContent = newLines.join('\n');
-      console.log('✅ Markdown content updated');
-      setCaseStudyContent(newContent);
-      
-      const updatedProject: ProjectData = {
-        ...project,
-        title: editedTitle,
-        description: editedDescription,
-        caseStudyContent: newContent,
-        caseStudyImages: caseStudyImagesRef.current,
-        flowDiagramImages: flowDiagramImagesRef.current,
-        galleryAspectRatio,
-        flowDiagramAspectRatio,
-        galleryColumns,
-        flowDiagramColumns,
-        projectImagesPosition,
-        flowDiagramsPosition,
-        solutionCardsPosition,
-      };
-      onUpdate(updatedProject);
-    }
+    // Extract section content
+    const currentLines = lines.slice(currentSection.startLine, currentSection.endLine + 1);
+    const targetLines = lines.slice(targetSection.startLine, targetSection.endLine + 1);
+    
+    // Rebuild content with swapped sections
+    const newLines = direction === 'up' ? [
+      ...lines.slice(0, targetSection.startLine),
+      ...currentLines,
+      ...targetLines,
+      ...lines.slice(currentSection.endLine + 1)
+    ] : [
+      ...lines.slice(0, currentSection.startLine),
+      ...targetLines,
+      ...currentLines,
+      ...lines.slice(targetSection.endLine + 1)
+    ];
+    
+    const newContent = newLines.join('\n');
+    console.log('✅ Markdown content updated');
+    setCaseStudyContent(newContent);
+    
+    const updatedProject: ProjectData = {
+      ...project,
+      title: editedTitle,
+      description: editedDescription,
+      caseStudyContent: newContent,
+      caseStudyImages: caseStudyImagesRef.current,
+      flowDiagramImages: flowDiagramImagesRef.current,
+      videoItems: videoItemsRef.current,
+      galleryAspectRatio,
+      flowDiagramAspectRatio,
+      videoAspectRatio,
+      galleryColumns,
+      flowDiagramColumns,
+      videoColumns,
+      projectImagesPosition,
+      videosPosition,
+      flowDiagramsPosition,
+      solutionCardsPosition,
+      sectionPositions,
+    };
+    onUpdate(updatedProject);
   };
 
   // OLD: Universal section move handler - works for ANY section
