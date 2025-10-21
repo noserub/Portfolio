@@ -55,16 +55,24 @@ try {
 type Page = "home" | "about" | "contact" | "music" | "visuals" | "project-detail" | "supabase-test";
 
 // Error Boundary Component
-class ErrorBoundary extends React.Component<
-  { children: React.ReactNode },
-  { hasError: boolean; error: Error | null }
-> {
-  constructor(props: { children: React.ReactNode }) {
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+}
+
+interface ErrorBoundaryProps {
+  children?: React.ReactNode;
+}
+
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  public state: ErrorBoundaryState;
+
+  constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false, error: null };
   }
 
-  static getDerivedStateFromError(error: Error) {
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
     return { hasError: true, error };
   }
 
@@ -134,7 +142,7 @@ class ErrorBoundary extends React.Component<
       );
     }
 
-    return this.props.children;
+    return (this as any).props.children;
   }
 }
 
@@ -511,7 +519,7 @@ export default function App() {
 
   const navigateToProject = async (project: ProjectData, updateCallback: (project: ProjectData) => void) => {
     // Try to load fresh data from Supabase first
-    let freshProject = null;
+    let freshProject: ProjectData | null = null;
     
     try {
       console.log('🔄 Loading fresh project data from Supabase...');
@@ -571,14 +579,16 @@ export default function App() {
           requires_password: undefined
         };
         
-        console.log('🔄 Converted Supabase data to UI format:', {
-          id: freshProject.id,
-          imageCount: freshProject.caseStudyImages?.length || 0,
-          hasImages: (freshProject.caseStudyImages?.length || 0) > 0,
-          originalImages: data.case_study_images?.length || 0,
-          convertedImages: freshProject.caseStudyImages?.length || 0,
-          imageData: freshProject.caseStudyImages
-        });
+        if (freshProject) {
+          console.log('🔄 Converted Supabase data to UI format:', {
+            id: freshProject.id,
+            imageCount: freshProject.caseStudyImages?.length || 0,
+            hasImages: (freshProject.caseStudyImages?.length || 0) > 0,
+            originalImages: data.case_study_images?.length || 0,
+            convertedImages: freshProject.caseStudyImages?.length || 0,
+            imageData: freshProject.caseStudyImages
+          });
+        }
       } else {
         console.log('⚠️ Supabase load failed, falling back to localStorage');
       }
@@ -1372,13 +1382,14 @@ export default function App() {
           <Visuals onBack={navigateHome} isEditMode={isEditMode} />
         )}
         {currentPage === "project-detail" && selectedProject && (
-          <ProjectDetail
-            key={(selectedProject as any)._navTimestamp || selectedProject.id}
-            project={selectedProject}
-            onBack={navigateHome}
-            onUpdate={handleUpdateProject}
-            isEditMode={isEditMode}
-          />
+          <div key={(selectedProject as any)._navTimestamp || selectedProject.id}>
+            <ProjectDetail
+              project={selectedProject}
+              onBack={navigateHome}
+              onUpdate={handleUpdateProject}
+              isEditMode={isEditMode}
+            />
+          </div>
         )}
           {currentPage === "supabase-test" && (
             <SupabaseTest />

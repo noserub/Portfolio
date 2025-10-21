@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect, useCallback } from "react";
+import React, { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { motion } from "motion/react";
 import { supabase } from '../lib/supabaseClient';
 import { ArrowLeft, Plus, X, Edit2, Image as ImageIcon, Video as VideoIcon, GripVertical, ZoomIn, ZoomOut, Move, RotateCcw, ChevronDown } from "lucide-react";
@@ -382,6 +382,7 @@ const DraggableImage = ({ image, index, isEditMode, onRemove, onImageClick, move
 
 export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: ProjectDetailProps) {
   const [isEditing, setIsEditing] = useState(false);
+  const [showSaveIndicator, setShowSaveIndicator] = useState(false);
   
   // Debug logging for project data
   useEffect(() => {
@@ -866,22 +867,22 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     });
 
     // Check if last section is "At a glance" or "Impact"
-    if (currentSection && currentSection.title === "At a glance") {
+    if (currentSection && (currentSection as any).title === "At a glance") {
       atGlanceSection = currentSection;
     }
-    if (currentSection && currentSection.title === "Impact") {
+    if (currentSection && (currentSection as any).title === "Impact") {
       impactSection = currentSection;
     }
     // Check if last subsection is "Impact"
-    if (currentSubsection && currentSubsection.title === "Impact") {
+    if (currentSubsection && (currentSubsection as any).title === "Impact") {
       impactSection = currentSubsection;
     }
 
     console.log('📋 Parsed sections:', {
       hasAtGlance: !!atGlanceSection,
       hasImpact: !!impactSection,
-      impactTitle: impactSection?.title,
-      impactContentLength: impactSection?.content?.length || 0
+      impactTitle: (impactSection as any)?.title,
+      impactContentLength: (impactSection as any)?.content?.length || 0
     });
 
     return {
@@ -1850,7 +1851,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     const targetPos = direction === 'up' ? currentPos - 1 : currentPos + 1;
     
     // Find all sections to get boundaries
-    const allPositions = Object.values(sectionPositions);
+    const allPositions = Object.values(sectionPositions) as number[];
     const minPos = Math.min(...allPositions);
     const maxPos = Math.max(...allPositions);
     
@@ -2241,8 +2242,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
             <Input
               value={editedTitle}
               onChange={(e) => setEditedTitle(e.target.value)}
-              placeholder="Enter project title"
-              className="text-lg font-semibold"
+              className="w-full"
             />
           </div>
           <div>
@@ -2250,8 +2250,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
             <Textarea
               value={editedDescription}
               onChange={(e) => setEditedDescription(e.target.value)}
-              placeholder="Enter project description"
-              className="min-h-[80px]"
+              className="w-full"
+              rows={3}
             />
           </div>
         </div>
