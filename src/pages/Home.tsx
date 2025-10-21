@@ -3125,22 +3125,48 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
           Force Mobile Refresh
         </button>
         <button 
-          onClick={() => {
+          onClick={async () => {
             // Mobile logo debug - show what's actually happening
             const userAgent = navigator.userAgent;
             const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
             const logoElement = document.querySelector('img[alt="Logo"]') as HTMLImageElement;
             const logoSrc = logoElement?.src || 'NO LOGO ELEMENT FOUND';
             
+            // Check database directly
+            const { data: mainProfile, error: profileError } = await supabase
+              .from('profiles')
+              .select('id, email')
+              .eq('email', 'brian.bureson@gmail.com')
+              .single();
+              
+            let settingsInfo = 'NO PROFILE FOUND';
+            if (mainProfile) {
+              const { data: mainUserSettings, error: settingsError } = await supabase
+                .from('app_settings')
+                .select('*')
+                .eq('user_id', mainProfile.id)
+                .single();
+                
+              if (mainUserSettings) {
+                settingsInfo = `SETTINGS FOUND: Logo URL Length: ${mainUserSettings.logo_url?.length || 0}`;
+              } else {
+                settingsInfo = `NO SETTINGS FOUND. Error: ${settingsError?.message || 'Unknown'}`;
+              }
+            } else {
+              settingsInfo = `PROFILE ERROR: ${profileError?.message || 'Unknown'}`;
+            }
+            
             alert(`Mobile Debug Info:
 Device: ${isMobile ? 'MOBILE' : 'DESKTOP'}
-User Agent: ${userAgent.substring(0, 50)}...
+User Agent: ${userAgent.substring(0, 30)}...
 Logo Element: ${logoElement ? 'FOUND' : 'NOT FOUND'}
 Logo Src Length: ${logoSrc.length}
-Logo Src Preview: ${logoSrc.substring(0, 100)}...
 Logo Src Type: ${logoSrc.startsWith('data:') ? 'DATA URL' : 'REGULAR URL'}
 
-Check console for more details.`);
+Database Check:
+${settingsInfo}
+
+This will help us fix the logo issue.`);
             
             console.log('🔍 Mobile Debug Details:', {
               userAgent,
@@ -3148,7 +3174,10 @@ Check console for more details.`);
               logoElement,
               logoSrc,
               logoSrcLength: logoSrc.length,
-              logoSrcType: logoSrc.startsWith('data:') ? 'DATA URL' : 'REGULAR URL'
+              logoSrcType: logoSrc.startsWith('data:') ? 'DATA URL' : 'REGULAR URL',
+              mainProfile,
+              profileError,
+              settingsInfo
             });
           }}
           className="text-xs bg-blue-500 text-white px-2 py-1 rounded mt-1"
