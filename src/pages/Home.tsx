@@ -3022,30 +3022,6 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
   return (
     <div className="min-h-screen relative">
       
-      {/* DEPLOYMENT TEST - Remove after confirming deployment */}
-      <div className="fixed bottom-4 left-4 bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-bold z-50 shadow-lg">
-        🚀 DEPLOYED v{Date.now().toString().slice(-6)}
-        <div className="text-xs mt-1">
-          Data: {heroText.subtitle} | {heroText.description}
-        </div>
-        <button 
-          onClick={async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            const defaultHeroText = {
-              subtitle: "Brian Bureson is a (super rad) product design leader",
-              description: "building high quality products and teams through",
-              word1: "planning",
-              word2: "collaboration",
-              word3: "empathy",
-              word4: "design",
-              buttonText: "About Brian"
-            };
-            alert(`Current User: ${user?.email || 'NOT SIGNED IN'}\nCurrent: ${heroText.subtitle} | ${heroText.description}\nDefaults: ${defaultHeroText.subtitle} | ${defaultHeroText.description}\nButton: ${heroText.buttonText} | Default: ${defaultHeroText.buttonText}`);
-          }}
-          className="text-xs bg-blue-500 text-white px-2 py-1 rounded mt-1 mr-1"
-        >
-          Check Data
-        </button>
         <button 
           onClick={() => {
             // Clear all localStorage and reload to use hardcoded defaults
