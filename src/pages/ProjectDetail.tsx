@@ -1682,12 +1682,17 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     console.log(`📝 Moving markdown section "${sectionTitle}" ${direction}`);
     
     // Build the combined sections list to find actual positions
-    const sections = caseStudyContent?.split('\n---\n').map(section => {
-      const lines = section.trim().split('\n');
-      const firstLine = lines[0];
-      const titleMatch = firstLine.match(/^# (.+)$/);
-      return titleMatch ? titleMatch[1].trim() : null;
-    }).filter(Boolean);
+    // Parse sections using the same logic as CaseStudySections
+    const lines = caseStudyContent?.split('\n') || [];
+    const sections: string[] = [];
+    
+    for (let i = 0; i < lines.length; i++) {
+      const headerMatch = lines[i].match(/^#{1,2} (.+)$/);
+      if (headerMatch) {
+        const title = headerMatch[1].trim();
+        sections.push(title);
+      }
+    }
     
     // Filter out special sections
     const markdownSections = sections.filter(s => 
