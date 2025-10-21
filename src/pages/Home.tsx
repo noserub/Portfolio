@@ -3152,7 +3152,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                 const mainUserSettings = allSettings[0]; // Get the most recent
                 settingsInfo = `SETTINGS FOUND (${allSettings.length} total): Logo URL Length: ${mainUserSettings.logo_url?.length || 0}`;
               } else {
-                settingsInfo = `NO SETTINGS FOUND. Error: ${allSettingsError?.message || 'Unknown'}`;
+                settingsInfo = `NO SETTINGS FOUND. Error: ${allSettingsError?.message || 'Unknown'} | Details: ${JSON.stringify(allSettingsError)}`;
               }
             } else {
               settingsInfo = `PROFILE ERROR: ${profileError?.message || 'Unknown'}`;
@@ -3185,6 +3185,50 @@ This will help us fix the logo issue.`);
           className="text-xs bg-blue-500 text-white px-2 py-1 rounded mt-1"
         >
           Mobile Debug
+        </button>
+        <button 
+          onClick={async () => {
+            // Create missing app_settings for main user
+            const { data: mainProfile } = await supabase
+              .from('profiles')
+              .select('id')
+              .eq('email', 'brian.bureson@gmail.com')
+              .single();
+              
+            if (mainProfile) {
+              // Create default settings with a simple logo
+              const defaultLogo = `data:image/svg+xml;base64,${btoa(`
+                <svg width="120" height="40" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg">
+                  <rect width="120" height="40" fill="#1a1a1a" rx="8"/>
+                  <text x="60" y="25" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="white">BB</text>
+                </svg>
+              `)}`;
+              
+              const { data, error } = await supabase
+                .from('app_settings')
+                .insert({
+                  user_id: mainProfile.id,
+                  logo_url: defaultLogo,
+                  theme: 'dark',
+                  is_authenticated: false,
+                  show_debug_panel: false
+                })
+                .select()
+                .single();
+                
+              if (error) {
+                alert(`Error creating settings: ${error.message}`);
+              } else {
+                alert('Settings created successfully! Reloading...');
+                window.location.reload();
+              }
+            } else {
+              alert('Main profile not found');
+            }
+          }}
+          className="text-xs bg-green-500 text-white px-2 py-1 rounded mt-1"
+        >
+          Create Settings
         </button>
       </div>
       {/* Hero Section */}
