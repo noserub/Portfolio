@@ -482,6 +482,7 @@ export function CaseStudySections({
 
   // Parse content into sections based on top-level headers (# Header)
   const parseSections = () => {
+    console.log('🔍 Parsing sections from content:', content.substring(0, 500) + '...');
     const lines = content.split('\n');
     const sections: Array<{ title: string; content: string }> = [];
     let currentSection: { title: string; content: string } | null = null;
@@ -520,6 +521,7 @@ export function CaseStudySections({
       sections.push(currentSection);
     }
 
+    console.log('📊 Parsed sections:', sections.map(s => ({ title: s.title, contentLength: s.content.length, contentPreview: s.content.substring(0, 100) })));
     return sections;
   };
 
