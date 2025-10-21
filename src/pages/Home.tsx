@@ -2367,6 +2367,55 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     type: 'caseStudies' | 'design';
   } | null>(null);
   
+  // Load hero text from Supabase profile
+  useEffect(() => {
+    const loadHeroTextFromProfile = async () => {
+      try {
+        console.log('🏠 Home: Loading hero text from Supabase profile...');
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (user) {
+          console.log('👤 Authenticated user:', user.email);
+          const { data: profile, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .single();
+            
+          if (error) {
+            console.error('❌ Error loading profile:', error);
+            return;
+          }
+          
+          if (profile && (profile.subtitle || profile.description)) {
+            console.log('✅ Found profile with hero text:', profile);
+            const newHeroText = {
+              ...heroText,
+              subtitle: profile.subtitle || heroText.subtitle,
+              description: profile.description || heroText.description,
+              word1: profile.word1 || heroText.word1,
+              word2: profile.word2 || heroText.word2,
+              word3: profile.word3 || heroText.word3,
+              word4: profile.word4 || heroText.word4,
+              buttonText: profile.buttonText || heroText.buttonText
+            };
+            
+            setHeroText(newHeroText);
+            console.log('✅ Updated hero text from Supabase profile');
+          } else {
+            console.log('📝 No hero text found in profile, keeping current');
+          }
+        } else {
+          console.log('👤 No authenticated user, keeping current hero text');
+        }
+      } catch (error) {
+        console.error('❌ Error loading hero text from profile:', error);
+      }
+    };
+    
+    loadHeroTextFromProfile();
+  }, []);
+
   // Save heroText to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem('heroText', JSON.stringify(heroText));
@@ -3019,11 +3068,18 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         </div>
         <button 
           onClick={async () => {
+            const { data: { user } } = await supabase.auth.getUser();
             const { data: dbData, error } = await supabase
               .from('profiles')
               .select('*');
             console.log('🗄️ Database data:', dbData, 'Error:', error);
-            alert(`DB Data: ${dbData?.length || 0} profiles found. Error: ${error?.message || 'None'}`);
+            if (dbData && dbData.length > 0) {
+              const firstProfile = dbData[0];
+              const currentUserProfile = dbData.find(p => p.id === user?.id);
+              alert(`Current User: ${user?.email || 'NOT SIGNED IN'}\nProfile 1: ${firstProfile.subtitle || 'NO SUBTITLE'} | ${firstProfile.description || 'NO DESCRIPTION'}\nYour Profile: ${currentUserProfile ? (currentUserProfile.subtitle || 'NO SUBTITLE') : 'NOT FOUND'}`);
+            } else {
+              alert(`Current User: ${user?.email || 'NOT SIGNED IN'}\nDB Data: ${dbData?.length || 0} profiles found. Error: ${error?.message || 'None'}`);
+            }
           }}
           className="text-xs bg-blue-500 text-white px-2 py-1 rounded mt-1 mr-1"
         >
@@ -3031,37 +3087,34 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         </button>
         <button 
           onClick={async () => {
-            // Create profile data if it doesn't exist
-            const { data: existingProfile } = await supabase
+            // Force load first profile from database
+            const { data: profiles } = await supabase
               .from('profiles')
               .select('*')
-              .single();
+              .limit(1);
             
-            if (!existingProfile) {
-              const { error } = await supabase
-                .from('profiles')
-                .insert({
-                  subtitle: 'Product design leader',
-                  description: 'building high quality products and teams through',
-                  word1: 'planning',
-                  word2: 'collaboration', 
-                  word3: 'empathy',
-                  word4: 'design',
-                  buttonText: 'More about Brian'
-                });
-              if (error) {
-                alert('Error creating profile: ' + error.message);
-                return;
-              }
-              alert('Profile created successfully!');
+            if (profiles && profiles.length > 0) {
+              const profile = profiles[0];
+              // Store in localStorage to override defaults
+              localStorage.setItem('heroText', JSON.stringify({
+                subtitle: profile.subtitle || 'Product design leader',
+                description: profile.description || 'building high quality products and teams through',
+                word1: profile.word1 || 'planning',
+                word2: profile.word2 || 'collaboration',
+                word3: profile.word3 || 'empathy',
+                word4: profile.word4 || 'design',
+                buttonText: profile.buttonText || 'More about Brian'
+              }));
+              alert('Profile loaded from database!');
+            } else {
+              alert('No profiles found in database');
             }
             
-            localStorage.clear();
             window.location.reload();
           }}
           className="text-xs bg-green-500 text-white px-2 py-1 rounded mt-1"
         >
-          Create Profile & Reload
+          Load Profile & Reload
         </button>
       </div>
       {/* Hero Section */}
