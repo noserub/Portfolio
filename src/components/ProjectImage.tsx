@@ -316,15 +316,18 @@ export function ProjectImage({
         )}
 
         {/* Persistent Project Title - Always visible */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 z-30">
-          <h3 className="text-white text-lg font-semibold mb-1 drop-shadow-lg">
-            {project.title}
-          </h3>
-          {project.description && (
-            <p className="text-white/90 text-sm line-clamp-2 drop-shadow-lg">
-              {project.description}
-            </p>
-          )}
+        <div className="absolute bottom-0 left-0 right-0 z-30">
+          {/* Dark transparent background strip for better text readability */}
+          <div className="bg-gradient-to-t from-black/80 via-black/60 to-transparent p-4 pt-8">
+            <h3 className="text-white text-lg font-semibold mb-1 drop-shadow-lg">
+              {project.title}
+            </h3>
+            {project.description && (
+              <p className="text-white/90 text-sm line-clamp-2 drop-shadow-lg">
+                {project.description}
+              </p>
+            )}
+          </div>
         </div>
 
         {/* Enhanced Hover State */}
