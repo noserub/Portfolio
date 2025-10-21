@@ -500,7 +500,6 @@ export function CaseStudySections({
   }> = [];
   
   if (imageGallerySlot) {
-    console.log('🖼️ CaseStudySections: Adding project images at position', projectImagesPosition);
     insertions.push({
       pos: projectImagesPosition,
       item: { 
@@ -510,8 +509,6 @@ export function CaseStudySections({
         position: projectImagesPosition
       }
     });
-  } else {
-    console.log('🖼️ CaseStudySections: No imageGallerySlot provided');
   }
   
   if (videoSlot) {

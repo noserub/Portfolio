@@ -2573,16 +2573,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
             actualPositions={actualPositions}
             totalSections={totalSections}
             imageGallerySlot={
-              (() => {
-                console.log('🔍 Project Images Debug:', {
-                  caseStudyImagesLength: caseStudyImages.length,
-                  projectImagesPosition,
-                  isEditMode,
-                  projectProjectImagesPosition: project.projectImagesPosition,
-                  shouldShow: caseStudyImages.length > 0 || (isEditMode && project.projectImagesPosition !== undefined)
-                });
-                return caseStudyImages.length > 0 || (isEditMode && project.projectImagesPosition !== undefined);
-              })() ? (
+              (caseStudyImages.length > 0 || (isEditMode && project.projectImagesPosition !== undefined)) ? (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
