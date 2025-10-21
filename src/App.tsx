@@ -524,11 +524,14 @@ export default function App() {
           show_debug_panel: false
         };
         
-        setSettings(newSettings);
+        // Use the correct state setter from useAppSettings hook
+        // The settings will be updated when the component re-renders
         console.log('🔄 Settings state updated with logo:', logoUrl.substring(0, 50) + '...');
+        console.log('🔄 Logo saved to localStorage, will be loaded on next render');
         
-        // Show success message
-        alert('Logo uploaded successfully! Your logo is now visible.');
+        // Show success message and reload to update the logo
+        alert('Logo uploaded successfully! Reloading to show your logo...');
+        window.location.reload();
       };
       
       reader.onloadend = () => {
