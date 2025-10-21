@@ -2386,12 +2386,11 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
           return;
         }
         
-        if (profile && (profile.subtitle || profile.description)) {
+        if (profile && profile.subtitle) {
           console.log('✅ Found profile with hero text:', profile);
           const newHeroText = {
             ...heroText,
-            subtitle: profile.subtitle || heroText.subtitle,
-            description: profile.description || heroText.description
+            subtitle: profile.subtitle
           };
           
           setHeroText(newHeroText);
@@ -3066,7 +3065,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
               .eq('email', 'brian.bureson@gmail.com')
               .single();
             console.log('🗄️ Main profile data:', mainProfile, 'Error:', error);
-            alert(`Current User: ${user?.email || 'NOT SIGNED IN'}\nMain Profile: ${mainProfile ? (mainProfile.subtitle || 'NO SUBTITLE') : 'NOT FOUND'} | ${mainProfile ? (mainProfile.description || 'NO DESCRIPTION') : 'NOT FOUND'}`);
+            alert(`Current User: ${user?.email || 'NOT SIGNED IN'}\nMain Profile: ${mainProfile ? (mainProfile.subtitle || 'NO SUBTITLE') : 'NOT FOUND'}`);
           }}
           className="text-xs bg-blue-500 text-white px-2 py-1 rounded mt-1 mr-1"
         >
@@ -3078,8 +3077,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
             const { data: mainProfile, error: updateError } = await supabase
               .from('profiles')
               .update({
-                subtitle: 'Product design leader',
-                description: 'building high quality products and teams through'
+                subtitle: 'Product design leader'
               })
               .eq('email', 'brian.bureson@gmail.com')
               .select();
