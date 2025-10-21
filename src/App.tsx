@@ -508,25 +508,52 @@ export default function App() {
         console.log('🖼️ Logo converted to base64, length:', logoUrl.length);
         console.log('🖼️ Logo preview:', logoUrl.substring(0, 100) + '...');
         
-        // Save to localStorage (simple and reliable)
+        // Save to localStorage (for immediate local updates)
         localStorage.setItem('portfolio_logo_url', logoUrl);
         console.log('✅ Logo saved to localStorage');
         
-        // Update the settings state immediately
-        const newSettings = {
-          id: 'local',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          user_id: 'local',
-          logo_url: logoUrl,
-          theme: 'dark',
-          is_authenticated: false,
-          show_debug_panel: false
-        };
+        // Also try to save to database (for other devices)
+        try {
+          // Get the main user's profile
+          const { data: mainProfile } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('email', 'brian.bureson@gmail.com')
+            .single();
+            
+          if (mainProfile) {
+            // Try to update existing settings
+            const { error: updateError } = await supabase
+              .from('app_settings')
+              .update({ logo_url: logoUrl })
+              .eq('user_id', mainProfile.id);
+              
+            if (updateError) {
+              console.log('📝 No existing settings, creating new ones...');
+              // If update fails, try to insert new settings
+              const { error: insertError } = await supabase
+                .from('app_settings')
+                .insert({
+                  user_id: mainProfile.id,
+                  logo_url: logoUrl,
+                  theme: 'dark',
+                  is_authenticated: false,
+                  show_debug_panel: false
+                });
+                
+              if (insertError) {
+                console.log('⚠️ Could not save to database (RLS issue), but localStorage works');
+              } else {
+                console.log('✅ Logo saved to database');
+              }
+            } else {
+              console.log('✅ Logo updated in database');
+            }
+          }
+        } catch (dbError) {
+          console.log('⚠️ Database save failed, but localStorage works:', dbError);
+        }
         
-        // Use the correct state setter from useAppSettings hook
-        // The settings will be updated when the component re-renders
-        console.log('🔄 Settings state updated with logo:', logoUrl.substring(0, 50) + '...');
         console.log('🔄 Logo saved to localStorage, will be loaded on next render');
         
         // Show success message and reload to update the logo

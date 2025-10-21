@@ -245,16 +245,16 @@ export function useAppSettings() {
   // Get current user's settings
   const getCurrentUserSettings = async () => {
     try {
-      // Load logo from localStorage (simple and reliable)
-      const logoUrl = localStorage.getItem('portfolio_logo_url');
+      // Try localStorage first (for immediate local updates)
+      const localLogoUrl = localStorage.getItem('portfolio_logo_url');
       
-      if (logoUrl) {
+      if (localLogoUrl) {
         const settings = {
           id: 'local',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
           user_id: 'local',
-          logo_url: logoUrl,
+          logo_url: localLogoUrl,
           theme: 'dark',
           is_authenticated: false,
           show_debug_panel: false
@@ -262,8 +262,37 @@ export function useAppSettings() {
         
         console.log('✅ Loaded logo from localStorage');
         setSettings(settings);
+        return;
+      }
+      
+      // If no local logo, try to load from database
+      console.log('🔍 No local logo, trying database...');
+      
+      // Get the main user's profile
+      const { data: mainProfile, error: profileError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', 'brian.bureson@gmail.com')
+        .single();
+        
+      if (mainProfile) {
+        // Get app_settings for the main user
+        const { data: allSettings, error: settingsError } = await supabase
+          .from('app_settings')
+          .select('*')
+          .eq('user_id', mainProfile.id)
+          .order('created_at', { ascending: false });
+          
+        if (allSettings && allSettings.length > 0) {
+          const mainUserSettings = allSettings[0];
+          console.log('✅ Loaded logo from database');
+          setSettings(mainUserSettings);
+        } else {
+          console.log('📝 No settings in database');
+          setSettings(null);
+        }
       } else {
-        console.log('📝 No logo in localStorage');
+        console.log('📝 No main profile found');
         setSettings(null);
       }
     } catch (err: any) {
