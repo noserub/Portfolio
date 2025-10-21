@@ -3588,6 +3588,40 @@ This will help debug the logo upload.`);
         >
           Check All Settings
         </button>
+        <button 
+          onClick={async () => {
+            // Debug database connection and tables
+            try {
+              // Check if we can connect to Supabase
+              const { data: { user } } = await supabase.auth.getUser();
+              
+              // Check profiles table
+              const { data: profiles, error: profilesError } = await supabase
+                .from('profiles')
+                .select('*')
+                .limit(5);
+              
+              // Check app_settings table
+              const { data: settings, error: settingsError } = await supabase
+                .from('app_settings')
+                .select('*')
+                .limit(5);
+              
+              // Check if tables exist
+              const { data: tables, error: tablesError } = await supabase
+                .from('information_schema.tables')
+                .select('table_name')
+                .eq('table_schema', 'public');
+              
+              alert(`Database Debug:\nUser: ${user?.email || 'NOT SIGNED IN'}\nProfiles: ${profiles?.length || 0} (Error: ${profilesError?.message || 'None'})\nSettings: ${settings?.length || 0} (Error: ${settingsError?.message || 'None'})\nTables: ${tables?.length || 0} (Error: ${tablesError?.message || 'None'})\nSupabase URL: ${import.meta.env.VITE_SUPABASE_URL?.substring(0, 30)}...`);
+            } catch (err) {
+              alert(`Database Debug Error: ${err}`);
+            }
+          }}
+          className="text-xs bg-red-500 text-white px-2 py-1 rounded mt-1"
+        >
+          Debug DB
+        </button>
       </div>
 
       {/* Hero Section */}
