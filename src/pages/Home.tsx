@@ -3021,6 +3021,11 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
 
   return (
     <div className="min-h-screen relative">
+      {/* SIMPLE TEST - This should definitely be visible */}
+      <div className="fixed top-4 left-4 bg-green-500 text-white px-4 py-2 rounded-lg text-lg font-bold z-50 shadow-lg">
+        🚀 TEST BUTTON VISIBLE
+      </div>
+      
       {/* DEPLOYMENT TEST - Remove after confirming deployment */}
       <div className="fixed bottom-4 left-4 bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-bold z-50 shadow-lg">
         🚀 DEPLOYED v{Date.now().toString().slice(-6)}
