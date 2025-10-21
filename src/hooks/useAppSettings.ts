@@ -264,11 +264,14 @@ export function useAppSettings() {
           console.log('📥 Retrieved main user settings for all visitors:', mainUserSettings);
           console.log('🖼️ Original logo URL:', mainUserSettings.logo_url);
           
-          // Handle logo URL - only add cache-busting for non-data URLs
+          // Handle logo URL with mobile-friendly cache-busting
           if (mainUserSettings.logo_url) {
             if (mainUserSettings.logo_url.startsWith('data:')) {
-              // For data URLs, don't add cache-busting as it corrupts the base64
-              console.log('🖼️ Using data URL logo as-is (no cache-busting needed)');
+              // For data URLs, add a fragment identifier for mobile cache-busting
+              // This doesn't corrupt the base64 but forces mobile browsers to reload
+              const mobileCacheBuster = `#mobile-cache-bust-${Date.now()}`;
+              mainUserSettings.logo_url = mainUserSettings.logo_url + mobileCacheBuster;
+              console.log('🖼️ Added mobile cache-busting to data URL');
               console.log('🖼️ Logo URL length:', mainUserSettings.logo_url.length);
             } else {
               // For regular URLs, add cache-busting

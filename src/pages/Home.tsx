@@ -3110,9 +3110,19 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
             };
             input.click();
           }}
-          className="text-xs bg-red-500 text-white px-2 py-1 rounded mt-1"
+          className="text-xs bg-red-500 text-white px-2 py-1 rounded mt-1 mr-1"
         >
           Upload New Logo
+        </button>
+        <button 
+          onClick={() => {
+            // Force refresh logo on mobile
+            alert('Forcing logo refresh... This will reload the page to clear mobile cache.');
+            window.location.reload();
+          }}
+          className="text-xs bg-yellow-500 text-white px-2 py-1 rounded mt-1"
+        >
+          Force Mobile Refresh
         </button>
       </div>
       {/* Hero Section */}
