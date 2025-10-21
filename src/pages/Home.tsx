@@ -2315,13 +2315,13 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
       ],
       greetingFont: "Inter, sans-serif",
       lastGreetingPauseDuration: 30000,
-      subtitle: "Product design leader",
+      subtitle: "Brian Bureson is a (super rad) product design leader",
       description: "building high quality products and teams through",
       word1: "planning",
       word2: "collaboration",
       word3: "empathy",
       word4: "design",
-      buttonText: "More about Brian"
+      buttonText: "About Brian"
     };
     
     try {
@@ -3024,13 +3024,13 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
           onClick={async () => {
             const { data: { user } } = await supabase.auth.getUser();
             const defaultHeroText = {
-              subtitle: "Product design leader",
+              subtitle: "Brian Bureson is a (super rad) product design leader",
               description: "building high quality products and teams through",
               word1: "planning",
               word2: "collaboration",
               word3: "empathy",
               word4: "design",
-              buttonText: "More about Brian"
+              buttonText: "About Brian"
             };
             alert(`Current User: ${user?.email || 'NOT SIGNED IN'}\nCurrent: ${heroText.subtitle} | ${heroText.description}\nDefaults: ${defaultHeroText.subtitle} | ${defaultHeroText.description}\nButton: ${heroText.buttonText} | Default: ${defaultHeroText.buttonText}`);
           }}
