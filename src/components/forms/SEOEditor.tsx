@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Search, Globe, Image, Hash, Link as LinkIcon, Upload, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { getSEOData, saveSEOData, type AllSEOData, type SEOData } from '../../utils/seoManager';
+import { getSEOData, saveSEOData, type AllSEOData, type SEOData, uploadFaviconToSupabase, saveFaviconToSupabase, getFaviconFromSupabase } from '../../utils/seoManager';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
@@ -21,10 +21,29 @@ export function SEOEditor({ isOpen, onClose }: SEOEditorProps) {
 
   useEffect(() => {
     if (isOpen) {
+      loadFaviconFromSupabase();
       setSeoData(getSEOData());
       setHasChanges(false);
     }
   }, [isOpen]);
+
+  const loadFaviconFromSupabase = async () => {
+    try {
+      const faviconUrl = await getFaviconFromSupabase();
+      if (faviconUrl) {
+        setSeoData(prev => ({
+          ...prev,
+          sitewide: { 
+            ...prev.sitewide, 
+            faviconType: 'image',
+            faviconImageUrl: faviconUrl 
+          },
+        }));
+      }
+    } catch (error) {
+      console.error('Error loading favicon from Supabase:', error);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -43,7 +62,7 @@ export function SEOEditor({ isOpen, onClose }: SEOEditorProps) {
     setHasChanges(true);
   };
 
-  const handleFaviconUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFaviconUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -61,25 +80,41 @@ export function SEOEditor({ isOpen, onClose }: SEOEditorProps) {
       return;
     }
 
-    // Read file as data URL
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const dataUrl = e.target?.result as string;
+    try {
+      // Show loading toast
+      toast.loading('Uploading favicon to Supabase...');
+
+      // Upload to Supabase Storage
+      const faviconUrl = await uploadFaviconToSupabase(file);
+      
+      if (!faviconUrl) {
+        toast.error('Failed to upload favicon to Supabase. Please try again.');
+        return;
+      }
+
+      // Save favicon URL to database
+      const saved = await saveFaviconToSupabase(faviconUrl);
+      
+      if (!saved) {
+        toast.error('Failed to save favicon settings. Please try again.');
+        return;
+      }
+
+      // Update local state
       setSeoData(prev => ({
         ...prev,
         sitewide: { 
           ...prev.sitewide, 
           faviconType: 'image',
-          faviconImageUrl: dataUrl 
+          faviconImageUrl: faviconUrl 
         },
       }));
       setHasChanges(true);
-      toast.success('Favicon uploaded successfully!');
-    };
-    reader.onerror = () => {
-      toast.error('Error reading file. Please try again.');
-    };
-    reader.readAsDataURL(file);
+      toast.success('Favicon uploaded and saved to Supabase!');
+    } catch (error) {
+      console.error('Error uploading favicon:', error);
+      toast.error('Error uploading favicon. Please try again.');
+    }
   };
 
   const handleRemoveFavicon = () => {

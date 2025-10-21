@@ -1,4 +1,5 @@
 // SEO Manager - Manages SEO metadata for all pages
+import { supabase } from '../lib/supabaseClient';
 
 export interface SEOData {
   title: string;
@@ -331,4 +332,106 @@ export function updateFavicon(sitewide: SitewideSEO): void {
     document.head.appendChild(appleTouchIcon);
   }
   appleTouchIcon.href = appleTouchIconUrl;
+}
+
+// Upload favicon to Supabase Storage
+export async function uploadFaviconToSupabase(file: File): Promise<string | null> {
+  try {
+    // Generate unique filename
+    const timestamp = Date.now();
+    const fileExtension = file.name.split('.').pop() || 'png';
+    const fileName = `favicon-${timestamp}.${fileExtension}`;
+    
+    // Upload to Supabase Storage
+    const { data, error } = await supabase.storage
+      .from('portfolio-images')
+      .upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
+
+    if (error) {
+      console.error('Error uploading favicon to Supabase:', error);
+      return null;
+    }
+
+    // Get public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from('portfolio-images')
+      .getPublicUrl(fileName);
+
+    return publicUrl;
+  } catch (error) {
+    console.error('Error uploading favicon:', error);
+    return null;
+  }
+}
+
+// Get favicon from Supabase Storage
+export async function getFaviconFromSupabase(): Promise<string | null> {
+  try {
+    // Get current user
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+
+    // Get user's profile
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('email', 'brian.bureson@gmail.com')
+      .single();
+
+    if (!profile) return null;
+
+    // Get app settings with favicon
+    const { data: settings } = await supabase
+      .from('app_settings')
+      .select('favicon_url')
+      .eq('user_id', profile.id)
+      .single();
+
+    return settings?.favicon_url || null;
+  } catch (error) {
+    console.error('Error getting favicon from Supabase:', error);
+    return null;
+  }
+}
+
+// Save favicon URL to Supabase database
+export async function saveFaviconToSupabase(faviconUrl: string): Promise<boolean> {
+  try {
+    // Get current user
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return false;
+
+    // Get user's profile
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('email', 'brian.bureson@gmail.com')
+      .single();
+
+    if (!profile) return false;
+
+    // Update or create app settings with favicon URL
+    const { error } = await supabase
+      .from('app_settings')
+      .upsert({
+        user_id: profile.id,
+        favicon_url: faviconUrl,
+        theme: 'dark',
+        is_authenticated: true,
+        show_debug_panel: false
+      });
+
+    if (error) {
+      console.error('Error saving favicon to Supabase:', error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error saving favicon to Supabase:', error);
+    return false;
+  }
 }

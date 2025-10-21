@@ -7,6 +7,7 @@ export interface AppSettings {
   updated_at: string;
   user_id: string;
   logo_url?: string;
+  favicon_url?: string;
   theme: 'light' | 'dark';
   is_authenticated: boolean;
   show_debug_panel: boolean;
@@ -14,6 +15,7 @@ export interface AppSettings {
 
 export interface AppSettingsUpdate {
   logo_url?: string;
+  favicon_url?: string;
   theme?: 'light' | 'dark';
   is_authenticated?: boolean;
   show_debug_panel?: boolean;
