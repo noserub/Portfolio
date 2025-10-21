@@ -3132,15 +3132,21 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
             const logoElement = document.querySelector('img[alt="Logo"]') as HTMLImageElement;
             const logoSrc = logoElement?.src || 'NO LOGO ELEMENT FOUND';
             
-            // Check database directly
+            // Check database directly with detailed logging
+            console.log('🔍 Starting database check...');
+            
             const { data: mainProfile, error: profileError } = await supabase
               .from('profiles')
               .select('id, email')
               .eq('email', 'brian.bureson@gmail.com')
               .single();
               
+            console.log('🔍 Profile query result:', { mainProfile, profileError });
+              
             let settingsInfo = 'NO PROFILE FOUND';
             if (mainProfile) {
+              console.log('✅ Found profile:', mainProfile.id);
+              
               // Get the most recent settings (there might be multiple)
               const { data: allSettings, error: allSettingsError } = await supabase
                 .from('app_settings')
@@ -3148,14 +3154,19 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                 .eq('user_id', mainProfile.id)
                 .order('created_at', { ascending: false });
                 
+              console.log('🔍 Settings query result:', { allSettings, allSettingsError });
+                
               if (allSettings && allSettings.length > 0) {
                 const mainUserSettings = allSettings[0]; // Get the most recent
                 settingsInfo = `SETTINGS FOUND (${allSettings.length} total): Logo URL Length: ${mainUserSettings.logo_url?.length || 0}`;
+                console.log('✅ Settings found:', mainUserSettings);
               } else {
                 settingsInfo = `NO SETTINGS FOUND. Error: ${allSettingsError?.message || 'Unknown'} | Details: ${JSON.stringify(allSettingsError)}`;
+                console.log('❌ No settings found:', allSettingsError);
               }
             } else {
-              settingsInfo = `PROFILE ERROR: ${profileError?.message || 'Unknown'}`;
+              settingsInfo = `PROFILE ERROR: ${profileError?.message || 'Unknown'} | Details: ${JSON.stringify(profileError)}`;
+              console.log('❌ Profile not found:', profileError);
             }
             
             alert(`Mobile Debug Info:
@@ -3248,6 +3259,50 @@ Or contact support to fix RLS policies.`);
           className="text-xs bg-green-500 text-white px-2 py-1 rounded mt-1"
         >
           Create Settings
+        </button>
+        <button 
+          onClick={async () => {
+            // Test database connection and show all data
+            try {
+              // Test profiles table
+              const { data: allProfiles, error: profilesError } = await supabase
+                .from('profiles')
+                .select('id, email')
+                .limit(5);
+                
+              // Test app_settings table  
+              const { data: allSettings, error: settingsError } = await supabase
+                .from('app_settings')
+                .select('*')
+                .limit(5);
+                
+              alert(`Database Test Results:
+              
+Profiles (${allProfiles?.length || 0}):
+${allProfiles?.map(p => `${p.email} - ${p.id}`).join('\n') || 'None'}
+
+App Settings (${allSettings?.length || 0}):
+${allSettings?.map(s => `User: ${s.user_id} - Logo: ${s.logo_url ? 'YES' : 'NO'}`).join('\n') || 'None'}
+
+Errors:
+Profiles: ${profilesError?.message || 'None'}
+Settings: ${settingsError?.message || 'None'}
+
+This will help diagnose the connection.`);
+              
+              console.log('🔍 Database test results:', {
+                allProfiles,
+                allSettings,
+                profilesError,
+                settingsError
+              });
+            } catch (err) {
+              alert(`Database test failed: ${err}`);
+            }
+          }}
+          className="text-xs bg-purple-500 text-white px-2 py-1 rounded mt-1"
+        >
+          Test DB
         </button>
       </div>
       {/* Hero Section */}
