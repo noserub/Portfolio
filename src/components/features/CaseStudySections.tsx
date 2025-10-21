@@ -334,150 +334,21 @@ export function CaseStudySections({
   const moveSectionUp = (sectionTitle: string) => {
     console.log(`⬆️ Moving section UP: "${sectionTitle}"`);
     
-    if (!onContentUpdate) {
-      console.error('❌ No onContentUpdate callback provided');
-      return;
+    if (onMoveMarkdownSection) {
+      onMoveMarkdownSection(sectionTitle, 'up');
+    } else {
+      console.error('❌ No onMoveMarkdownSection callback provided');
     }
-
-    // Parse all sections
-    const lines = content.split('\n');
-    const allSections: Array<{ title: string; startLine: number; endLine: number }> = [];
-    
-    // Find all section boundaries - look for both # and ## headers
-    for (let i = 0; i < lines.length; i++) {
-      const headerMatch = lines[i].match(/^#{1,2} (.+)$/);
-      if (headerMatch) {
-        const title = headerMatch[1].trim();
-        allSections.push({ title, startLine: i, endLine: -1 });
-        
-        // Set end line for previous section
-        if (allSections.length > 1) {
-          allSections[allSections.length - 2].endLine = i - 1;
-        }
-      }
-    }
-    
-    // Set end line for last section
-    if (allSections.length > 0) {
-      allSections[allSections.length - 1].endLine = lines.length - 1;
-    }
-
-    console.log('📋 All sections found:', allSections.map(s => s.title));
-
-    // Find the target section index
-    const targetIndex = allSections.findIndex(s => s.title === sectionTitle);
-    
-    console.log(`📍 Target section "${sectionTitle}" at index:`, targetIndex);
-    
-    // Can't move up if it's the first section
-    if (targetIndex <= 0) {
-      console.log('⚠️ Cannot move up - already at top');
-      return;
-    }
-
-    // Swap with previous section
-    const targetSection = allSections[targetIndex];
-    const prevSection = allSections[targetIndex - 1];
-    
-    console.log(`↔️ Swapping "${targetSection.title}" with "${prevSection.title}"`);
-    
-    // Extract section content
-    const targetLines = lines.slice(targetSection.startLine, targetSection.endLine + 1);
-    const prevLines = lines.slice(prevSection.startLine, prevSection.endLine + 1);
-    
-    // Rebuild content with swapped sections
-    const newLines = [
-      ...lines.slice(0, prevSection.startLine),
-      ...targetLines,
-      ...prevLines,
-      ...lines.slice(targetSection.endLine + 1)
-    ];
-    
-    const newContent = newLines.join('\n');
-    console.log('✅ Calling onContentUpdate with new content');
-    onContentUpdate(newContent);
   };
 
   const moveSectionDown = (sectionTitle: string) => {
     console.log(`⬇️ Moving section DOWN: "${sectionTitle}"`);
     
-    if (!onContentUpdate) {
-      console.error('❌ No onContentUpdate callback provided');
-      return;
-    }
-
-    // Parse all sections
-    const lines = content.split('\n');
-    const allSections: Array<{ title: string; startLine: number; endLine: number }> = [];
-    
-    // Find all section boundaries - look for both # and ## headers
-    for (let i = 0; i < lines.length; i++) {
-      const headerMatch = lines[i].match(/^#{1,2} (.+)$/);
-      if (headerMatch) {
-        const title = headerMatch[1].trim();
-        allSections.push({ title, startLine: i, endLine: -1 });
-        
-        // Set end line for previous section
-        if (allSections.length > 1) {
-          allSections[allSections.length - 2].endLine = i - 1;
-        }
-      }
-    }
-    
-    // Set end line for last section
-    if (allSections.length > 0) {
-      allSections[allSections.length - 1].endLine = lines.length - 1;
-    }
-
-    console.log('📋 All sections found:', allSections.map(s => s.title));
-
-    // Find the target section index
-    const targetIndex = allSections.findIndex(s => s.title === sectionTitle);
-    
-    console.log(`📍 Target section "${sectionTitle}" at index:`, targetIndex);
-    
-    // Can't move down if it's the last section
-    if (targetIndex === -1 || targetIndex >= allSections.length - 1) {
-      console.log('⚠️ Cannot move down - already at bottom or not found');
-      return;
-    }
-
-    // Swap with next section
-    const targetSection = allSections[targetIndex];
-    const nextSection = allSections[targetIndex + 1];
-    
-    console.log(`↔️ Swapping "${targetSection.title}" with "${nextSection.title}"`);
-    
-    // Extract section content
-    const targetLines = lines.slice(targetSection.startLine, targetSection.endLine + 1);
-    const nextLines = lines.slice(nextSection.startLine, nextSection.endLine + 1);
-    
-    console.log(`  Extracting target lines [${targetSection.startLine}:${targetSection.endLine + 1}] = ${targetLines.length} lines`);
-    console.log(`  Extracting next lines [${nextSection.startLine}:${nextSection.endLine + 1}] = ${nextLines.length} lines`);
-    console.log(`  Target first line: "${targetLines[0]}"`);
-    console.log(`  Next first line: "${nextLines[0]}"`);
-    
-    // Rebuild content with swapped sections
-    const newLines = [
-      ...lines.slice(0, targetSection.startLine),
-      ...nextLines,
-      ...targetLines,
-      ...lines.slice(nextSection.endLine + 1)
-    ];
-    
-    console.log(`  Rebuilt: ${lines.slice(0, targetSection.startLine).length} lines before + ${nextLines.length} next + ${targetLines.length} target + ${lines.slice(nextSection.endLine + 1).length} after`);
-    console.log(`  Total lines: old=${lines.length}, new=${newLines.length}`);
-    
-    const newContent = newLines.join('\n');
-    console.log(`  Old content length: ${content.length}, new: ${newContent.length}`);
-    
-    if (content === newContent) {
-      console.error('❌ BUG: Content unchanged after swap!');
+    if (onMoveMarkdownSection) {
+      onMoveMarkdownSection(sectionTitle, 'down');
     } else {
-      console.log('✅ Content changed, calling onContentUpdate');
+      console.error('❌ No onMoveMarkdownSection callback provided');
     }
-    
-    onContentUpdate(newContent);
   };
 
   // Parse content into sections based on top-level headers (# Header)
