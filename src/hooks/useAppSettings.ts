@@ -262,6 +262,18 @@ export function useAppSettings() {
           
         if (mainUserSettings) {
           console.log('📥 Retrieved main user settings for all visitors:', mainUserSettings);
+          
+          // Add cache-busting to logo URL to force fresh loads on all devices
+          if (mainUserSettings.logo_url) {
+            const cacheBuster = `?v=${Date.now()}`;
+            const logoUrl = mainUserSettings.logo_url.includes('?') 
+              ? mainUserSettings.logo_url.split('?')[0] + cacheBuster
+              : mainUserSettings.logo_url + cacheBuster;
+            
+            mainUserSettings.logo_url = logoUrl;
+            console.log('🔄 Added cache-busting to logo URL:', logoUrl);
+          }
+          
           setSettings(mainUserSettings);
         } else {
           console.log('📝 No main user settings found');
