@@ -3019,12 +3019,11 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         </div>
         <button 
           onClick={async () => {
-            const { data: dbData } = await supabase
+            const { data: dbData, error } = await supabase
               .from('profiles')
-              .select('*')
-              .single();
-            console.log('🗄️ Database data:', dbData);
-            alert(`DB Data: ${dbData?.subtitle || 'NO SUBTITLE'} | ${dbData?.description || 'NO DESCRIPTION'}`);
+              .select('*');
+            console.log('🗄️ Database data:', dbData, 'Error:', error);
+            alert(`DB Data: ${dbData?.length || 0} profiles found. Error: ${error?.message || 'None'}`);
           }}
           className="text-xs bg-blue-500 text-white px-2 py-1 rounded mt-1 mr-1"
         >
@@ -3032,18 +3031,37 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         </button>
         <button 
           onClick={async () => {
-            localStorage.clear();
-            // Force fresh Supabase fetch
-            const { data: freshData } = await supabase
+            // Create profile data if it doesn't exist
+            const { data: existingProfile } = await supabase
               .from('profiles')
               .select('*')
               .single();
-            console.log('🔄 Fresh Supabase data:', freshData);
+            
+            if (!existingProfile) {
+              const { error } = await supabase
+                .from('profiles')
+                .insert({
+                  subtitle: 'Product design leader',
+                  description: 'building high quality products and teams through',
+                  word1: 'planning',
+                  word2: 'collaboration', 
+                  word3: 'empathy',
+                  word4: 'design',
+                  buttonText: 'More about Brian'
+                });
+              if (error) {
+                alert('Error creating profile: ' + error.message);
+                return;
+              }
+              alert('Profile created successfully!');
+            }
+            
+            localStorage.clear();
             window.location.reload();
           }}
-          className="text-xs bg-white text-red-500 px-2 py-1 rounded mt-1"
+          className="text-xs bg-green-500 text-white px-2 py-1 rounded mt-1"
         >
-          Clear Cache & Reload
+          Create Profile & Reload
         </button>
       </div>
       {/* Hero Section */}
