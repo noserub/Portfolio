@@ -1444,8 +1444,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       newProjectImagesPos = targetPos;
     } else {
       // Target position is occupied by a regular markdown section
-      // Just move the project images to that position
-      // The markdown sections will be reordered automatically by the rendering logic
+      // For now, just move the project images to that position
+      // TODO: Implement proper section swapping in the future
       newProjectImagesPos = targetPos;
     }
     
