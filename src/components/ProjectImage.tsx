@@ -316,22 +316,23 @@ export function ProjectImage({
         )}
 
         {/* Persistent Project Title - Always visible */}
-        <div className="absolute bottom-0 left-0 right-0 z-30">
+        <div className="absolute bottom-0 left-0 right-0 z-50">
           {/* Dark transparent background strip for better text readability */}
-          <div className="relative">
-            {/* Solid dark background for text area */}
-            <div className="bg-black/75 p-4">
-              <h3 className="text-white text-lg font-semibold mb-1 drop-shadow-lg">
-                {project.title}
-              </h3>
-              {project.description && (
-                <p className="text-white/95 text-sm line-clamp-2 drop-shadow-lg">
-                  {project.description}
-                </p>
-              )}
-            </div>
-            {/* Gradient fade at the top */}
-            <div className="absolute top-0 left-0 right-0 h-8 bg-gradient-to-b from-transparent to-black/75 pointer-events-none"></div>
+          <div 
+            className="relative p-4"
+            style={{
+              background: 'linear-gradient(to top, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.8) 30%, rgba(0, 0, 0, 0.4) 70%, rgba(0, 0, 0, 0.1) 100%)',
+              minHeight: '80px'
+            }}
+          >
+            <h3 className="text-white text-lg font-semibold mb-1 drop-shadow-lg">
+              {project.title}
+            </h3>
+            {project.description && (
+              <p className="text-white text-sm line-clamp-2 drop-shadow-lg">
+                {project.description}
+              </p>
+            )}
           </div>
         </div>
 
