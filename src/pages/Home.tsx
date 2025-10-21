@@ -3012,7 +3012,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
   return (
     <div className="min-h-screen relative">
       {/* DEPLOYMENT TEST - Remove after confirming deployment */}
-      <div className="fixed top-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-bold z-50 shadow-lg">
+      <div className="fixed bottom-4 left-4 bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-bold z-50 shadow-lg">
         🚀 DEPLOYED v{Date.now().toString().slice(-6)}
         <div className="text-xs mt-1">
           Data: {heroText.subtitle} | {heroText.description}
