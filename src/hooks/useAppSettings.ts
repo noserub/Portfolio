@@ -245,20 +245,28 @@ export function useAppSettings() {
   // Get current user's settings
   const getCurrentUserSettings = async () => {
     try {
+      console.log('🔍 Starting getCurrentUserSettings...');
+      
       // Load settings for the main user (brian.bureson@gmail.com) for all visitors
       // This ensures logo and favicon show for everyone
-      const { data: mainProfile } = await supabase
+      const { data: mainProfile, error: profileError } = await supabase
         .from('profiles')
-        .select('id')
+        .select('id, email')
         .eq('email', 'brian.bureson@gmail.com')
         .single();
         
+      console.log('🔍 Profile lookup result:', { mainProfile, profileError });
+        
       if (mainProfile) {
-        const { data: mainUserSettings } = await supabase
+        console.log('✅ Found main profile:', mainProfile.id);
+        
+        const { data: mainUserSettings, error: settingsError } = await supabase
           .from('app_settings')
           .select('*')
           .eq('user_id', mainProfile.id)
           .single();
+          
+        console.log('🔍 Settings lookup result:', { mainUserSettings, settingsError });
           
         if (mainUserSettings) {
           console.log('📥 Retrieved main user settings for all visitors:', mainUserSettings);
@@ -289,11 +297,13 @@ export function useAppSettings() {
           
           setSettings(mainUserSettings);
         } else {
-          console.log('📝 No main user settings found');
+          console.log('📝 No main user settings found for user:', mainProfile.id);
+          console.log('📝 Settings error:', settingsError);
           setSettings(null);
         }
       } else {
-        console.log('📝 No main profile found');
+        console.log('📝 No main profile found for brian.bureson@gmail.com');
+        console.log('📝 Profile error:', profileError);
         setSettings(null);
       }
     } catch (err: any) {
