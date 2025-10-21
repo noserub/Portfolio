@@ -3071,9 +3071,74 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
               alert('No main profile found');
             }
           }}
-          className="text-xs bg-purple-500 text-white px-2 py-1 rounded mt-1"
+          className="text-xs bg-purple-500 text-white px-2 py-1 rounded mt-1 mr-1"
         >
           Check Logo
+        </button>
+        <button 
+          onClick={async () => {
+            // Create/update logo for main user
+            const { data: mainProfile } = await supabase
+              .from('profiles')
+              .select('id')
+              .eq('email', 'brian.bureson@gmail.com')
+              .single();
+            
+            if (mainProfile) {
+              // Create a simple text-based logo
+              const logoData = `data:image/svg+xml;base64,${btoa(`
+                <svg width="120" height="40" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg">
+                  <rect width="120" height="40" fill="#1a1a1a" rx="8"/>
+                  <text x="60" y="25" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="white">BB</text>
+                </svg>
+              `)}`;
+              
+              // Check if settings exist
+              const { data: existingSettings } = await supabase
+                .from('app_settings')
+                .select('*')
+                .eq('user_id', mainProfile.id)
+                .single();
+              
+              if (existingSettings) {
+                // Update existing settings
+                const { error } = await supabase
+                  .from('app_settings')
+                  .update({ logo_url: logoData })
+                  .eq('user_id', mainProfile.id);
+                
+                if (error) {
+                  alert(`Error updating logo: ${error.message}`);
+                } else {
+                  alert('Logo updated successfully! Reloading...');
+                  window.location.reload();
+                }
+              } else {
+                // Create new settings
+                const { error } = await supabase
+                  .from('app_settings')
+                  .insert({
+                    user_id: mainProfile.id,
+                    logo_url: logoData,
+                    theme: 'dark',
+                    is_authenticated: false,
+                    show_debug_panel: false
+                  });
+                
+                if (error) {
+                  alert(`Error creating logo: ${error.message}`);
+                } else {
+                  alert('Logo created successfully! Reloading...');
+                  window.location.reload();
+                }
+              }
+            } else {
+              alert('No main profile found');
+            }
+          }}
+          className="text-xs bg-orange-500 text-white px-2 py-1 rounded mt-1"
+        >
+          Create Logo
         </button>
       </div>
       {/* Hero Section */}
