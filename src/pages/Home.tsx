@@ -3622,6 +3622,56 @@ This will help debug the logo upload.`);
         >
           Debug DB
         </button>
+        <button 
+          onClick={async () => {
+            // Create a simple logo that will work for everyone
+            try {
+              // Get the main user's profile
+              const { data: mainProfile } = await supabase
+                .from('profiles')
+                .select('id')
+                .eq('email', 'brian.bureson@gmail.com')
+                .single();
+              
+              if (mainProfile) {
+                // Create a simple SVG logo
+                const logoData = `data:image/svg+xml;base64,${btoa(`
+                  <svg width="120" height="40" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="120" height="40" fill="#1a1a1a" rx="8"/>
+                    <text x="60" y="25" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="white">BB</text>
+                  </svg>
+                `)}`;
+                
+                // Try to insert directly (bypassing RLS)
+                const { data, error } = await supabase
+                  .from('app_settings')
+                  .insert({
+                    user_id: mainProfile.id,
+                    logo_url: logoData,
+                    theme: 'dark',
+                    is_authenticated: false,
+                    show_debug_panel: false
+                  })
+                  .select()
+                  .single();
+                
+                if (error) {
+                  alert(`Error creating logo: ${error.message}\n\nThis is likely due to RLS policies blocking unauthenticated users.`);
+                } else {
+                  alert('Logo created successfully! Reloading...');
+                  window.location.reload();
+                }
+              } else {
+                alert('No main profile found');
+              }
+            } catch (err) {
+              alert(`Error creating logo: ${err}`);
+            }
+          }}
+          className="text-xs bg-purple-500 text-white px-2 py-1 rounded mt-1"
+        >
+          Create Simple Logo
+        </button>
       </div>
 
       {/* Hero Section */}
