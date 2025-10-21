@@ -245,28 +245,12 @@ export function useAppSettings() {
   // Get current user's settings
   const getCurrentUserSettings = async () => {
     try {
-      // FORCE HARDCODED LOGO - Skip localStorage check
-      // const localLogoUrl = localStorage.getItem('portfolio_logo_url');
-      // 
-      // if (localLogoUrl) {
-      //   const settings = {
-      //     id: 'local',
-      //     created_at: new Date().toISOString(),
-      //     updated_at: new Date().toISOString(),
-      //     user_id: 'local',
-      //     logo_url: localLogoUrl,
-      //     theme: 'dark',
-      //     is_authenticated: false,
-      //     show_debug_panel: false
-      //   };
-      //   
-      //   console.log('✅ Loaded logo from localStorage');
-      //   setSettings(settings);
-      //   return;
-      // }
+      // FORCE HARDCODED LOGO - Skip localStorage check completely
+      console.log('🔍 Using hardcoded logo (bypassing all localStorage and database)...');
       
-      // If no local logo, use hardcoded logo (bypassing database RLS issues)
-      console.log('🔍 No local logo, using hardcoded logo...');
+      // Clear any old localStorage data to prevent conflicts
+      localStorage.removeItem('portfolio_logo_url');
+      localStorage.removeItem('logo');
       
       // Create a hardcoded settings object with your actual logo
       const hardcodedSettings = {
