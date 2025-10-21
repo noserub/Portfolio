@@ -135,7 +135,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 👨‍💻 Author
 
 **Brian Bureson**
-- [Portfolio](https://www.bureson.com)](
+- [Portfolio](https://www.bureson.com)
 - [LinkedIn](https://www.linkedin.com/in/bureson)
 - Email: brian.bureson@gmail.com
 
