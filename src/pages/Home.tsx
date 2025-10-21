@@ -3624,18 +3624,31 @@ This will help debug the logo upload.`);
         </button>
         <button 
           onClick={async () => {
-            // Get the logo data from localStorage and show it
-            const logoData = localStorage.getItem('portfolio_logo_url');
-            if (logoData) {
-              // Show the first 200 characters so I can see the format
-              alert(`Your Logo Data (first 200 chars):\n${logoData.substring(0, 200)}...\n\nFull length: ${logoData.length} characters\n\nI need this data to hardcode your logo!`);
-            } else {
-              alert('No logo found in localStorage. Please upload your logo first.');
-            }
+            // Upload logo and save to localStorage
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.onchange = async (e) => {
+              const file = (e.target as HTMLInputElement).files?.[0];
+              if (file) {
+                const reader = new FileReader();
+                reader.onload = () => {
+                  const logoUrl = reader.result as string;
+                  
+                  // Save to localStorage
+                  localStorage.setItem('portfolio_logo_url', logoUrl);
+                  
+                  // Show the data
+                  alert(`Logo uploaded and saved!\n\nLogo Data (first 200 chars):\n${logoUrl.substring(0, 200)}...\n\nFull length: ${logoUrl.length} characters\n\nPlease copy this data and send it to me so I can hardcode it!`);
+                };
+                reader.readAsDataURL(file);
+              }
+            };
+            input.click();
           }}
           className="text-xs bg-purple-500 text-white px-2 py-1 rounded mt-1"
         >
-          Get Logo Data
+          Upload & Get Data
         </button>
       </div>
 
