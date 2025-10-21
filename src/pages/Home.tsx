@@ -3188,42 +3188,61 @@ This will help us fix the logo issue.`);
         </button>
         <button 
           onClick={async () => {
-            // Create missing app_settings for main user
-            const { data: mainProfile } = await supabase
-              .from('profiles')
-              .select('id')
-              .eq('email', 'brian.bureson@gmail.com')
-              .single();
+            // Try to sign in as the main user first, then create settings
+            const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+              email: 'brian.bureson@gmail.com',
+              password: 'temp_password_123' // This won't work, but let's try
+            });
+            
+            if (signInError) {
+              // If sign in fails, try to create settings with service role
+              alert(`Cannot sign in. RLS is blocking settings creation. 
               
-            if (mainProfile) {
-              // Create default settings with a simple logo
-              const defaultLogo = `data:image/svg+xml;base64,${btoa(`
-                <svg width="120" height="40" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg">
-                  <rect width="120" height="40" fill="#1a1a1a" rx="8"/>
-                  <text x="60" y="25" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="white">BB</text>
-                </svg>
-              `)}`;
-              
-              const { data, error } = await supabase
-                .from('app_settings')
-                .insert({
-                  user_id: mainProfile.id,
-                  logo_url: defaultLogo,
-                  theme: 'dark',
-                  is_authenticated: false,
-                  show_debug_panel: false
-                })
-                .select()
+Please manually create app_settings in Supabase dashboard:
+1. Go to Supabase Dashboard > Table Editor > app_settings
+2. Insert new row with:
+   - user_id: [your profile ID]
+   - logo_url: [your logo data URL]
+   - theme: 'dark'
+   - is_authenticated: false
+   - show_debug_panel: false
+
+Or contact support to fix RLS policies.`);
+            } else {
+              // If sign in succeeds, create settings
+              const { data: mainProfile } = await supabase
+                .from('profiles')
+                .select('id')
+                .eq('email', 'brian.bureson@gmail.com')
                 .single();
                 
-              if (error) {
-                alert(`Error creating settings: ${error.message}`);
-              } else {
-                alert('Settings created successfully! Reloading...');
-                window.location.reload();
+              if (mainProfile) {
+                const defaultLogo = `data:image/svg+xml;base64,${btoa(`
+                  <svg width="120" height="40" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="120" height="40" fill="#1a1a1a" rx="8"/>
+                    <text x="60" y="25" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="white">BB</text>
+                  </svg>
+                `)}`;
+                
+                const { data, error } = await supabase
+                  .from('app_settings')
+                  .insert({
+                    user_id: mainProfile.id,
+                    logo_url: defaultLogo,
+                    theme: 'dark',
+                    is_authenticated: false,
+                    show_debug_panel: false
+                  })
+                  .select()
+                  .single();
+                  
+                if (error) {
+                  alert(`Error creating settings: ${error.message}`);
+                } else {
+                  alert('Settings created successfully! Reloading...');
+                  window.location.reload();
+                }
               }
-            } else {
-              alert('Main profile not found');
             }
           }}
           className="text-xs bg-green-500 text-white px-2 py-1 rounded mt-1"
