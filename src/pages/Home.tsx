@@ -3355,6 +3355,24 @@ This will help debug the logo upload.`);
         >
           Check LocalStorage
         </button>
+        <button 
+          onClick={() => {
+            // Test setting a logo manually
+            const testLogo = `data:image/svg+xml;base64,${btoa(`
+              <svg width="120" height="40" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg">
+                <rect width="120" height="40" fill="#1a1a1a" rx="8"/>
+                <text x="60" y="25" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="white">TEST</text>
+              </svg>
+            `)}`;
+            
+            localStorage.setItem('portfolio_logo_url', testLogo);
+            alert('Test logo set! Reloading page...');
+            window.location.reload();
+          }}
+          className="text-xs bg-indigo-500 text-white px-2 py-1 rounded mt-1"
+        >
+          Set Test Logo
+        </button>
       </div>
       {/* Hero Section */}
       <section className="min-h-screen flex flex-col items-center justify-center px-6 pt-20 md:pt-32 pb-20">

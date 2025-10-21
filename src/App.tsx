@@ -493,7 +493,8 @@ export default function App() {
       
       // Convert file to base64 data URL
       const reader = new FileReader();
-      reader.onloadend = async () => {
+      
+      reader.onload = () => {
         const logoUrl = reader.result as string;
         console.log('🖼️ Logo converted to base64, length:', logoUrl.length);
         console.log('🖼️ Logo preview:', logoUrl.substring(0, 100) + '...');
