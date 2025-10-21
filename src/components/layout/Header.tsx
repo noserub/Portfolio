@@ -34,13 +34,21 @@ export function Header({ logo, onLogoUpload, onLogoClick, isEditMode = false }: 
               alt="Logo" 
               className="h-12 object-contain dark:brightness-0 dark:invert transition-all duration-300 hover:opacity-80" 
               onLoad={() => console.log('🖼️ Logo loaded successfully:', logo.substring(0, 50) + '...')}
-              onError={() => console.error('❌ Logo failed to load:', logo.substring(0, 50) + '...')}
+              onError={() => {
+                console.error('❌ Logo failed to load:', logo.substring(0, 50) + '...');
+                // Force fallback by clearing the logo
+                const img = document.querySelector('img[alt="Logo"]') as HTMLImageElement;
+                if (img) {
+                  img.style.display = 'none';
+                }
+              }}
             />
-          ) : (
-            <div className="h-12 w-32 bg-muted/50 rounded-lg flex items-center justify-center backdrop-blur-sm hover:opacity-80 transition-opacity">
-              <span className="text-muted-foreground">Logo</span>
-            </div>
-          )}
+          ) : null}
+          
+          {/* Fallback logo that always shows */}
+          <div className="h-12 w-32 bg-gray-800 rounded-lg flex items-center justify-center backdrop-blur-sm hover:opacity-80 transition-opacity">
+            <span className="text-white font-bold text-lg">BB</span>
+          </div>
           {isEditMode && (
             <label className="absolute inset-0 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity bg-black/50 rounded-lg flex items-center justify-center">
               <Upload className="w-6 h-6 text-white" />

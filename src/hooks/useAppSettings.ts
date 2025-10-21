@@ -263,8 +263,8 @@ export function useAppSettings() {
         if (mainUserSettings) {
           console.log('📥 Retrieved main user settings for all visitors:', mainUserSettings);
           
-          // Create a clean, simple logo that works reliably
-          const cleanLogo = `data:image/svg+xml;base64,${btoa(`
+          // Create a simple text-based logo using data URL
+          const cleanLogo = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`
             <svg width="120" height="40" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg">
               <rect width="120" height="40" fill="#1a1a1a" rx="8"/>
               <text x="60" y="26" font-family="Arial, sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="white">BB</text>
