@@ -1421,7 +1421,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     const targetPos = direction === 'up' ? currentPos - 1 : currentPos + 1;
     
     // Don't move if at boundary
-    if (direction === 'up' && currentPos === 0) return;
+    if (direction === 'up' && currentPos <= 0) return;
+    if (direction === 'down' && currentPos >= totalSections - 1) return;
     
     // Find what section is at the target position and swap with it
     let newProjectImagesPos = targetPos;
