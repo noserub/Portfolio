@@ -343,9 +343,9 @@ export function CaseStudySections({
     const lines = content.split('\n');
     const allSections: Array<{ title: string; startLine: number; endLine: number }> = [];
     
-    // Find all section boundaries
+    // Find all section boundaries - look for both # and ## headers
     for (let i = 0; i < lines.length; i++) {
-      const headerMatch = lines[i].match(/^# (.+)$/);
+      const headerMatch = lines[i].match(/^#{1,2} (.+)$/);
       if (headerMatch) {
         const title = headerMatch[1].trim();
         allSections.push({ title, startLine: i, endLine: -1 });
@@ -410,9 +410,9 @@ export function CaseStudySections({
     const lines = content.split('\n');
     const allSections: Array<{ title: string; startLine: number; endLine: number }> = [];
     
-    // Find all section boundaries
+    // Find all section boundaries - look for both # and ## headers
     for (let i = 0; i < lines.length; i++) {
-      const headerMatch = lines[i].match(/^# (.+)$/);
+      const headerMatch = lines[i].match(/^#{1,2} (.+)$/);
       if (headerMatch) {
         const title = headerMatch[1].trim();
         allSections.push({ title, startLine: i, endLine: -1 });
@@ -488,8 +488,8 @@ export function CaseStudySections({
     let skipImpactSubsection = false;
 
     lines.forEach(line => {
-      // Check for top-level header (# Title)
-      if (line.trim().match(/^# (.+)$/)) {
+      // Check for top-level header (# Title or ## Title)
+      if (line.trim().match(/^#{1,2} (.+)$/)) {
         // Save previous section if exists
         if (currentSection) {
           sections.push(currentSection);
