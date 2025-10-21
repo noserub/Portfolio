@@ -264,16 +264,22 @@ export function useAppSettings() {
           console.log('📥 Retrieved main user settings for all visitors:', mainUserSettings);
           console.log('🖼️ Original logo URL:', mainUserSettings.logo_url);
           
-          // Add cache-busting to logo URL to force fresh loads on all devices
+          // Handle logo URL - only add cache-busting for non-data URLs
           if (mainUserSettings.logo_url) {
-            const cacheBuster = `?v=${Date.now()}`;
-            const logoUrl = mainUserSettings.logo_url.includes('?') 
-              ? mainUserSettings.logo_url.split('?')[0] + cacheBuster
-              : mainUserSettings.logo_url + cacheBuster;
-            
-            mainUserSettings.logo_url = logoUrl;
-            console.log('🔄 Added cache-busting to logo URL:', logoUrl);
-            console.log('🖼️ Final logo URL length:', logoUrl.length);
+            if (mainUserSettings.logo_url.startsWith('data:')) {
+              // For data URLs, don't add cache-busting as it corrupts the base64
+              console.log('🖼️ Using data URL logo as-is (no cache-busting needed)');
+              console.log('🖼️ Logo URL length:', mainUserSettings.logo_url.length);
+            } else {
+              // For regular URLs, add cache-busting
+              const cacheBuster = `?v=${Date.now()}`;
+              const logoUrl = mainUserSettings.logo_url.includes('?') 
+                ? mainUserSettings.logo_url.split('?')[0] + cacheBuster
+                : mainUserSettings.logo_url + cacheBuster;
+              
+              mainUserSettings.logo_url = logoUrl;
+              console.log('🔄 Added cache-busting to regular URL:', logoUrl);
+            }
           } else {
             console.log('❌ No logo URL found in settings');
           }
