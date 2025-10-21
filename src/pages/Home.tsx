@@ -2367,44 +2367,8 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     type: 'caseStudies' | 'design';
   } | null>(null);
   
-  // Load hero text from Supabase profile (for all visitors)
-  useEffect(() => {
-    const loadHeroTextFromProfile = async () => {
-      try {
-        console.log('🏠 Home: Loading hero text from Supabase profile...');
-        
-        // Load your main profile (brian.bureson@gmail.com) for all visitors
-        // This ensures the portfolio shows correct data to everyone
-        const { data: profile, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('email', 'brian.bureson@gmail.com')
-          .single();
-          
-        if (error) {
-          console.error('❌ Error loading profile:', error);
-          return;
-        }
-        
-        if (profile && profile.subtitle) {
-          console.log('✅ Found profile with hero text:', profile);
-          const newHeroText = {
-            ...heroText,
-            subtitle: profile.subtitle
-          };
-          
-          setHeroText(newHeroText);
-          console.log('✅ Updated hero text from Supabase profile for all visitors');
-        } else {
-          console.log('📝 No hero text found in profile, keeping current');
-        }
-      } catch (error) {
-        console.error('❌ Error loading hero text from profile:', error);
-      }
-    };
-    
-    loadHeroTextFromProfile();
-  }, []);
+  // Hero text is loaded from localStorage and hardcoded defaults
+  // The profiles table doesn't have hero text fields, so we use localStorage
 
   // Save heroText to localStorage whenever it changes
   useEffect(() => {
@@ -3059,45 +3023,22 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         <button 
           onClick={async () => {
             const { data: { user } } = await supabase.auth.getUser();
-            const { data: mainProfile, error } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('email', 'brian.bureson@gmail.com')
-              .single();
-            console.log('🗄️ Main profile data:', mainProfile, 'Error:', error);
-            alert(`Current User: ${user?.email || 'NOT SIGNED IN'}\nMain Profile: ${mainProfile ? (mainProfile.subtitle || 'NO SUBTITLE') : 'NOT FOUND'}`);
+            alert(`Current User: ${user?.email || 'NOT SIGNED IN'}\nHero Text: ${heroText.subtitle} | ${heroText.description}\nNote: Hero text is stored in localStorage, not database`);
           }}
           className="text-xs bg-blue-500 text-white px-2 py-1 rounded mt-1 mr-1"
         >
-          Check DB
+          Check Data
         </button>
         <button 
-          onClick={async () => {
-            // Update main profile with hero text data
-            const { data: mainProfile, error: updateError } = await supabase
-              .from('profiles')
-              .update({
-                subtitle: 'Product design leader'
-              })
-              .eq('email', 'brian.bureson@gmail.com')
-              .select();
-              
-            if (updateError) {
-              alert('Error updating profile: ' + updateError.message);
-              return;
-            }
-            
-            if (mainProfile && mainProfile.length > 0) {
-              alert('Profile updated successfully!');
-            } else {
-              alert('No profile found to update');
-            }
-            
+          onClick={() => {
+            // Clear localStorage and reload to use hardcoded defaults
+            localStorage.removeItem('heroText');
+            alert('Cleared localStorage. Reloading to use hardcoded defaults...');
             window.location.reload();
           }}
           className="text-xs bg-green-500 text-white px-2 py-1 rounded mt-1"
         >
-          Update Profile & Reload
+          Reset & Reload
         </button>
       </div>
       {/* Hero Section */}
