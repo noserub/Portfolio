@@ -503,10 +503,19 @@ export default function App() {
         console.log('✅ Logo saved to localStorage');
         
         // Update the settings state immediately
-        setSettings(prev => ({
-          ...prev,
-          logo_url: logoUrl
-        }));
+        const newSettings = {
+          id: 'local',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          user_id: 'local',
+          logo_url: logoUrl,
+          theme: 'dark',
+          is_authenticated: false,
+          show_debug_panel: false
+        };
+        
+        setSettings(newSettings);
+        console.log('🔄 Settings state updated with logo:', logoUrl.substring(0, 50) + '...');
         
         // Show success message
         alert('Logo uploaded successfully! Your logo is now visible.');

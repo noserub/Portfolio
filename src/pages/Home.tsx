@@ -3339,6 +3339,22 @@ This will help diagnose the connection.`);
         >
           Create with ID
         </button>
+        <button 
+          onClick={() => {
+            // Check localStorage logo
+            const logoUrl = localStorage.getItem('portfolio_logo_url');
+            alert(`LocalStorage Logo Check:
+            
+Logo URL: ${logoUrl ? 'FOUND' : 'NOT FOUND'}
+Length: ${logoUrl?.length || 0}
+Preview: ${logoUrl?.substring(0, 100) || 'None'}...
+
+This will help debug the logo upload.`);
+          }}
+          className="text-xs bg-pink-500 text-white px-2 py-1 rounded mt-1"
+        >
+          Check LocalStorage
+        </button>
       </div>
       {/* Hero Section */}
       <section className="min-h-screen flex flex-col items-center justify-center px-6 pt-20 md:pt-32 pb-20">
