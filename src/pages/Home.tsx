@@ -754,10 +754,7 @@ export function Home({ onStartClick, isEditMode, onProjectClick, currentPage }: 
   // Apply SEO for home page
   useSEO('home');
   
-  // DEBUG: Add visible indicator that new code is deployed
-  console.log('🚀 LATEST DEPLOYMENT TEST - If you see this in console, new code is live!');
-  console.log('🕒 Deployment timestamp:', new Date().toISOString());
-  console.log('🔄 Cache bust version:', 'v' + Date.now());
+  // Deployment successful - debug indicators removed
   
   // Supabase projects hook
   const { projects, loading, createProject, updateProject, deleteProject, reorderProjects } = useProjects();
@@ -3022,10 +3019,6 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
           transition={{ duration: 0.5 }}
           className="text-center space-y-6 mb-16 relative z-10 mt-10 md:mt-20"
         >
-          {/* DEBUG: Visible cache bust indicator */}
-          <div className="fixed top-4 right-4 bg-green-500 text-white px-3 py-1 rounded-full text-sm z-50">
-            🚀 LIVE v{Date.now().toString().slice(-6)}
-          </div>
           <motion.h1
             className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl tracking-tight font-extrabold text-center break-words md:whitespace-nowrap px-4"
             style={{
