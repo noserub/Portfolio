@@ -2391,12 +2391,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
           const newHeroText = {
             ...heroText,
             subtitle: profile.subtitle || heroText.subtitle,
-            description: profile.description || heroText.description,
-            word1: profile.word1 || heroText.word1,
-            word2: profile.word2 || heroText.word2,
-            word3: profile.word3 || heroText.word3,
-            word4: profile.word4 || heroText.word4,
-            buttonText: profile.buttonText || heroText.buttonText
+            description: profile.description || heroText.description
           };
           
           setHeroText(newHeroText);
@@ -3084,12 +3079,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
               .from('profiles')
               .update({
                 subtitle: 'Product design leader',
-                description: 'building high quality products and teams through',
-                word1: 'planning',
-                word2: 'collaboration',
-                word3: 'empathy',
-                word4: 'design',
-                buttonText: 'More about Brian'
+                description: 'building high quality products and teams through'
               })
               .eq('email', 'brian.bureson@gmail.com')
               .select();
