@@ -3565,13 +3565,17 @@ This will help debug the logo upload.`);
                   .eq('user_id', mainProfile.id)
                   .order('created_at', { ascending: false });
                 
+                console.log('🔍 Load Logo Now - Settings:', allSettings);
+                console.log('🔍 Load Logo Now - First setting:', allSettings?.[0]);
+                console.log('🔍 Load Logo Now - Logo URL:', allSettings?.[0]?.logo_url);
+                
                 if (allSettings && allSettings.length > 0 && allSettings[0].logo_url) {
                   // Set the logo directly in localStorage to force it to show
                   localStorage.setItem('portfolio_logo_url', allSettings[0].logo_url);
                   alert('Logo loaded from database and set in localStorage! Reloading...');
                   window.location.reload();
                 } else {
-                  alert('No logo found in database settings');
+                  alert(`No logo found in database settings. Settings count: ${allSettings?.length || 0}, First setting: ${JSON.stringify(allSettings?.[0] || {})}`);
                 }
               } else {
                 alert('No main profile found');
