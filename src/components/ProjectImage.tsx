@@ -1,6 +1,6 @@
 import { motion } from "motion/react";
 import { useState, useEffect, useRef, memo, useMemo, useCallback } from "react";
-import { Edit2, Move, Check, X, ZoomIn, ZoomOut, RotateCcw, Lock } from "lucide-react";
+import { Edit2, Move, Check, X, ZoomIn, ZoomOut, RotateCcw, Lock, Eye, Trash2 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
@@ -148,7 +148,20 @@ export function ProjectImage({
   const handleMouseDown = (e: React.MouseEvent) => {
     if (!isPositioning) return;
     e.stopPropagation();
+    e.preventDefault();
     setIsDraggingPosition(true);
+    
+    // Store initial position for smooth dragging
+    const rect = imageRef.current?.getBoundingClientRect();
+    if (rect) {
+      const x = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
+      const y = Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100));
+      
+      setEditedProject({
+        ...editedProject,
+        position: { x, y },
+      });
+    }
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
@@ -160,9 +173,15 @@ export function ProjectImage({
     const x = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
     const y = Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100));
     
+    // Smooth position updates with micro-adjustments
+    const newPosition = {
+      x: Math.round(x * 10) / 10, // Round to 1 decimal for precision
+      y: Math.round(y * 10) / 10
+    };
+    
     setEditedProject({
       ...editedProject,
-      position: { x, y },
+      position: newPosition,
     });
   };
 
@@ -188,6 +207,39 @@ export function ProjectImage({
       ...editedProject,
       scale: 1,
       position: { x: 50, y: 50 },
+    };
+    setEditedProject(updated);
+    onUpdate(updated);
+  };
+
+  // New functions for improved UX
+  const handleFitToFrame = () => {
+    // Calculate optimal scale to fit image in frame
+    const optimalScale = 1; // Start with 1:1 scale
+    const updated = {
+      ...editedProject,
+      scale: optimalScale,
+      position: { x: 50, y: 50 } // Center the image
+    };
+    setEditedProject(updated);
+    onUpdate(updated);
+  };
+
+  const handleZoomOut = () => {
+    const newScale = Math.max(0.5, editedProject.scale - 0.1);
+    const updated = {
+      ...editedProject,
+      scale: newScale
+    };
+    setEditedProject(updated);
+    onUpdate(updated);
+  };
+
+  const handleResetImage = () => {
+    const updated = {
+      ...editedProject,
+      scale: 1,
+      position: { x: 50, y: 50 }
     };
     setEditedProject(updated);
     onUpdate(updated);
@@ -267,6 +319,15 @@ export function ProjectImage({
               onLoad={() => setImageLoadError(false)}
               onError={handleImageError}
             />
+            
+            {/* Positioning Mode Visual Feedback */}
+            {isEditMode && isPositioning && (
+              <div className="absolute inset-0 bg-blue-500/20 border-2 border-blue-500 border-dashed flex items-center justify-center z-30">
+                <div className="bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium">
+                  Click and drag to position image
+                </div>
+              </div>
+            )}
             {/* Project description badge */}
             {!isEditMode && (
               <div className="absolute bottom-4 left-4 right-4 z-20">
@@ -359,34 +420,100 @@ export function ProjectImage({
           </motion.div>
         )}
 
-        {/* Edit Mode Controls */}
+        {/* Edit Mode Controls - Better Layout */}
         {isEditMode && (
-          <div className="absolute top-3 right-3 flex gap-2">
-            <Button
-              size="sm"
-              variant={project.published ? "default" : "secondary"}
-              onClick={handleTogglePublish}
-              className="shadow-lg"
-            >
-              {project.published ? "Published" : "Draft"}
-            </Button>
-            <Button
-              size="sm"
-              variant={isPositioning ? "default" : "secondary"}
-              onClick={() => setIsPositioning(!isPositioning)}
-              className="shadow-lg"
-            >
-              <Move className="w-4 h-4" />
-            </Button>
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={() => setIsEditing(!isEditing)}
-              className="shadow-lg"
-            >
-              <Edit2 className="w-4 h-4" />
-            </Button>
-          </div>
+          <>
+            {/* Top Row - Status and Actions */}
+            <div className="absolute top-3 left-3 right-3 flex justify-between items-start z-20">
+              {/* Left side - Status */}
+              <Button
+                size="sm"
+                variant={project.published ? "default" : "secondary"}
+                onClick={handleTogglePublish}
+                className="shadow-lg"
+              >
+                {project.published ? "Published" : "Draft"}
+              </Button>
+              
+              {/* Right side - Action buttons in organized layout */}
+              <div className="flex gap-1">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => setIsEditing(!isEditing)}
+                  className="shadow-lg"
+                  title="Edit project"
+                >
+                  <Edit2 className="w-4 h-4" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={onNavigate}
+                  className="shadow-lg"
+                  title="View project"
+                >
+                  <Eye className="w-4 h-4" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={onDelete}
+                  className="shadow-lg"
+                  title="Delete project"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+
+            {/* Bottom Row - Image Controls */}
+            <div className="absolute bottom-3 left-3 right-3 flex justify-between items-center z-20">
+              {/* Left side - Image positioning */}
+              <div className="flex gap-1">
+                <Button
+                  size="sm"
+                  variant={isPositioning ? "default" : "secondary"}
+                  onClick={() => setIsPositioning(!isPositioning)}
+                  className="shadow-lg"
+                  title="Adjust image position"
+                >
+                  <Move className="w-4 h-4" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={handleFitToFrame}
+                  className="shadow-lg"
+                  title="Fit image to frame"
+                >
+                  <ZoomIn className="w-4 h-4" />
+                </Button>
+              </div>
+              
+              {/* Right side - Scale controls */}
+              <div className="flex gap-1">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={handleZoomOut}
+                  className="shadow-lg"
+                  title="Zoom out"
+                >
+                  <ZoomOut className="w-4 h-4" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={handleResetImage}
+                  className="shadow-lg"
+                  title="Reset image"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          </>
         )}
 
         {/* Edit Dialog */}
