@@ -832,6 +832,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
   // Parse sections directly to extract sidebar sections - memoized to prevent re-parsing on every render
   // Parse sections to extract both sidebar section (first non-Overview) and second sidebar section
   const { atGlanceContent, impactContent } = useMemo(() => {
+    console.log('🔍 Starting sidebar parsing with content length:', caseStudyContent?.length || 0);
     const lines = caseStudyContent?.split('\n') || [];
     let currentSection: { title: string; content: string } | null = null;
     let currentSubsection: { title: string; content: string } | null = null;
