@@ -2402,9 +2402,9 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
           </DropdownMenu>
         </div>
       )}
-      <div className={(atGlanceContent || impactContent) ? "flex flex-col lg:flex-row gap-16" : "space-y-16"}>
+      <div className={(atGlanceContent || impactContent) ? "lg:grid lg:grid-cols-[1fr_320px] lg:gap-16 space-y-16 lg:space-y-0" : "space-y-16"}>
         {/* Main Content */}
-        <div className={(atGlanceContent || impactContent) ? "flex-1 space-y-16 min-w-0 w-full lg:w-auto" : "space-y-16"}>
+        <div className="space-y-16">
         {/* Hero Image Section - Order 2 on mobile (after title, before sidebars) */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -3069,7 +3069,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
 
         {/* Sidebar - Show when content exists, hidden on mobile */}
         {(atGlanceContent || impactContent) && (
-          <div className="hidden lg:block w-full lg:w-80 flex-shrink-0 order-3 lg:order-last">
+          <div className="hidden lg:block">
             <div className="lg:sticky lg:top-24 space-y-12">
               {atGlanceContent && (
                 <AtAGlanceSidebar 
