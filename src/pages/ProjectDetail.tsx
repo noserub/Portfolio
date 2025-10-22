@@ -3103,7 +3103,6 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
             </Button>
           </motion.div>
         )}
-        </div>
 
         {/* Sidebar - Show when content exists, hidden on mobile */}
         {(atGlanceContent || impactContent) && (
@@ -3134,6 +3133,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
             </div>
           </div>
         )}
+        </div>
       </div>
 
       {/* Lightbox for Case Study Images */}
