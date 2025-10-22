@@ -1927,34 +1927,37 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     const newLines: string[] = [];
     let inSidebarSection = false;
     let foundSidebarSection = false;
-    let currentSidebarTitle = '';
+    let sectionCount = 0;
+    let firstNonOverviewSection = '';
     
-    // First pass: identify the current sidebar section (first non-Overview section)
+    // First pass: identify the first non-Overview section
     for (const line of lines) {
       const topLevelMatch = line.trim().match(/^# (.+)$/);
       if (topLevelMatch) {
         const sectionTitle = topLevelMatch[1].trim();
-        if (sectionTitle !== "Overview" && !currentSidebarTitle) {
-          currentSidebarTitle = sectionTitle;
-          break; // Found the sidebar section
+        sectionCount++;
+        if (sectionTitle !== "Overview" && !firstNonOverviewSection) {
+          firstNonOverviewSection = sectionTitle;
         }
       }
     }
     
-    // Second pass: replace the sidebar section using the identified title
+    // Second pass: replace the sidebar section
+    sectionCount = 0;
     for (const line of lines) {
       const topLevelMatch = line.trim().match(/^# (.+)$/);
       
       if (topLevelMatch) {
         const sectionTitle = topLevelMatch[1].trim();
+        sectionCount++;
         
         // If we were in a sidebar section, stop skipping
         if (inSidebarSection) {
           inSidebarSection = false;
         }
         
-        // Check if this is the sidebar section we identified
-        if (sectionTitle === currentSidebarTitle) {
+        // Check if this is the sidebar section (first non-Overview section or "At a glance")
+        if (sectionTitle === "At a glance" || sectionTitle === firstNonOverviewSection) {
           foundSidebarSection = true;
           inSidebarSection = true;
           newLines.push(`# ${title}`);
@@ -2006,35 +2009,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     const newLines: string[] = [];
     let inImpactSection = false;
     let foundImpactSection = false;
-    let currentImpactTitle = '';
     
-    // First pass: identify the current Impact section (look for any section that could be Impact)
-    for (const line of lines) {
-      const subsectionMatch = line.trim().match(/^## (.+)$/);
-      const topLevelMatch = line.trim().match(/^# (.+)$/);
-      
-      if (subsectionMatch) {
-        const subsectionTitle = subsectionMatch[1].trim();
-        // Look for Impact or any section that could be Impact (contains "impact" or is likely Impact)
-        if (subsectionTitle === "Impact" || subsectionTitle.toLowerCase().includes("impact") || 
-            subsectionTitle.toLowerCase().includes("tools") || subsectionTitle.toLowerCase().includes("technologies")) {
-          currentImpactTitle = subsectionTitle;
-          break; // Found the Impact section
-        }
-      }
-      
-      if (topLevelMatch) {
-        const sectionTitle = topLevelMatch[1].trim();
-        // Also check top-level sections for Impact
-        if (sectionTitle === "Impact" || sectionTitle.toLowerCase().includes("impact") || 
-            sectionTitle.toLowerCase().includes("tools") || sectionTitle.toLowerCase().includes("technologies")) {
-          currentImpactTitle = sectionTitle;
-          break; // Found the Impact section
-        }
-      }
-    }
-    
-    // Second pass: replace the Impact section using the identified title
     for (const line of lines) {
       const subsectionMatch = line.trim().match(/^## (.+)$/);
       const topLevelMatch = line.trim().match(/^# (.+)$/);
@@ -2047,8 +2022,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
           inImpactSection = false;
         }
         
-        // Check if this is the Impact section we identified
-        if (subsectionTitle === currentImpactTitle) {
+        // Check if this is an Impact section (look for "Impact" or any section that could be Impact)
+        if (subsectionTitle === "Impact" || (!foundImpactSection && subsectionTitle.toLowerCase().includes("impact"))) {
           foundImpactSection = true;
           inImpactSection = true;
           newLines.push(`## ${title}`);
@@ -2065,14 +2040,19 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
           inImpactSection = false;
         }
         
-        // Check if this is the Impact section we identified
-        if (sectionTitle === currentImpactTitle) {
+        // Check if this is an Impact section (look for "Impact" or any section that could be Impact)
+        if (sectionTitle === "Impact" || (!foundImpactSection && sectionTitle.toLowerCase().includes("impact"))) {
           foundImpactSection = true;
           inImpactSection = true;
           newLines.push(`# ${title}`);
           newLines.push(content);
           continue;
         }
+      }
+      
+      // Hit another top-level section - stop skipping
+      if (topLevelMatch && inImpactSection) {
+        inImpactSection = false;
       }
       
       // Skip old Impact section content
@@ -2129,34 +2109,37 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     const newLines: string[] = [];
     let inSidebarSection = false;
     let foundSidebarSection = false;
-    let currentSidebarTitle = '';
+    let sectionCount = 0;
+    let firstNonOverviewSection = '';
     
-    // First pass: identify the current sidebar section (first non-Overview section)
+    // First pass: identify the first non-Overview section
     for (const line of lines) {
       const topLevelMatch = line.trim().match(/^# (.+)$/);
       if (topLevelMatch) {
         const sectionTitle = topLevelMatch[1].trim();
-        if (sectionTitle !== "Overview" && !currentSidebarTitle) {
-          currentSidebarTitle = sectionTitle;
-          break; // Found the sidebar section
+        sectionCount++;
+        if (sectionTitle !== "Overview" && !firstNonOverviewSection) {
+          firstNonOverviewSection = sectionTitle;
         }
       }
     }
     
-    // Second pass: remove the sidebar section using the identified title
+    // Second pass: remove the sidebar section
+    sectionCount = 0;
     for (const line of lines) {
       const topLevelMatch = line.trim().match(/^# (.+)$/);
       
       if (topLevelMatch) {
         const sectionTitle = topLevelMatch[1].trim();
+        sectionCount++;
         
         // If we were in a sidebar section, stop skipping
         if (inSidebarSection) {
           inSidebarSection = false;
         }
         
-        // Check if this is the sidebar section we identified
-        if (sectionTitle === currentSidebarTitle) {
+        // Check if this is the sidebar section (first non-Overview section or "At a glance")
+        if (sectionTitle === "At a glance" || sectionTitle === firstNonOverviewSection) {
           foundSidebarSection = true;
           inSidebarSection = true;
           continue; // Skip the header line
