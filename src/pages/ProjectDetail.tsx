@@ -819,20 +819,25 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
   // Store original content when entering edit mode (for Cancel functionality)
   const [originalContent, setOriginalContent] = useState(caseStudyContent);
 
-  // Clean up corrupted content on mount
+  // Clean up corrupted content on mount and use cleaned content for parsing
+  const [cleanedContent, setCleanedContent] = useState(caseStudyContent);
+  
   useEffect(() => {
     if (isContentCorrupted(caseStudyContent)) {
       console.log('🧹 Detected corrupted content, cleaning up...');
-      const cleanedContent = cleanMarkdownContent(caseStudyContent);
-      setCaseStudyContent(cleanedContent);
+      const cleaned = cleanMarkdownContent(caseStudyContent);
+      setCleanedContent(cleaned);
+      setCaseStudyContent(cleaned);
+    } else {
+      setCleanedContent(caseStudyContent);
     }
-  }, []); // Run once on mount
+  }, [caseStudyContent]); // Run when caseStudyContent changes
 
   // Parse sections directly to extract sidebar sections - memoized to prevent re-parsing on every render
   // Parse sections to extract both sidebar section (first non-Overview) and second sidebar section
   const { atGlanceContent, impactContent } = useMemo(() => {
-    console.log('🔍 Starting sidebar parsing with content length:', caseStudyContent?.length || 0);
-    const lines = caseStudyContent?.split('\n') || [];
+    console.log('🔍 Starting sidebar parsing with content length:', cleanedContent?.length || 0);
+    const lines = cleanedContent?.split('\n') || [];
     let currentSection: { title: string; content: string } | null = null;
     let currentSubsection: { title: string; content: string } | null = null;
     let atGlanceSection: { title: string; content: string } | null = null;
@@ -937,7 +942,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       atGlanceContent: atGlanceSection,
       impactContent: impactSection
     };
-  }, [caseStudyContent]);
+  }, [cleanedContent]);
 
   // Track previous content to avoid unnecessary saves
   const prevContentRef = useRef<string>('');
