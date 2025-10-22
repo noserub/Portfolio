@@ -455,7 +455,12 @@ export function CaseStudySections({
                             s.title === "Tech stack";
     
     // Debug logging
-    console.log('🔍 Filtering section:', { title: s.title, isSidebarSection, willShow: !isSidebarSection });
+    console.log('🔍 Filtering section:', { 
+      title: s.title, 
+      isSidebarSection, 
+      willShow: !isSidebarSection,
+      contentPreview: s.content.substring(0, 50) + '...'
+    });
     
     if (isSidebarSection) return false;
     
