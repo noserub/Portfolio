@@ -3067,8 +3067,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
         )}
         </div>
 
-        {/* Sidebar - Only show in preview mode when content exists, hidden on mobile */}
-        {!isEditing && (atGlanceContent || impactContent) && (
+        {/* Sidebar - Show when content exists, hidden on mobile */}
+        {(atGlanceContent || impactContent) && (
           <div className="hidden lg:block w-full lg:w-80 flex-shrink-0 order-3 lg:order-last">
             <div className="lg:sticky lg:top-24 space-y-12">
               {atGlanceContent && (
