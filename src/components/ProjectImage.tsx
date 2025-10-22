@@ -391,18 +391,20 @@ export function ProjectImage({
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="absolute inset-0 bg-background/95 backdrop-blur-sm rounded-2xl p-6 shadow-2xl z-10 flex flex-col gap-4"
+            className="absolute inset-0 bg-background/95 backdrop-blur-sm rounded-2xl shadow-2xl z-10 flex flex-col"
           >
-            <div className="flex justify-between items-start">
-              <h4>Edit Project</h4>
+            {/* Header - Fixed */}
+            <div className="flex justify-between items-start p-6 pb-4 border-b border-border">
+              <h4 className="text-lg font-semibold">Edit Project</h4>
               <Button size="sm" variant="ghost" onClick={handleCancel}>
                 <X className="w-4 h-4" />
               </Button>
             </div>
 
-            <div className="space-y-3 flex-1 overflow-y-auto">
+            {/* Content - Scrollable */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-4">
               <div>
-                <label className="block mb-1 text-sm">Title</label>
+                <label className="block mb-1 text-sm font-medium">Title</label>
                 <Input
                   value={editedProject.title}
                   onChange={(e) =>
@@ -413,7 +415,7 @@ export function ProjectImage({
               </div>
 
               <div>
-                <label className="block mb-1 text-sm">Description</label>
+                <label className="block mb-1 text-sm font-medium">Description</label>
                 <Textarea
                   value={editedProject.description}
                   onChange={(e) =>
@@ -450,7 +452,7 @@ export function ProjectImage({
               </div>
 
               <div>
-                <label className="block mb-1 text-sm">Image Scale</label>
+                <label className="block mb-1 text-sm font-medium">Image Scale</label>
                 <input
                   type="range"
                   min="1"
@@ -468,7 +470,7 @@ export function ProjectImage({
               </div>
 
               <div>
-                <label className="block mb-2 text-sm">Replace Image</label>
+                <label className="block mb-2 text-sm font-medium">Replace Image</label>
                 <label className="cursor-pointer">
                   <Button variant="outline" className="w-full" asChild>
                     <span>Choose New Image</span>
@@ -483,10 +485,13 @@ export function ProjectImage({
               </div>
             </div>
 
-            <Button onClick={handleSave} className="w-full">
-              <Check className="w-4 h-4 mr-2" />
-              Save Changes
-            </Button>
+            {/* Footer - Fixed */}
+            <div className="p-6 pt-4 border-t border-border bg-background/50">
+              <Button onClick={handleSave} className="w-full">
+                <Check className="w-4 h-4 mr-2" />
+                Save Changes
+              </Button>
+            </div>
           </motion.div>
         )}
 
