@@ -2414,6 +2414,11 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
         <div className="bg-red-500 text-white p-4 rounded text-lg font-bold mb-4">
           DEBUG: Grid: {(atGlanceContent || impactContent) ? 'YES' : 'NO'} | AtGlance: {atGlanceContent ? 'YES' : 'NO'} | Impact: {impactContent ? 'YES' : 'NO'}
         </div>
+        {/* DEBUG: Show markdown content sections */}
+        <div className="bg-yellow-500 text-black p-4 rounded text-sm font-bold mb-4">
+          <div>Markdown Content Length: {caseStudyContent?.length || 0}</div>
+          <div>First 500 chars: {caseStudyContent?.substring(0, 500)}</div>
+        </div>
         {/* Main Content */}
         <div className="space-y-16" style={{ backgroundColor: 'lightblue', border: '5px solid yellow' }}>
         {/* Hero Image Section - Order 2 on mobile (after title, before sidebars) */}
