@@ -8,12 +8,13 @@ import { Textarea } from "../ui/textarea";
 
 interface AtAGlanceSidebarProps {
   content: string;
+  title?: string;
   isEditMode?: boolean;
   onUpdate?: (title: string, content: string) => void;
   onRemove?: () => void;
 }
 
-export function AtAGlanceSidebar({ content, isEditMode, onUpdate, onRemove }: AtAGlanceSidebarProps) {
+export function AtAGlanceSidebar({ content, title, isEditMode, onUpdate, onRemove }: AtAGlanceSidebarProps) {
   const [isEditing, setIsEditing] = useState(false);
   
   // Extract title from content (first line starting with #)
@@ -28,28 +29,29 @@ export function AtAGlanceSidebar({ content, isEditMode, onUpdate, onRemove }: At
     return "At a glance"; // fallback
   };
   
-  const [editedTitle, setEditedTitle] = useState(extractTitleFromContent(content));
+  const [editedTitle, setEditedTitle] = useState(title || extractTitleFromContent(content));
   const [editedContent, setEditedContent] = useState(content);
-  const [originalTitle, setOriginalTitle] = useState(extractTitleFromContent(content));
+  const [originalTitle, setOriginalTitle] = useState(title || extractTitleFromContent(content));
   const [originalContent, setOriginalContent] = useState(content);
 
-  // Update local state when content prop changes
+  // Update local state when content or title prop changes
   React.useEffect(() => {
     // Only update if content is valid and not corrupted
     if (content && typeof content === 'string' && content.trim().length > 0) {
-      const extractedTitle = extractTitleFromContent(content);
+      const newTitle = title || extractTitleFromContent(content);
       console.log('🔍 AtAGlanceSidebar useEffect:', { 
         contentLength: content.length, 
-        extractedTitle, 
+        titleProp: title,
+        newTitle, 
         currentEditedTitle: editedTitle,
         contentPreview: content.substring(0, 200) + '...'
       });
-      setEditedTitle(extractedTitle);
-      setOriginalTitle(extractedTitle);
+      setEditedTitle(newTitle);
+      setOriginalTitle(newTitle);
       setEditedContent(content);
       setOriginalContent(content);
     }
-  }, [content]);
+  }, [content, title]);
 
   const handleEdit = () => {
     setOriginalTitle(editedTitle);

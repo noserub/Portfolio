@@ -3125,6 +3125,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                   })}
                   <AtAGlanceSidebar 
                     content={atGlanceContent.content}
+                    title={atGlanceContent.title}
                     isEditMode={isEditMode}
                     onUpdate={handleUpdateAtAGlance}
                     onRemove={handleRemoveAtAGlance}
@@ -3140,6 +3141,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                   })}
                   <ImpactSidebar 
                     content={impactContent.content}
+                    title={impactContent.title}
                     isEditMode={isEditMode}
                     onUpdate={handleUpdateImpact}
                     onRemove={handleRemoveImpact}

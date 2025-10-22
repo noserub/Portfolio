@@ -8,12 +8,13 @@ import { Textarea } from "../ui/textarea";
 
 interface ImpactSidebarProps {
   content: string;
+  title?: string;
   isEditMode?: boolean;
   onUpdate?: (title: string, content: string) => void;
   onRemove?: () => void;
 }
 
-export function ImpactSidebar({ content, isEditMode, onUpdate, onRemove }: ImpactSidebarProps) {
+export function ImpactSidebar({ content, title, isEditMode, onUpdate, onRemove }: ImpactSidebarProps) {
   const [isEditing, setIsEditing] = useState(false);
   
   // Extract title from content (first line starting with #)
@@ -28,22 +29,22 @@ export function ImpactSidebar({ content, isEditMode, onUpdate, onRemove }: Impac
     return "Impact"; // fallback
   };
   
-  const [editedTitle, setEditedTitle] = useState(extractTitleFromContent(content));
+  const [editedTitle, setEditedTitle] = useState(title || extractTitleFromContent(content));
   const [editedContent, setEditedContent] = useState(content);
-  const [originalTitle, setOriginalTitle] = useState(extractTitleFromContent(content));
+  const [originalTitle, setOriginalTitle] = useState(title || extractTitleFromContent(content));
   const [originalContent, setOriginalContent] = useState(content);
 
-  // Update local state when content prop changes
+  // Update local state when content or title prop changes
   React.useEffect(() => {
     // Only update if content is valid and not corrupted
     if (content && typeof content === 'string' && content.trim().length > 0) {
-      const extractedTitle = extractTitleFromContent(content);
-      setEditedTitle(extractedTitle);
-      setOriginalTitle(extractedTitle);
+      const newTitle = title || extractTitleFromContent(content);
+      setEditedTitle(newTitle);
+      setOriginalTitle(newTitle);
       setEditedContent(content);
       setOriginalContent(content);
     }
-  }, [content]);
+  }, [content, title]);
 
   const handleEdit = () => {
     setOriginalTitle(editedTitle);
