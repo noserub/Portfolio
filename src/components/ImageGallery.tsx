@@ -83,13 +83,27 @@ export function ImageGallery({
     addFiles(files);
   };
 
-  const addFiles = (files: File[]) => {
-    const newImages: GalleryImage[] = files.map((file) => ({
-      id: Math.random().toString(36).substr(2, 9),
-      url: URL.createObjectURL(file),
-      alt: file.name,
-    }));
-    onImagesChange([...images, ...newImages]);
+  const addFiles = async (files: File[]) => {
+    // Dynamic import to avoid blocking initial load
+    const { uploadImage } = await import('../utils/imageHelpers');
+    
+    for (const file of files) {
+      try {
+        // Upload to Supabase Storage instead of blob URL
+        const url = await uploadImage(file, 'portrait');
+        
+        const newImage: GalleryImage = {
+          id: Math.random().toString(36).substr(2, 9),
+          url: url,
+          alt: file.name,
+        };
+        
+        onImagesChange([...images, newImage]);
+      } catch (error) {
+        console.error('Error adding image:', error);
+        alert(`Failed to add image: ${file.name}`);
+      }
+    }
   };
 
   const removeImage = (id: string) => {

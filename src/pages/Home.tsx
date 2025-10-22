@@ -2718,12 +2718,14 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     input.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (file) {
-        // Convert file to base64 data URL for persistence
-        const reader = new FileReader();
-        reader.onloadend = async () => {
+        // Upload to Supabase Storage instead of base64
+        try {
+          const { uploadImage } = await import('../utils/imageHelpers');
+          const imageUrl = await uploadImage(file, 'hero');
+          
           const newProject: ProjectData = {
             id: `${type}-${Math.random().toString(36).substr(2, 9)}`,
-            url: reader.result as string,
+            url: imageUrl,
             title: "New Project",
             description: "Add your project description here",
             position: { x: 50, y: 50 },
@@ -2760,8 +2762,10 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
           } else {
             console.error('❌ Failed to create project in Supabase');
           }
-        };
-        reader.readAsDataURL(file);
+        } catch (error) {
+          console.error('❌ Error uploading image:', error);
+          alert('Failed to upload image. Please try again.');
+        }
       }
     };
     input.click();
