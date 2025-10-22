@@ -824,7 +824,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
   // During editing, we keep local state and don't sync with prop updates (which are from our own saves)
 
   // Parse sections directly to extract sidebar sections - memoized to prevent re-parsing on every render
-  // Parse sections to extract both "At a glance" (or renamed equivalent) and "Impact" for sidebars
+  // Parse sections to extract both sidebar section (first non-Overview) and "Impact" for sidebars
   const { atGlanceContent, impactContent } = useMemo(() => {
     const lines = caseStudyContent?.split('\n') || [];
     let currentSection: { title: string; content: string } | null = null;
@@ -840,10 +840,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
         if (currentSubsection && currentSubsection.title === "Impact") {
           impactSection = currentSubsection;
         }
-        // Save previous section if it was "At a glance" or "Impact"
-        if (currentSection && currentSection.title === "At a glance") {
-          atGlanceSection = currentSection;
-        }
+        // Save previous section if it was "Impact"
         if (currentSection && currentSection.title === "Impact") {
           impactSection = currentSection;
         }
@@ -854,7 +851,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
         // If this is the first section that's not "Overview", treat it as the sidebar section
         if (!foundFirstSidebarSection && title !== "Overview") {
           foundFirstSidebarSection = true;
-          // This will be captured as the sidebar section when we process the next section
+          // Capture this section as the sidebar section immediately
+          atGlanceSection = { title, content: '' };
         }
       }
       // Check for subsection (## Header)
@@ -874,10 +872,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       }
     });
 
-    // Check if last section is "At a glance" or "Impact"
-    if (currentSection && (currentSection as any).title === "At a glance") {
-      atGlanceSection = currentSection;
-    }
+    // Check if last section is "Impact"
     if (currentSection && (currentSection as any).title === "Impact") {
       impactSection = currentSection;
     }
@@ -886,7 +881,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       impactSection = currentSubsection;
     }
     
-    // If we didn't find "At a glance" but found a first sidebar section, use that
+    // If we didn't find a sidebar section but found a first sidebar section, use that
     if (!atGlanceSection && currentSection && foundFirstSidebarSection) {
       atGlanceSection = currentSection;
     }
