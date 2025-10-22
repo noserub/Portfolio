@@ -177,10 +177,10 @@ export function ProjectImage({
     const x = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
     const y = Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100));
     
-    // Smooth position updates with micro-adjustments
+    // More precise positioning with smaller increments
     const newPosition = {
-      x: Math.round(x * 10) / 10, // Round to 1 decimal for precision
-      y: Math.round(y * 10) / 10
+      x: Math.round(x * 100) / 100, // Round to 2 decimals for better precision
+      y: Math.round(y * 100) / 100
     };
     
     setEditedProject({
@@ -218,19 +218,28 @@ export function ProjectImage({
 
   // New functions for improved UX
   const handleFitToFrame = () => {
-    // Calculate optimal scale to fit image in frame
-    const optimalScale = 1; // Start with 1:1 scale
+    // Reset to default centered position with optimal scale
     const updated = {
       ...editedProject,
-      scale: optimalScale,
-      position: { x: 50, y: 50 } // Center the image
+      scale: 1.0, // Reset to 1:1 scale
+      position: { x: 50, y: 50 } // Center the image perfectly
     };
     setEditedProject(updated);
     onUpdate(updated);
   };
 
   const handleZoomOut = () => {
-    const newScale = Math.max(0.5, editedProject.scale - 0.1);
+    const newScale = Math.max(0.3, editedProject.scale - 0.2);
+    const updated = {
+      ...editedProject,
+      scale: newScale
+    };
+    setEditedProject(updated);
+    onUpdate(updated);
+  };
+
+  const handleZoomIn = () => {
+    const newScale = Math.min(3.0, editedProject.scale + 0.2);
     const updated = {
       ...editedProject,
       scale: newScale
@@ -346,9 +355,16 @@ export function ProjectImage({
             {/* Positioning Mode Visual Feedback */}
             {isEditMode && isPositioning && (
               <div className="absolute inset-0 bg-blue-500/20 border-2 border-blue-500 border-dashed flex items-center justify-center z-30">
-                <div className="bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium">
-                  Click and drag to position image
+                <div className="bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-lg">
+                  🎯 Click and drag to position image
                 </div>
+              </div>
+            )}
+            
+            {/* Scale indicator */}
+            {isEditMode && (
+              <div className="absolute top-3 left-3 bg-black/80 text-white px-2 py-1 rounded text-xs font-mono z-20">
+                Scale: {(editedProject.scale * 100).toFixed(0)}%
               </div>
             )}
             {/* Project description badge */}
@@ -516,6 +532,15 @@ export function ProjectImage({
               
               {/* Right side - Scale controls */}
               <div className="flex gap-1">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={handleZoomIn}
+                  className="shadow-lg"
+                  title="Zoom in"
+                >
+                  <ZoomIn className="w-4 h-4" />
+                </Button>
                 <Button
                   size="sm"
                   variant="secondary"
