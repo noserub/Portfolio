@@ -2409,7 +2409,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       )}
       <div className={(atGlanceContent || impactContent) ? "lg:grid lg:grid-cols-[1fr_320px] lg:gap-16 space-y-16 lg:space-y-0" : "space-y-16"}>
         {/* Main Content */}
-        <div className="space-y-16">
+        <div className="space-y-16 bg-red-100 lg:bg-blue-100">
         {/* Hero Image Section - Order 2 on mobile (after title, before sidebars) */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -3074,7 +3074,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
 
         {/* Sidebar - Show when content exists, hidden on mobile */}
         {(atGlanceContent || impactContent) && (
-          <div className="hidden lg:block">
+          <div className="hidden lg:block bg-green-100">
             <div className="lg:sticky lg:top-24 space-y-12">
               {atGlanceContent && (
                 <>
