@@ -23,6 +23,7 @@ import { ImpactSidebar } from "../components/features/ImpactSidebar";
 import { FlowDiagramGallery } from "../components/FlowDiagramGallery";
 import { VideoGallery } from "../components/VideoGallery";
 import { useCaseStudySEO } from "../hooks/useSEO";
+import { cleanMarkdownContent, isContentCorrupted } from "../utils/cleanMarkdownContent";
 
 interface ProjectDetailProps {
   project: ProjectData;
@@ -818,10 +819,33 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
   // Store original content when entering edit mode (for Cancel functionality)
   const [originalContent, setOriginalContent] = useState(caseStudyContent);
 
-  // No useEffect needed - useState initializers use the project prop on mount
-  // The navigation timestamp key in App.tsx forces a fresh component instance when navigating
-  // This ensures we always start with fresh data from localStorage
-  // During editing, we keep local state and don't sync with prop updates (which are from our own saves)
+  // Clean up corrupted content on mount
+  useEffect(() => {
+    if (isContentCorrupted(caseStudyContent)) {
+      console.log('🧹 Detected corrupted content, cleaning up...');
+      const cleanedContent = cleanMarkdownContent(caseStudyContent);
+      setCaseStudyContent(cleanedContent);
+      
+      // Auto-save the cleaned content
+      const updatedProject: ProjectData = {
+        ...project,
+        title: editedTitle,
+        description: editedDescription,
+        caseStudyContent: cleanedContent,
+        caseStudyImages: caseStudyImagesRef.current,
+        flowDiagramImages: flowDiagramImagesRef.current,
+        galleryAspectRatio,
+        flowDiagramAspectRatio,
+        galleryColumns,
+        flowDiagramColumns,
+        projectImagesPosition,
+        flowDiagramsPosition,
+        solutionCardsPosition,
+        sectionPositions,
+      };
+      onUpdate(updatedProject);
+    }
+  }, []); // Run once on mount
 
   // Parse sections directly to extract sidebar sections - memoized to prevent re-parsing on every render
   // Parse sections to extract both sidebar section (first non-Overview) and "Impact" for sidebars
@@ -837,11 +861,17 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       // Check for top-level section (# Header)
       if (line.trim().match(/^# (.+)$/)) {
         // Save previous subsection if it was "Impact" before moving to new section
-        if (currentSubsection && currentSubsection.title === "Impact") {
+        if (currentSubsection && (
+          currentSubsection.title === "Impact" || 
+          currentSubsection.title.toLowerCase().includes("impact")
+        )) {
           impactSection = currentSubsection;
         }
         // Save previous section if it was "Impact"
-        if (currentSection && currentSection.title === "Impact") {
+        if (currentSection && (
+          currentSection.title === "Impact" || 
+          currentSection.title.toLowerCase().includes("impact")
+        )) {
           impactSection = currentSection;
         }
         const title = (line || '').trim().substring(2).trim();
@@ -858,7 +888,10 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       // Check for subsection (## Header)
       else if (line.trim().match(/^## (.+)$/)) {
         // Save previous subsection if it was "Impact"
-        if (currentSubsection && currentSubsection.title === "Impact") {
+        if (currentSubsection && (
+          currentSubsection.title === "Impact" || 
+          currentSubsection.title.toLowerCase().includes("impact")
+        )) {
           impactSection = currentSubsection;
         }
         const title = (line || '').trim().substring(3).trim();
@@ -872,12 +905,18 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       }
     });
 
-    // Check if last section is "Impact"
-    if (currentSection && (currentSection as any).title === "Impact") {
+    // Check if last section is "Impact" or contains "impact"
+    if (currentSection && (
+      (currentSection as any).title === "Impact" || 
+      (currentSection as any).title.toLowerCase().includes("impact")
+    )) {
       impactSection = currentSection;
     }
-    // Check if last subsection is "Impact"
-    if (currentSubsection && (currentSubsection as any).title === "Impact") {
+    // Check if last subsection is "Impact" or contains "impact"
+    if (currentSubsection && (
+      (currentSubsection as any).title === "Impact" || 
+      (currentSubsection as any).title.toLowerCase().includes("impact")
+    )) {
       impactSection = currentSubsection;
     }
     
