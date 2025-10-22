@@ -2419,7 +2419,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       <div className={(atGlanceContent || impactContent) ? "lg:grid lg:grid-cols-[1fr_320px] lg:gap-16 space-y-16 lg:space-y-0" : "space-y-16"} style={(atGlanceContent || impactContent) ? { display: 'grid', gridTemplateColumns: '1fr 320px', gap: '4rem' } : {}}>
         
         {/* Main Content Container */}
-        <div className="space-y-16 lg:col-start-1 lg:col-end-1">
+        <div className="space-y-16 lg:col-start-1 lg:col-end-1" style={{ backgroundColor: 'lightblue', border: '3px solid yellow' }}>
+          {console.log('🔍 Rendering main content container')}
         {/* Hero Image Section - Order 2 on mobile (after title, before sidebars) */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -3112,8 +3113,9 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
 
         {/* Sidebar - Show when content exists, hidden on mobile */}
         {(atGlanceContent || impactContent) && (
-          <div className="hidden lg:block lg:col-start-2 lg:col-end-2">
+          <div className="hidden lg:block lg:col-start-2 lg:col-end-2" style={{ backgroundColor: 'lightgreen', border: '3px solid red' }}>
             <div className="lg:sticky lg:top-24 space-y-12">
+              {console.log('🔍 Rendering sidebar container with:', { atGlanceContent: !!atGlanceContent, impactContent: !!impactContent })}
               {atGlanceContent && (
                 <>
                   {console.log('🔍 Rendering AtAGlanceSidebar with:', { 
