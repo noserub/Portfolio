@@ -2423,8 +2423,9 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
           <div>Markdown Content Length: {caseStudyContent?.length || 0}</div>
           <div>First 500 chars: {caseStudyContent?.substring(0, 500)}</div>
         </div>
-        {/* Main Content */}
-        <div className="space-y-16 lg:col-start-1 lg:col-end-1" style={{ backgroundColor: 'lightblue', border: '5px solid yellow' }}>
+        
+        {/* Main Content Container */}
+        <div className="space-y-16" style={{ backgroundColor: 'lightblue', border: '5px solid yellow' }}>
         {/* Hero Image Section - Order 2 on mobile (after title, before sidebars) */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -3107,10 +3108,11 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
             </Button>
           </motion.div>
         )}
+        </div>
 
         {/* Sidebar - Show when content exists, hidden on mobile */}
         {(atGlanceContent || impactContent) && (
-          <div className="hidden lg:block lg:col-start-2 lg:col-end-2" style={{ backgroundColor: 'lightgreen', border: '5px solid red' }}>
+          <div className="hidden lg:block" style={{ backgroundColor: 'lightgreen', border: '5px solid red' }}>
             <div className="lg:sticky lg:top-24 space-y-12">
               {atGlanceContent && (
                 <>
@@ -3137,7 +3139,6 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
             </div>
           </div>
         )}
-        </div>
       </div>
 
       {/* Lightbox for Case Study Images */}
