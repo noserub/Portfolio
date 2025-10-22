@@ -69,21 +69,6 @@ export function SignIn({ onSignIn, onCancel }: SignInProps) {
             Enter your password to access edit mode
           </p>
           
-          {/* Prominent bypass button */}
-          <div className="mb-4 p-3 bg-yellow-100 border border-yellow-300 rounded-lg">
-            <button
-              type="button"
-              onClick={() => {
-                console.log('🚨 BYPASS: Using temporary authentication');
-                console.log('🚨 BYPASS: Calling onSignIn with bypass');
-                onSignIn('bypass');
-                console.log('🚨 BYPASS: onSignIn called');
-              }}
-              className="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded"
-            >
-              🚨 BYPASS AUTHENTICATION (TESTING)
-            </button>
-          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -122,18 +107,6 @@ export function SignIn({ onSignIn, onCancel }: SignInProps) {
             </Button>
           </div>
           
-          {/* Temporary bypass for testing */}
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full mt-2 text-xs bg-red-100 hover:bg-red-200 text-red-800"
-            onClick={() => {
-              console.log('🚨 BYPASS: Using temporary authentication');
-              onSignIn('bypass');
-            }}
-          >
-            🚨 Bypass (Testing Only)
-          </Button>
         </form>
 
         <p className="text-xs text-muted-foreground text-center mt-6">

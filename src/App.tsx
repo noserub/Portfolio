@@ -752,37 +752,7 @@ export default function App() {
   const handleSignIn = async (password: string) => {
     console.log('🔐 handleSignIn called with password:', password);
     
-    if (password === 'bypass') {
-      // For bypass, create a temporary Supabase session
-      try {
-        console.log('🚨 BYPASS: Creating temporary Supabase session...');
-        
-        // Try to sign in with a test account or create one
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: 'bypass@test.com',
-          password: 'bypass123'
-        });
-        
-        if (error) {
-          console.log('⚠️ BYPASS: Test account not found, creating one...');
-          // Try to create the test account
-          const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-            email: 'bypass@test.com',
-            password: 'bypass123'
-          });
-          
-          if (signUpError) {
-            console.log('⚠️ BYPASS: Could not create test account, using local auth only');
-          } else {
-            console.log('✅ BYPASS: Test account created');
-          }
-        } else {
-          console.log('✅ BYPASS: Test account authenticated');
-        }
-      } catch (err) {
-        console.log('⚠️ BYPASS: Supabase auth failed, using local auth only:', err);
-      }
-    } else if (password === 'brian2025') {
+    if (password === 'brian2025') {
       // Real authentication with your account
       try {
         console.log('🔐 REAL AUTH: Signing in with brian.bureson@gmail.com...');

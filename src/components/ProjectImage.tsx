@@ -220,7 +220,7 @@ export function ProjectImage({
       >
         <div
           ref={imageRef}
-          className={`aspect-[3/4] w-[280px] overflow-hidden rounded-2xl shadow-xl transition-all duration-200 ${
+          className={`aspect-[3/4] w-[280px] overflow-hidden rounded-t-2xl rounded-b-3xl shadow-xl transition-all duration-200 ${
             isDragging ? "ring-4 ring-primary" : ""
           } ${!isEditMode && isHovered ? "shadow-2xl ring-2 ring-primary/30" : ""}`}
           style={{
@@ -242,7 +242,7 @@ export function ProjectImage({
           />
           
           <motion.div
-            className="w-full h-full relative rounded-2xl overflow-hidden"
+            className="w-full h-full relative rounded-t-2xl rounded-b-3xl overflow-hidden"
             style={{
               backgroundImage: `url(${getImageUrl()})`,
               backgroundSize: `${editedProject.scale * 100}%`,
