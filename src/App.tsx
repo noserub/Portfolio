@@ -298,52 +298,8 @@ export default function App() {
   });
   
 
-  const refreshDebugInfo = () => {
-    try {
-      const caseStudiesData = localStorage.getItem('caseStudies');
-      const designProjectsData = localStorage.getItem('designProjects');
-      const caseStudies = caseStudiesData ? JSON.parse(caseStudiesData) : [];
-      const designProjects = designProjectsData ? JSON.parse(designProjectsData) : [];
-      
-      const estimatedSize = (
-        (caseStudiesData?.length || 0) + 
-        (designProjectsData?.length || 0) +
-        (localStorage.getItem('logo')?.length || 0)
-      ) * 2;
-      
-      setDebugInfo({
-        hasLogo: !!localStorage.getItem('logo'),
-        caseStudiesCount: caseStudies.length,
-        designProjectsCount: designProjects.length,
-        totalSize: `${(estimatedSize / 1024 / 1024).toFixed(2)} MB`,
-        caseStudies: caseStudies
-      });
-    } catch (e) {
-      console.error('Error loading debug info:', e);
-      setDebugInfo({
-        hasLogo: false,
-        caseStudiesCount: 0,
-        designProjectsCount: 0,
-        totalSize: '0 MB',
-        caseStudies: []
-      });
-    }
-  };
 
-  // Calculate debug info when panel is shown
-  useEffect(() => {
-    if (showDebugPanel) {
-      refreshDebugInfo();
-    }
-  }, [showDebugPanel]);
 
-  // Auto-refresh debug info when data is saved - always refresh when saved, not just when panel is open
-  useEffect(() => {
-    if (showSaveIndicator) {
-      console.log('💾 Save indicator shown - refreshing debug info');
-      refreshDebugInfo();
-    }
-  }, [showSaveIndicator]);
 
   // Logo is now saved to Supabase via updateSettings
 
