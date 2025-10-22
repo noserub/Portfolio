@@ -890,7 +890,10 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       hasAtGlance: !!atGlanceSection,
       hasImpact: !!impactSection,
       impactTitle: (impactSection as any)?.title,
-      impactContentLength: (impactSection as any)?.content?.length || 0
+      impactContentLength: (impactSection as any)?.content?.length || 0,
+      atGlanceTitle: (atGlanceSection as any)?.title,
+      atGlanceContentLength: (atGlanceSection as any)?.content?.length || 0,
+      atGlanceContentPreview: (atGlanceSection as any)?.content?.substring(0, 100) || 'none'
     });
 
     return {
