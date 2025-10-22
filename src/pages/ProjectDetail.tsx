@@ -1958,49 +1958,38 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     onUpdate(updatedProject);
   };
 
-  // Handler for updating sidebar section (flexible to handle any renamed section)
+  // Handler for updating first sidebar section (At a glance)
   const handleUpdateAtAGlance = (title: string, content: string) => {
-    // Update the markdown content by replacing the sidebar section
+    // Update the markdown content by replacing the first sidebar section
     const lines = caseStudyContent?.split('\n') || [];
     const newLines: string[] = [];
     let inSidebarSection = false;
     let foundSidebarSection = false;
     let sectionCount = 0;
-    let firstNonOverviewSection = '';
     
-    // First pass: identify the first non-Overview section
-    for (const line of lines) {
-      const topLevelMatch = line.trim().match(/^# (.+)$/);
-      if (topLevelMatch) {
-        const sectionTitle = topLevelMatch[1].trim();
-        sectionCount++;
-        if (sectionTitle !== "Overview" && !firstNonOverviewSection) {
-          firstNonOverviewSection = sectionTitle;
-        }
-      }
-    }
-    
-    // Second pass: replace the sidebar section
-    sectionCount = 0;
     for (const line of lines) {
       const topLevelMatch = line.trim().match(/^# (.+)$/);
       
       if (topLevelMatch) {
         const sectionTitle = topLevelMatch[1].trim();
-        sectionCount++;
         
         // If we were in a sidebar section, stop skipping
         if (inSidebarSection) {
           inSidebarSection = false;
         }
         
-        // Check if this is the sidebar section (first non-Overview section or "At a glance")
-        if (sectionTitle === "At a glance" || sectionTitle === firstNonOverviewSection) {
-          foundSidebarSection = true;
-          inSidebarSection = true;
-          newLines.push(`# ${title}`);
-          newLines.push(content);
-          continue;
+        // Count non-Overview sections
+        if (sectionTitle !== "Overview") {
+          sectionCount++;
+          
+          // First non-Overview section is the sidebar section
+          if (sectionCount === 1) {
+            foundSidebarSection = true;
+            inSidebarSection = true;
+            newLines.push(`# ${title}`);
+            newLines.push(content);
+            continue;
+          }
         }
       }
       
@@ -2040,35 +2029,17 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     onUpdate(updatedProject);
   };
 
-  // Handler for updating "Impact" sidebar (flexible to handle renamed sections)
+  // Handler for updating second sidebar section (Impact)
   const handleUpdateImpact = (title: string, content: string) => {
-    // Update the markdown content by replacing the Impact section
+    // Update the markdown content by replacing the second sidebar section
     const lines = caseStudyContent?.split('\n') || [];
     const newLines: string[] = [];
     let inImpactSection = false;
     let foundImpactSection = false;
+    let sectionCount = 0;
     
     for (const line of lines) {
-      const subsectionMatch = line.trim().match(/^## (.+)$/);
       const topLevelMatch = line.trim().match(/^# (.+)$/);
-      
-      if (subsectionMatch) {
-        const subsectionTitle = subsectionMatch[1].trim();
-        
-        // If we were in an Impact section, stop skipping
-        if (inImpactSection) {
-          inImpactSection = false;
-        }
-        
-        // Check if this is an Impact section (look for "Impact" or any section that could be Impact)
-        if (subsectionTitle === "Impact" || (!foundImpactSection && subsectionTitle.toLowerCase().includes("impact"))) {
-          foundImpactSection = true;
-          inImpactSection = true;
-          newLines.push(`## ${title}`);
-          newLines.push(content);
-          continue;
-        }
-      }
       
       if (topLevelMatch) {
         const sectionTitle = topLevelMatch[1].trim();
@@ -2078,19 +2049,19 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
           inImpactSection = false;
         }
         
-        // Check if this is an Impact section (look for "Impact" or any section that could be Impact)
-        if (sectionTitle === "Impact" || (!foundImpactSection && sectionTitle.toLowerCase().includes("impact"))) {
-          foundImpactSection = true;
-          inImpactSection = true;
-          newLines.push(`# ${title}`);
-          newLines.push(content);
-          continue;
+        // Count non-Overview sections
+        if (sectionTitle !== "Overview") {
+          sectionCount++;
+          
+          // Second non-Overview section is the Impact sidebar
+          if (sectionCount === 2) {
+            foundImpactSection = true;
+            inImpactSection = true;
+            newLines.push(`# ${title}`);
+            newLines.push(content);
+            continue;
+          }
         }
-      }
-      
-      // Hit another top-level section - stop skipping
-      if (topLevelMatch && inImpactSection) {
-        inImpactSection = false;
       }
       
       // Skip old Impact section content
@@ -2101,16 +2072,9 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       newLines.push(line);
     }
     
-    // If Impact section wasn't found, add it as a subsection of "The Solution"
+    // If Impact section wasn't found, add it at the end
     if (!foundImpactSection) {
-      // Find "The Solution" section and add Impact there
-      const solutionIndex = newLines.findIndex(line => line.trim().match(/^# The Solution$/i));
-      if (solutionIndex >= 0) {
-        newLines.splice(solutionIndex + 1, 0, '', `## ${title}`, content, '');
-      } else {
-        // If no Solution section, just add at end
-        newLines.push('', `## ${title}`, content);
-      }
+      newLines.push('', `# ${title}`, content);
     }
     
     const newContent = newLines.join('\n');
@@ -2136,51 +2100,40 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     onUpdate(updatedProject);
   };
 
-  // Handler for removing sidebar section (flexible to handle renamed sections)
+  // Handler for removing first sidebar section (At a glance)
   const handleRemoveAtAGlance = () => {
     if (!confirm('Are you sure you want to remove this sidebar section?\n\nThis action cannot be undone.')) {
       return;
     }
     
-    // Remove the sidebar section from the markdown content
+    // Remove the first sidebar section from the markdown content
     const lines = caseStudyContent?.split('\n') || [];
     const newLines: string[] = [];
     let inSidebarSection = false;
     let foundSidebarSection = false;
     let sectionCount = 0;
-    let firstNonOverviewSection = '';
     
-    // First pass: identify the first non-Overview section
-    for (const line of lines) {
-      const topLevelMatch = line.trim().match(/^# (.+)$/);
-      if (topLevelMatch) {
-        const sectionTitle = topLevelMatch[1].trim();
-        sectionCount++;
-        if (sectionTitle !== "Overview" && !firstNonOverviewSection) {
-          firstNonOverviewSection = sectionTitle;
-        }
-      }
-    }
-    
-    // Second pass: remove the sidebar section
-    sectionCount = 0;
     for (const line of lines) {
       const topLevelMatch = line.trim().match(/^# (.+)$/);
       
       if (topLevelMatch) {
         const sectionTitle = topLevelMatch[1].trim();
-        sectionCount++;
         
         // If we were in a sidebar section, stop skipping
         if (inSidebarSection) {
           inSidebarSection = false;
         }
         
-        // Check if this is the sidebar section (first non-Overview section or "At a glance")
-        if (sectionTitle === "At a glance" || sectionTitle === firstNonOverviewSection) {
-          foundSidebarSection = true;
-          inSidebarSection = true;
-          continue; // Skip the header line
+        // Count non-Overview sections
+        if (sectionTitle !== "Overview") {
+          sectionCount++;
+          
+          // First non-Overview section is the sidebar section
+          if (sectionCount === 1) {
+            foundSidebarSection = true;
+            inSidebarSection = true;
+            continue; // Skip the header line
+          }
         }
       }
       
@@ -2206,41 +2159,35 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       return;
     }
     
-    // Remove the Impact section (can be either top-level # Impact or subsection ## Impact)
+    // Remove the second sidebar section from the markdown content
     const lines = caseStudyContent?.split('\n') || [];
     const newLines: string[] = [];
     let inImpactSection = false;
     let foundImpactSection = false;
+    let sectionCount = 0;
     
     for (const line of lines) {
-      const subsectionMatch = line.trim().match(/^## (.+)$/);
       const topLevelMatch = line.trim().match(/^# (.+)$/);
       
-      if (subsectionMatch) {
-        const subsectionTitle = subsectionMatch[1].trim();
+      if (topLevelMatch) {
+        const sectionTitle = topLevelMatch[1].trim();
         
         // If we were in an Impact section, stop skipping
         if (inImpactSection) {
           inImpactSection = false;
         }
         
-        // Check if this is an Impact section (look for "Impact" or any section that could be Impact)
-        if (subsectionTitle === "Impact" || (!foundImpactSection && subsectionTitle.toLowerCase().includes("impact"))) {
-          foundImpactSection = true;
-          inImpactSection = true;
-          continue; // Skip the header line
+        // Count non-Overview sections
+        if (sectionTitle !== "Overview") {
+          sectionCount++;
+          
+          // Second non-Overview section is the Impact sidebar
+          if (sectionCount === 2) {
+            foundImpactSection = true;
+            inImpactSection = true;
+            continue; // Skip the header line
+          }
         }
-      }
-      
-      // Check if this is the start of a top-level Impact section
-      if (topLevelMatch && topLevelMatch[1].trim() === "Impact") {
-        inImpactSection = true;
-        continue; // Skip the header line
-      }
-      
-      // If we hit another section (top-level or subsection), stop skipping
-      if (inImpactSection && (topLevelMatch || subsectionMatch)) {
-        inImpactSection = false;
       }
       
       // Only keep lines that are not in the Impact section
