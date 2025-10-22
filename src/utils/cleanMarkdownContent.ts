@@ -25,7 +25,7 @@ export function cleanMarkdownContent(content: string): string {
       if (title === '' || 
           title === 'fdsa fdsa' || 
           title.toLowerCase().includes('fdsa') ||
-          title.toLowerCase().includes('test') ||
+          (title.toLowerCase().includes('test') && title.toLowerCase().includes('notes')) ||
           seenSections.has(title)) {
         inCorruptedSection = true;
         continue;

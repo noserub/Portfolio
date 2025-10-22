@@ -819,31 +819,13 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
   // Store original content when entering edit mode (for Cancel functionality)
   const [originalContent, setOriginalContent] = useState(caseStudyContent);
 
-  // Clean up corrupted content on mount
+  // Clean up corrupted content on mount (disabled for now to debug parsing)
   useEffect(() => {
     if (isContentCorrupted(caseStudyContent)) {
-      console.log('🧹 Detected corrupted content, cleaning up...');
-      const cleanedContent = cleanMarkdownContent(caseStudyContent);
-      setCaseStudyContent(cleanedContent);
-      
-      // Auto-save the cleaned content
-      const updatedProject: ProjectData = {
-        ...project,
-        title: editedTitle,
-        description: editedDescription,
-        caseStudyContent: cleanedContent,
-        caseStudyImages: caseStudyImagesRef.current,
-        flowDiagramImages: flowDiagramImagesRef.current,
-        galleryAspectRatio,
-        flowDiagramAspectRatio,
-        galleryColumns,
-        flowDiagramColumns,
-        projectImagesPosition,
-        flowDiagramsPosition,
-        solutionCardsPosition,
-        sectionPositions,
-      };
-      onUpdate(updatedProject);
+      console.log('🧹 Detected corrupted content, but skipping cleanup for debugging...');
+      // Temporarily disabled to debug parsing issue
+      // const cleanedContent = cleanMarkdownContent(caseStudyContent);
+      // setCaseStudyContent(cleanedContent);
     }
   }, []); // Run once on mount
 
