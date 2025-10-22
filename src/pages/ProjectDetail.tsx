@@ -2593,12 +2593,19 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
               const filteredLines: string[] = [];
               let skipSection = false;
               
+              console.log('🔍 Filtering content for CaseStudySections:', {
+                totalLines: lines.length,
+                firstFewLines: lines.slice(0, 10),
+                sidebarHeaders: lines.filter(line => line.trim().startsWith('# '))
+              });
+              
               for (const line of lines) {
                 // Check if this is a sidebar section header
                 if (line.trim() === '# At a glance' || 
                     line.trim() === '# Impact' || 
                     line.trim() === '# Tech stack' || 
                     line.trim() === '# Tools') {
+                  console.log('🔍 Found sidebar section to skip:', line.trim());
                   skipSection = true;
                   continue;
                 }
@@ -2614,7 +2621,14 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                 }
               }
               
-              return filteredLines.join('\n');
+              const filteredContent = filteredLines.join('\n');
+              console.log('🔍 Filtered content result:', {
+                originalLength: caseStudyContent.length,
+                filteredLength: filteredContent.length,
+                filteredPreview: filteredContent.substring(0, 200) + '...'
+              });
+              
+              return filteredContent;
             })()}
             isEditMode={isEditMode}
             onEditClick={() => {
