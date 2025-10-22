@@ -38,6 +38,12 @@ export function AtAGlanceSidebar({ content, isEditMode, onUpdate, onRemove }: At
     // Only update if content is valid and not corrupted
     if (content && typeof content === 'string' && content.trim().length > 0) {
       const extractedTitle = extractTitleFromContent(content);
+      console.log('🔍 AtAGlanceSidebar useEffect:', { 
+        contentLength: content.length, 
+        extractedTitle, 
+        currentEditedTitle: editedTitle,
+        contentPreview: content.substring(0, 200) + '...'
+      });
       setEditedTitle(extractedTitle);
       setOriginalTitle(extractedTitle);
       setEditedContent(content);
@@ -52,6 +58,11 @@ export function AtAGlanceSidebar({ content, isEditMode, onUpdate, onRemove }: At
   };
 
   const handleSave = () => {
+    console.log('🔍 AtAGlanceSidebar handleSave:', { 
+      editedTitle, 
+      editedContentLength: editedContent.length,
+      editedContentPreview: editedContent.substring(0, 200) + '...'
+    });
     if (onUpdate) {
       onUpdate(editedTitle, editedContent);
     }
