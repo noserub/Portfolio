@@ -904,6 +904,14 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
         currentSubsection.content += line + '\n';
       } else if (currentSection) {
         currentSection.content += line + '\n';
+        
+        // If this is a sidebar section, also add content to the sidebar section
+        if (foundFirstSidebarSection && atGlanceSection && currentSection.title === atGlanceSection.title) {
+          atGlanceSection.content += line + '\n';
+        }
+        if (foundSecondSidebarSection && impactSection && currentSection.title === impactSection.title) {
+          impactSection.content += line + '\n';
+        }
       }
     });
 
@@ -919,6 +927,11 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     // If we didn't find a sidebar section but found a first sidebar section, use that
     if (!atGlanceSection && currentSection && foundFirstSidebarSection) {
       atGlanceSection = currentSection;
+    }
+    
+    // If we didn't find a sidebar section but found a second sidebar section, use that
+    if (!impactSection && currentSection && foundSecondSidebarSection) {
+      impactSection = currentSection;
     }
 
     console.log('📋 Parsed sections:', {
