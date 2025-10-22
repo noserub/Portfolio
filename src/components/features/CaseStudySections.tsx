@@ -169,6 +169,20 @@ const sectionConfig: Record<string, { icon: any; gradient: string; iconColor: st
   }
 };
 
+// Get section configuration with fallback for any sidebar section
+const getSectionConfig = (title: string) => {
+  if (sectionConfig[title]) {
+    return sectionConfig[title];
+  }
+  
+  // Default configuration for any sidebar section (first non-Overview section)
+  return {
+    icon: Info,
+    gradient: "linear-gradient(135deg, #06b6d4, #8b5cf6)",
+    iconColor: "text-cyan-600 dark:text-cyan-400"
+  };
+};
+
 export function CaseStudySections({ 
   content, 
   imageGallerySlot,
@@ -431,11 +445,13 @@ export function CaseStudySections({
 
   const sections = parseSections();
 
-  // Filter out "At a glance" and "Impact" sections - they will be rendered separately in the sidebar
+  // Filter out sidebar sections - they will be rendered separately in the sidebar
   // Also filter out empty sections when not in edit mode
   const regularSections = sections.filter(s => {
-    const isSpecialSection = s.title === "At a glance" || s.title === "Impact";
-    if (isSpecialSection) return false;
+    // Check if this is a sidebar section (first non-Overview section or "Impact")
+    const isSidebarSection = s.title === "Impact" || 
+      (sections.findIndex(sec => sec.title === s.title) === 0 && s.title !== "Overview");
+    if (isSidebarSection) return false;
     
     // In edit mode, show all sections (even empty ones)
     if (isEditMode) return true;
@@ -804,11 +820,7 @@ export function CaseStudySections({
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {afterSolution.map((cardSection, gridIndex) => {
-                const config = sectionConfig[cardSection.title] || {
-                  icon: Target,
-                  gradient: "linear-gradient(135deg, #3b82f6, #8b5cf6)",
-                  iconColor: "text-blue-600 dark:text-blue-400"
-                };
+                const config = getSectionConfig(cardSection.title);
                 
                 const isExpanded = expandedCards.has(gridIndex);
                 
@@ -1018,11 +1030,7 @@ export function CaseStudySections({
           );
         }
         
-        const config = sectionConfig[section.title] || {
-          icon: Target,
-          gradient: "linear-gradient(135deg, #3b82f6, #8b5cf6)",
-          iconColor: "text-blue-600 dark:text-blue-400"
-        };
+        const config = getSectionConfig(section.title);
 
         const Icon = config.icon;
 
