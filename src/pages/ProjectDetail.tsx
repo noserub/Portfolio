@@ -2408,28 +2408,9 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
         </div>
       )}
       <div className={(atGlanceContent || impactContent) ? "lg:grid lg:grid-cols-[1fr_320px] lg:gap-16 space-y-16 lg:space-y-0" : "space-y-16"} style={(atGlanceContent || impactContent) ? { display: 'grid', gridTemplateColumns: '1fr 320px', gap: '4rem' } : {}}>
-        {/* DEBUG: Show sidebar content status */}
-        {console.log('🔍 Layout condition check:', { atGlanceContent: !!atGlanceContent, impactContent: !!impactContent, hasAny: !!(atGlanceContent || impactContent) })}
-        {/* DEBUG: Visual indicator */}
-        <div className="bg-red-500 text-white p-4 rounded text-lg font-bold mb-4">
-          DEBUG: Grid: {(atGlanceContent || impactContent) ? 'YES' : 'NO'} | AtGlance: {atGlanceContent ? 'YES' : 'NO'} | Impact: {impactContent ? 'YES' : 'NO'}
-        </div>
-        {/* DEBUG: Layout info */}
-        <div className="bg-purple-500 text-white p-4 rounded text-lg font-bold mb-4">
-          DEBUG: Layout: {atGlanceContent || impactContent ? 'lg:grid lg:grid-cols-[1fr_320px]' : 'space-y-16'}
-        </div>
-        {/* DEBUG: Grid info */}
-        <div className="bg-orange-500 text-white p-4 rounded text-lg font-bold mb-4">
-          DEBUG: CSS Grid with 2 columns: 1fr (main) + 320px (sidebar)
-        </div>
-        {/* DEBUG: Show markdown content sections */}
-        <div className="bg-yellow-500 text-black p-4 rounded text-sm font-bold mb-4">
-          <div>Markdown Content Length: {caseStudyContent?.length || 0}</div>
-          <div>First 500 chars: {caseStudyContent?.substring(0, 500)}</div>
-        </div>
         
         {/* Main Content Container */}
-        <div className="space-y-16 lg:col-start-1 lg:col-end-1" style={{ backgroundColor: 'lightblue', border: '5px solid yellow' }}>
+        <div className="space-y-16 lg:col-start-1 lg:col-end-1">
         {/* Hero Image Section - Order 2 on mobile (after title, before sidebars) */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -2603,16 +2584,12 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
               const filteredLines: string[] = [];
               let skipSection = false;
               
-              console.log('🔍 Original content length:', caseStudyContent.length);
-              console.log('🔍 Original content preview:', caseStudyContent.substring(0, 200));
-              
               for (const line of lines) {
                 // Check if this is a sidebar section header
                 if (line.trim() === '# At a glance' || 
                     line.trim() === '# Impact' || 
                     line.trim() === '# Tech stack' || 
                     line.trim() === '# Tools') {
-                  console.log('🔍 Found sidebar section:', line.trim());
                   skipSection = true;
                   continue;
                 }
@@ -2628,11 +2605,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                 }
               }
               
-              const filteredContent = filteredLines.join('\n');
-              console.log('🔍 Filtered content length:', filteredContent.length);
-              console.log('🔍 Filtered content preview:', filteredContent.substring(0, 200));
-              
-              return filteredContent;
+              return filteredLines.join('\n');
             })()}
             isEditMode={isEditMode}
             onEditClick={() => {
@@ -3116,29 +3089,23 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
 
         {/* Sidebar - Show when content exists, hidden on mobile */}
         {(atGlanceContent || impactContent) && (
-          <div className="hidden lg:block lg:col-start-2 lg:col-end-2" style={{ backgroundColor: 'lightgreen', border: '5px solid red' }}>
+          <div className="hidden lg:block lg:col-start-2 lg:col-end-2">
             <div className="lg:sticky lg:top-24 space-y-12">
               {atGlanceContent && (
-                <>
-                  {console.log('🔍 Rendering AtAGlanceSidebar with content:', atGlanceContent.content)}
-                  <AtAGlanceSidebar 
-                    content={atGlanceContent.content}
-                    isEditMode={isEditMode}
-                    onUpdate={handleUpdateAtAGlance}
-                    onRemove={handleRemoveAtAGlance}
-                  />
-                </>
+                <AtAGlanceSidebar 
+                  content={atGlanceContent.content}
+                  isEditMode={isEditMode}
+                  onUpdate={handleUpdateAtAGlance}
+                  onRemove={handleRemoveAtAGlance}
+                />
               )}
               {impactContent && (
-                <>
-                  {console.log('🔍 Rendering ImpactSidebar with content:', impactContent.content)}
-                  <ImpactSidebar 
-                    content={impactContent.content}
-                    isEditMode={isEditMode}
-                    onUpdate={handleUpdateImpact}
-                    onRemove={handleRemoveImpact}
-                  />
-                </>
+                <ImpactSidebar 
+                  content={impactContent.content}
+                  isEditMode={isEditMode}
+                  onUpdate={handleUpdateImpact}
+                  onRemove={handleRemoveImpact}
+                />
               )}
             </div>
           </div>
