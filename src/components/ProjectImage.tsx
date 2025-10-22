@@ -58,6 +58,8 @@ interface ProjectImageProps {
   isEditMode: boolean;
   onUpdate: (updatedProject: ProjectData) => void;
   onReplace: (file: File) => void;
+  onNavigate?: () => void;
+  onDelete?: () => void;
 }
 
 export function ProjectImage({
@@ -66,6 +68,8 @@ export function ProjectImage({
   isEditMode,
   onUpdate,
   onReplace,
+  onNavigate,
+  onDelete,
 }: ProjectImageProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -243,6 +247,25 @@ export function ProjectImage({
     };
     setEditedProject(updated);
     onUpdate(updated);
+  };
+
+  // Fallback functions for optional props
+  const handleNavigate = () => {
+    if (onNavigate) {
+      onNavigate();
+    } else {
+      // Fallback to onClick if onNavigate not provided
+      onClick();
+    }
+  };
+
+  const handleDelete = () => {
+    if (onDelete) {
+      onDelete();
+    } else {
+      // Fallback - could show a confirmation dialog
+      console.log('Delete function not provided');
+    }
   };
 
   return (
@@ -449,7 +472,7 @@ export function ProjectImage({
                 <Button
                   size="sm"
                   variant="secondary"
-                  onClick={onNavigate}
+                  onClick={handleNavigate}
                   className="shadow-lg"
                   title="View project"
                 >
@@ -458,7 +481,7 @@ export function ProjectImage({
                 <Button
                   size="sm"
                   variant="destructive"
-                  onClick={onDelete}
+                  onClick={handleDelete}
                   className="shadow-lg"
                   title="Delete project"
                 >
