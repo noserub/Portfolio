@@ -2588,7 +2588,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
         ) : (
           <div className="order-4 lg:order-none">
             <CaseStudySections 
-            content={caseStudyContent}
+            content={caseStudyContent.replace(/# At a glance[\s\S]*?(?=# |$)/g, '').replace(/# Impact[\s\S]*?(?=# |$)/g, '').replace(/# Tech stack[\s\S]*?(?=# |$)/g, '').replace(/# Tools[\s\S]*?(?=# |$)/g, '')}
             isEditMode={isEditMode}
             onEditClick={() => {
               setOriginalContent(caseStudyContent); // Save current content before editing
