@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../lib/supabaseClient';
 
 export interface Project {
@@ -461,7 +461,8 @@ export function useProjects() {
     fetchProjects();
   }, []);
 
-  return {
+  // Memoize the return object to prevent unnecessary re-renders
+  return useMemo(() => ({
     projects,
     loading,
     error,
@@ -475,6 +476,19 @@ export function useProjects() {
     getUserProjects,
     getCurrentUserProjects,
     refetch: fetchProjects
-  };
+  }), [
+    projects,
+    loading,
+    error,
+    fetchProjects,
+    fetchPublishedProjects,
+    getProject,
+    createProject,
+    updateProject,
+    deleteProject,
+    reorderProjects,
+    getUserProjects,
+    getCurrentUserProjects
+  ]);
 }
 

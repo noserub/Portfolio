@@ -59,6 +59,7 @@
       "scripts": {
             "dev": "vite",
             "build": "vite build",
+            "analyze": "node scripts/analyze-bundle.js",
             "supabase:test": "vite --open 'http://localhost:3000?supabase=true'",
             "supabase:types": "supabase gen types typescript --local > src/types/supabase.ts"
       }

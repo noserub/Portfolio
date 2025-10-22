@@ -1,10 +1,11 @@
 import { motion } from "motion/react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, memo, useMemo, useCallback } from "react";
 import { Edit2, Move, Check, X, ZoomIn, ZoomOut, RotateCcw, Lock } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
 import { Checkbox } from "./ui/checkbox";
+import LazyImage from "./LazyImage";
 
 export interface ProjectData {
   id: string;
@@ -245,10 +246,6 @@ export function ProjectImage({
           <motion.div
             className="w-full h-full relative overflow-hidden"
             style={{
-              backgroundImage: `url(${getImageUrl()})`,
-              backgroundSize: `${editedProject.scale * 100}%`,
-              backgroundPosition: `${editedProject.position.x}% ${editedProject.position.y}%`,
-              backgroundRepeat: "no-repeat",
               borderRadius: '1rem 1rem 2rem 2rem'
             }}
             animate={{
@@ -259,6 +256,17 @@ export function ProjectImage({
               ease: "easeOut",
             }}
           >
+            <LazyImage
+              src={getImageUrl()}
+              alt={editedProject.title}
+              className="w-full h-full object-cover"
+              style={{
+                transform: `scale(${editedProject.scale})`,
+                transformOrigin: `${editedProject.position.x}% ${editedProject.position.y}%`,
+              }}
+              onLoad={() => setImageLoadError(false)}
+              onError={handleImageError}
+            />
             {/* Project description badge */}
             {!isEditMode && (
               <div className="absolute bottom-4 left-4 right-4 z-20">
@@ -571,4 +579,22 @@ export function ProjectImage({
   );
 }
 
-export default ProjectImage;
+// Memoized component to prevent unnecessary re-renders
+const MemoizedProjectImage = memo(ProjectImage, (prevProps, nextProps) => {
+  // Custom comparison function for better performance
+  return (
+    prevProps.project.id === nextProps.project.id &&
+    prevProps.project.title === nextProps.project.title &&
+    prevProps.project.description === nextProps.project.description &&
+    prevProps.project.url === nextProps.project.url &&
+    prevProps.project.published === nextProps.project.published &&
+    prevProps.project.requiresPassword === nextProps.project.requiresPassword &&
+    prevProps.isEditMode === nextProps.isEditMode &&
+    prevProps.isDragging === nextProps.isDragging &&
+    prevProps.isOver === nextProps.isOver
+  );
+});
+
+MemoizedProjectImage.displayName = 'ProjectImage';
+
+export default MemoizedProjectImage;
