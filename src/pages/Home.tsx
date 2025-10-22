@@ -2,10 +2,8 @@ import React, { useState, useRef, useEffect, useMemo, useCallback, memo, Suspens
 import { motion } from "motion/react";
 import { useDrag, useDrop } from "react-dnd";
 import { ProjectImage, ProjectData } from "../components/ProjectImage";
-import { ProjectCardSkeleton } from "../components/ProjectCardSkeleton";
 import { Lightbox } from "../components/Lightbox";
 import LazyImage from "../components/LazyImage";
-import PerformanceMonitor from "../components/PerformanceMonitor";
 import { MemoryOptimizer, safeConsole } from "../utils/memoryOptimization";
 import { useSEO } from "../hooks/useSEO";
 import { useProjects } from "../hooks/useProjects";
@@ -3680,33 +3678,20 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                 onTouchMove={handleTouchMove}
                 onTouchEnd={() => handleTouchEnd(caseStudiesScrollRef)}
               >
-                {(() => {
-                  const shouldShowSkeleton = loading || !projects || projects.length === 0 || displayCaseStudies.length === 0;
-                  console.log('🔍 Skeleton condition check:', { 
-                    loading, 
-                    projectsLength: projects?.length || 0, 
-                    displayCaseStudiesLength: displayCaseStudies.length,
-                    shouldShowSkeleton 
-                  });
-                  return shouldShowSkeleton;
-                })() ? (
-                  <ProjectCardSkeleton count={6} />
-                ) : (
-                  displayCaseStudies.map((project, index) => (
-                    <DraggableProjectItem
-                      key={project.id}
-                      project={project}
-                      index={index}
-                      isEditMode={isEditMode}
-                      onMove={moveCaseStudy}
-                      onClick={() => handleProjectClick(project, 'caseStudies')}
-                      onUpdate={(p: ProjectData) => handleUpdateProject(p, 'caseStudies')}
-                      onReplace={(file: File) => handleReplaceImage(project.id, file, 'caseStudies')}
-                      onDelete={isEditMode ? () => handleDeleteProject(project.id, project.title, 'caseStudies') : undefined}
-                      onNavigate={isEditMode ? () => handleNavigateToProject(project, 'caseStudies') : undefined}
-                    />
-                  ))
-                )}
+                {displayCaseStudies.map((project, index) => (
+                  <DraggableProjectItem
+                    key={project.id}
+                    project={project}
+                    index={index}
+                    isEditMode={isEditMode}
+                    onMove={moveCaseStudy}
+                    onClick={() => handleProjectClick(project, 'caseStudies')}
+                    onUpdate={(p: ProjectData) => handleUpdateProject(p, 'caseStudies')}
+                    onReplace={(file: File) => handleReplaceImage(project.id, file, 'caseStudies')}
+                    onDelete={isEditMode ? () => handleDeleteProject(project.id, project.title, 'caseStudies') : undefined}
+                    onNavigate={isEditMode ? () => handleNavigateToProject(project, 'caseStudies') : undefined}
+                  />
+                ))}
 
                 {/* Add Project Buttons in Carousel (Edit Mode Only) */}
                 {isEditMode && (
@@ -3789,9 +3774,6 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         onCreateProject={handleCreateUnifiedProject}
         isEditMode={isEditMode}
       />
-
-      {/* Performance Monitoring (Development Only) */}
-      <PerformanceMonitor componentName="Home" />
 
     </div>
   );
