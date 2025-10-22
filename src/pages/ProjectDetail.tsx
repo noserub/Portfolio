@@ -823,14 +823,15 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
   // This ensures we always start with fresh data from localStorage
   // During editing, we keep local state and don't sync with prop updates (which are from our own saves)
 
-  // Parse sections directly to extract "At a glance" - memoized to prevent re-parsing on every render
-  // Parse sections to extract both "At a glance" and "Impact" for sidebars
+  // Parse sections directly to extract sidebar sections - memoized to prevent re-parsing on every render
+  // Parse sections to extract both "At a glance" (or renamed equivalent) and "Impact" for sidebars
   const { atGlanceContent, impactContent } = useMemo(() => {
     const lines = caseStudyContent?.split('\n') || [];
     let currentSection: { title: string; content: string } | null = null;
     let currentSubsection: { title: string; content: string } | null = null;
     let atGlanceSection: { title: string; content: string } | null = null;
     let impactSection: { title: string; content: string } | null = null;
+    let foundFirstSidebarSection = false;
 
     lines.forEach(line => {
       // Check for top-level section (# Header)
@@ -849,6 +850,12 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
         const title = (line || '').trim().substring(2).trim();
         currentSection = { title, content: '' };
         currentSubsection = null; // Reset subsection
+        
+        // If this is the first section that's not "Overview", treat it as the sidebar section
+        if (!foundFirstSidebarSection && title !== "Overview") {
+          foundFirstSidebarSection = true;
+          // This will be captured as the sidebar section when we process the next section
+        }
       }
       // Check for subsection (## Header)
       else if (line.trim().match(/^## (.+)$/)) {
@@ -877,6 +884,11 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     // Check if last subsection is "Impact"
     if (currentSubsection && (currentSubsection as any).title === "Impact") {
       impactSection = currentSubsection;
+    }
+    
+    // If we didn't find "At a glance" but found a first sidebar section, use that
+    if (!atGlanceSection && currentSection && foundFirstSidebarSection) {
+      atGlanceSection = currentSection;
     }
 
     console.log('📋 Parsed sections:', {
@@ -1913,13 +1925,14 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     onUpdate(updatedProject);
   };
 
-  // Handler for updating "At a glance" sidebar
+  // Handler for updating "At a glance" sidebar (now flexible to handle renamed sections)
   const handleUpdateAtAGlance = (title: string, content: string) => {
-    // Update the markdown content by replacing the "At a glance" section
+    // Update the markdown content by replacing the sidebar section
     const lines = caseStudyContent?.split('\n') || [];
     const newLines: string[] = [];
-    let inAtAGlance = false;
-    let foundAtAGlance = false;
+    let inSidebarSection = false;
+    let foundSidebarSection = false;
+    let currentSidebarTitle = '';
     
     for (const line of lines) {
       const topLevelMatch = line.trim().match(/^# (.+)$/);
@@ -1927,29 +1940,32 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       if (topLevelMatch) {
         const sectionTitle = topLevelMatch[1].trim();
         
-        // Found "At a glance" - replace it
-        if (sectionTitle === "At a glance") {
-          foundAtAGlance = true;
-          inAtAGlance = true;
+        // If we were in a sidebar section, stop skipping
+        if (inSidebarSection) {
+          inSidebarSection = false;
+        }
+        
+        // Check if this is a sidebar section (first non-Overview section or "At a glance")
+        if (sectionTitle === "At a glance" || (!foundSidebarSection && sectionTitle !== "Overview")) {
+          foundSidebarSection = true;
+          inSidebarSection = true;
+          currentSidebarTitle = sectionTitle;
           newLines.push(`# ${title}`);
           newLines.push(content);
           continue;
-        } else {
-          // Hit another top-level section - stop skipping
-          inAtAGlance = false;
         }
       }
       
-      // Skip old "At a glance" content
-      if (inAtAGlance) {
+      // Skip old sidebar section content
+      if (inSidebarSection) {
         continue;
       }
       
       newLines.push(line);
     }
     
-    // If "At a glance" wasn't found, add it at the beginning
-    if (!foundAtAGlance) {
+    // If no sidebar section was found, add it at the beginning
+    if (!foundSidebarSection) {
       newLines.unshift(`# ${title}`, content, '');
     }
     
@@ -2052,33 +2068,39 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     onUpdate(updatedProject);
   };
 
-  // Handler for removing "At a glance" sidebar
+  // Handler for removing sidebar section (flexible to handle renamed sections)
   const handleRemoveAtAGlance = () => {
-    if (!confirm('Are you sure you want to remove the "At a glance" section?\n\nThis action cannot be undone.')) {
+    if (!confirm('Are you sure you want to remove this sidebar section?\n\nThis action cannot be undone.')) {
       return;
     }
     
-    // Remove the "At a glance" section from the markdown content
+    // Remove the sidebar section from the markdown content
     const lines = caseStudyContent?.split('\n') || [];
     const newLines: string[] = [];
-    let inAtAGlance = false;
+    let inSidebarSection = false;
+    let foundSidebarSection = false;
     
     for (const line of lines) {
       const topLevelMatch = line.trim().match(/^# (.+)$/);
       
-      // Check if this is the start of the "At a glance" section
-      if (topLevelMatch && topLevelMatch[1].trim() === "At a glance") {
-        inAtAGlance = true;
-        continue; // Skip the header line
+      if (topLevelMatch) {
+        const sectionTitle = topLevelMatch[1].trim();
+        
+        // If we were in a sidebar section, stop skipping
+        if (inSidebarSection) {
+          inSidebarSection = false;
+        }
+        
+        // Check if this is a sidebar section (first non-Overview section or "At a glance")
+        if (sectionTitle === "At a glance" || (!foundSidebarSection && sectionTitle !== "Overview")) {
+          foundSidebarSection = true;
+          inSidebarSection = true;
+          continue; // Skip the header line
+        }
       }
       
-      // If we hit another top-level section, stop skipping
-      if (inAtAGlance && topLevelMatch) {
-        inAtAGlance = false;
-      }
-      
-      // Only keep lines that are not in the "At a glance" section
-      if (!inAtAGlance) {
+      // Only keep lines that are not in the sidebar section
+      if (!inSidebarSection) {
         newLines.push(line);
       }
     }
