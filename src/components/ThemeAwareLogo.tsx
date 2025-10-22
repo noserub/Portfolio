@@ -6,6 +6,8 @@ interface ThemeAwareLogoProps {
   className?: string;
   onLoad?: () => void;
   onError?: () => void;
+  // Optional: provide a white variant URL for better quality
+  whiteVariantUrl?: string;
 }
 
 export function ThemeAwareLogo({ 
@@ -13,7 +15,8 @@ export function ThemeAwareLogo({
   alt = "Logo", 
   className = "h-12 object-contain transition-all duration-300 hover:opacity-80",
   onLoad,
-  onError 
+  onError,
+  whiteVariantUrl
 }: ThemeAwareLogoProps) {
   const [processedLogoUrl, setProcessedLogoUrl] = useState<string>(logoUrl);
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
@@ -42,15 +45,16 @@ export function ThemeAwareLogo({
   useEffect(() => {
     if (!logoUrl) return;
 
-    // If it's a Supabase Storage URL, we can modify it
-    if (logoUrl.includes('supabase.co/storage')) {
-      // For now, we'll use CSS filters to invert the logo in dark mode
-      // This is a simple solution that works with any logo
-      setProcessedLogoUrl(logoUrl);
+    // If we have a white variant URL and we're in dark mode, use it
+    if (whiteVariantUrl && isDarkMode) {
+      setProcessedLogoUrl(whiteVariantUrl);
     } else {
       setProcessedLogoUrl(logoUrl);
     }
-  }, [logoUrl, isDarkMode]);
+  }, [logoUrl, isDarkMode, whiteVariantUrl]);
+
+  // Determine if we need CSS filter (only if no white variant provided)
+  const needsFilter = isDarkMode && !whiteVariantUrl;
 
   return (
     <img 
@@ -58,7 +62,7 @@ export function ThemeAwareLogo({
       alt={alt} 
       className={className}
       style={{
-        filter: isDarkMode ? 'brightness(0) invert(1)' : 'none',
+        filter: needsFilter ? 'brightness(0) invert(1)' : 'none',
         transition: 'filter 0.3s ease-in-out'
       }}
       onLoad={onLoad}
