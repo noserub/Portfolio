@@ -2618,22 +2618,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
               onUpdate(updatedProject);
               console.log('✅ onUpdate completed');
             }}
-            atAGlanceSidebar={atGlanceContent ? (
-              <AtAGlanceSidebar 
-                content={atGlanceContent.content} 
-                isEditMode={isEditMode}
-                onUpdate={handleUpdateAtAGlance}
-                onRemove={handleRemoveAtAGlance}
-              />
-            ) : undefined}
-            impactSidebar={impactContent ? (
-              <ImpactSidebar 
-                content={impactContent.content}
-                isEditMode={isEditMode}
-                onUpdate={handleUpdateImpact}
-                onRemove={handleRemoveImpact}
-              />
-            ) : undefined}
+            atAGlanceSidebar={undefined}
+            impactSidebar={undefined}
             projectImagesPosition={projectImagesPosition}
             videosPosition={videosPosition}
             flowDiagramsPosition={flowDiagramsPosition}
