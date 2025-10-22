@@ -2415,7 +2415,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
           DEBUG: Grid: {(atGlanceContent || impactContent) ? 'YES' : 'NO'} | AtGlance: {atGlanceContent ? 'YES' : 'NO'} | Impact: {impactContent ? 'YES' : 'NO'}
         </div>
         {/* Main Content */}
-        <div className="space-y-16 bg-red-100 lg:bg-blue-100 border-4 border-yellow-500">
+        <div className="space-y-16" style={{ backgroundColor: 'lightblue', border: '5px solid yellow' }}>
         {/* Hero Image Section - Order 2 on mobile (after title, before sidebars) */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -3080,7 +3080,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
 
         {/* Sidebar - Show when content exists, hidden on mobile */}
         {(atGlanceContent || impactContent) && (
-          <div className="hidden lg:block bg-green-100">
+          <div className="hidden lg:block" style={{ backgroundColor: 'lightgreen', border: '5px solid red' }}>
             <div className="lg:sticky lg:top-24 space-y-12">
               {atGlanceContent && (
                 <>
