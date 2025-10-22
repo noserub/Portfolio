@@ -2588,7 +2588,35 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
         ) : (
           <div className="order-4 lg:order-none">
             <CaseStudySections 
-            content={caseStudyContent.replace(/# At a glance[\s\S]*?(?=# |$)/g, '').replace(/# Impact[\s\S]*?(?=# |$)/g, '').replace(/# Tech stack[\s\S]*?(?=# |$)/g, '').replace(/# Tools[\s\S]*?(?=# |$)/g, '')}
+            content={(() => {
+              // Remove sidebar sections from content
+              const lines = caseStudyContent.split('\n');
+              const filteredLines: string[] = [];
+              let skipSection = false;
+              
+              for (const line of lines) {
+                // Check if this is a sidebar section header
+                if (line.trim() === '# At a glance' || 
+                    line.trim() === '# Impact' || 
+                    line.trim() === '# Tech stack' || 
+                    line.trim() === '# Tools') {
+                  skipSection = true;
+                  continue;
+                }
+                
+                // Check if we hit another section header
+                if (line.trim().startsWith('# ') && !skipSection) {
+                  skipSection = false;
+                }
+                
+                // Only add lines if we're not in a sidebar section
+                if (!skipSection) {
+                  filteredLines.push(line);
+                }
+              }
+              
+              return filteredLines.join('\n');
+            })()}
             isEditMode={isEditMode}
             onEditClick={() => {
               setOriginalContent(caseStudyContent); // Save current content before editing
