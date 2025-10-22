@@ -15,15 +15,31 @@ interface ImpactSidebarProps {
 
 export function ImpactSidebar({ content, isEditMode, onUpdate, onRemove }: ImpactSidebarProps) {
   const [isEditing, setIsEditing] = useState(false);
-  const [editedTitle, setEditedTitle] = useState("Impact");
+  
+  // Extract title from content (first line starting with #)
+  const extractTitleFromContent = (content: string): string => {
+    const lines = content.split('\n');
+    for (const line of lines) {
+      const match = line.trim().match(/^# (.+)$/);
+      if (match) {
+        return match[1].trim();
+      }
+    }
+    return "Impact"; // fallback
+  };
+  
+  const [editedTitle, setEditedTitle] = useState(extractTitleFromContent(content));
   const [editedContent, setEditedContent] = useState(content);
-  const [originalTitle, setOriginalTitle] = useState("Impact");
+  const [originalTitle, setOriginalTitle] = useState(extractTitleFromContent(content));
   const [originalContent, setOriginalContent] = useState(content);
 
   // Update local state when content prop changes
   React.useEffect(() => {
     // Only update if content is valid and not corrupted
     if (content && typeof content === 'string' && content.trim().length > 0) {
+      const extractedTitle = extractTitleFromContent(content);
+      setEditedTitle(extractedTitle);
+      setOriginalTitle(extractedTitle);
       setEditedContent(content);
       setOriginalContent(content);
     }
