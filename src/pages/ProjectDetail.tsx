@@ -1987,49 +1987,51 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     onUpdate(updatedProject);
   };
 
-  // Handler for updating "Impact" sidebar
+  // Handler for updating "Impact" sidebar (flexible to handle renamed sections)
   const handleUpdateImpact = (title: string, content: string) => {
-    // Update the markdown content by replacing the "Impact" subsection
+    // Update the markdown content by replacing the Impact section
     const lines = caseStudyContent?.split('\n') || [];
     const newLines: string[] = [];
-    let inImpact = false;
-    let foundImpact = false;
+    let inImpactSection = false;
+    let foundImpactSection = false;
     
     for (const line of lines) {
       const subsectionMatch = line.trim().match(/^## (.+)$/);
       const topLevelMatch = line.trim().match(/^# (.+)$/);
       
-      // Found "Impact" subsection - replace it
       if (subsectionMatch) {
         const subsectionTitle = subsectionMatch[1].trim();
         
-        if (subsectionTitle === "Impact") {
-          foundImpact = true;
-          inImpact = true;
+        // If we were in an Impact section, stop skipping
+        if (inImpactSection) {
+          inImpactSection = false;
+        }
+        
+        // Check if this is an Impact section (look for "Impact" or any section that could be Impact)
+        if (subsectionTitle === "Impact" || (!foundImpactSection && subsectionTitle.toLowerCase().includes("impact"))) {
+          foundImpactSection = true;
+          inImpactSection = true;
           newLines.push(`## ${title}`);
           newLines.push(content);
           continue;
-        } else {
-          // Hit another subsection - stop skipping
-          inImpact = false;
         }
       }
       
       // Hit another top-level section - stop skipping
-      if (topLevelMatch && inImpact) {
-        inImpact = false;
+      if (topLevelMatch && inImpactSection) {
+        inImpactSection = false;
       }
       
-      // Skip old "Impact" content
-      if (inImpact) {
+      // Skip old Impact section content
+      if (inImpactSection) {
         continue;
       }
       
       newLines.push(line);
     }
     
-    // If "Impact" wasn't found, add it as a subsection of "The Solution"
-    if (!foundImpact) {
+    // If Impact section wasn't found, add it as a subsection of "The Solution"
+    if (!foundImpactSection) {
       // Find "The Solution" section and add Impact there
       const solutionIndex = newLines.findIndex(line => line.trim().match(/^# The Solution$/i));
       if (solutionIndex >= 0) {
@@ -2110,35 +2112,51 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     onUpdate(updatedProject);
   };
 
-  // Handler for removing "Impact" sidebar
+  // Handler for removing Impact sidebar (flexible to handle renamed sections)
   const handleRemoveImpact = () => {
-    if (!confirm('Are you sure you want to remove the "Impact" section?\n\nThis action cannot be undone.')) {
+    if (!confirm('Are you sure you want to remove this Impact section?\n\nThis action cannot be undone.')) {
       return;
     }
     
-    // Remove the "Impact" section (can be either top-level # Impact or subsection ## Impact)
+    // Remove the Impact section (can be either top-level # Impact or subsection ## Impact)
     const lines = caseStudyContent?.split('\n') || [];
     const newLines: string[] = [];
-    let inImpact = false;
+    let inImpactSection = false;
+    let foundImpactSection = false;
     
     for (const line of lines) {
       const subsectionMatch = line.trim().match(/^## (.+)$/);
       const topLevelMatch = line.trim().match(/^# (.+)$/);
       
-      // Check if this is the start of the "Impact" section (either top-level or subsection)
-      if ((topLevelMatch && topLevelMatch[1].trim() === "Impact") || 
-          (subsectionMatch && subsectionMatch[1].trim() === "Impact")) {
-        inImpact = true;
+      if (subsectionMatch) {
+        const subsectionTitle = subsectionMatch[1].trim();
+        
+        // If we were in an Impact section, stop skipping
+        if (inImpactSection) {
+          inImpactSection = false;
+        }
+        
+        // Check if this is an Impact section (look for "Impact" or any section that could be Impact)
+        if (subsectionTitle === "Impact" || (!foundImpactSection && subsectionTitle.toLowerCase().includes("impact"))) {
+          foundImpactSection = true;
+          inImpactSection = true;
+          continue; // Skip the header line
+        }
+      }
+      
+      // Check if this is the start of a top-level Impact section
+      if (topLevelMatch && topLevelMatch[1].trim() === "Impact") {
+        inImpactSection = true;
         continue; // Skip the header line
       }
       
       // If we hit another section (top-level or subsection), stop skipping
-      if (inImpact && (topLevelMatch || subsectionMatch)) {
-        inImpact = false;
+      if (inImpactSection && (topLevelMatch || subsectionMatch)) {
+        inImpactSection = false;
       }
       
-      // Only keep lines that are not in the "Impact" section
-      if (!inImpact) {
+      // Only keep lines that are not in the Impact section
+      if (!inImpactSection) {
         newLines.push(line);
       }
     }
