@@ -1920,20 +1920,21 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     onUpdate(updatedProject);
   };
 
-  // Handler for updating "At a glance" sidebar (now flexible to handle renamed sections)
+  // Handler for updating sidebar section (flexible to handle any renamed section)
   const handleUpdateAtAGlance = (title: string, content: string) => {
     // Update the markdown content by replacing the sidebar section
     const lines = caseStudyContent?.split('\n') || [];
     const newLines: string[] = [];
     let inSidebarSection = false;
     let foundSidebarSection = false;
-    let currentSidebarTitle = '';
+    let sectionCount = 0;
     
     for (const line of lines) {
       const topLevelMatch = line.trim().match(/^# (.+)$/);
       
       if (topLevelMatch) {
         const sectionTitle = topLevelMatch[1].trim();
+        sectionCount++;
         
         // If we were in a sidebar section, stop skipping
         if (inSidebarSection) {
@@ -1941,10 +1942,9 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
         }
         
         // Check if this is a sidebar section (first non-Overview section or "At a glance")
-        if (sectionTitle === "At a glance" || (!foundSidebarSection && sectionTitle !== "Overview")) {
+        if (sectionTitle === "At a glance" || (sectionCount === 1 && sectionTitle !== "Overview")) {
           foundSidebarSection = true;
           inSidebarSection = true;
-          currentSidebarTitle = sectionTitle;
           newLines.push(`# ${title}`);
           newLines.push(content);
           continue;
@@ -2076,12 +2076,14 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     const newLines: string[] = [];
     let inSidebarSection = false;
     let foundSidebarSection = false;
+    let sectionCount = 0;
     
     for (const line of lines) {
       const topLevelMatch = line.trim().match(/^# (.+)$/);
       
       if (topLevelMatch) {
         const sectionTitle = topLevelMatch[1].trim();
+        sectionCount++;
         
         // If we were in a sidebar section, stop skipping
         if (inSidebarSection) {
@@ -2089,7 +2091,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
         }
         
         // Check if this is a sidebar section (first non-Overview section or "At a glance")
-        if (sectionTitle === "At a glance" || (!foundSidebarSection && sectionTitle !== "Overview")) {
+        if (sectionTitle === "At a glance" || (sectionCount === 1 && sectionTitle !== "Overview")) {
           foundSidebarSection = true;
           inSidebarSection = true;
           continue; // Skip the header line
