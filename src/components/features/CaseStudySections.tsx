@@ -453,6 +453,10 @@ export function CaseStudySections({
                             s.title === "Tools" ||
                             s.title === "At a glance" || 
                             s.title === "Tech stack";
+    
+    // Debug logging
+    console.log('🔍 Filtering section:', { title: s.title, isSidebarSection, willShow: !isSidebarSection });
+    
     if (isSidebarSection) return false;
     
     // In edit mode, show all sections (even empty ones)
