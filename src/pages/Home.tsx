@@ -758,7 +758,7 @@ export function Home({ onStartClick, isEditMode, onProjectClick, currentPage }: 
   // Deployment successful - debug indicators removed
   
   // Supabase projects hook
-  const { projects, loading, createProject, updateProject, deleteProject, reorderProjects } = useProjects();
+  const { projects, loading, createProject, updateProject, deleteProject, reorderProjects, refetch } = useProjects();
   
   // State to trigger re-rendering when localStorage changes
   const [localStorageVersion, setLocalStorageVersion] = useState(0);
@@ -2590,6 +2590,9 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
       const result = await updateProject(updatedProject.id, projectData);
       if (result) {
         console.log('✅ Project updated in Supabase:', updatedProject.id);
+        
+        // Refetch projects to ensure UI is updated with latest data
+        await refetch();
         
         // CRITICAL: Also update localStorage to keep it in sync
         try {

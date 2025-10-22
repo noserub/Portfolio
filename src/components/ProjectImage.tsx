@@ -259,7 +259,14 @@ export function ProjectImage({
               ease: "easeOut",
             }}
           >
-
+            {/* Project description badge */}
+            {!isEditMode && (
+              <div className="absolute bottom-4 left-4 right-4 z-20">
+                <div className="bg-black/80 backdrop-blur-sm text-white px-3 py-1 rounded-lg text-sm font-medium" style={{ borderRadius: '8px' }}>
+                  {project.description}
+                </div>
+              </div>
+            )}
           </motion.div>
         </div>
 
@@ -317,26 +324,7 @@ export function ProjectImage({
           </div>
         )}
 
-        {/* Persistent Project Title - Always visible */}
-        <div className="absolute bottom-0 left-0 right-0 z-50 rounded-b-[2rem] overflow-hidden">
-          {/* Dark transparent background strip for better text readability */}
-          <div 
-            className="relative p-4 rounded-b-[2rem]"
-            style={{
-              background: 'linear-gradient(to top, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.8) 30%, rgba(0, 0, 0, 0.4) 70%, rgba(0, 0, 0, 0.1) 100%)',
-              minHeight: '80px'
-            }}
-          >
-            <h3 className="text-white text-lg font-semibold mb-1 drop-shadow-lg">
-              {project.title}
-            </h3>
-            {project.description && (
-              <p className="text-white text-sm line-clamp-2 drop-shadow-lg">
-                {project.description}
-              </p>
-            )}
-          </div>
-        </div>
+
 
         {/* Enhanced Hover State */}
         {!isEditMode && isHovered && (
@@ -344,7 +332,12 @@ export function ProjectImage({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.2 }}
-            className="absolute inset-0 bg-black/20 backdrop-blur-sm rounded-t-2xl rounded-b-[2rem] flex items-center justify-center z-10"
+            className="absolute inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-20"
+            style={{
+              borderRadius: '1rem 1rem 2rem 2rem',
+              overflow: 'hidden',
+              clipPath: 'inset(0 round 1rem 1rem 2rem 2rem)'
+            }}
           >
             <motion.div
               initial={{ y: 8, opacity: 0 }}

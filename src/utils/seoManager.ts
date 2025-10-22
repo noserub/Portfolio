@@ -370,25 +370,30 @@ export async function uploadFaviconToSupabase(file: File): Promise<string | null
 // Get favicon from Supabase Storage
 export async function getFaviconFromSupabase(): Promise<string | null> {
   try {
-    // Get current user
+    // Check for both Supabase auth and bypass auth
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return null;
+    const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
+    
+    if (!user && !isBypassAuth) {
+      console.log('No authenticated user found for favicon (neither Supabase auth nor bypass auth)');
+      return null;
+    }
 
-    // Get user's profile
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('email', 'brian.bureson@gmail.com')
-      .single();
+    // Use user ID or fallback for bypass auth
+    const userId = user?.id || '7cd2752f-93c5-46e6-8535-32769fb10055'; // Fallback for bypass auth
+    console.log('Getting favicon for user:', userId, 'Auth type:', user ? 'Supabase' : 'Bypass');
 
-    if (!profile) return null;
-
-    // Get app settings with favicon
-    const { data: settings } = await supabase
+    // Get app settings with favicon for current user
+    const { data: settings, error } = await supabase
       .from('app_settings')
       .select('favicon_url')
-      .eq('user_id', profile.id)
+      .eq('user_id', userId)
       .single();
+
+    if (error) {
+      console.error('Error fetching favicon from database:', error);
+      return null;
+    }
 
     return settings?.favicon_url || null;
   } catch (error) {
@@ -400,35 +405,43 @@ export async function getFaviconFromSupabase(): Promise<string | null> {
 // Save favicon URL to Supabase database
 export async function saveFaviconToSupabase(faviconUrl: string): Promise<boolean> {
   try {
-    // Get current user
+    // Check for both Supabase auth and bypass auth
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return false;
+    const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
+    
+    console.log('🔍 Authentication check:', {
+      user: user ? { id: user.id, email: user.email } : null,
+      isBypassAuth,
+      localStorageAuth: localStorage.getItem('isAuthenticated')
+    });
+    
+    if (!user && !isBypassAuth) {
+      console.error('No authenticated user found (neither Supabase auth nor bypass auth)');
+      return false;
+    }
 
-    // Get user's profile
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('email', 'brian.bureson@gmail.com')
-      .single();
-
-    if (!profile) return false;
+    // Use user ID or fallback for bypass auth
+    const userId = user?.id || '7cd2752f-93c5-46e6-8535-32769fb10055'; // Fallback for bypass auth
+    console.log('Saving favicon for user:', userId, 'Auth type:', user ? 'Supabase' : 'Bypass');
 
     // Update or create app settings with favicon URL
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('app_settings')
       .upsert({
-        user_id: profile.id,
+        user_id: userId,
         favicon_url: faviconUrl,
         theme: 'dark',
         is_authenticated: true,
         show_debug_panel: false
-      });
+      }, { onConflict: 'user_id' });
 
     if (error) {
       console.error('Error saving favicon to Supabase:', error);
+      console.error('Full error details:', error);
       return false;
     }
 
+    console.log('Favicon saved successfully:', data);
     return true;
   } catch (error) {
     console.error('Error saving favicon to Supabase:', error);

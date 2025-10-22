@@ -80,14 +80,17 @@ export function SEOEditor({ isOpen, onClose }: SEOEditorProps) {
       return;
     }
 
+    let loadingToast: string | number | undefined;
+    
     try {
       // Show loading toast
-      toast.loading('Uploading favicon to Supabase...');
+      loadingToast = toast.loading('Uploading favicon to Supabase...');
 
       // Upload to Supabase Storage
       const faviconUrl = await uploadFaviconToSupabase(file);
       
       if (!faviconUrl) {
+        toast.dismiss(loadingToast);
         toast.error('Failed to upload favicon to Supabase. Please try again.');
         return;
       }
@@ -96,6 +99,7 @@ export function SEOEditor({ isOpen, onClose }: SEOEditorProps) {
       const saved = await saveFaviconToSupabase(faviconUrl);
       
       if (!saved) {
+        toast.dismiss(loadingToast);
         toast.error('Failed to save favicon settings. Please try again.');
         return;
       }
@@ -110,9 +114,13 @@ export function SEOEditor({ isOpen, onClose }: SEOEditorProps) {
         },
       }));
       setHasChanges(true);
+      toast.dismiss(loadingToast);
       toast.success('Favicon uploaded and saved to Supabase!');
     } catch (error) {
       console.error('Error uploading favicon:', error);
+      if (loadingToast) {
+        toast.dismiss(loadingToast);
+      }
       toast.error('Error uploading favicon. Please try again.');
     }
   };
