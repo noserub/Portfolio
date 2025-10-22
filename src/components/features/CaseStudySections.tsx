@@ -346,7 +346,6 @@ export function CaseStudySections({
   };
 
   const moveSectionUp = (sectionTitle: string) => {
-    console.log(`⬆️ Moving section UP: "${sectionTitle}"`);
     
     if (onMoveMarkdownSection) {
       onMoveMarkdownSection(sectionTitle, 'up');
@@ -356,7 +355,6 @@ export function CaseStudySections({
   };
 
   const moveSectionDown = (sectionTitle: string) => {
-    console.log(`⬇️ Moving section DOWN: "${sectionTitle}"`);
     
     if (onMoveMarkdownSection) {
       onMoveMarkdownSection(sectionTitle, 'down');
@@ -367,7 +365,6 @@ export function CaseStudySections({
 
   // Parse content into sections based on top-level headers (# Header)
   const parseSections = () => {
-    console.log('🔍 Parsing sections from content:', content.substring(0, 500) + '...');
     const lines = content.split('\n');
     const sections: Array<{ title: string; content: string }> = [];
     let currentSection: { title: string; content: string } | null = null;
@@ -406,7 +403,6 @@ export function CaseStudySections({
       sections.push(currentSection);
     }
 
-    console.log('📊 Parsed sections:', sections.map(s => ({ title: s.title, contentLength: s.content.length, contentPreview: s.content.substring(0, 100) })));
     return sections;
   };
 
@@ -454,13 +450,6 @@ export function CaseStudySections({
                             s.title === "At a glance" || 
                             s.title === "Tech stack";
     
-    // Debug logging
-    console.log('🔍 Filtering section:', { 
-      title: s.title, 
-      isSidebarSection, 
-      willShow: !isSidebarSection,
-      contentPreview: s.content.substring(0, 50) + '...'
-    });
     
     if (isSidebarSection) return false;
     
@@ -1047,8 +1036,6 @@ export function CaseStudySections({
 
         // Special handling for My role & impact section (also matches "My role")
         if (section.title.toLowerCase().includes("my role")) {
-          console.log('🔍 My role & impact section found:', section.title);
-          console.log('📄 Section content:', section.content);
           
           // Parse subsections (## Leadership, ## Design, ## Research, etc.)
           const subsectionRegex = /## (.+?)(?=\n##|\n#|$)/gs;
@@ -1058,12 +1045,10 @@ export function CaseStudySections({
           while ((match = subsectionRegex.exec(section.content)) !== null) {
             const title = (match[1] || '').split('\n')[0].trim();
             const content = (match[1] || '').substring(title.length).trim();
-            console.log(`📋 Found subsection: "${title}" with content: "${content}"`);
             // Add section even if content is empty - we'll handle it in rendering
             subsections.push({ title, content: content || '(No content yet - add bullets in edit mode)' });
           }
           
-          console.log('📊 Total subsections found:', subsections.length);
           
           // Icon mapping for specific subsection names
           const iconMap: Record<string, any> = {
@@ -1332,7 +1317,6 @@ export function CaseStudySections({
             return null;
           }
 
-          console.log('Rendering Research Insights:', insights.length, 'cards');
 
           const insightIcons = [Compass, Camera, MessageSquare, CheckCircle, AlertCircle];
 

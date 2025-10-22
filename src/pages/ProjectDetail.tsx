@@ -1973,7 +1973,6 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
 
   // Handler for updating first sidebar section (At a glance)
   const handleUpdateAtAGlance = (title: string, content: string) => {
-    console.log('🔄 handleUpdateAtAGlance called with:', { title, content: content.substring(0, 100) + '...' });
     
     // Update the markdown content by replacing the first sidebar section
     const lines = caseStudyContent?.split('\n') || [];
@@ -2022,7 +2021,6 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     }
     
     const newContent = newLines.join('\n');
-    console.log('🔄 handleUpdateAtAGlance: New content preview:', newContent.substring(0, 200) + '...');
     setCaseStudyContent(newContent);
     
     // Auto-save
@@ -2042,7 +2040,6 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       solutionCardsPosition,
       sectionPositions,
     };
-    console.log('🔄 handleUpdateAtAGlance: Calling onUpdate with project ID:', updatedProject.id);
     onUpdate(updatedProject);
   };
 
@@ -2419,8 +2416,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       <div className={(atGlanceContent || impactContent) ? "lg:grid lg:grid-cols-[1fr_320px] lg:gap-16 space-y-16 lg:space-y-0" : "space-y-16"} style={(atGlanceContent || impactContent) ? { display: 'grid', gridTemplateColumns: '1fr 320px', gap: '4rem' } : {}}>
         
         {/* Main Content Container */}
-        <div className="space-y-16 lg:col-start-1 lg:col-end-1" style={{ backgroundColor: 'lightblue', border: '3px solid yellow' }}>
-          {console.log('🔍 Rendering main content container')}
+        <div className="space-y-16 lg:col-start-1 lg:col-end-1">
         {/* Hero Image Section - Order 2 on mobile (after title, before sidebars) */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -2587,50 +2583,36 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
           </motion.div>
         ) : (
           <div className="order-4 lg:order-none">
-            <CaseStudySections 
-            content={(() => {
-              // Remove sidebar sections from content
-              const lines = caseStudyContent.split('\n');
-              const filteredLines: string[] = [];
-              let skipSection = false;
-              
-              console.log('🔍 Filtering content for CaseStudySections:', {
-                totalLines: lines.length,
-                firstFewLines: lines.slice(0, 10),
-                sidebarHeaders: lines.filter(line => line.trim().startsWith('# '))
-              });
-              
-              for (const line of lines) {
-                // Check if this is a sidebar section header
-                if (line.trim() === '# At a glance' || 
-                    line.trim() === '# Impact' || 
-                    line.trim() === '# Tech stack' || 
-                    line.trim() === '# Tools') {
-                  console.log('🔍 Found sidebar section to skip:', line.trim());
-                  skipSection = true;
-                  continue;
-                }
-                
-                // Check if we hit another section header
-                if (line.trim().startsWith('# ') && !skipSection) {
-                  skipSection = false;
-                }
-                
-                // Only add lines if we're not in a sidebar section
-                if (!skipSection) {
-                  filteredLines.push(line);
-                }
-              }
-              
-              const filteredContent = filteredLines.join('\n');
-              console.log('🔍 Filtered content result:', {
-                originalLength: caseStudyContent.length,
-                filteredLength: filteredContent.length,
-                filteredPreview: filteredContent.substring(0, 200) + '...'
-              });
-              
-              return filteredContent;
-            })()}
+        <CaseStudySections 
+        content={(() => {
+          // Remove sidebar sections from content
+          const lines = caseStudyContent.split('\n');
+          const filteredLines: string[] = [];
+          let skipSection = false;
+          
+          for (const line of lines) {
+            // Check if this is a sidebar section header
+            if (line.trim() === '# At a glance' || 
+                line.trim() === '# Impact' || 
+                line.trim() === '# Tech stack' || 
+                line.trim() === '# Tools') {
+              skipSection = true;
+              continue;
+            }
+            
+            // Check if we hit another section header
+            if (line.trim().startsWith('# ') && !skipSection) {
+              skipSection = false;
+            }
+            
+            // Only add lines if we're not in a sidebar section
+            if (!skipSection) {
+              filteredLines.push(line);
+            }
+          }
+          
+          return filteredLines.join('\n');
+        })()}
             isEditMode={isEditMode}
             onEditClick={() => {
               setOriginalContent(caseStudyContent); // Save current content before editing
@@ -3113,40 +3095,25 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
 
         {/* Sidebar - Show when content exists, hidden on mobile */}
         {(atGlanceContent || impactContent) && (
-          <div className="hidden lg:block lg:col-start-2 lg:col-end-2" style={{ backgroundColor: 'lightgreen', border: '3px solid red' }}>
+          <div className="hidden lg:block lg:col-start-2 lg:col-end-2">
             <div className="lg:sticky lg:top-24 space-y-12">
-              {console.log('🔍 Rendering sidebar container with:', { atGlanceContent: !!atGlanceContent, impactContent: !!impactContent })}
               {atGlanceContent && (
-                <>
-                  {console.log('🔍 Rendering AtAGlanceSidebar with:', { 
-                    hasContent: !!atGlanceContent, 
-                    contentLength: atGlanceContent.content?.length || 0,
-                    contentPreview: atGlanceContent.content?.substring(0, 100) || 'none'
-                  })}
-                  <AtAGlanceSidebar 
-                    content={atGlanceContent.content}
-                    title={atGlanceContent.title}
-                    isEditMode={isEditMode}
-                    onUpdate={handleUpdateAtAGlance}
-                    onRemove={handleRemoveAtAGlance}
-                  />
-                </>
+                <AtAGlanceSidebar 
+                  content={atGlanceContent.content}
+                  title={atGlanceContent.title}
+                  isEditMode={isEditMode}
+                  onUpdate={handleUpdateAtAGlance}
+                  onRemove={handleRemoveAtAGlance}
+                />
               )}
               {impactContent && (
-                <>
-                  {console.log('🔍 Rendering ImpactSidebar with:', { 
-                    hasContent: !!impactContent, 
-                    contentLength: impactContent.content?.length || 0,
-                    contentPreview: impactContent.content?.substring(0, 100) || 'none'
-                  })}
-                  <ImpactSidebar 
-                    content={impactContent.content}
-                    title={impactContent.title}
-                    isEditMode={isEditMode}
-                    onUpdate={handleUpdateImpact}
-                    onRemove={handleRemoveImpact}
-                  />
-                </>
+                <ImpactSidebar 
+                  content={impactContent.content}
+                  title={impactContent.title}
+                  isEditMode={isEditMode}
+                  onUpdate={handleUpdateImpact}
+                  onRemove={handleRemoveImpact}
+                />
               )}
             </div>
           </div>
