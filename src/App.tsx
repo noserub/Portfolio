@@ -232,7 +232,8 @@ export default function App() {
       }
     };
 
-    loadGlobalFavicon();
+    // Add a small delay to ensure the page is fully loaded
+    setTimeout(loadGlobalFavicon, 100);
   }, []); // Run once on mount
   
   // Debug logging removed to prevent infinite loops

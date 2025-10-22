@@ -387,32 +387,25 @@ export async function getFaviconFromSupabase(): Promise<string | null> {
       console.log('❌ No public favicon found:', { publicError, publicSettings });
     }
 
-    // If no public favicon, try user-specific favicon
-    const { data: { user } } = await supabase.auth.getUser();
-    const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
-    
-    if (!user && !isBypassAuth) {
-      console.log('No authenticated user found for favicon (neither Supabase auth nor bypass auth)');
-      return null;
-    }
-
-    // Use user ID or fallback for bypass auth
-    const userId = user?.id || '7cd2752f-93c5-46e6-8535-32769fb10055'; // Fallback for bypass auth
-    console.log('Getting favicon for user:', userId, 'Auth type:', user ? 'Supabase' : 'Bypass');
-
-    // Get app settings with favicon for current user
-    const { data: settings, error } = await supabase
+    // If no public favicon, try to get any favicon (fallback for when public flag isn't set)
+    console.log('🔍 Checking for any favicon as fallback...');
+    const { data: anySettings, error: anyError } = await supabase
       .from('app_settings')
       .select('favicon_url')
-      .eq('user_id', userId)
-      .maybeSingle(); // Use maybeSingle instead of single to handle no results gracefully
+      .not('favicon_url', 'is', null)
+      .limit(1)
+      .maybeSingle();
 
-    if (error) {
-      console.error('Error fetching favicon from database:', error);
-      return null;
+    console.log('🔍 Any favicon query result:', { anySettings, anyError });
+
+    if (!anyError && anySettings?.favicon_url) {
+      console.log('✅ Using fallback favicon:', anySettings.favicon_url);
+      return anySettings.favicon_url;
+    } else {
+      console.log('❌ No fallback favicon found:', { anyError, anySettings });
     }
 
-    return settings?.favicon_url || null;
+    return null;
   } catch (error) {
     console.error('Error getting favicon from Supabase:', error);
     return null;
