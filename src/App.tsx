@@ -196,6 +196,33 @@ export default function App() {
   useEffect(() => {
     getCurrentUserSettings();
   }, []); // Empty dependency array - only run once on mount
+
+  // Load global favicon for all visitors (including incognito)
+  useEffect(() => {
+    const loadGlobalFavicon = async () => {
+      try {
+        const { getFaviconFromSupabase, updateFavicon, getSEOData } = await import('./utils/seoManager');
+        const faviconUrl = await getFaviconFromSupabase();
+        
+        if (faviconUrl) {
+          // Update the SEO data with the favicon
+          const seoData = getSEOData();
+          const updatedSitewide = {
+            ...seoData.sitewide,
+            faviconType: 'image' as const,
+            faviconImageUrl: faviconUrl
+          };
+          
+          // Apply the favicon immediately
+          updateFavicon(updatedSitewide);
+        }
+      } catch (error) {
+        console.error('Error loading global favicon:', error);
+      }
+    };
+
+    loadGlobalFavicon();
+  }, []); // Run once on mount
   
   // Debug logging removed to prevent infinite loops
   
