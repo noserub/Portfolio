@@ -2407,9 +2407,9 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
           </DropdownMenu>
         </div>
       )}
-      <div className={(atGlanceContent || impactContent) ? "lg:grid lg:grid-cols-[1fr_320px] lg:gap-16 space-y-16 lg:space-y-0" : "space-y-16"}>
+      <div className={(atGlanceContent || impactContent) ? "lg:flex lg:gap-16 space-y-16 lg:space-y-0" : "space-y-16"}>
         {/* Main Content */}
-        <div className="space-y-16">
+        <div className="flex-1 space-y-16">
         {/* Hero Image Section - Order 2 on mobile (after title, before sidebars) */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -3074,23 +3074,29 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
 
         {/* Sidebar - Show when content exists, hidden on mobile */}
         {(atGlanceContent || impactContent) && (
-          <div className="hidden lg:block">
+          <div className="hidden lg:block w-80 flex-shrink-0">
             <div className="lg:sticky lg:top-24 space-y-12">
               {atGlanceContent && (
-                <AtAGlanceSidebar 
-                  content={atGlanceContent.content}
-                  isEditMode={isEditMode}
-                  onUpdate={handleUpdateAtAGlance}
-                  onRemove={handleRemoveAtAGlance}
-                />
+                <>
+                  {console.log('🔍 Rendering AtAGlanceSidebar with content:', atGlanceContent.content)}
+                  <AtAGlanceSidebar 
+                    content={atGlanceContent.content}
+                    isEditMode={isEditMode}
+                    onUpdate={handleUpdateAtAGlance}
+                    onRemove={handleRemoveAtAGlance}
+                  />
+                </>
               )}
               {impactContent && (
-                <ImpactSidebar 
-                  content={impactContent.content}
-                  isEditMode={isEditMode}
-                  onUpdate={handleUpdateImpact}
-                  onRemove={handleRemoveImpact}
-                />
+                <>
+                  {console.log('🔍 Rendering ImpactSidebar with content:', impactContent.content)}
+                  <ImpactSidebar 
+                    content={impactContent.content}
+                    isEditMode={isEditMode}
+                    onUpdate={handleUpdateImpact}
+                    onRemove={handleRemoveImpact}
+                  />
+                </>
               )}
             </div>
           </div>
