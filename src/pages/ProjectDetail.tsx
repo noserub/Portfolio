@@ -848,7 +848,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
   }, []); // Run once on mount
 
   // Parse sections directly to extract sidebar sections - memoized to prevent re-parsing on every render
-  // Parse sections to extract both sidebar section (first non-Overview) and "Impact" for sidebars
+  // Parse sections to extract both sidebar section (first non-Overview) and second sidebar section
   const { atGlanceContent, impactContent } = useMemo(() => {
     const lines = caseStudyContent?.split('\n') || [];
     let currentSection: { title: string; content: string } | null = null;
@@ -856,42 +856,44 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     let atGlanceSection: { title: string; content: string } | null = null;
     let impactSection: { title: string; content: string } | null = null;
     let foundFirstSidebarSection = false;
+    let foundSecondSidebarSection = false;
+    let sectionCount = 0;
 
     lines.forEach(line => {
       // Check for top-level section (# Header)
       if (line.trim().match(/^# (.+)$/)) {
-        // Save previous subsection if it was "Impact" before moving to new section
-        if (currentSubsection && (
-          currentSubsection.title === "Impact" || 
-          currentSubsection.title.toLowerCase().includes("impact")
-        )) {
+        // Save previous subsection if it was the second sidebar section
+        if (currentSubsection && foundSecondSidebarSection && impactSection) {
           impactSection = currentSubsection;
         }
-        // Save previous section if it was "Impact"
-        if (currentSection && (
-          currentSection.title === "Impact" || 
-          currentSection.title.toLowerCase().includes("impact")
-        )) {
+        // Save previous section if it was the second sidebar section
+        if (currentSection && foundSecondSidebarSection && impactSection) {
           impactSection = currentSection;
         }
         const title = (line || '').trim().substring(2).trim();
         currentSection = { title, content: '' };
         currentSubsection = null; // Reset subsection
         
-        // If this is the first section that's not "Overview", treat it as the sidebar section
-        if (!foundFirstSidebarSection && title !== "Overview") {
-          foundFirstSidebarSection = true;
-          // Capture this section as the sidebar section immediately
-          atGlanceSection = { title, content: '' };
+        // Count non-Overview sections
+        if (title !== "Overview") {
+          sectionCount++;
+          
+          // First non-Overview section is the first sidebar
+          if (sectionCount === 1) {
+            foundFirstSidebarSection = true;
+            atGlanceSection = { title, content: '' };
+          }
+          // Second non-Overview section is the second sidebar
+          else if (sectionCount === 2) {
+            foundSecondSidebarSection = true;
+            impactSection = { title, content: '' };
+          }
         }
       }
       // Check for subsection (## Header)
       else if (line.trim().match(/^## (.+)$/)) {
-        // Save previous subsection if it was "Impact"
-        if (currentSubsection && (
-          currentSubsection.title === "Impact" || 
-          currentSubsection.title.toLowerCase().includes("impact")
-        )) {
+        // Save previous subsection if it was the second sidebar section
+        if (currentSubsection && foundSecondSidebarSection && impactSection) {
           impactSection = currentSubsection;
         }
         const title = (line || '').trim().substring(3).trim();
@@ -905,18 +907,12 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       }
     });
 
-    // Check if last section is "Impact" or contains "impact"
-    if (currentSection && (
-      (currentSection as any).title === "Impact" || 
-      (currentSection as any).title.toLowerCase().includes("impact")
-    )) {
+    // Check if last section is the second sidebar section
+    if (currentSection && foundSecondSidebarSection && impactSection) {
       impactSection = currentSection;
     }
-    // Check if last subsection is "Impact" or contains "impact"
-    if (currentSubsection && (
-      (currentSubsection as any).title === "Impact" || 
-      (currentSubsection as any).title.toLowerCase().includes("impact")
-    )) {
+    // Check if last subsection is the second sidebar section
+    if (currentSubsection && foundSecondSidebarSection && impactSection) {
       impactSection = currentSubsection;
     }
     
