@@ -375,7 +375,7 @@ export async function getFaviconFromSupabase(): Promise<string | null> {
     const { data: publicSettings, error: publicError } = await supabase
       .from('app_settings')
       .select('favicon_url')
-      .eq('user_id', 'public')
+      .eq('user_id', '00000000-0000-0000-0000-000000000000')
       .maybeSingle();
 
     console.log('🔍 Public favicon query result:', { publicSettings, publicError });
@@ -465,7 +465,7 @@ export async function saveFaviconToSupabase(faviconUrl: string): Promise<boolean
     const { data: publicData, error: publicError } = await supabase
       .from('app_settings')
       .upsert({
-        user_id: 'public',
+        user_id: '00000000-0000-0000-0000-000000000000',
         favicon_url: faviconUrl,
         theme: 'dark',
         is_authenticated: false,
