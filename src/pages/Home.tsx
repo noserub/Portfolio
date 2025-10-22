@@ -3692,7 +3692,16 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                 onTouchMove={handleTouchMove}
                 onTouchEnd={() => handleTouchEnd(caseStudiesScrollRef)}
               >
-                {loading || displayCaseStudies.length === 0 ? (
+                {(() => {
+                  const shouldShowSkeleton = loading || !projects || projects.length === 0 || displayCaseStudies.length === 0;
+                  console.log('🔍 Skeleton condition check:', { 
+                    loading, 
+                    projectsLength: projects?.length || 0, 
+                    displayCaseStudiesLength: displayCaseStudies.length,
+                    shouldShowSkeleton 
+                  });
+                  return shouldShowSkeleton;
+                })() ? (
                   <ProjectCardSkeleton count={6} />
                 ) : (
                   displayCaseStudies.map((project, index) => (
