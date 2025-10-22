@@ -2594,12 +2594,16 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
               const filteredLines: string[] = [];
               let skipSection = false;
               
+              console.log('🔍 Original content length:', caseStudyContent.length);
+              console.log('🔍 Original content preview:', caseStudyContent.substring(0, 200));
+              
               for (const line of lines) {
                 // Check if this is a sidebar section header
                 if (line.trim() === '# At a glance' || 
                     line.trim() === '# Impact' || 
                     line.trim() === '# Tech stack' || 
                     line.trim() === '# Tools') {
+                  console.log('🔍 Found sidebar section:', line.trim());
                   skipSection = true;
                   continue;
                 }
@@ -2615,7 +2619,11 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                 }
               }
               
-              return filteredLines.join('\n');
+              const filteredContent = filteredLines.join('\n');
+              console.log('🔍 Filtered content length:', filteredContent.length);
+              console.log('🔍 Filtered content preview:', filteredContent.substring(0, 200));
+              
+              return filteredContent;
             })()}
             isEditMode={isEditMode}
             onEditClick={() => {
