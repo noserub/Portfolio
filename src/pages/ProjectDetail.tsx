@@ -2425,7 +2425,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
         </div>
         
         {/* Main Content Container */}
-        <div className="space-y-16 lg:flex-1" style={{ backgroundColor: 'lightblue', border: '5px solid yellow' }}>
+        <div className="space-y-16 lg:flex-1 lg:order-1" style={{ backgroundColor: 'lightblue', border: '5px solid yellow' }}>
         {/* Hero Image Section - Order 2 on mobile (after title, before sidebars) */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -3112,7 +3112,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
 
         {/* Sidebar - Show when content exists, hidden on mobile */}
         {(atGlanceContent || impactContent) && (
-          <div className="hidden lg:block lg:w-80 lg:flex-shrink-0" style={{ backgroundColor: 'lightgreen', border: '5px solid red' }}>
+          <div className="hidden lg:block lg:w-80 lg:flex-shrink-0 lg:order-2" style={{ backgroundColor: 'lightgreen', border: '5px solid red' }}>
             <div className="lg:sticky lg:top-24 space-y-12">
               {atGlanceContent && (
                 <>
