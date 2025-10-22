@@ -3108,7 +3108,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                     contentPreview: atGlanceContent.content?.substring(0, 100) || 'none'
                   })}
                   <AtAGlanceSidebar 
-                    content={atGlanceContent.content}
+                    content={`# ${atGlanceContent.title}\n${atGlanceContent.content}`}
                     isEditMode={isEditMode}
                     onUpdate={handleUpdateAtAGlance}
                     onRemove={handleRemoveAtAGlance}
@@ -3123,7 +3123,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                     contentPreview: impactContent.content?.substring(0, 100) || 'none'
                   })}
                   <ImpactSidebar 
-                    content={impactContent.content}
+                    content={`# ${impactContent.title}\n${impactContent.content}`}
                     isEditMode={isEditMode}
                     onUpdate={handleUpdateImpact}
                     onRemove={handleRemoveImpact}
