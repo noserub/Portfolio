@@ -448,9 +448,11 @@ export function CaseStudySections({
   // Filter out sidebar sections - they will be rendered separately in the sidebar
   // Also filter out empty sections when not in edit mode
   const regularSections = sections.filter(s => {
-    // Check if this is a sidebar section (first non-Overview section or "Impact")
+    // Check if this is a sidebar section
     const isSidebarSection = s.title === "Impact" || 
-      (sections.findIndex(sec => sec.title === s.title) === 0 && s.title !== "Overview");
+                            s.title === "Tools" ||
+                            s.title === "At a glance" || 
+                            s.title === "Tech stack";
     if (isSidebarSection) return false;
     
     // In edit mode, show all sections (even empty ones)
