@@ -2407,7 +2407,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
           </DropdownMenu>
         </div>
       )}
-      <div className={(atGlanceContent || impactContent) ? "lg:flex lg:gap-16 space-y-16 lg:space-y-0" : "space-y-16"}>
+      <div className={(atGlanceContent || impactContent) ? "lg:grid lg:grid-cols-[1fr_320px] lg:gap-16 space-y-16 lg:space-y-0" : "space-y-16"}>
         {/* DEBUG: Show sidebar content status */}
         {console.log('🔍 Layout condition check:', { atGlanceContent: !!atGlanceContent, impactContent: !!impactContent, hasAny: !!(atGlanceContent || impactContent) })}
         {/* DEBUG: Visual indicator */}
@@ -2416,7 +2416,11 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
         </div>
         {/* DEBUG: Layout info */}
         <div className="bg-purple-500 text-white p-4 rounded text-lg font-bold mb-4">
-          DEBUG: Layout: {atGlanceContent || impactContent ? 'lg:flex lg:gap-16' : 'space-y-16'}
+          DEBUG: Layout: {atGlanceContent || impactContent ? 'lg:grid lg:grid-cols-[1fr_320px]' : 'space-y-16'}
+        </div>
+        {/* DEBUG: Grid info */}
+        <div className="bg-orange-500 text-white p-4 rounded text-lg font-bold mb-4">
+          DEBUG: CSS Grid with 2 columns: 1fr (main) + 320px (sidebar)
         </div>
         {/* DEBUG: Show markdown content sections */}
         <div className="bg-yellow-500 text-black p-4 rounded text-sm font-bold mb-4">
@@ -2425,7 +2429,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
         </div>
         
         {/* Main Content Container */}
-        <div className="space-y-16 lg:flex-1 lg:order-1" style={{ backgroundColor: 'lightblue', border: '5px solid yellow' }}>
+        <div className="space-y-16" style={{ backgroundColor: 'lightblue', border: '5px solid yellow' }}>
         {/* Hero Image Section - Order 2 on mobile (after title, before sidebars) */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -3112,7 +3116,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
 
         {/* Sidebar - Show when content exists, hidden on mobile */}
         {(atGlanceContent || impactContent) && (
-          <div className="hidden lg:block lg:w-80 lg:flex-shrink-0 lg:order-2" style={{ backgroundColor: 'lightgreen', border: '5px solid red' }}>
+          <div className="hidden lg:block" style={{ backgroundColor: 'lightgreen', border: '5px solid red' }}>
             <div className="lg:sticky lg:top-24 space-y-12">
               {atGlanceContent && (
                 <>
