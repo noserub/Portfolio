@@ -6,6 +6,7 @@ import { ProjectCardSkeleton } from "../components/ProjectCardSkeleton";
 import { Lightbox } from "../components/Lightbox";
 import LazyImage from "../components/LazyImage";
 import PerformanceMonitor from "../components/PerformanceMonitor";
+import { MemoryOptimizer, safeConsole } from "../utils/memoryOptimization";
 import { useSEO } from "../hooks/useSEO";
 import { useProjects } from "../hooks/useProjects";
 import { supabase } from "../lib/supabaseClient";
@@ -1432,38 +1433,18 @@ Tools for family members to support patients without being intrusive.
     }
   };
   
-  // Debug logging for projects
+  // Debug logging for projects (development only)
   useEffect(() => {
-    console.log('🏠 Home: Projects from Supabase:', projects);
-    console.log('🏠 Home: Projects count:', projects.length);
+    safeConsole.log('🏠 Home: Projects count:', projects.length);
     
-    // Debug localStorage content
+    // Debug localStorage content (simplified)
     const caseStudiesStorage = localStorage.getItem('caseStudies');
     if (caseStudiesStorage) {
       try {
         const parsed = JSON.parse(caseStudiesStorage);
-        console.log('🏠 Home: localStorage case studies:', parsed.length, 'items');
-        console.log('🏠 Home: localStorage case studies details:', parsed);
-        
-        // Debug the first case study structure
-        if (parsed.length > 0) {
-          console.log('🏠 Home: First case study structure:', parsed[0]);
-          console.log('🏠 Home: First case study keys:', Object.keys(parsed[0]));
-          console.log('🏠 Home: caseStudyContent field:', parsed[0].caseStudyContent);
-          console.log('🏠 Home: case_study_content field:', parsed[0].case_study_content);
-          console.log('🏠 Home: title field:', parsed[0].title);
-          console.log('🏠 Home: description field:', parsed[0].description);
-          
-          // Check if it's a MassRoots or Skype Qik case study
-          if (parsed[0].title?.toLowerCase().includes('massroots')) {
-            console.log('🏠 Home: Found MassRoots case study:', parsed[0]);
-          }
-          if (parsed[0].title?.toLowerCase().includes('skype')) {
-            console.log('🏠 Home: Found Skype case study:', parsed[0]);
-          }
-        }
+        safeConsole.log('🏠 Home: localStorage case studies:', parsed.length, 'items');
       } catch (error) {
-        console.log('🏠 Home: Error parsing localStorage case studies:', error);
+        safeConsole.error('🏠 Home: Error parsing localStorage case studies:', error);
       }
     }
   }, [projects]);
@@ -1471,6 +1452,13 @@ Tools for family members to support patients without being intrusive.
   // Clean up blank case studies on mount
   useEffect(() => {
     cleanupBlankCaseStudies();
+  }, []);
+
+  // Memory cleanup on unmount
+  useEffect(() => {
+    return () => {
+      MemoryOptimizer.cleanup();
+    };
   }, []);
   
   // Clean up blob URLs from case study content

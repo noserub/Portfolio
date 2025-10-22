@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, memo } from 'react';
 import { motion } from 'motion/react';
+import { MemoryOptimizer } from '../utils/memoryOptimization';
 
 interface LazyImageProps {
   src: string;
@@ -41,11 +42,20 @@ const LazyImage = memo(({
       }
     );
 
-    if (imgRef.current) {
-      observer.observe(imgRef.current);
+    // Register observer for cleanup
+    MemoryOptimizer.registerObserver(observer);
+
+    const currentRef = imgRef.current;
+    if (currentRef) {
+      observer.observe(currentRef);
     }
 
-    return () => observer.disconnect();
+    return () => {
+      if (currentRef) {
+        observer.unobserve(currentRef);
+      }
+      observer.disconnect();
+    };
   }, []);
 
   const handleLoad = () => {

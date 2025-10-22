@@ -30,12 +30,23 @@ const PerformanceMonitor = memo(({
 
     const startTime = performance.now();
     
-    // Monitor memory usage (if available)
-    const memoryInfo = (performance as any).memory;
-    const memoryUsage = memoryInfo ? memoryInfo.usedJSHeapSize / 1024 / 1024 : 0;
+    // Monitor memory usage (if available) - with error handling
+    let memoryUsage = 0;
+    try {
+      const memoryInfo = (performance as any).memory;
+      memoryUsage = memoryInfo ? memoryInfo.usedJSHeapSize / 1024 / 1024 : 0;
+    } catch (error) {
+      // Memory API not available in all browsers
+      console.debug('Memory API not available');
+    }
 
-    // Count React components in the DOM
-    const componentCount = document.querySelectorAll('[data-react-component]').length;
+    // Count React components in the DOM - with error handling
+    let componentCount = 0;
+    try {
+      componentCount = document.querySelectorAll('[data-react-component]').length;
+    } catch (error) {
+      console.debug('DOM query failed');
+    }
 
     const endTime = performance.now();
     const renderTime = endTime - startTime;
@@ -50,15 +61,17 @@ const PerformanceMonitor = memo(({
     setMetrics(newMetrics);
     onMetricsUpdate?.(newMetrics);
 
-    // Log performance warnings
-    if (renderTime > 16) { // More than one frame at 60fps
-      console.warn(`🐌 Slow render in ${componentName}: ${renderTime.toFixed(2)}ms`);
-    }
+    // Log performance warnings only in development
+    if (process.env.NODE_ENV === 'development') {
+      if (renderTime > 16) { // More than one frame at 60fps
+        console.warn(`🐌 Slow render in ${componentName}: ${renderTime.toFixed(2)}ms`);
+      }
 
-    if (memoryUsage > 100) { // More than 100MB
-      console.warn(`🧠 High memory usage in ${componentName}: ${memoryUsage.toFixed(2)}MB`);
+      if (memoryUsage > 100) { // More than 100MB
+        console.warn(`🧠 High memory usage in ${componentName}: ${memoryUsage.toFixed(2)}MB`);
+      }
     }
-  });
+  }, [componentName, enabled, onMetricsUpdate]); // Add dependencies to prevent infinite loops
 
   if (!enabled) return null;
 
