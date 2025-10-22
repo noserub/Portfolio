@@ -3101,20 +3101,34 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
           <div className="hidden lg:block lg:col-start-2 lg:col-end-2">
             <div className="lg:sticky lg:top-24 space-y-12">
               {atGlanceContent && (
-                <AtAGlanceSidebar 
-                  content={atGlanceContent.content}
-                  isEditMode={isEditMode}
-                  onUpdate={handleUpdateAtAGlance}
-                  onRemove={handleRemoveAtAGlance}
-                />
+                <>
+                  {console.log('🔍 Rendering AtAGlanceSidebar with:', { 
+                    hasContent: !!atGlanceContent, 
+                    contentLength: atGlanceContent.content?.length || 0,
+                    contentPreview: atGlanceContent.content?.substring(0, 100) || 'none'
+                  })}
+                  <AtAGlanceSidebar 
+                    content={atGlanceContent.content}
+                    isEditMode={isEditMode}
+                    onUpdate={handleUpdateAtAGlance}
+                    onRemove={handleRemoveAtAGlance}
+                  />
+                </>
               )}
               {impactContent && (
-                <ImpactSidebar 
-                  content={impactContent.content}
-                  isEditMode={isEditMode}
-                  onUpdate={handleUpdateImpact}
-                  onRemove={handleRemoveImpact}
-                />
+                <>
+                  {console.log('🔍 Rendering ImpactSidebar with:', { 
+                    hasContent: !!impactContent, 
+                    contentLength: impactContent.content?.length || 0,
+                    contentPreview: impactContent.content?.substring(0, 100) || 'none'
+                  })}
+                  <ImpactSidebar 
+                    content={impactContent.content}
+                    isEditMode={isEditMode}
+                    onUpdate={handleUpdateImpact}
+                    onRemove={handleRemoveImpact}
+                  />
+                </>
               )}
             </div>
           </div>
