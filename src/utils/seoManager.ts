@@ -370,7 +370,19 @@ export async function uploadFaviconToSupabase(file: File): Promise<string | null
 // Get favicon from Supabase Storage
 export async function getFaviconFromSupabase(): Promise<string | null> {
   try {
-    // Check for both Supabase auth and bypass auth
+    // First try to get public favicon (no auth required)
+    const { data: publicSettings, error: publicError } = await supabase
+      .from('app_settings')
+      .select('favicon_url')
+      .eq('user_id', 'public')
+      .maybeSingle();
+
+    if (!publicError && publicSettings?.favicon_url) {
+      console.log('Using public favicon:', publicSettings.favicon_url);
+      return publicSettings.favicon_url;
+    }
+
+    // If no public favicon, try user-specific favicon
     const { data: { user } } = await supabase.auth.getUser();
     const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
     
@@ -425,8 +437,8 @@ export async function saveFaviconToSupabase(faviconUrl: string): Promise<boolean
     const userId = user?.id || '7cd2752f-93c5-46e6-8535-32769fb10055'; // Fallback for bypass auth
     console.log('Saving favicon for user:', userId, 'Auth type:', user ? 'Supabase' : 'Bypass');
 
-    // Update or create app settings with favicon URL
-    const { data, error } = await supabase
+    // Update or create app settings with favicon URL for user
+    const { data: userData, error: userError } = await supabase
       .from('app_settings')
       .upsert({
         user_id: userId,
@@ -439,13 +451,31 @@ export async function saveFaviconToSupabase(faviconUrl: string): Promise<boolean
         ignoreDuplicates: false 
       });
 
-    if (error) {
-      console.error('Error saving favicon to Supabase:', error);
-      console.error('Full error details:', error);
+    if (userError) {
+      console.error('Error saving user favicon to Supabase:', userError);
       return false;
     }
 
-    console.log('Favicon saved successfully:', data);
+    // Also save as public favicon for all visitors
+    const { data: publicData, error: publicError } = await supabase
+      .from('app_settings')
+      .upsert({
+        user_id: 'public',
+        favicon_url: faviconUrl,
+        theme: 'dark',
+        is_authenticated: false,
+        show_debug_panel: false
+      }, { 
+        onConflict: 'user_id',
+        ignoreDuplicates: false 
+      });
+
+    if (publicError) {
+      console.error('Error saving public favicon to Supabase:', publicError);
+      return false;
+    }
+
+    console.log('Favicon saved successfully for both user and public:', { userData, publicData });
     return true;
   } catch (error) {
     console.error('Error saving favicon to Supabase:', error);
