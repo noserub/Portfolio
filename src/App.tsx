@@ -195,7 +195,7 @@ export default function App() {
   // Load settings on mount
   useEffect(() => {
     getCurrentUserSettings();
-  }, [getCurrentUserSettings]);
+  }, []); // Empty dependency array - only run once on mount
   
   // Debug logging removed to prevent infinite loops
   

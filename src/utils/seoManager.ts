@@ -388,7 +388,7 @@ export async function getFaviconFromSupabase(): Promise<string | null> {
       .from('app_settings')
       .select('favicon_url')
       .eq('user_id', userId)
-      .single();
+      .maybeSingle(); // Use maybeSingle instead of single to handle no results gracefully
 
     if (error) {
       console.error('Error fetching favicon from database:', error);
@@ -434,7 +434,10 @@ export async function saveFaviconToSupabase(faviconUrl: string): Promise<boolean
         theme: 'dark',
         is_authenticated: true,
         show_debug_panel: false
-      }, { onConflict: 'user_id' });
+      }, { 
+        onConflict: 'user_id',
+        ignoreDuplicates: false 
+      });
 
     if (error) {
       console.error('Error saving favicon to Supabase:', error);
