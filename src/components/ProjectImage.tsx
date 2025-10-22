@@ -391,7 +391,7 @@ export function ProjectImage({
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="absolute inset-0 bg-background/95 backdrop-blur-sm rounded-2xl shadow-2xl z-10 flex flex-col"
+            className="absolute inset-0 bg-background/95 backdrop-blur-sm rounded-t-2xl rounded-b-3xl shadow-2xl z-10 flex flex-col"
           >
             {/* Header - Fixed */}
             <div className="flex justify-between items-start p-6 pb-4 border-b border-border">
@@ -496,7 +496,7 @@ export function ProjectImage({
         )}
 
         {isPositioning && isEditMode && (
-          <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-3 z-20 rounded-2xl pointer-events-none">
+          <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-3 z-20 rounded-t-2xl rounded-b-3xl pointer-events-none">
             <div className="pointer-events-auto flex flex-col items-center gap-3">
               {/* Zoom Controls */}
               <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md rounded-full p-2 border border-white/20">
