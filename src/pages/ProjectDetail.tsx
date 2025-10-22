@@ -941,7 +941,12 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       impactContentLength: (impactSection as any)?.content?.length || 0,
       atGlanceTitle: (atGlanceSection as any)?.title,
       atGlanceContentLength: (atGlanceSection as any)?.content?.length || 0,
-      atGlanceContentPreview: (atGlanceSection as any)?.content?.substring(0, 100) || 'none'
+      atGlanceContentPreview: (atGlanceSection as any)?.content?.substring(0, 100) || 'none',
+      sectionCount: sectionCount,
+      foundFirstSidebarSection: foundFirstSidebarSection,
+      foundSecondSidebarSection: foundSecondSidebarSection,
+      currentSectionTitle: currentSection?.title,
+      currentSectionContentLength: currentSection?.content?.length || 0
     });
 
     return {
