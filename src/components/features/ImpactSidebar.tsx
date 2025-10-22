@@ -22,14 +22,16 @@ export function ImpactSidebar({ content, isEditMode, onUpdate, onRemove }: Impac
 
   // Update local state when content prop changes
   React.useEffect(() => {
-    setEditedContent(content);
-    setOriginalContent(content);
+    // Only update if content is valid and not corrupted
+    if (content && typeof content === 'string' && content.trim().length > 0) {
+      setEditedContent(content);
+      setOriginalContent(content);
+    }
   }, [content]);
 
   const handleEdit = () => {
     setOriginalTitle(editedTitle);
-    setOriginalContent(content);
-    setEditedContent(content);
+    setOriginalContent(editedContent); // Use current edited content, not prop content
     setIsEditing(true);
   };
 
