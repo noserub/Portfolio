@@ -1928,7 +1928,22 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     let inSidebarSection = false;
     let foundSidebarSection = false;
     let sectionCount = 0;
+    let firstNonOverviewSection = '';
     
+    // First pass: identify the first non-Overview section
+    for (const line of lines) {
+      const topLevelMatch = line.trim().match(/^# (.+)$/);
+      if (topLevelMatch) {
+        const sectionTitle = topLevelMatch[1].trim();
+        sectionCount++;
+        if (sectionTitle !== "Overview" && !firstNonOverviewSection) {
+          firstNonOverviewSection = sectionTitle;
+        }
+      }
+    }
+    
+    // Second pass: replace the sidebar section
+    sectionCount = 0;
     for (const line of lines) {
       const topLevelMatch = line.trim().match(/^# (.+)$/);
       
@@ -1941,8 +1956,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
           inSidebarSection = false;
         }
         
-        // Check if this is a sidebar section (first non-Overview section or "At a glance")
-        if (sectionTitle === "At a glance" || (sectionCount === 1 && sectionTitle !== "Overview")) {
+        // Check if this is the sidebar section (first non-Overview section or "At a glance")
+        if (sectionTitle === "At a glance" || sectionTitle === firstNonOverviewSection) {
           foundSidebarSection = true;
           inSidebarSection = true;
           newLines.push(`# ${title}`);
@@ -2077,7 +2092,22 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     let inSidebarSection = false;
     let foundSidebarSection = false;
     let sectionCount = 0;
+    let firstNonOverviewSection = '';
     
+    // First pass: identify the first non-Overview section
+    for (const line of lines) {
+      const topLevelMatch = line.trim().match(/^# (.+)$/);
+      if (topLevelMatch) {
+        const sectionTitle = topLevelMatch[1].trim();
+        sectionCount++;
+        if (sectionTitle !== "Overview" && !firstNonOverviewSection) {
+          firstNonOverviewSection = sectionTitle;
+        }
+      }
+    }
+    
+    // Second pass: remove the sidebar section
+    sectionCount = 0;
     for (const line of lines) {
       const topLevelMatch = line.trim().match(/^# (.+)$/);
       
@@ -2090,8 +2120,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
           inSidebarSection = false;
         }
         
-        // Check if this is a sidebar section (first non-Overview section or "At a glance")
-        if (sectionTitle === "At a glance" || (sectionCount === 1 && sectionTitle !== "Overview")) {
+        // Check if this is the sidebar section (first non-Overview section or "At a glance")
+        if (sectionTitle === "At a glance" || sectionTitle === firstNonOverviewSection) {
           foundSidebarSection = true;
           inSidebarSection = true;
           continue; // Skip the header line
