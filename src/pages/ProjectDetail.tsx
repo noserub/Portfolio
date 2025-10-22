@@ -2411,7 +2411,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
         {/* DEBUG: Show sidebar content status */}
         {console.log('🔍 Layout condition check:', { atGlanceContent: !!atGlanceContent, impactContent: !!impactContent, hasAny: !!(atGlanceContent || impactContent) })}
         {/* DEBUG: Visual indicator */}
-        <div className="fixed top-4 right-4 z-50 bg-red-500 text-white p-4 rounded text-lg font-bold">
+        <div className="bg-red-500 text-white p-4 rounded text-lg font-bold mb-4">
           DEBUG: Grid: {(atGlanceContent || impactContent) ? 'YES' : 'NO'} | AtGlance: {atGlanceContent ? 'YES' : 'NO'} | Impact: {impactContent ? 'YES' : 'NO'}
         </div>
         {/* Main Content */}
