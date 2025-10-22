@@ -2407,7 +2407,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
           </DropdownMenu>
         </div>
       )}
-      <div className={(atGlanceContent || impactContent) ? "lg:grid lg:grid-cols-[1fr_320px] lg:gap-16 space-y-16 lg:space-y-0" : "space-y-16"}>
+      <div className={(atGlanceContent || impactContent) ? "lg:grid lg:grid-cols-[1fr_320px] lg:gap-16 space-y-16 lg:space-y-0" : "space-y-16"} style={(atGlanceContent || impactContent) ? { display: 'grid', gridTemplateColumns: '1fr 320px', gap: '4rem' } : {}}>
         {/* DEBUG: Show sidebar content status */}
         {console.log('🔍 Layout condition check:', { atGlanceContent: !!atGlanceContent, impactContent: !!impactContent, hasAny: !!(atGlanceContent || impactContent) })}
         {/* DEBUG: Visual indicator */}
