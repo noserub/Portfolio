@@ -216,6 +216,7 @@ export function useProjects() {
       }
       
       // First, try to update the project normally with timeout handling
+      console.log('🔄 useProjects: Attempting to update project in Supabase:', { id, updates });
       let { data, error } = await Promise.race([
         supabase
           .from('projects')
@@ -227,6 +228,8 @@ export function useProjects() {
           setTimeout(() => reject(new Error('Update timeout')), 30000)
         )
       ]) as any;
+      
+      console.log('🔄 useProjects: Supabase update result:', { data, error });
 
       // If that fails due to user mismatch, try to transfer ownership
       if (error && error.code === 'PGRST116') {

@@ -1968,6 +1968,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
 
   // Handler for updating first sidebar section (At a glance)
   const handleUpdateAtAGlance = (title: string, content: string) => {
+    console.log('🔄 handleUpdateAtAGlance called with:', { title, content: content.substring(0, 100) + '...' });
+    
     // Update the markdown content by replacing the first sidebar section
     const lines = caseStudyContent?.split('\n') || [];
     const newLines: string[] = [];
@@ -2015,6 +2017,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     }
     
     const newContent = newLines.join('\n');
+    console.log('🔄 handleUpdateAtAGlance: New content preview:', newContent.substring(0, 200) + '...');
     setCaseStudyContent(newContent);
     
     // Auto-save
@@ -2034,6 +2037,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       solutionCardsPosition,
       sectionPositions,
     };
+    console.log('🔄 handleUpdateAtAGlance: Calling onUpdate with project ID:', updatedProject.id);
     onUpdate(updatedProject);
   };
 
