@@ -928,7 +928,9 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       foundFirstSidebarSection: foundFirstSidebarSection,
       foundSecondSidebarSection: foundSecondSidebarSection,
       currentSectionTitle: currentSection?.title,
-      currentSectionContentLength: currentSection?.content?.length || 0
+      currentSectionContentLength: currentSection?.content?.length || 0,
+      atGlanceSection: atGlanceSection,
+      impactSection: impactSection
     });
 
     return {
