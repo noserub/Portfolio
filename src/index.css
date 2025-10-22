@@ -4,9 +4,7 @@
 /* Fix scrolling issues when console is open */
 html, body {
   overflow-x: hidden;
-  overflow-y: auto;
-  height: auto;
-  min-height: 100vh;
+  height: 100%;
 }
 
 /* Ensure proper scrolling behavior */
