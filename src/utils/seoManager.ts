@@ -371,15 +371,20 @@ export async function uploadFaviconToSupabase(file: File): Promise<string | null
 export async function getFaviconFromSupabase(): Promise<string | null> {
   try {
     // First try to get public favicon (no auth required)
+    console.log('🔍 Checking for public favicon...');
     const { data: publicSettings, error: publicError } = await supabase
       .from('app_settings')
       .select('favicon_url')
       .eq('user_id', 'public')
       .maybeSingle();
 
+    console.log('🔍 Public favicon query result:', { publicSettings, publicError });
+
     if (!publicError && publicSettings?.favicon_url) {
-      console.log('Using public favicon:', publicSettings.favicon_url);
+      console.log('✅ Using public favicon:', publicSettings.favicon_url);
       return publicSettings.favicon_url;
+    } else {
+      console.log('❌ No public favicon found:', { publicError, publicSettings });
     }
 
     // If no public favicon, try user-specific favicon
