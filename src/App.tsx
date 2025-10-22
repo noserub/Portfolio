@@ -197,13 +197,7 @@ export default function App() {
     getCurrentUserSettings();
   }, [getCurrentUserSettings]);
   
-  // Debug logging
-  useEffect(() => {
-    console.log('🎨 Current settings:', settings);
-    console.log('🖼️ Current logo URL:', logo);
-    console.log('🔍 Logo length:', logo?.length);
-    console.log('🔍 Logo type:', typeof logo);
-  }, [settings, logo]);
+  // Debug logging removed to prevent infinite loops
   
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     try {
@@ -901,7 +895,7 @@ export default function App() {
   // No loading screen - render immediately for better performance
   
   // Debug log to verify render is called
-  console.log('🎨 App rendering, currentPage:', currentPage);
+  // Debug logging removed to prevent infinite loops
   
   // Safeguard: Check if localStorage is accessible
   try {

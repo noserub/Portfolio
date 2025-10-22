@@ -409,11 +409,12 @@ export async function saveFaviconToSupabase(faviconUrl: string): Promise<boolean
     const { data: { user } } = await supabase.auth.getUser();
     const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
     
-    console.log('🔍 Authentication check:', {
-      user: user ? { id: user.id, email: user.email } : null,
-      isBypassAuth,
-      localStorageAuth: localStorage.getItem('isAuthenticated')
-    });
+    // Debug authentication state
+    if (!user && !isBypassAuth) {
+      console.log('🔍 No authentication found - user:', user, 'bypass:', isBypassAuth);
+    } else {
+      console.log('🔍 Authentication found - user:', user?.id, 'bypass:', isBypassAuth);
+    }
     
     if (!user && !isBypassAuth) {
       console.error('No authenticated user found (neither Supabase auth nor bypass auth)');
