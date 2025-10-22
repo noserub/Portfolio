@@ -819,13 +819,12 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
   // Store original content when entering edit mode (for Cancel functionality)
   const [originalContent, setOriginalContent] = useState(caseStudyContent);
 
-  // Clean up corrupted content on mount (disabled for now to debug parsing)
+  // Clean up corrupted content on mount
   useEffect(() => {
     if (isContentCorrupted(caseStudyContent)) {
-      console.log('🧹 Detected corrupted content, but skipping cleanup for debugging...');
-      // Temporarily disabled to debug parsing issue
-      // const cleanedContent = cleanMarkdownContent(caseStudyContent);
-      // setCaseStudyContent(cleanedContent);
+      console.log('🧹 Detected corrupted content, cleaning up...');
+      const cleanedContent = cleanMarkdownContent(caseStudyContent);
+      setCaseStudyContent(cleanedContent);
     }
   }, []); // Run once on mount
 

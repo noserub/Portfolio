@@ -178,6 +178,12 @@ export function useProjects() {
     try {
       console.log('🔄 useProjects: updateProject called with:', { id, updates });
       
+      // Check content size to prevent timeouts
+      if (updates.case_study_content && updates.case_study_content.length > 100000) {
+        console.log('⚠️ Large content detected, truncating to prevent timeout...');
+        updates.case_study_content = updates.case_study_content.substring(0, 100000) + '\n\n... [Content truncated to prevent timeout]';
+      }
+      
       // Check if user is authenticated (either Supabase auth or bypass)
       const { data: { user } } = await supabase.auth.getUser();
       const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
@@ -194,13 +200,18 @@ export function useProjects() {
         console.log('✅ useProjects: User authenticated:', user.id);
       }
       
-      // First, try to update the project normally
-      let { data, error } = await supabase
-        .from('projects')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
+      // First, try to update the project normally with timeout handling
+      let { data, error } = await Promise.race([
+        supabase
+          .from('projects')
+          .update(updates)
+          .eq('id', id)
+          .select()
+          .single(),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Update timeout')), 30000)
+        )
+      ]) as any;
 
       // If that fails due to user mismatch, try to transfer ownership
       if (error && error.code === 'PGRST116') {
