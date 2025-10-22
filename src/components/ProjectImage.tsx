@@ -220,12 +220,13 @@ export function ProjectImage({
       >
         <div
           ref={imageRef}
-          className={`aspect-[3/4] w-[280px] overflow-hidden rounded-t-2xl rounded-b-3xl shadow-xl transition-all duration-200 ${
+          className={`aspect-[3/4] w-[280px] overflow-hidden shadow-xl transition-all duration-200 ${
             isDragging ? "ring-4 ring-primary" : ""
           } ${!isEditMode && isHovered ? "shadow-2xl ring-2 ring-primary/30" : ""}`}
           style={{
             background: 'linear-gradient(135deg, #ec4899 0%, #8b5cf6 25%, #3b82f6 50%, #06b6d4 75%, #fbbf24 100%)',
-            cursor: isPositioning ? 'crosshair' : !isEditMode ? 'pointer' : 'default'
+            cursor: isPositioning ? 'crosshair' : !isEditMode ? 'pointer' : 'default',
+            borderRadius: '1rem 1rem 2rem 2rem'
           }}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
@@ -242,12 +243,13 @@ export function ProjectImage({
           />
           
           <motion.div
-            className="w-full h-full relative rounded-t-2xl rounded-b-3xl overflow-hidden"
+            className="w-full h-full relative overflow-hidden"
             style={{
               backgroundImage: `url(${getImageUrl()})`,
               backgroundSize: `${editedProject.scale * 100}%`,
               backgroundPosition: `${editedProject.position.x}% ${editedProject.position.y}%`,
               backgroundRepeat: "no-repeat",
+              borderRadius: '1rem 1rem 2rem 2rem'
             }}
             animate={{
               scale: !isEditMode && isHovered ? 1.08 : 1,
@@ -316,10 +318,10 @@ export function ProjectImage({
         )}
 
         {/* Persistent Project Title - Always visible */}
-        <div className="absolute bottom-0 left-0 right-0 z-50 rounded-b-3xl overflow-hidden">
+        <div className="absolute bottom-0 left-0 right-0 z-50 rounded-b-[2rem] overflow-hidden">
           {/* Dark transparent background strip for better text readability */}
           <div 
-            className="relative p-4 rounded-b-3xl"
+            className="relative p-4 rounded-b-[2rem]"
             style={{
               background: 'linear-gradient(to top, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.8) 30%, rgba(0, 0, 0, 0.4) 70%, rgba(0, 0, 0, 0.1) 100%)',
               minHeight: '80px'
@@ -342,7 +344,7 @@ export function ProjectImage({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.2 }}
-            className="absolute inset-0 bg-black/20 backdrop-blur-sm rounded-t-2xl rounded-b-3xl flex items-center justify-center z-10"
+            className="absolute inset-0 bg-black/20 backdrop-blur-sm rounded-t-2xl rounded-b-[2rem] flex items-center justify-center z-10"
           >
             <motion.div
               initial={{ y: 8, opacity: 0 }}
@@ -391,7 +393,7 @@ export function ProjectImage({
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="absolute inset-0 bg-background/95 backdrop-blur-sm shadow-2xl z-10 flex flex-col rounded-b-3xl"
+            className="absolute inset-0 bg-background/95 backdrop-blur-sm shadow-2xl z-10 flex flex-col rounded-b-[2rem]"
             style={{
               overflow: 'hidden'
             }}
@@ -500,7 +502,7 @@ export function ProjectImage({
 
         {isPositioning && isEditMode && (
           <div 
-            className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-3 z-20 pointer-events-none rounded-b-3xl"
+            className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-3 z-20 pointer-events-none rounded-b-[2rem]"
             style={{
               overflow: 'hidden'
             }}
