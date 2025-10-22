@@ -298,11 +298,11 @@ export function updateFavicon(sitewide: SitewideSEO): void {
     }
   } else {
     // Generate text-based SVG favicon
-    const text = sitewide.faviconText || 'BB';
-    const gradientStart = sitewide.faviconGradientStart || '#8b5cf6';
-    const gradientEnd = sitewide.faviconGradientEnd || '#3b82f6';
+    const text = (sitewide.faviconText || 'BB').toString();
+    const gradientStart = (sitewide.faviconGradientStart || '#8b5cf6').toString();
+    const gradientEnd = (sitewide.faviconGradientEnd || '#3b82f6').toString();
 
-    // Create SVG favicon
+    // Create SVG favicon with defensive encoding
     const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='grad' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' style='stop-color:${gradientStart};stop-opacity:1' /><stop offset='100%' style='stop-color:${gradientEnd};stop-opacity:1' /></linearGradient></defs><rect width='100' height='100' rx='20' fill='url(#grad)'/><text x='50' y='50' dominant-baseline='central' text-anchor='middle' font-family='Arial, sans-serif' font-size='45' font-weight='bold' fill='white'>${text}</text></svg>`;
     
     const encoded = encodeURIComponent(svg);

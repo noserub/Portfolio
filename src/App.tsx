@@ -221,27 +221,14 @@ export default function App() {
           updateFavicon(updatedSitewide);
           console.log('✅ Favicon applied successfully');
         } else {
-          console.log('❌ No favicon found in Supabase, using fallback');
-          // Use fallback favicon if no custom one is found
-          const seoData = getSEOData();
-          const updatedSitewide = {
-            ...seoData.sitewide,
-            faviconType: 'text' as const,
-            faviconText: 'BB'
-          };
-          updateFavicon(updatedSitewide);
+          console.log('❌ No favicon found in Supabase, keeping static favicon');
+          // Don't override the static favicon if no custom one is found
+          // The static favicon in index.html will be used
         }
       } catch (error) {
         console.error('❌ Error loading global favicon:', error);
-        // Use fallback favicon on error
-        const { getSEOData, updateFavicon } = await import('./utils/seoManager');
-        const seoData = getSEOData();
-        const updatedSitewide = {
-          ...seoData.sitewide,
-          faviconType: 'text' as const,
-          faviconText: 'BB'
-        };
-        updateFavicon(updatedSitewide);
+        // Don't override the static favicon on error
+        // The static favicon in index.html will be used
       }
     };
 
