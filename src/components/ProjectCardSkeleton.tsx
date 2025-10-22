@@ -9,17 +9,15 @@ export function ProjectCardSkeleton({ count = 6 }: ProjectCardSkeletonProps) {
   return (
     <>
       {Array.from({ length: count }).map((_, index) => (
-        <motion.div
+        <div
           key={`skeleton-${index}`}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: index * 0.1 }}
           className="relative group"
         >
-          {/* Simple gray box skeleton */}
+          {/* Simple gray box skeleton - appears instantly */}
           <div className="relative w-full h-80 bg-gray-200 dark:bg-gray-700 rounded-t-2xl rounded-b-3xl overflow-hidden">
             <motion.div
               className="absolute inset-0 bg-gray-300 dark:bg-gray-600"
+              initial={{ opacity: 0.5 }}
               animate={{ 
                 opacity: [0.5, 1, 0.5] 
               }}
@@ -30,7 +28,7 @@ export function ProjectCardSkeleton({ count = 6 }: ProjectCardSkeletonProps) {
               }}
             />
           </div>
-        </motion.div>
+        </div>
       ))}
     </>
   );
