@@ -2411,11 +2411,11 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
         {/* DEBUG: Show sidebar content status */}
         {console.log('🔍 Layout condition check:', { atGlanceContent: !!atGlanceContent, impactContent: !!impactContent, hasAny: !!(atGlanceContent || impactContent) })}
         {/* DEBUG: Visual indicator */}
-        <div className="fixed top-4 right-4 z-50 bg-black text-white p-2 rounded text-xs">
-          Grid: {(atGlanceContent || impactContent) ? 'YES' : 'NO'} | AtGlance: {atGlanceContent ? 'YES' : 'NO'} | Impact: {impactContent ? 'YES' : 'NO'}
+        <div className="fixed top-4 right-4 z-50 bg-red-500 text-white p-4 rounded text-lg font-bold">
+          DEBUG: Grid: {(atGlanceContent || impactContent) ? 'YES' : 'NO'} | AtGlance: {atGlanceContent ? 'YES' : 'NO'} | Impact: {impactContent ? 'YES' : 'NO'}
         </div>
         {/* Main Content */}
-        <div className="space-y-16 bg-red-100 lg:bg-blue-100">
+        <div className="space-y-16 bg-red-100 lg:bg-blue-100 border-4 border-yellow-500">
         {/* Hero Image Section - Order 2 on mobile (after title, before sidebars) */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
