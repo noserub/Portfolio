@@ -125,9 +125,13 @@ export async function uploadImage(
     // Import Supabase client
     const { supabase } = await import('../lib/supabaseClient');
     
-    // Generate a unique filename
+    // Generate a unique filename with sanitized name
     const timestamp = Date.now();
-    const filename = `${timestamp}_${file.name}`;
+    const sanitizedName = file.name
+      .replace(/[^a-zA-Z0-9.-]/g, '_') // Replace spaces and special chars with underscores
+      .replace(/_+/g, '_') // Replace multiple underscores with single underscore
+      .replace(/^_|_$/g, ''); // Remove leading/trailing underscores
+    const filename = `${timestamp}_${sanitizedName}`;
     
     console.log('📤 Uploading to Supabase Storage:', { filename, bucket: 'portfolio-images' });
     
