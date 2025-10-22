@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { motion } from "motion/react";
 import { TrendingUp, Edit2, Save, X, Trash2 } from "lucide-react";
 import { MarkdownRenderer } from "../MarkdownRenderer";
@@ -19,6 +19,12 @@ export function ImpactSidebar({ content, isEditMode, onUpdate, onRemove }: Impac
   const [editedContent, setEditedContent] = useState(content);
   const [originalTitle, setOriginalTitle] = useState("Impact");
   const [originalContent, setOriginalContent] = useState(content);
+
+  // Update local state when content prop changes
+  React.useEffect(() => {
+    setEditedContent(content);
+    setOriginalContent(content);
+  }, [content]);
 
   const handleEdit = () => {
     setOriginalTitle(editedTitle);
