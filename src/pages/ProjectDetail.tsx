@@ -935,7 +935,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       currentSectionTitle: currentSection?.title,
       currentSectionContentLength: currentSection?.content?.length || 0,
       atGlanceSection: atGlanceSection,
-      impactSection: impactSection
+      impactSection: impactSection,
+      allSections: lines.filter(line => line.trim().match(/^# (.+)$/)).map(line => line.trim().substring(2).trim())
     });
 
     return {
