@@ -189,9 +189,24 @@ export function useProjects() {
       const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
       
       if (!user && !isBypassAuth) {
-        console.log('❌ useProjects: No authenticated user, cannot update project');
-        setError('User not authenticated');
-        return null;
+        console.log('❌ useProjects: No authenticated user, saving to localStorage as fallback');
+        // Save to localStorage as fallback for unauthenticated users
+        try {
+          const existingProjects = JSON.parse(localStorage.getItem('caseStudies') || '[]');
+          const updatedProjects = existingProjects.map((p: any) => 
+            p.id === id ? { ...p, ...updates, updated_at: new Date().toISOString() } : p
+          );
+          localStorage.setItem('caseStudies', JSON.stringify(updatedProjects));
+          console.log('✅ useProjects: Changes saved to localStorage');
+          
+          // Update local state
+          setProjects(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
+          return { ...prev.find(p => p.id === id), ...updates } as Project;
+        } catch (err) {
+          console.error('❌ useProjects: Error saving to localStorage:', err);
+          setError('Failed to save changes locally');
+          return null;
+        }
       }
       
       if (isBypassAuth) {
