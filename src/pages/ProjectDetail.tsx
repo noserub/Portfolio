@@ -938,6 +938,11 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       impactSection: impactSection,
       allSections: lines.filter(line => line.trim().match(/^# (.+)$/)).map(line => line.trim().substring(2).trim())
     });
+    
+    // Debug: Show the actual content being parsed
+    console.log('🔍 Content being parsed:', cleanedContent?.substring(0, 500) + '...');
+    console.log('🔍 Lines count:', lines.length);
+    console.log('🔍 Section headers found:', lines.filter(line => line.trim().match(/^# (.+)$/)).map(line => line.trim()));
 
     return {
       atGlanceContent: atGlanceSection,
