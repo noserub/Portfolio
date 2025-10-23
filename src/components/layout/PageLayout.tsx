@@ -1,5 +1,4 @@
 import React from "react";
-import { ArrowLeft } from "lucide-react";
 import { motion, useScroll, useTransform } from "motion/react";
 import { Button } from "../ui/button";
 
@@ -25,27 +24,7 @@ export function PageLayout({ title, children, onBack, overline, actionButton }: 
       transition={{ duration: 0.5 }}
       className="min-h-screen pt-44 pb-32 relative"
     >
-      {/* Persistent Back Button - Styled to match Resume button exactly */}
-      <div className="fixed top-[6.5rem] left-6 z-40">
-        <motion.div
-          initial={{ x: -20, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          transition={{ delay: 0.2 }}
-        >
-          <button
-            onClick={(e) => {
-              onBack();
-              e.currentTarget.blur(); // Remove focus after click
-            }}
-            className="relative rounded-full px-6 py-3 shadow-lg hover:shadow-xl transition-all duration-300 bg-card/80 backdrop-blur-sm hover:bg-accent cursor-pointer border border-border h-[54px] flex items-center justify-center"
-          >
-            <span className="relative z-10 text-foreground font-bold flex items-center justify-center gap-2">
-              <ArrowLeft className="w-4 h-4" />
-              Back
-            </span>
-          </button>
-        </motion.div>
-      </div>
+      {/* Back button moved to main header - see App.tsx */}
 
       {/* 
         TOOLBAR LAYOUT:

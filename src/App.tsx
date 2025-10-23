@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { supabase } from "./lib/supabaseClient";
-import { Edit3, Eye, LogOut, Save, AlertTriangle, Moon, Sun, MoreHorizontal, Search, BookOpen } from "lucide-react";
+import { Edit3, Eye, LogOut, Save, AlertTriangle, Moon, Sun, MoreHorizontal, Search, BookOpen, ArrowLeft } from "lucide-react";
 import { Analytics } from "@vercel/analytics/react";
 import { 
   Header, 
@@ -1140,13 +1140,29 @@ export default function App() {
       />
       
 
-      {/* Theme Toggle - Top Left */}
+      {/* Header Controls - Top Left */}
       <motion.div
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ delay: 0.5 }}
-        className="fixed top-6 left-6 z-50"
+        className="fixed top-6 left-6 z-50 flex items-center gap-3"
       >
+        {/* Back Button - Only show on non-home pages */}
+        {currentPage !== "home" && (
+          <Button
+            onClick={(e) => {
+              navigateHome();
+              e.currentTarget.blur(); // Remove focus after click
+            }}
+            variant="secondary"
+            className="rounded-full shadow-lg backdrop-blur-sm p-2.5"
+            aria-label="Go back to home"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </Button>
+        )}
+
+        {/* Theme Toggle */}
         <Button
           onClick={(e) => {
             setTheme(theme === 'light' ? 'dark' : 'light');
