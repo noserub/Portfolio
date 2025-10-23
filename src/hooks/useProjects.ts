@@ -189,23 +189,34 @@ export function useProjects() {
       const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
       
       if (!user && !isBypassAuth) {
-        console.log('❌ useProjects: No authenticated user, saving to localStorage as fallback');
-        // Save to localStorage as fallback for unauthenticated users
-        try {
-          const existingProjects = JSON.parse(localStorage.getItem('caseStudies') || '[]');
-          const updatedProjects = existingProjects.map((p: any) => 
-            p.id === id ? { ...p, ...updates, updated_at: new Date().toISOString() } : p
-          );
-          localStorage.setItem('caseStudies', JSON.stringify(updatedProjects));
-          console.log('✅ useProjects: Changes saved to localStorage');
-          
-          // Update local state
-          setProjects(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
-          return { ...prev.find(p => p.id === id), ...updates } as Project;
-        } catch (err) {
-          console.error('❌ useProjects: Error saving to localStorage:', err);
-          setError('Failed to save changes locally');
-          return null;
+        console.log('❌ useProjects: No authenticated user, attempting to force authentication...');
+        
+        // Try to force authentication by checking if we have bypass auth
+        const storedAuth = localStorage.getItem('isAuthenticated');
+        console.log('🔍 Stored auth value:', storedAuth);
+        
+        if (storedAuth === 'true') {
+          console.log('🔄 Bypass auth detected, proceeding with Supabase save...');
+          // Continue with Supabase save using fallback user ID
+        } else {
+          console.log('❌ useProjects: No authentication found, saving to localStorage as fallback');
+          // Save to localStorage as fallback for unauthenticated users
+          try {
+            const existingProjects = JSON.parse(localStorage.getItem('caseStudies') || '[]');
+            const updatedProjects = existingProjects.map((p: any) => 
+              p.id === id ? { ...p, ...updates, updated_at: new Date().toISOString() } : p
+            );
+            localStorage.setItem('caseStudies', JSON.stringify(updatedProjects));
+            console.log('✅ useProjects: Changes saved to localStorage');
+            
+            // Update local state
+            setProjects(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
+            return { ...prev.find(p => p.id === id), ...updates } as Project;
+          } catch (err) {
+            console.error('❌ useProjects: Error saving to localStorage:', err);
+            setError('Failed to save changes locally');
+            return null;
+          }
         }
       }
       
@@ -217,6 +228,11 @@ export function useProjects() {
       
       // First, try to update the project normally with timeout handling
       console.log('🔄 useProjects: Attempting to update project in Supabase:', { id, updates });
+      
+      // Use fallback user ID for bypass auth
+      const userId = user?.id || '7cd2752f-93c5-46e6-8535-32769fb10055';
+      console.log('🔄 useProjects: Using user ID:', userId, 'Auth type:', user ? 'Supabase' : 'Bypass');
+      
       let { data, error } = await Promise.race([
         supabase
           .from('projects')
@@ -235,9 +251,14 @@ export function useProjects() {
       if (error && error.code === 'PGRST116') {
         console.log('🔄 Project ownership mismatch detected, attempting to transfer ownership...');
         
-        // Get the current user
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
+        // Get the current user or use fallback
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        const fallbackUserId = '7cd2752f-93c5-46e6-8535-32769fb10055';
+        const effectiveUserId = currentUser?.id || fallbackUserId;
+        
+        console.log('🔄 useProjects: Transfer ownership using user ID:', effectiveUserId);
+        
+        if (effectiveUserId) {
           try {
             // First, check if the project exists at all
             const { data: existingProject, error: fetchError } = await supabase
@@ -254,7 +275,7 @@ export function useProjects() {
                 .from('projects')
                 .insert({
                   id: id,
-                  user_id: user.id,
+                  user_id: effectiveUserId,
                   ...updates
                 })
                 .select()
@@ -272,7 +293,7 @@ export function useProjects() {
               // Project exists, try to transfer ownership
               const transferData = {
                 ...updates,
-                user_id: user.id
+                user_id: effectiveUserId
               };
               
               const { data: transferResult, error: transferError } = await supabase
@@ -298,7 +319,7 @@ export function useProjects() {
             const { data: existingProjects, error: searchError } = await supabase
               .from('projects')
               .select('*')
-              .eq('user_id', user.id)
+              .eq('user_id', effectiveUserId)
               .eq('title', updates.title);
               
             if (searchError) {
@@ -333,7 +354,7 @@ export function useProjects() {
                 .from('projects')
                 .insert({
                   id: newId,
-                  user_id: user.id,
+                  user_id: effectiveUserId,
                   ...updates
                 })
                 .select()
