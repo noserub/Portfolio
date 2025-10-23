@@ -2883,7 +2883,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         >
           {/* Decorative Curved Brushstrokes - Far right near dots, bleeding off edges */}
           <svg
-            className="absolute right-0 top-0 h-full w-[30%] pointer-events-none"
+            className="absolute right-0 top-0 h-full w-[25%] pointer-events-none"
             viewBox="0 0 300 800"
             xmlns="http://www.w3.org/2000/svg"
           >
@@ -3020,20 +3020,20 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
 
           {/* Colorful Animated Dots - Right side between text and edge */}
           {[
-            { x: '72%', y: '8%', color: '#ec4899', size: 14, delay: 0 },
-            { x: '82%', y: '15%', color: '#8b5cf6', size: 11, delay: 0.5 },
-            { x: '88%', y: '22%', color: '#3b82f6', size: 16, delay: 1 },
-            { x: '76%', y: '28%', color: '#fbbf24', size: 12, delay: 1.5 },
-            { x: '85%', y: '35%', color: '#ec4899', size: 15, delay: 2 },
-            { x: '92%', y: '42%', color: '#8b5cf6', size: 10, delay: 2.5 },
-            { x: '79%', y: '50%', color: '#3b82f6', size: 13, delay: 3 },
-            { x: '86%', y: '58%', color: '#fbbf24', size: 11, delay: 3.5 },
-            { x: '94%', y: '65%', color: '#ec4899', size: 14, delay: 0.8 },
-            { x: '74%', y: '72%', color: '#8b5cf6', size: 12, delay: 1.2 },
-            { x: '83%', y: '78%', color: '#3b82f6', size: 15, delay: 1.8 },
-            { x: '90%', y: '85%', color: '#fbbf24', size: 10, delay: 2.2 },
-            { x: '77%', y: '92%', color: '#ec4899', size: 13, delay: 2.8 },
-            { x: '96%', y: '48%', color: '#8b5cf6', size: 9, delay: 3.2 },
+            { x: '78%', y: '8%', color: '#ec4899', size: 14, delay: 0 },
+            { x: '88%', y: '15%', color: '#8b5cf6', size: 11, delay: 0.5 },
+            { x: '94%', y: '22%', color: '#3b82f6', size: 16, delay: 1 },
+            { x: '82%', y: '28%', color: '#fbbf24', size: 12, delay: 1.5 },
+            { x: '91%', y: '35%', color: '#ec4899', size: 15, delay: 2 },
+            { x: '98%', y: '42%', color: '#8b5cf6', size: 10, delay: 2.5 },
+            { x: '85%', y: '50%', color: '#3b82f6', size: 13, delay: 3 },
+            { x: '92%', y: '58%', color: '#fbbf24', size: 11, delay: 3.5 },
+            { x: '100%', y: '65%', color: '#ec4899', size: 14, delay: 0.8 },
+            { x: '80%', y: '72%', color: '#8b5cf6', size: 12, delay: 1.2 },
+            { x: '89%', y: '78%', color: '#3b82f6', size: 15, delay: 1.8 },
+            { x: '96%', y: '85%', color: '#fbbf24', size: 10, delay: 2.2 },
+            { x: '83%', y: '92%', color: '#ec4899', size: 13, delay: 2.8 },
+            { x: '102%', y: '48%', color: '#8b5cf6', size: 9, delay: 3.2 },
           ].map((dot, index) => (
             <motion.div
               key={index}
@@ -3233,7 +3233,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                 </div>
               </div>
             ) : (
-              <p className="text-lg md:text-xl leading-relaxed mb-6">
+              <p className="text-lg md:text-xl leading-relaxed mb-6 pr-8 md:pr-12 lg:pr-16">
                 <strong>{heroText.subtitle}</strong> {heroText.description}{' '}
                 <motion.span
                   className="inline-block"
@@ -3347,7 +3347,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.5, duration: 0.5 }}
-              className="flex flex-col min-[360px]:flex-row items-start min-[360px]:items-center gap-4"
+              className="flex flex-col min-[360px]:flex-row items-start min-[360px]:items-center gap-4 pr-8 md:pr-12 lg:pr-16"
             >
               {/* Animated Gradient Border Wrapper */}
               <motion.div

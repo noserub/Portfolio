@@ -234,6 +234,9 @@ export default function App() {
 
     // Add a small delay to ensure the page is fully loaded
     setTimeout(loadGlobalFavicon, 100);
+    
+    // Also try again after a longer delay in case of network issues
+    setTimeout(loadGlobalFavicon, 2000);
   }, []); // Run once on mount
   
   // Debug logging removed to prevent infinite loops
@@ -1348,6 +1351,36 @@ export default function App() {
               className="rounded-full shadow-sm backdrop-blur-sm bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/30 border-blue-500/50"
             >
               🔧 Fix Issues
+            </Button>
+            <Button
+              onClick={async () => {
+                try {
+                  console.log('🔄 Manually refreshing favicon...');
+                  const { getFaviconFromSupabase, updateFavicon, getSEOData } = await import('./utils/seoManager');
+                  const faviconUrl = await getFaviconFromSupabase();
+                  
+                  if (faviconUrl) {
+                    const seoData = getSEOData();
+                    const updatedSitewide = {
+                      ...seoData.sitewide,
+                      faviconType: 'image' as const,
+                      faviconImageUrl: faviconUrl
+                    };
+                    updateFavicon(updatedSitewide);
+                    alert('✅ Favicon refreshed successfully!');
+                  } else {
+                    alert('❌ No favicon found in Supabase');
+                  }
+                } catch (error) {
+                  console.error('Error refreshing favicon:', error);
+                  alert('❌ Error refreshing favicon: ' + error.message);
+                }
+              }}
+              variant="outline"
+              size="sm"
+              className="rounded-full shadow-sm backdrop-blur-sm bg-green-50 hover:bg-green-100 dark:bg-green-900/20 dark:hover:bg-green-900/30 border-green-500/50"
+            >
+              🔄 Refresh Favicon
             </Button>
             <Button
               onClick={handleSignOut}
