@@ -1441,6 +1441,59 @@ export default function App() {
         >
           🧪 Test Favicon Save
         </Button>
+        <Button
+          onClick={async () => {
+            try {
+              const { egressManager } = await import('./utils/egressManager');
+              const { cacheManager } = await import('./utils/cacheManager');
+              
+              const egressStatus = egressManager.getStatus();
+              const cacheStats = cacheManager.getStats();
+              const usageStats = egressManager.getUsageStats();
+              
+              const report = `
+🚀 EGRESS & CACHE STATUS REPORT
+
+📊 Egress Status:
+• Fallback Mode: ${egressStatus.fallbackMode ? '🔄 ON' : '✅ OFF'}
+• Is Limited: ${egressStatus.isLimited ? '🚫 YES' : '✅ NO'}
+• Error Count: ${egressStatus.errorCount}
+• Last Check: ${new Date(egressStatus.lastCheck).toLocaleTimeString()}
+
+📦 Cache Stats:
+• Total Items: ${cacheStats.total}
+• Valid: ${cacheStats.valid}
+• Expired: ${cacheStats.expired}
+• Memory Usage: ${(cacheStats.memoryUsage / 1024).toFixed(2)} KB
+
+💾 Storage:
+• localStorage Keys: ${usageStats.localStorageKeys}
+• Fallback Mode: ${usageStats.fallbackMode ? '🔄 ON' : '✅ OFF'}
+
+🎯 Recommendations:
+${egressStatus.fallbackMode ? 
+  '• Currently in fallback mode - Supabase calls disabled' : 
+  '• Supabase is working normally'
+}
+${cacheStats.expired > 0 ? 
+  '• Some cache items expired - consider cleanup' : 
+  '• Cache is healthy'
+}
+              `;
+              
+              console.log(report);
+              alert(report);
+            } catch (error) {
+              console.error('Status check error:', error);
+              alert('❌ Error checking status');
+            }
+          }}
+          variant="outline"
+          size="sm"
+          className="rounded-full shadow-sm backdrop-blur-sm bg-green-50 hover:bg-green-100 dark:bg-green-900/20 dark:hover:bg-green-900/30 border-green-500/50"
+        >
+          📊 Egress Status
+        </Button>
             <Button
               onClick={handleSignOut}
               variant="ghost"
