@@ -387,6 +387,13 @@ export async function getFaviconFromSupabase(): Promise<string | null> {
       return anySettings.favicon_url;
     } else {
       console.log('❌ No favicon found:', { anyError, anySettings });
+      console.log('🔍 Debug - anySettings details:', {
+        data: anySettings,
+        hasData: !!anySettings,
+        hasFaviconUrl: !!anySettings?.favicon_url,
+        faviconUrl: anySettings?.favicon_url,
+        isPublic: anySettings?.is_public
+      });
     }
 
     // Try to get public favicon as fallback (more restrictive query)
@@ -456,7 +463,13 @@ export async function saveFaviconToSupabase(faviconUrl: string): Promise<boolean
       return false;
     }
 
-    console.log('Favicon saved successfully for user and marked as public:', { userData });
+    console.log('✅ Favicon saved successfully for user and marked as public:', { userData });
+    console.log('🔍 Saved favicon details:', {
+      userId,
+      faviconUrl,
+      isPublic: true,
+      userData
+    });
     return true;
   } catch (error) {
     console.error('Error saving favicon to Supabase:', error);

@@ -2106,40 +2106,8 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     buttonText: "About Brian"
     };
     
-    try {
-      console.log('🏠 Home: Loading hero text...');
-      const saved = localStorage.getItem('heroText');
-      if (!saved) {
-        console.log('📝 No saved hero text, using defaults');
-        return defaultHeroText;
-      }
-      
-      // Extra validation before parsing
-      if (typeof saved !== 'string' || saved.length === 0) {
-        console.error('❌ Hero text data is not a valid string');
-        return defaultHeroText;
-      }
-      
-      const parsed = JSON.parse(saved);
-      if (typeof parsed !== 'object' || parsed === null) {
-        console.error('❌ Hero text is not an object, using defaults');
-        localStorage.removeItem('heroText'); // Clear invalid data
-        return defaultHeroText;
-      }
-      
-      console.log('✅ Loaded hero text from localStorage');
-      return parsed;
-    } catch (e) {
-      console.error('❌ CRITICAL: Error loading hero text:', e);
-      console.error('Stack:', e instanceof Error ? e.stack : 'No stack');
-      // Clear corrupted data
-      try {
-        localStorage.removeItem('heroText');
-      } catch (clearError) {
-        console.error('Cannot clear hero text:', clearError);
-      }
-      return defaultHeroText;
-    }
+    // Start with defaults, will be updated from Supabase if available
+    return defaultHeroText;
   });
   const [isEditingHero, setIsEditingHero] = useState(false);
   const [greetingsTextValue, setGreetingsTextValue] = useState("");
@@ -2152,9 +2120,104 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
   // Hero text is loaded from localStorage and hardcoded defaults
   // The profiles table doesn't have hero text fields, so we use localStorage
   
-  // Save heroText to localStorage whenever it changes
+  // Load hero text from Supabase on mount
+  useEffect(() => {
+    const loadHeroTextFromSupabase = async () => {
+      try {
+        const { supabase } = await import('../lib/supabaseClient');
+        const { data: { user } } = await supabase.auth.getUser();
+        const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
+        
+        if (user || isBypassAuth) {
+          const userId = user?.id || '7cd2752f-93c5-46e6-8535-32769fb10055';
+          
+          console.log('🏠 Home: Loading hero text from Supabase for user:', userId);
+          
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('hero_text')
+            .eq('id', userId)
+            .single();
+            
+          if (error) {
+            console.log('❌ Failed to load hero text from Supabase:', error);
+            // Fall back to localStorage
+            const saved = localStorage.getItem('heroText');
+            if (saved) {
+              try {
+                const parsed = JSON.parse(saved);
+                if (parsed && typeof parsed === 'object') {
+                  setHeroText(parsed);
+                  console.log('✅ Loaded hero text from localStorage fallback');
+                }
+              } catch (e) {
+                console.error('❌ Error parsing localStorage hero text:', e);
+              }
+            }
+          } else if (data?.hero_text) {
+            setHeroText(data.hero_text);
+            console.log('✅ Loaded hero text from Supabase');
+          } else {
+            console.log('📝 No hero text in Supabase, using defaults');
+          }
+        } else {
+          // Not authenticated, try localStorage
+          const saved = localStorage.getItem('heroText');
+          if (saved) {
+            try {
+              const parsed = JSON.parse(saved);
+              if (parsed && typeof parsed === 'object') {
+                setHeroText(parsed);
+                console.log('✅ Loaded hero text from localStorage (not authenticated)');
+              }
+            } catch (e) {
+              console.error('❌ Error parsing localStorage hero text:', e);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('❌ Error loading hero text from Supabase:', error);
+      }
+    };
+    
+    loadHeroTextFromSupabase();
+  }, []);
+
+  // Save heroText to both localStorage and Supabase whenever it changes
   useEffect(() => {
     localStorage.setItem('heroText', JSON.stringify(heroText));
+    
+    // Also save to Supabase if authenticated
+    const saveHeroTextToSupabase = async () => {
+      try {
+        const { supabase } = await import('../lib/supabaseClient');
+        const { data: { user } } = await supabase.auth.getUser();
+        const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
+        
+        if (user || isBypassAuth) {
+          const userId = user?.id || '7cd2752f-93c5-46e6-8535-32769fb10055';
+          
+          console.log('💾 Saving hero text to Supabase for user:', userId);
+          
+          const { error } = await supabase
+            .from('profiles')
+            .update({
+              hero_text: heroText
+            })
+            .eq('id', userId);
+            
+          if (error) {
+            console.error('❌ Failed to save hero text to Supabase:', error);
+          } else {
+            console.log('✅ Hero text saved to Supabase successfully');
+          }
+        }
+      } catch (error) {
+        console.error('❌ Error saving hero text to Supabase:', error);
+      }
+    };
+    
+    saveHeroTextToSupabase();
   }, [heroText]);
   
   // Use ref to store greetings array - prevents infinite re-render loops
@@ -2288,9 +2351,41 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     return () => clearTimeout(timer);
   }, [windowWidth, caseStudies, isEditMode]);
   
-  // Save hero text to localStorage whenever it changes
+  // Save hero text to both localStorage and Supabase whenever it changes
   useEffect(() => {
     localStorage.setItem('heroText', JSON.stringify(heroText));
+    
+    // Also save to Supabase if authenticated
+    const saveHeroTextToSupabase = async () => {
+      try {
+        const { supabase } = await import('../lib/supabaseClient');
+        const { data: { user } } = await supabase.auth.getUser();
+        const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
+        
+        if (user || isBypassAuth) {
+          const userId = user?.id || '7cd2752f-93c5-46e6-8535-32769fb10055';
+          
+          console.log('💾 Saving hero text to Supabase for user:', userId);
+          
+          const { error } = await supabase
+            .from('profiles')
+            .update({
+              hero_text: heroText
+            })
+            .eq('id', userId);
+            
+          if (error) {
+            console.error('❌ Failed to save hero text to Supabase:', error);
+          } else {
+            console.log('✅ Hero text saved to Supabase successfully');
+          }
+        }
+      } catch (error) {
+        console.error('❌ Error saving hero text to Supabase:', error);
+      }
+    };
+    
+    saveHeroTextToSupabase();
   }, [heroText]);
 
   // Data is now loaded from Supabase via useProjects hook
