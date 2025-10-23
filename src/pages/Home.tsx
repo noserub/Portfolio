@@ -2120,142 +2120,33 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
   // Hero text is loaded from localStorage and hardcoded defaults
   // The profiles table doesn't have hero text fields, so we use localStorage
   
-  // Load hero text from Supabase on mount
+  // Load hero text from localStorage on mount
   useEffect(() => {
-    const loadHeroTextFromSupabase = async () => {
+    const loadHeroTextFromLocalStorage = () => {
       try {
-        const { supabase } = await import('../lib/supabaseClient');
-        const { data: { user } } = await supabase.auth.getUser();
-        const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
-        
-        // Always try to load from Supabase first, regardless of authentication
-        let data, error;
-        
-        if (user || isBypassAuth) {
-          // Authenticated user - use their ID
-          const userId = user?.id || '7cd2752f-93c5-46e6-8535-32769fb10055';
-          console.log('🏠 Home: Loading hero text from Supabase for user:', userId, 'Auth type:', user ? 'Supabase' : 'Bypass');
-          
-          const result = await supabase
-            .from('profiles')
-            .select('hero_text')
-            .eq('id', userId)
-            .single();
-          data = result.data;
-          error = result.error;
-        } else {
-          // Not authenticated - try to get any profile with hero_text
-          console.log('🏠 Home: Loading hero text from Supabase (public access)');
-          
-          // First, let's see what profiles exist
-          const { data: allProfiles, error: listError } = await supabase
-            .from('profiles')
-            .select('id, hero_text, updated_at')
-            .limit(5);
-          
-          console.log('🔍 Available profiles:', { allProfiles, listError });
-          
-          const result = await supabase
-            .from('profiles')
-            .select('hero_text')
-            .not('hero_text', 'is', null)
-            .order('updated_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
-          data = result.data;
-          error = result.error;
-        }
-          
-        if (error) {
-          console.log('❌ Failed to load hero text from Supabase:', error);
-          // Fall back to localStorage
-          const saved = localStorage.getItem('heroText');
-          if (saved) {
-            try {
-              const parsed = JSON.parse(saved);
-              if (parsed && typeof parsed === 'object') {
-                setHeroText(parsed);
-                console.log('✅ Loaded hero text from localStorage fallback');
-              }
-            } catch (e) {
-              console.error('❌ Error parsing localStorage hero text:', e);
-            }
-          }
-        } else if (data?.hero_text) {
-          setHeroText(data.hero_text);
-          console.log('✅ Loaded hero text from Supabase');
-        } else {
-          console.log('📝 No hero text in Supabase, trying localStorage...');
-          // Fall back to localStorage
-          const saved = localStorage.getItem('heroText');
-          if (saved) {
-            try {
-              const parsed = JSON.parse(saved);
-              if (parsed && typeof parsed === 'object') {
-                setHeroText(parsed);
-                console.log('✅ Loaded hero text from localStorage fallback');
-              }
-            } catch (e) {
-              console.error('❌ Error parsing localStorage hero text:', e);
-            }
-          }
-        }
-      } catch (error) {
-        console.error('❌ Error loading hero text from Supabase:', error);
-        // Final fallback to localStorage
         const saved = localStorage.getItem('heroText');
         if (saved) {
-          try {
-            const parsed = JSON.parse(saved);
-            if (parsed && typeof parsed === 'object') {
-              setHeroText(parsed);
-              console.log('✅ Loaded hero text from localStorage (error fallback)');
-            }
-          } catch (e) {
-            console.error('❌ Error parsing localStorage hero text:', e);
+          const parsed = JSON.parse(saved);
+          if (parsed && typeof parsed === 'object') {
+            setHeroText(parsed);
+            console.log('✅ Loaded hero text from localStorage');
           }
-        }
-      }
-    };
-    
-    loadHeroTextFromSupabase();
-  }, []);
-
-  // Save heroText to both localStorage and Supabase whenever it changes
-  useEffect(() => {
-    localStorage.setItem('heroText', JSON.stringify(heroText));
-    
-    // Also save to Supabase if authenticated
-    const saveHeroTextToSupabase = async () => {
-      try {
-        const { supabase } = await import('../lib/supabaseClient');
-        const { data: { user } } = await supabase.auth.getUser();
-        const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
-        
-        if (user || isBypassAuth) {
-          const userId = user?.id || '7cd2752f-93c5-46e6-8535-32769fb10055';
-          
-          console.log('💾 Saving hero text to Supabase for user:', userId);
-          
-          const { error } = await supabase
-            .from('profiles')
-            .update({
-              hero_text: heroText
-            })
-            .eq('id', userId);
-            
-          if (error) {
-            console.error('❌ Failed to save hero text to Supabase:', error);
-          } else {
-            console.log('✅ Hero text saved to Supabase successfully');
-          }
+        } else {
+          console.log('📝 No hero text in localStorage, using defaults');
         }
       } catch (error) {
-        console.error('❌ Error saving hero text to Supabase:', error);
+        console.error('❌ Error loading hero text from localStorage:', error);
+        console.log('📝 Using default hero text');
       }
     };
     
-    saveHeroTextToSupabase();
+    loadHeroTextFromLocalStorage();
+  }, []);
+
+  // Save heroText to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('heroText', JSON.stringify(heroText));
+    console.log('💾 Hero text saved to localStorage');
   }, [heroText]);
   
   // Use ref to store greetings array - prevents infinite re-render loops
