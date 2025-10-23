@@ -1488,6 +1488,24 @@ export default function App() {
         >
           📊 Cache Status
         </Button>
+        <Button
+          onClick={async () => {
+            try {
+              const { performanceMonitor } = await import('./utils/performanceMonitor');
+              const report = performanceMonitor.getReport();
+              console.log('🚀 Image Performance Report:', report);
+              alert(report);
+            } catch (error) {
+              console.error('Error getting performance stats:', error);
+              alert('❌ Error getting performance stats: ' + error.message);
+            }
+          }}
+          variant="outline"
+          size="sm"
+          className="rounded-full shadow-sm backdrop-blur-sm bg-purple-50 hover:bg-purple-100 dark:bg-purple-900/20 dark:hover:bg-purple-900/30 border-purple-500/50"
+        >
+          🚀 Image Performance
+        </Button>
             <Button
               onClick={handleSignOut}
               variant="ghost"

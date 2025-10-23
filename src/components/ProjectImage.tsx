@@ -13,7 +13,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
-// Removed LazyImage import to fix slow loading
+// Import optimized image components
+import OptimizedImage from './OptimizedImage';
 
 export interface ProjectData {
   id: string;
@@ -418,24 +419,23 @@ export function ProjectImage({
                 justifyContent: 'center'
               }}
             >
-              <img
+              <OptimizedImage
                 src={getImageUrl()}
                 alt={editedProject.title}
                 className="w-full h-full"
                 style={{
                   objectFit: 'cover',
-                  transform: `scale(${editedProject.scale})`, // Allow full zoom range
+                  transform: `scale(${editedProject.scale})`,
                   transformOrigin: `${editedProject.position.x}% ${editedProject.position.y}%`,
                   cursor: isPositioning ? 'crosshair' : 'default',
-                  // Add some padding when scaled to prevent cutoff
                   padding: editedProject.scale > 1.0 ? '10px' : '0px'
                 }}
+                quality={85}
+                fit="cover"
                 onLoad={() => setImageLoadError(false)}
                 onError={handleImageError}
-                onMouseDown={handleMouseDown}
-                onMouseMove={handleMouseMove}
-                onMouseUp={handleMouseUp}
-                onMouseLeave={handleMouseUp}
+                priority={false}
+                lazy={true}
               />
               
               {/* Drag crosshair indicator */}

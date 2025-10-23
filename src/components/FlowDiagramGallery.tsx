@@ -4,6 +4,7 @@ import { Upload, X, Edit2, Check, ZoomIn, ZoomOut, Move, RotateCcw, Maximize2, A
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import OptimizedImage from "./OptimizedImage";
 
 interface FlowDiagramImage {
   id: string;
@@ -129,9 +130,9 @@ function FlowDiagramItem({
           cursor: isEditingImage ? (isDraggingPosition ? 'grabbing' : 'grab') : 'pointer'
         }}
       >
-        <img
+        <OptimizedImage
           src={image.url}
-          alt=""
+          alt={image.alt || ""}
           className="w-full h-full"
           style={{
             objectFit: scale > 1 ? 'cover' : 'contain',
@@ -140,9 +141,12 @@ function FlowDiagramItem({
             transition: isDraggingPosition ? 'none' : 'transform 0.2s ease-out',
             opacity: imageLoadError ? 0 : 1
           }}
-          draggable={false}
+          quality={80}
+          fit={scale > 1 ? 'cover' : 'contain'}
           onLoad={() => setImageLoadError(false)}
           onError={() => setImageLoadError(true)}
+          priority={false}
+          lazy={true}
         />
         
         {/* Placeholder icon when image fails to load */}

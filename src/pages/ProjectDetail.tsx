@@ -22,6 +22,7 @@ import { AtAGlanceSidebar } from "../components/features/AtAGlanceSidebar";
 import { ImpactSidebar } from "../components/features/ImpactSidebar";
 import { FlowDiagramGallery } from "../components/FlowDiagramGallery";
 import { VideoGallery } from "../components/VideoGallery";
+import HeroImage from "../components/HeroImage";
 import { useCaseStudySEO } from "../hooks/useSEO";
 import { cleanMarkdownContent, isContentCorrupted } from "../utils/cleanMarkdownContent";
 
@@ -2360,14 +2361,17 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
             onMouseUp={handleHeroMouseUp}
             onMouseLeave={handleHeroMouseUp}
           >
-            <div
+            <HeroImage
+              src={project.url}
+              alt={project.title}
               className="w-full h-full"
               style={{
-                backgroundImage: `url(${project.url})`,
-                backgroundSize: `${heroScale * 100}%`,
-                backgroundPosition: `${heroPosition.x}% ${heroPosition.y}%`,
-                backgroundRepeat: "no-repeat",
+                transform: `scale(${heroScale})`,
+                transformOrigin: `${heroPosition.x}% ${heroPosition.y}%`,
               }}
+              quality={90}
+              fit="cover"
+              priority={true}
             />
             {/* Edit Buttons - Only visible in Edit Mode when not editing */}
             {isEditMode && !isEditingHeroImage && (
