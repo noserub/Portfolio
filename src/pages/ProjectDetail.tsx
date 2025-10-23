@@ -119,10 +119,10 @@ interface DraggableImageProps {
 }
 
 const DraggableImage = ({ image, index, isEditMode, onRemove, onImageClick, moveImage, onImageUpdate, onDragEnd }: DraggableImageProps) => {
-  const ref = useRef<HTMLDivElement>(null);
+  const ref = useRef(null);
   const [isEditingImage, setIsEditingImage] = useState(false);
   const [isDraggingPosition, setIsDraggingPosition] = useState(false);
-  const imageRef = useRef<HTMLDivElement>(null);
+  const imageRef = useRef(null);
   
   // Local state for position/scale during editing (to avoid saving on every pixel)
   // Initialize from image prop, but only update when image ID changes
@@ -213,13 +213,13 @@ const DraggableImage = ({ image, index, isEditMode, onRemove, onImageClick, move
 
   drag(drop(ref));
 
-  const handleImageMouseDown = (e: React.MouseEvent) => {
+  const handleImageMouseDown = (e: any) => {
     if (!isEditingImage) return;
     e.stopPropagation();
     setIsDraggingPosition(true);
   };
 
-  const handleImageMouseMove = (e: React.MouseEvent) => {
+  const handleImageMouseMove = (e: any) => {
     if (!isDraggingPosition || !imageRef.current) return;
     e.stopPropagation();
     e.preventDefault();
@@ -419,7 +419,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
   const [caseStudyContent, setCaseStudyContent] = useState(
     project.caseStudyContent || (project as any).case_study_content || "Add your detailed case study content here. Describe the challenge, process, solution, and results."
   );
-  const [caseStudyImages, setCaseStudyImages] = useState<CaseStudyImage[]>(() => {
+  const [caseStudyImages, setCaseStudyImages] = useState(() => {
     // Handle both camelCase and snake_case formats
     const camelCaseImages = project.caseStudyImages;
     const snakeCaseImages = (project as any).case_study_images;
@@ -438,14 +438,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     });
     return images;
   });
-  const [flowDiagramImages, setFlowDiagramImages] = useState<Array<{
-    id: string; 
-    url: string; 
-    alt: string;
-    caption?: string;
-    scale?: number;
-    position?: { x: number; y: number };
-  }>>(() => {
+  const [flowDiagramImages, setFlowDiagramImages] = useState(() => {
     // Handle both camelCase and snake_case formats
     const images = project.flowDiagramImages || (project as any).flow_diagram_images || [];
     console.log('🖼️ ProjectDetail: Initializing flowDiagramImages:', {
@@ -455,13 +448,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     });
     return images;
   });
-  const [videoItems, setVideoItems] = useState<Array<{
-    id: string;
-    url: string;
-    type: 'youtube' | 'vimeo' | 'upload' | 'url';
-    caption?: string;
-    thumbnail?: string;
-  }>>(() => {
+  const [videoItems, setVideoItems] = useState(() => {
     // Handle both camelCase and snake_case formats
     const videos = project.videoItems || (project as any).video_items || [];
     console.log('🖼️ ProjectDetail: Initializing videoItems:', {
@@ -472,24 +459,24 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     return videos;
   });
   
-  const [projectImagesPosition, setProjectImagesPosition] = useState<number | undefined>(
+  const [projectImagesPosition, setProjectImagesPosition] = useState(
     project.projectImagesPosition || (project as any).project_images_position || 
     (caseStudyImages.length > 0 ? 2 : undefined) // Default position 2 if images exist but no position set
   );
-  const [videosPosition, setVideosPosition] = useState<number | undefined>(
+  const [videosPosition, setVideosPosition] = useState(
     project.videosPosition || (project as any).videos_position
   );
   
-  const [flowDiagramsPosition, setFlowDiagramsPosition] = useState<number | undefined>(
+  const [flowDiagramsPosition, setFlowDiagramsPosition] = useState(
     project.flowDiagramsPosition || (project as any).flow_diagrams_position
   );
-  const [solutionCardsPosition, setSolutionCardsPosition] = useState<number | undefined>(
+  const [solutionCardsPosition, setSolutionCardsPosition] = useState(
     project.solutionCardsPosition || (project as any).solution_cards_position
   );
   
   
   // NEW: Track positions for ALL sections (markdown + sidebars + galleries)
-  const [sectionPositions, setSectionPositions] = useState<Record<string, number>>(() => {
+  const [sectionPositions, setSectionPositions] = useState(() => {
     // Use provided positions if present
     if (project.sectionPositions && Object.keys(project.sectionPositions).length > 0) {
       return project.sectionPositions;
@@ -523,33 +510,26 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
   useEffect(() => {
     videoItemsRef.current = videoItems;
   }, [videoItems]);
-  const [galleryAspectRatio, setGalleryAspectRatio] = useState<"3x4" | "4x3" | "2x3" | "3x2" | "16x9">(
+  const [galleryAspectRatio, setGalleryAspectRatio] = useState(
     project.galleryAspectRatio || (project as any).gallery_aspect_ratio || "3x4"
   );
-  const [flowDiagramAspectRatio, setFlowDiagramAspectRatio] = useState<"3x4" | "4x3" | "2x3" | "3x2" | "16x9">(
+  const [flowDiagramAspectRatio, setFlowDiagramAspectRatio] = useState(
     project.flowDiagramAspectRatio || (project as any).flow_diagram_aspect_ratio || "16x9"
   );
-  const [galleryColumns, setGalleryColumns] = useState<1 | 2 | 3>(
+  const [galleryColumns, setGalleryColumns] = useState(
     project.galleryColumns || (project as any).gallery_columns || 2
   );
-  const [flowDiagramColumns, setFlowDiagramColumns] = useState<1 | 2 | 3>(
+  const [flowDiagramColumns, setFlowDiagramColumns] = useState(
     project.flowDiagramColumns || (project as any).flow_diagram_columns || 1
   );
-  const [videoAspectRatio, setVideoAspectRatio] = useState<"3x4" | "4x3" | "2x3" | "3x2" | "16x9" | "9x16">(
+  const [videoAspectRatio, setVideoAspectRatio] = useState(
     project.videoAspectRatio || (project as any).video_aspect_ratio || "16x9"
   );
-  const [videoColumns, setVideoColumns] = useState<1 | 2 | 3>(
+  const [videoColumns, setVideoColumns] = useState(
     project.videoColumns || (project as any).video_columns || 1
   );
-  const [lightboxImage, setLightboxImage] = useState<CaseStudyImage | null>(null);
-  const [flowDiagramLightboxImage, setFlowDiagramLightboxImage] = useState<{
-    id: string; 
-    url: string; 
-    alt: string;
-    caption?: string;
-    scale?: number;
-    position?: { x: number; y: number };
-  } | null>(null);
+  const [lightboxImage, setLightboxImage] = useState(null);
+  const [flowDiagramLightboxImage, setFlowDiagramLightboxImage] = useState(null);
   const [isEditingHeroImage, setIsEditingHeroImage] = useState(false);
   // Helper: compute next available position index for gallery-type sections
   const getNextPosition = useCallback(() => {
@@ -796,7 +776,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
   const [heroScale, setHeroScale] = useState(1);
   const [heroPosition, setHeroPosition] = useState({ x: 50, y: 50 });
   const [isDraggingHero, setIsDraggingHero] = useState(false);
-  const heroImageRef = useRef<HTMLDivElement>(null);
+  const heroImageRef = useRef(null);
   
   // Store original content when entering edit mode (for Cancel functionality)
   const [originalContent, setOriginalContent] = useState(caseStudyContent);
@@ -910,12 +890,12 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
   }, [cleanedContent]);
 
   // Track previous content to avoid unnecessary saves
-  const prevContentRef = useRef<string>('');
-  const prevTitleRef = useRef<string>('');
-  const prevDescriptionRef = useRef<string>('');
-  const prevImagesRef = useRef<string>('');
-  const prevFlowDiagramsRef = useRef<string>('');
-  const prevVideosRef = useRef<string>('');
+  const prevContentRef = useRef('');
+  const prevTitleRef = useRef('');
+  const prevDescriptionRef = useRef('');
+  const prevImagesRef = useRef('');
+  const prevFlowDiagramsRef = useRef('');
+  const prevVideosRef = useRef('');
 
   // Auto-save content changes with debouncing
   useEffect(() => {
@@ -1383,13 +1363,13 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
   // The hero image positioning only affects the case study detail screen
   // Home screen positioning remains separate and controlled by project.position/project.scale
 
-  const handleHeroMouseDown = (e: React.MouseEvent) => {
+  const handleHeroMouseDown = (e: any) => {
     if (!isEditingHeroImage) return;
     e.stopPropagation();
     setIsDraggingHero(true);
   };
 
-  const handleHeroMouseMove = (e: React.MouseEvent) => {
+  const handleHeroMouseMove = (e: any) => {
     if (!isDraggingHero || !heroImageRef.current) return;
     e.stopPropagation();
     e.preventDefault();

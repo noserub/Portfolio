@@ -62,7 +62,7 @@ interface ErrorBoundaryState {
 }
 
 interface ErrorBoundaryProps {
-  children?: React.ReactNode;
+  children?: any;
 }
 
 class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
@@ -184,9 +184,9 @@ export default function App() {
 
   // Initialize state with safe defaults and error handling
   const [isInitialized, setIsInitialized] = useState(true); // Start initialized to render immediately
-  const [currentPage, setCurrentPage] = useState<Page>("home");
-  const [selectedProject, setSelectedProject] = useState<ProjectData | null>(null);
-  const [projectUpdateCallback, setProjectUpdateCallback] = useState<{fn: ((project: ProjectData) => void)} | null>(null);
+  const [currentPage, setCurrentPage] = useState("home");
+  const [selectedProject, setSelectedProject] = useState(null);
+  const [projectUpdateCallback, setProjectUpdateCallback] = useState(null);
   
   // Use Supabase for app settings including logo
   const { settings, updateSettings, getCurrentUserSettings } = useAppSettings();
@@ -241,7 +241,7 @@ export default function App() {
   
   // Debug logging removed to prevent infinite loops
   
-  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+  const [theme, setTheme] = useState(() => {
     try {
       const saved = localStorage.getItem('theme');
       if (saved === 'dark' || saved === 'light') return saved;
@@ -287,7 +287,7 @@ export default function App() {
 
     checkAuthState();
 
-    // Listen for Supabase auth state changes
+  // Listen for Supabase auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log('🔐 Supabase auth state changed:', { event, user: session?.user?.email });
       
@@ -303,7 +303,7 @@ export default function App() {
         // Only clear localStorage if we're actually signing out, not just checking auth state
         if (event === 'SIGNED_OUT') {
           localStorage.removeItem('isAuthenticated');
-          console.log('👋 Signed out - authentication cleared from localStorage');
+        console.log('👋 Signed out - authentication cleared from localStorage');
         } else {
           console.log('🔍 Auth state changed but not signing out, keeping bypass auth if present');
         }
@@ -314,10 +314,7 @@ export default function App() {
   }, []);
   const [showSignIn, setShowSignIn] = useState(false);
   const [showSaveIndicator, setShowSaveIndicator] = useState(false);
-  const [pendingProtectedProject, setPendingProtectedProject] = useState<{
-    project: ProjectData;
-    updateCallback: (project: ProjectData) => void;
-  } | null>(null);
+  const [pendingProtectedProject, setPendingProtectedProject] = useState(null);
   const [showPasswordReset, setShowPasswordReset] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [showSEOEditor, setShowSEOEditor] = useState(false);
@@ -675,7 +672,7 @@ export default function App() {
                 console.log('⚠️ Could not save to database (RLS issue), but localStorage works');
                 console.log('🔍 Insert error:', insertError);
                 alert(`Logo saved locally but failed to save to database: ${insertError.message}`);
-              } else {
+        } else {
                 console.log('✅ Logo saved to database');
                 alert('✅ Logo saved to database successfully!');
               }
@@ -977,9 +974,9 @@ export default function App() {
       }
       
       // Clear local state
-      setIsAuthenticated(false);
-      setIsEditMode(false);
-      localStorage.removeItem('isAuthenticated');
+    setIsAuthenticated(false);
+    setIsEditMode(false);
+    localStorage.removeItem('isAuthenticated');
       console.log('👋 Signed out - authentication cleared from Supabase and localStorage');
     } catch (error) {
       console.error('Error during sign out:', error);
@@ -1365,7 +1362,7 @@ export default function App() {
             >
               🔧 Fix Issues
             </Button>
-        <Button
+            <Button
           onClick={async () => {
             try {
               console.log('🔄 Manually refreshing favicon...');
@@ -1390,11 +1387,11 @@ export default function App() {
             }
           }}
           variant="outline"
-          size="sm"
+              size="sm"
           className="rounded-full shadow-sm backdrop-blur-sm bg-green-50 hover:bg-green-100 dark:bg-green-900/20 dark:hover:bg-green-900/30 border-green-500/50"
-        >
+            >
           🔄 Refresh Favicon
-        </Button>
+            </Button>
         
         <Button
           onClick={async () => {

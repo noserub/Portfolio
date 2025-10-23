@@ -59,8 +59,8 @@ function DraggableProjectItem({
   onDelete,
   onNavigate,
 }: DraggableProjectItemProps) {
-  const ref = useRef<HTMLDivElement>(null);
-  const dragHandleRef = useRef<HTMLDivElement>(null);
+  const ref = useRef(null);
+  const dragHandleRef = useRef(null);
 
   const [{ isDragging }, drag, preview] = useDrag({
     type: 'case-study',
@@ -2107,15 +2107,11 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     };
     
     // Start with defaults, will be updated from Supabase if available
-    return defaultHeroText;
+        return defaultHeroText;
   });
   const [isEditingHero, setIsEditingHero] = useState(false);
   const [greetingsTextValue, setGreetingsTextValue] = useState("");
-  const [deleteConfirmation, setDeleteConfirmation] = useState<{
-    projectId: string;
-    projectTitle: string;
-    type: 'caseStudies' | 'design';
-  } | null>(null);
+  const [deleteConfirmation, setDeleteConfirmation] = useState(null);
   
   // Hero text is loaded from localStorage and hardcoded defaults
   // The profiles table doesn't have hero text fields, so we use localStorage
@@ -2188,12 +2184,12 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         const saved = localStorage.getItem('heroText');
         if (saved) {
           try {
-            const parsed = JSON.parse(saved);
+      const parsed = JSON.parse(saved);
             if (parsed && typeof parsed === 'object') {
               setHeroText(parsed);
               console.log('✅ Loaded hero text from localStorage fallback');
             }
-          } catch (e) {
+    } catch (e) {
             console.error('❌ Error parsing localStorage hero text:', e);
           }
         }
@@ -2207,7 +2203,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
   useEffect(() => {
     const saveHeroText = async () => {
       // Always save to localStorage first
-      localStorage.setItem('heroText', JSON.stringify(heroText));
+    localStorage.setItem('heroText', JSON.stringify(heroText));
       console.log('💾 Hero text saved to localStorage');
       
       // Try to save to Supabase for shared access (with error handling)
@@ -2257,10 +2253,10 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
   }, [heroText]);
   
   // Use ref to store greetings array - prevents infinite re-render loops
-  const greetingsRef = useRef<string[]>([]);
+  const greetingsRef = useRef([]);
   
   // Ref for case study scroll (singular) - used in handleAddFromTemplate
-  const caseStudyScrollRef = useRef<HTMLDivElement>(null);
+  const caseStudyScrollRef = useRef(null);
   
   // Update ref when heroText changes (but don't trigger effects)
   useEffect(() => {
@@ -2328,31 +2324,31 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     return () => clearTimeout(timer);
   }, [displayedText, isDeleting, currentGreetingIndex, isWaitingForCycle, heroText.lastGreetingPauseDuration]);
   
-  const [lightboxProject, setLightboxProject] = useState<ProjectData | null>(null);
-  const caseStudiesScrollRef = useRef<HTMLDivElement>(null);
-  const designProjectsScrollRef = useRef<HTMLDivElement>(null);
+  const [lightboxProject, setLightboxProject] = useState(null);
+  const caseStudiesScrollRef = useRef(null);
+  const designProjectsScrollRef = useRef(null);
   
   // Track window width for conditional arrow rendering
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
   const [caseStudiesHasOverflow, setCaseStudiesHasOverflow] = useState(false);
   
   // Swipe gesture state
-  const [touchStart, setTouchStart] = useState<number | null>(null);
-  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const [touchStart, setTouchStart] = useState(null);
+  const [touchEnd, setTouchEnd] = useState(null);
   
   // Minimum swipe distance (in px) to trigger navigation
   const minSwipeDistance = 50;
   
-  const handleTouchStart = (e: React.TouchEvent) => {
+  const handleTouchStart = (e: any) => {
     setTouchEnd(null);
     setTouchStart(e.targetTouches[0].clientX);
   };
   
-  const handleTouchMove = (e: React.TouchEvent) => {
+  const handleTouchMove = (e: any) => {
     setTouchEnd(e.targetTouches[0].clientX);
   };
   
-  const handleTouchEnd = (scrollRef: React.RefObject<HTMLDivElement>) => {
+  const handleTouchEnd = (scrollRef: any) => {
     if (!touchStart || !touchEnd) return;
     
     const distance = touchStart - touchEnd;
@@ -2853,7 +2849,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     onProjectClick(normalizedProject, updateCallback);
   };
 
-  const scroll = (direction: "left" | "right", ref: React.RefObject<HTMLDivElement>) => {
+  const scroll = (direction: "left" | "right", ref: any) => {
     if (ref.current) {
       const scrollAmount = 320;
       const maxScroll = ref.current.scrollWidth - ref.current.clientWidth;

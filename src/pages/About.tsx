@@ -26,7 +26,7 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
   
   // Editable content state
   const [isEditing, setIsEditing] = useState(false);
-  const [editingSection, setEditingSection] = useState<string | null>(null);
+  const [editingSection, setEditingSection] = useState(null);
   const [bioParagraph1, setBioParagraph1] = useState(
     "Brian Bureson is a Colorado-based product designer and strategic design leader with 20+ years of experience delivering 0–1, research-backed digital products across enterprise, mid-size, and startup environments."
   );
@@ -185,7 +185,7 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
   ]);
   
   // Section order state
-  const [sectionOrder, setSectionOrder] = useState<string[]>([
+  const [sectionOrder, setSectionOrder] = useState([
     'bio',
     'superPowers',
     'highlights',
@@ -201,10 +201,10 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
   const [editedCardTitle, setEditedCardTitle] = useState("");
   const [editedCardText, setEditedCardText] = useState("");
   const [editedBadge, setEditedBadge] = useState("");
-  const [editedItems, setEditedItems] = useState<string[]>([]);
+  const [editedItems, setEditedItems] = useState([]);
   
   // Show more/less state for AI cards
-  const [expandedAICards, setExpandedAICards] = useState<Set<number>>(new Set());
+  const [expandedAICards, setExpandedAICards] = useState(new Set());
 
   // Debug logging for About page state
   useEffect(() => {
