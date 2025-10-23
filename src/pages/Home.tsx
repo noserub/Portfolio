@@ -2203,65 +2203,57 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     loadHeroTextWithCache();
   }, []);
 
-  // Save heroText with egress-aware fallback strategy
+  // Save heroText to localStorage and Supabase (simplified)
   useEffect(() => {
-    const saveHeroTextWithEgressManagement = async () => {
+    const saveHeroText = async () => {
+      // Always save to localStorage first
+      localStorage.setItem('heroText', JSON.stringify(heroText));
+      console.log('💾 Hero text saved to localStorage');
+      
+      // Try to save to Supabase for shared access (with error handling)
       try {
-        const { egressManager } = await import('../utils/egressManager');
         const { supabase } = await import('../lib/supabaseClient');
         const { data: { user } } = await supabase.auth.getUser();
         const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
         
-        // Use egress manager for intelligent saving
-        const saved = await egressManager.saveWithFallback(
-          'heroText',
-          heroText,
-          async () => {
-            if (user || isBypassAuth) {
-              const userId = user?.id || '7cd2752f-93c5-46e6-8535-32769fb10055';
-              console.log('💾 Saving hero text to Supabase for shared access:', userId);
+        if (user || isBypassAuth) {
+          const userId = user?.id || '7cd2752f-93c5-46e6-8535-32769fb10055';
+          console.log('💾 Saving hero text to Supabase for shared access:', userId);
+          
+          // Try to update existing profile first
+          const { error: updateError } = await supabase
+            .from('profiles')
+            .update({ hero_text: heroText })
+            .eq('id', userId);
+            
+          if (updateError) {
+            console.log('📝 Profile not found, creating new profile with hero text...');
+            // If profile doesn't exist, create it
+            const { error: insertError } = await supabase
+              .from('profiles')
+              .insert({
+                id: userId,
+                email: user?.email || 'brian.bureson@gmail.com',
+                full_name: 'Brian Bureson',
+                hero_text: heroText
+              });
               
-              // Try to update existing profile first
-              const { error: updateError } = await supabase
-                .from('profiles')
-                .update({ hero_text: heroText })
-                .eq('id', userId);
-                
-              if (updateError) {
-                console.log('📝 Profile not found, creating new profile with hero text...');
-                // If profile doesn't exist, create it
-                const { error: insertError } = await supabase
-                  .from('profiles')
-                  .insert({
-                    id: userId,
-                    email: user?.email || 'brian.bureson@gmail.com',
-                    full_name: 'Brian Bureson',
-                    hero_text: heroText
-                  });
-                  
-                if (insertError) {
-                  throw new Error(`Failed to create profile: ${insertError.message}`);
-                } else {
-                  console.log('✅ Created profile with hero text in Supabase');
-                }
-              } else {
-                console.log('✅ Hero text updated in Supabase (shared)');
-              }
+            if (insertError) {
+              console.warn('⚠️ Failed to save to Supabase (egress limits?):', insertError.message);
+            } else {
+              console.log('✅ Created profile with hero text in Supabase');
             }
+          } else {
+            console.log('✅ Hero text updated in Supabase (shared)');
           }
-        );
-        
-        if (saved) {
-          console.log('✅ Hero text saved successfully');
-        } else {
-          console.log('🔄 Hero text saved to localStorage only (fallback mode)');
         }
       } catch (error) {
-        console.error('❌ Error saving hero text:', error);
+        console.warn('⚠️ Supabase save failed (egress limits?):', error);
+        console.log('💾 Hero text saved to localStorage only');
       }
     };
     
-    saveHeroTextWithEgressManagement();
+    saveHeroText();
   }, [heroText]);
   
   // Use ref to store greetings array - prevents infinite re-render loops
