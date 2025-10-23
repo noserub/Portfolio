@@ -2120,33 +2120,148 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
   // Hero text is loaded from localStorage and hardcoded defaults
   // The profiles table doesn't have hero text fields, so we use localStorage
   
-  // Load hero text from localStorage on mount
+  // Load hero text from Supabase (shared) with localStorage fallback
   useEffect(() => {
-    const loadHeroTextFromLocalStorage = () => {
+    const loadHeroTextFromSupabase = async () => {
       try {
-        const saved = localStorage.getItem('heroText');
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (parsed && typeof parsed === 'object') {
-            setHeroText(parsed);
-            console.log('✅ Loaded hero text from localStorage');
-          }
+        const { supabase } = await import('../lib/supabaseClient');
+        const { data: { user } } = await supabase.auth.getUser();
+        const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
+        
+        // Try to load from Supabase first (for shared access)
+        let data, error;
+        
+        if (user || isBypassAuth) {
+          // Authenticated user - use their ID
+          const userId = user?.id || '7cd2752f-93c5-46e6-8535-32769fb10055';
+          console.log('🏠 Home: Loading hero text from Supabase for user:', userId, 'Auth type:', user ? 'Supabase' : 'Bypass');
+          
+          const result = await supabase
+            .from('profiles')
+            .select('hero_text')
+            .eq('id', userId)
+            .single();
+          data = result.data;
+          error = result.error;
         } else {
-          console.log('📝 No hero text in localStorage, using defaults');
+          // Not authenticated - try to get any profile with hero_text (public access)
+          console.log('🏠 Home: Loading hero text from Supabase (public access)');
+          
+          const result = await supabase
+            .from('profiles')
+            .select('hero_text')
+            .not('hero_text', 'is', null)
+            .order('updated_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          data = result.data;
+          error = result.error;
+        }
+          
+        if (error) {
+          console.log('❌ Failed to load hero text from Supabase:', error);
+          // Fall back to localStorage
+          const saved = localStorage.getItem('heroText');
+          if (saved) {
+            try {
+              const parsed = JSON.parse(saved);
+              if (parsed && typeof parsed === 'object') {
+                setHeroText(parsed);
+                console.log('✅ Loaded hero text from localStorage fallback');
+              }
+            } catch (e) {
+              console.error('❌ Error parsing localStorage hero text:', e);
+            }
+          }
+        } else if (data?.hero_text) {
+          setHeroText(data.hero_text);
+          console.log('✅ Loaded hero text from Supabase (shared)');
+        } else {
+          console.log('📝 No hero text in Supabase, trying localStorage...');
+          // Fall back to localStorage
+          const saved = localStorage.getItem('heroText');
+          if (saved) {
+            try {
+              const parsed = JSON.parse(saved);
+              if (parsed && typeof parsed === 'object') {
+                setHeroText(parsed);
+                console.log('✅ Loaded hero text from localStorage fallback');
+              }
+            } catch (e) {
+              console.error('❌ Error parsing localStorage hero text:', e);
+            }
+          }
         }
       } catch (error) {
-        console.error('❌ Error loading hero text from localStorage:', error);
-        console.log('📝 Using default hero text');
+        console.error('❌ Error loading hero text from Supabase:', error);
+        // Final fallback to localStorage
+        const saved = localStorage.getItem('heroText');
+        if (saved) {
+          try {
+            const parsed = JSON.parse(saved);
+            if (parsed && typeof parsed === 'object') {
+              setHeroText(parsed);
+              console.log('✅ Loaded hero text from localStorage (error fallback)');
+            }
+          } catch (e) {
+            console.error('❌ Error parsing localStorage hero text:', e);
+          }
+        }
       }
     };
     
-    loadHeroTextFromLocalStorage();
+    loadHeroTextFromSupabase();
   }, []);
 
-  // Save heroText to localStorage whenever it changes
+  // Save heroText to both localStorage and Supabase (for shared access)
   useEffect(() => {
     localStorage.setItem('heroText', JSON.stringify(heroText));
     console.log('💾 Hero text saved to localStorage');
+    
+    // Also save to Supabase for shared access
+    const saveHeroTextToSupabase = async () => {
+      try {
+        const { supabase } = await import('../lib/supabaseClient');
+        const { data: { user } } = await supabase.auth.getUser();
+        const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
+        
+        if (user || isBypassAuth) {
+          const userId = user?.id || '7cd2752f-93c5-46e6-8535-32769fb10055';
+          console.log('💾 Saving hero text to Supabase for shared access:', userId);
+          
+          // Try to update existing profile first
+          const { error: updateError } = await supabase
+            .from('profiles')
+            .update({ hero_text: heroText })
+            .eq('id', userId);
+            
+          if (updateError) {
+            console.log('📝 Profile not found, creating new profile with hero text...');
+            // If profile doesn't exist, create it
+            const { error: insertError } = await supabase
+              .from('profiles')
+              .insert({
+                id: userId,
+                email: user?.email || 'brian.bureson@gmail.com',
+                full_name: 'Brian Bureson',
+                hero_text: heroText
+              });
+              
+            if (insertError) {
+              console.error('❌ Failed to create profile with hero text:', insertError);
+            } else {
+              console.log('✅ Created profile with hero text in Supabase');
+            }
+          } else {
+            console.log('✅ Hero text updated in Supabase (shared)');
+          }
+        }
+      } catch (error) {
+        console.error('❌ Error saving hero text to Supabase:', error);
+      }
+    };
+    
+    saveHeroTextToSupabase();
   }, [heroText]);
   
   // Use ref to store greetings array - prevents infinite re-render loops
