@@ -67,9 +67,9 @@ export function PageLayout({ title, children, onBack, overline, actionButton }: 
         </div>
       )}
 
-      <div className="container mx-auto px-6" style={{ maxWidth: '1200px' }}>
+      <div className="w-full" style={{ maxWidth: '100%' }}>
         {/* Page Title */}
-        <div className="mb-12">
+        <div className="mb-32 px-6" style={{ maxWidth: '1200px', margin: '0 auto' }}>
           <div>
             {overline && (
               <motion.div

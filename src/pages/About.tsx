@@ -1,5 +1,5 @@
+import React, { useState, useEffect } from "react";
 import { motion } from "motion/react";
-import { useState, useEffect } from "react";
 import { PageLayout } from "../components/layout/PageLayout";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
@@ -627,7 +627,7 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
   // Helper to check if text needs truncation (more than 4 lines)
   const shouldTruncateText = (text: string | undefined): boolean => {
     // Approximate: ~60 chars per line, 4 lines = ~240 chars
-    return text && text.length > 240;
+    return Boolean(text && text.length > 240);
   };
 
   // Process items management
@@ -762,12 +762,21 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
       title="About" 
       onBack={onBack}
       actionButton={
-        <div className="hidden md:block">
+        <div className="hidden lg:block">
           {resumeButton}
         </div>
       }
     >
-      <div className="space-y-16 flex flex-col">
+      <div 
+        className="space-y-16 flex flex-col"
+        style={{
+          maxWidth: '1200px',
+          margin: '0 auto',
+          paddingLeft: '24px',
+          paddingRight: '24px',
+          marginTop: '60px'
+        }}
+      >
         {/* Bio Section - Full Width */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -1044,7 +1053,7 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
             )}
             
             {/* Resume Button - Mobile Only, below text */}
-            <div className="md:hidden mt-8">
+            <div className="lg:hidden mt-8">
               {resumeButton}
             </div>
           </div>

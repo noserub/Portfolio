@@ -12,6 +12,55 @@ html, body {
   touch-action: pan-y;
 }
 
+/* Skeleton loading animations */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite;
+}
+
+/* Match home screen layout */
+@media (max-width: 768px) {
+  .container {
+    max-width: 100%;
+  }
+}
+
+/* Desktop grid layout for case study pages */
+@media (min-width: 1024px) {
+  [data-desktop-grid="true"] {
+    display: grid !important;
+    grid-template-columns: minmax(0, 770px) 320px !important;
+    gap: 4rem !important;
+    max-width: 1200px !important;
+    margin: 0 auto !important;
+    padding-left: 24px !important;
+    padding-right: 24px !important;
+  }
+}
+
+/* Disable visual transitions in Edit mode but preserve functionality */
+.no-transitions {
+  transition: none !important;
+}
+
+.no-transitions * {
+  transition: none !important;
+}
+
+/* Disable motion animations but preserve button functionality */
+.no-transitions [data-motion] {
+  animation: none !important;
+  transform: none !important;
+}
+
 /* Performance optimizations */
 /*! tailwindcss v4.1.3 | MIT License | https://tailwindcss.com */
 @layer properties {

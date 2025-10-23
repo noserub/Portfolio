@@ -387,35 +387,17 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
   
   // Debug logging for project data
   useEffect(() => {
-    console.log('📄 ProjectDetail: Project data received:', project);
-    console.log('📄 ProjectDetail: caseStudyContent:', project.caseStudyContent);
-    console.log('📄 ProjectDetail: caseStudyContent length:', project.caseStudyContent?.length || 0);
-    console.log('📄 ProjectDetail: caseStudyImages from project:', project.caseStudyImages);
-    console.log('📄 ProjectDetail: case_study_images from project:', (project as any).case_study_images);
-    console.log('📄 ProjectDetail: caseStudyImages length:', project.caseStudyImages?.length || 0);
-    console.log('📄 ProjectDetail: case_study_images length:', (project as any).case_study_images?.length || 0);
-    console.log('📄 ProjectDetail: ALL project keys:', Object.keys(project));
-    console.log('📄 ProjectDetail: Project has caseStudyImages key:', 'caseStudyImages' in project);
-    console.log('📄 ProjectDetail: Project has case_study_images key:', 'case_study_images' in project);
-    console.log('📄 ProjectDetail: Project has case_study_images key (any):', 'case_study_images' in (project as any));
+    // Removed excessive logging for performance
     
     // Check if we need to convert snake_case to camelCase
     const hasSnakeCase = 'case_study_images' in (project as any);
     const hasCamelCase = 'caseStudyImages' in project;
     
     if (hasSnakeCase && !hasCamelCase) {
-      console.log('🔄 ProjectDetail: Converting snake_case to camelCase format');
-      
       // Update the image arrays with converted data
       const snakeCaseImages = (project as any).case_study_images || [];
       const snakeCaseFlowDiagrams = (project as any).flow_diagram_images || [];
       const snakeCaseVideos = (project as any).video_items || [];
-      
-      console.log('🔄 ProjectDetail: Converting images:', {
-        caseStudyImages: snakeCaseImages.length,
-        flowDiagrams: snakeCaseFlowDiagrams.length,
-        videos: snakeCaseVideos.length
-      });
       
       // Update the state with converted data
       setCaseStudyImages(snakeCaseImages);
@@ -836,7 +818,6 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
   // Parse sections directly to extract sidebar sections - memoized to prevent re-parsing on every render
   // Parse sections to extract both sidebar section (first non-Overview) and second sidebar section
   const { atGlanceContent, impactContent } = useMemo(() => {
-    console.log('🔍 Starting sidebar parsing with content length:', cleanedContent?.length || 0);
     const lines = cleanedContent?.split('\n') || [];
     let currentSection: { title: string; content: string } | null = null;
     let currentSubsection: { title: string; content: string } | null = null;
@@ -910,7 +891,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     if (currentSubsection && foundSecondSidebarSection && impactSection) {
       impactSection = currentSubsection;
     }
-    
+
     // If we didn't find a sidebar section but found a first sidebar section, use that
     if (!atGlanceSection && currentSection && foundFirstSidebarSection) {
       atGlanceSection = currentSection;
@@ -921,28 +902,6 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       impactSection = currentSection;
     }
 
-    console.log('📋 Parsed sections:', {
-      hasAtGlance: !!atGlanceSection,
-      hasImpact: !!impactSection,
-      impactTitle: (impactSection as any)?.title,
-      impactContentLength: (impactSection as any)?.content?.length || 0,
-      atGlanceTitle: (atGlanceSection as any)?.title,
-      atGlanceContentLength: (atGlanceSection as any)?.content?.length || 0,
-      atGlanceContentPreview: (atGlanceSection as any)?.content?.substring(0, 100) || 'none',
-      sectionCount: sectionCount,
-      foundFirstSidebarSection: foundFirstSidebarSection,
-      foundSecondSidebarSection: foundSecondSidebarSection,
-      currentSectionTitle: currentSection?.title,
-      currentSectionContentLength: currentSection?.content?.length || 0,
-      atGlanceSection: atGlanceSection,
-      impactSection: impactSection,
-      allSections: lines.filter(line => line.trim().match(/^# (.+)$/)).map(line => line.trim().substring(2).trim())
-    });
-    
-    // Debug: Show the actual content being parsed
-    console.log('🔍 Content being parsed:', cleanedContent?.substring(0, 500) + '...');
-    console.log('🔍 Lines count:', lines.length);
-    console.log('🔍 Section headers found:', lines.filter(line => line.trim().match(/^# (.+)$/)).map(line => line.trim()));
 
     return {
       atGlanceContent: atGlanceSection,
@@ -992,35 +951,6 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     
     // Check for unsaved changes flag
     const hasUnsavedFlag = document.body.hasAttribute('data-unsaved');
-    
-    console.log('🔄 Auto-save useEffect triggered:', {
-      isEditMode,
-      hasContent: !!caseStudyContent,
-      contentLength: caseStudyContent?.length || 0,
-      contentChanged,
-      titleChanged,
-      descriptionChanged,
-      imagesChanged,
-      flowDiagramsChanged,
-      videosChanged,
-      hasUnsavedFlag,
-      contentPreview: caseStudyContent?.substring(0, 50) + '...',
-      hasBlobUrls: caseStudyContent?.includes('blob:') || false,
-      currentImages: caseStudyImages?.length || 0,
-      projectImages: (project.caseStudyImages || (project as any).case_study_images)?.length || 0,
-      currentFlowDiagrams: flowDiagramImagesRef.current?.length || 0,
-      projectFlowDiagrams: (project.flowDiagramImages || (project as any).flow_diagram_images)?.length || 0
-    });
-
-    // Debug image state
-    console.log('🔍 Image state debug:', {
-      caseStudyImages: caseStudyImages?.length || 0,
-      flowDiagrams: flowDiagramImagesRef.current?.length || 0,
-      videos: videoItemsRef.current?.length || 0,
-      hasImages: (caseStudyImages?.length > 0 || flowDiagramImagesRef.current?.length > 0 || videoItemsRef.current?.length > 0),
-      hasUnsavedFlag: hasUnsavedFlag,
-      unsavedFlagValue: document.body.getAttribute('data-unsaved')
-    });
 
     // Only proceed if something actually changed OR unsaved flag is set
     if (!contentChanged && !titleChanged && !descriptionChanged && !imagesChanged && !flowDiagramsChanged && !videosChanged && !hasUnsavedFlag) {
@@ -1859,54 +1789,54 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     // Swapping with another markdown section - update markdown content
     const currentSection = markdownSections.find(s => s.title === sectionTitle);
     const targetSection = markdownSections.find(s => s.title === target.title);
-    
-    if (!currentSection || !targetSection) {
-      console.error('❌ Sections not found in markdown');
-      return;
-    }
-    
-    // Extract section content
-    const currentLines = lines.slice(currentSection.startLine, currentSection.endLine + 1);
-    const targetLines = lines.slice(targetSection.startLine, targetSection.endLine + 1);
-    
-    // Rebuild content with swapped sections
-    const newLines = direction === 'up' ? [
-      ...lines.slice(0, targetSection.startLine),
-      ...currentLines,
-      ...targetLines,
-      ...lines.slice(currentSection.endLine + 1)
-    ] : [
-      ...lines.slice(0, currentSection.startLine),
-      ...targetLines,
-      ...currentLines,
-      ...lines.slice(targetSection.endLine + 1)
-    ];
-    
-    const newContent = newLines.join('\n');
-    console.log('✅ Markdown content updated');
-    setCaseStudyContent(newContent);
-    
-    const updatedProject: ProjectData = {
-      ...project,
-      title: editedTitle,
-      description: editedDescription,
-      caseStudyContent: newContent,
-      caseStudyImages: caseStudyImagesRef.current,
-      flowDiagramImages: flowDiagramImagesRef.current,
+      
+      if (!currentSection || !targetSection) {
+        console.error('❌ Sections not found in markdown');
+        return;
+      }
+      
+      // Extract section content
+      const currentLines = lines.slice(currentSection.startLine, currentSection.endLine + 1);
+      const targetLines = lines.slice(targetSection.startLine, targetSection.endLine + 1);
+      
+      // Rebuild content with swapped sections
+      const newLines = direction === 'up' ? [
+        ...lines.slice(0, targetSection.startLine),
+        ...currentLines,
+        ...targetLines,
+        ...lines.slice(currentSection.endLine + 1)
+      ] : [
+        ...lines.slice(0, currentSection.startLine),
+        ...targetLines,
+        ...currentLines,
+        ...lines.slice(targetSection.endLine + 1)
+      ];
+      
+      const newContent = newLines.join('\n');
+      console.log('✅ Markdown content updated');
+      setCaseStudyContent(newContent);
+      
+      const updatedProject: ProjectData = {
+        ...project,
+        title: editedTitle,
+        description: editedDescription,
+        caseStudyContent: newContent,
+        caseStudyImages: caseStudyImagesRef.current,
+        flowDiagramImages: flowDiagramImagesRef.current,
       videoItems: videoItemsRef.current,
-      galleryAspectRatio,
-      flowDiagramAspectRatio,
+        galleryAspectRatio,
+        flowDiagramAspectRatio,
       videoAspectRatio,
-      galleryColumns,
-      flowDiagramColumns,
+        galleryColumns,
+        flowDiagramColumns,
       videoColumns,
-      projectImagesPosition,
+        projectImagesPosition,
       videosPosition,
-      flowDiagramsPosition,
-      solutionCardsPosition,
+        flowDiagramsPosition,
+        solutionCardsPosition,
       sectionPositions,
-    };
-    onUpdate(updatedProject);
+      };
+      onUpdate(updatedProject);
   };
 
   // OLD: Universal section move handler - works for ANY section
@@ -2000,9 +1930,9 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
           if (sectionCount === 1) {
             foundSidebarSection = true;
             inSidebarSection = true;
-            newLines.push(`# ${title}`);
-            newLines.push(content);
-            continue;
+          newLines.push(`# ${title}`);
+          newLines.push(content);
+          continue;
           }
         }
       }
@@ -2072,10 +2002,10 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
             foundImpactSection = true;
             inImpactSection = true;
             newLines.push(`# ${title}`);
-            newLines.push(content);
-            continue;
-          }
+          newLines.push(content);
+          continue;
         }
+      }
       }
       
       // Skip old Impact section content
@@ -2413,16 +2343,29 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
           </DropdownMenu>
         </div>
       )}
-      <div className={(atGlanceContent || impactContent) ? "lg:grid lg:grid-cols-[1fr_320px] lg:gap-16 space-y-16 lg:space-y-0" : "space-y-16"} style={(atGlanceContent || impactContent) ? { display: 'grid', gridTemplateColumns: '1fr 320px', gap: '4rem' } : {}}>
+      <div 
+        className={(atGlanceContent || impactContent) ? "space-y-16 lg:grid lg:grid-cols-[1fr_320px] lg:gap-16 lg:space-y-0" : "space-y-16"}
+        style={{
+          ...((atGlanceContent || impactContent) && {
+            display: 'block',
+            maxWidth: '100%',
+            margin: '0 auto',
+            paddingLeft: '24px',
+            paddingRight: '24px'
+          })
+        }}
+        data-desktop-grid={atGlanceContent || impactContent ? 'true' : 'false'}
+      >
         
         {/* Main Content Container */}
         <div className="space-y-16 lg:col-start-1 lg:col-end-1">
-        {/* Hero Image Section - Order 2 on mobile (after title, before sidebars) */}
+        {/* Hero Image Section - Order 2 on mobile (after sidebars) */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="relative p-8 bg-gradient-to-br from-slate-50/80 via-blue-50/60 to-purple-50/40 dark:from-slate-900/20 dark:via-blue-900/10 dark:to-purple-900/10 backdrop-blur-sm rounded-3xl border border-border shadow-2xl overflow-hidden group order-2 lg:order-none"
+          className="relative px-4 py-2 sm:px-6 sm:py-3 lg:px-8 lg:py-4 bg-gradient-to-br from-slate-50/80 via-blue-50/60 to-purple-50/40 dark:from-slate-900/20 dark:via-blue-900/10 dark:to-purple-900/10 backdrop-blur-sm rounded-3xl border border-border shadow-2xl overflow-hidden group order-2 lg:order-none"
+          style={{ marginTop: '60px' }}
         >
           <div 
             ref={heroImageRef}
@@ -2583,7 +2526,32 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
           </motion.div>
         ) : (
           <div className="order-4 lg:order-none">
-        <CaseStudySections 
+            {/* Mobile Sidebar Summary - Show on mobile, hidden on desktop */}
+            {(atGlanceContent || impactContent) && (
+              <div className="lg:hidden w-full mb-8">
+                <div className="space-y-8">
+                  {atGlanceContent && (
+                    <AtAGlanceSidebar 
+                      content={atGlanceContent.content}
+                      title={atGlanceContent.title}
+                      isEditMode={isEditMode}
+                      onUpdate={handleUpdateAtAGlance}
+                      onRemove={handleRemoveAtAGlance}
+                    />
+                  )}
+                  {impactContent && (
+                    <ImpactSidebar 
+                      content={impactContent.content}
+                      title={impactContent.title}
+                      isEditMode={isEditMode}
+                      onUpdate={handleUpdateImpact}
+                      onRemove={handleRemoveImpact}
+                    />
+                  )}
+                </div>
+              </div>
+            )}
+            <CaseStudySections 
         content={(() => {
           // Remove sidebar sections from content
           const lines = caseStudyContent.split('\n');
@@ -3093,10 +3061,10 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
         )}
         </div>
 
-        {/* Sidebar - Show when content exists, hidden on mobile */}
+        {/* Desktop Sidebar - Show when content exists, hidden on mobile */}
         {(atGlanceContent || impactContent) && (
           <div className="hidden lg:block lg:col-start-2 lg:col-end-2">
-            <div className="lg:sticky lg:top-24 space-y-12">
+            <div className="lg:sticky lg:top-24 space-y-12" style={{ marginTop: '60px' }}>
               {atGlanceContent && (
                 <AtAGlanceSidebar 
                   content={atGlanceContent.content}
@@ -3118,6 +3086,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
             </div>
           </div>
         )}
+
       </div>
 
       {/* Lightbox for Case Study Images */}

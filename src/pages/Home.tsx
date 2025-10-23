@@ -2,9 +2,10 @@ import React, { useState, useRef, useEffect, useMemo, useCallback, memo, Suspens
 import { motion } from "motion/react";
 import { useDrag, useDrop } from "react-dnd";
 import { ProjectImage, ProjectData } from "../components/ProjectImage";
+import MemoizedProjectImage from "../components/ProjectImage";
+import { ProjectCardSkeleton } from "../components/ProjectCardSkeleton";
 import { Lightbox } from "../components/Lightbox";
-import LazyImage from "../components/LazyImage";
-import { MemoryOptimizer, safeConsole } from "../utils/memoryOptimization";
+// Removed performance optimizations that were causing slowdown
 import { useSEO } from "../hooks/useSEO";
 import { useProjects } from "../hooks/useProjects";
 import { supabase } from "../lib/supabaseClient";
@@ -40,7 +41,7 @@ interface DraggableProjectItemProps {
   isEditMode: boolean;
   onMove: (dragIndex: number, hoverIndex: number) => void;
   onClick: () => void;
-  onUpdate: (project: ProjectData) => void;
+  onUpdate: (project: ProjectData, skipRefetch?: boolean) => void;
   onReplace: (file: File) => void;
   onDelete?: () => void;
   onNavigate?: () => void;
@@ -124,7 +125,7 @@ function DraggableProjectItem({
         <>
           <div 
             ref={dragHandleRef}
-            className="absolute -top-2 -left-2 z-30 bg-purple-500 hover:bg-purple-600 text-white rounded-full p-1.5 shadow-lg cursor-move transition-colors"
+            className="absolute top-2 left-2 z-30 bg-purple-500 hover:bg-purple-600 text-white rounded-full p-1.5 shadow-lg cursor-move transition-colors"
             title="Drag to reorder"
           >
             <GripVertical className="w-4 h-4" />
@@ -132,40 +133,18 @@ function DraggableProjectItem({
           
           {/* Action buttons in edit mode */}
           <div className="absolute -top-2 -right-2 z-30 flex gap-2">
-            {onNavigate && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onNavigate();
-                }}
-                className="bg-blue-500 hover:bg-blue-600 text-white rounded-full p-1.5 shadow-lg transition-colors"
-                title="View/Edit Case Study"
-              >
-                <Eye className="w-4 h-4" />
-              </button>
-            )}
-            {onDelete && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDelete();
-                }}
-                className="bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 shadow-lg transition-colors"
-                title="Delete Case Study"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            )}
           </div>
           
         </>
       )}
-      <ProjectImage
+      <MemoizedProjectImage
         project={project}
         onClick={onClick}
         isEditMode={isEditMode}
         onUpdate={onUpdate}
         onReplace={onReplace}
+        onNavigate={onNavigate}
+        onDelete={onDelete}
       />
     </motion.div>
   );
@@ -1433,16 +1412,16 @@ Tools for family members to support patients without being intrusive.
   
   // Debug logging for projects (development only)
   useEffect(() => {
-    safeConsole.log('🏠 Home: Projects count:', projects.length);
+    console.log('🏠 Home: Projects count:', projects.length);
     
     // Debug localStorage content (simplified)
     const caseStudiesStorage = localStorage.getItem('caseStudies');
     if (caseStudiesStorage) {
       try {
         const parsed = JSON.parse(caseStudiesStorage);
-        safeConsole.log('🏠 Home: localStorage case studies:', parsed.length, 'items');
+        console.log('🏠 Home: localStorage case studies:', parsed.length, 'items');
       } catch (error) {
-        safeConsole.error('🏠 Home: Error parsing localStorage case studies:', error);
+        console.error('🏠 Home: Error parsing localStorage case studies:', error);
       }
     }
   }, [projects]);
@@ -1452,12 +1431,7 @@ Tools for family members to support patients without being intrusive.
     cleanupBlankCaseStudies();
   }, []);
 
-  // Memory cleanup on unmount
-  useEffect(() => {
-    return () => {
-      MemoryOptimizer.cleanup();
-    };
-  }, []);
+  // Removed memory optimization that was causing slowdown
   
   // Clean up blob URLs from case study content
   const cleanBlobUrls = (content: string): string => {
@@ -1469,56 +1443,40 @@ Tools for family members to support patients without being intrusive.
 
   // Clean up blob URLs from project URLs and replace with placeholder
   const cleanProjectUrl = (url: string, title?: string): string => {
-    console.log('🔍 cleanProjectUrl called with:', { url, title });
-    
     if (!url || url.trim() === '' || url === 'NULL' || url === 'null') {
-      console.log('❌ No URL provided, using fallback');
       // Use different placeholders based on project type even for empty URLs
       const lowerTitle = title?.toLowerCase() || '';
-      console.log('🔍 Checking title for empty URL matches:', lowerTitle);
       
       if (lowerTitle.includes('tandem') || lowerTitle.includes('diabetes') || lowerTitle.includes('care')) {
-        const medicalUrl = 'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtZWRpY2FsJTIwZGV2aWNlfGVufDF8fHx8MTc1OTM3NTg3Nnww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral';
-        console.log('🏥 Using medical placeholder for empty URL:', title);
-        return medicalUrl;
+        return 'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtZWRpY2FsJTIwZGV2aWNlfGVufDF8fHx8MTc1OTM3NTg3Nnww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral';
       } else if (lowerTitle.includes('skype') || lowerTitle.includes('qik')) {
-        const techUrl = 'https://images.unsplash.com/photo-1758770478125-4850521fd941?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkaWdpdGFsJTIwaW50ZXJmYWNlfGVufDF8fHx8MTc1OTM3NTg3NXww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral';
-        console.log('💻 Using tech placeholder for empty URL:', title);
-        return techUrl;
+        return 'https://images.unsplash.com/photo-1758770478125-4850521fd941?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkaWdpdGFsJTIwaW50ZXJmYWNlfGVufDF8fHx8MTc1OTM3NTg3NXww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral';
       } else {
-        const genericUrl = 'https://images.unsplash.com/photo-1551650975-87deedd944c3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx0ZWNobm9sb2d5fGVufDF8fHx8MTc1OTM3NTg3Nnww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral';
-        console.log('🔧 Using generic placeholder for empty URL:', title);
-        return genericUrl;
+        return 'https://images.unsplash.com/photo-1551650975-87deedd944c3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx0ZWNobm9sb2d5fGVufDF8fHx8MTc1OTM3NTg3Nnww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral';
       }
     }
     
     // If it's a blob URL or looks like a broken URL, replace with a placeholder
     if (url.startsWith('blob:') || url.includes('localhost:3000') || url.includes('net::ERR_FILE_NOT_FOUND') || url.includes('blob:http://localhost:3000')) {
-      console.log('🔄 Replacing blob URL with placeholder:', url);
       
       // Use different placeholders based on project type
       const lowerTitle = title?.toLowerCase() || '';
-      console.log('🔍 Checking title for matches:', lowerTitle);
       
       if (lowerTitle.includes('tandem') || lowerTitle.includes('diabetes') || lowerTitle.includes('care')) {
         // Medical/healthcare themed placeholder for Tandem Diabetes Care
         const medicalUrl = 'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtZWRpY2FsJTIwZGV2aWNlfGVufDF8fHx8MTc1OTM3NTg3Nnww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral';
-        console.log('🏥 Using medical placeholder for:', title);
         return medicalUrl;
       } else if (lowerTitle.includes('skype') || lowerTitle.includes('qik')) {
         // Tech/communication themed placeholder for Skype Qik
         const techUrl = 'https://images.unsplash.com/photo-1758770478125-4850521fd941?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkaWdpdGFsJTIwaW50ZXJmYWNlfGVufDF8fHx8MTc1OTM3NTg3NXww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral';
-        console.log('💻 Using tech placeholder for:', title);
         return techUrl;
       } else {
         // Generic tech placeholder for other projects
         const genericUrl = 'https://images.unsplash.com/photo-1551650975-87deedd944c3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx0ZWNobm9sb2d5fGVufDF8fHx8MTc1OTM3NTg3Nnww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral';
-        console.log('🔧 Using generic placeholder for:', title);
         return genericUrl;
       }
     }
     
-    console.log('✅ URL is not a blob, keeping original:', url);
     return url;
   };
 
@@ -2018,301 +1976,135 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     // }
   }, []);
   
-  // Filter projects by type (case studies vs design projects) and convert to ProjectData format
-  const caseStudies = useMemo(() => {
-    console.log('🔍 All projects for filtering:', projects.map(p => ({ title: p.title, description: p.description })));
-    
-    const filtered = projects
-      .filter(project => {
-        // More specific filtering - only exclude explicit design projects
-        const isDesignProject = project.title.toLowerCase().includes('modern tech') ||
-                               project.title.toLowerCase().includes('web design') ||
-                               project.title.toLowerCase().includes('abstract art') ||
-                               project.title.toLowerCase().includes('product design') ||
-                               (project.description?.toLowerCase().includes('design') && 
-                                !project.description?.toLowerCase().includes('diabetes') &&
-                                !project.description?.toLowerCase().includes('medical') &&
-                                !project.description?.toLowerCase().includes('insulin')) ||
-                               (project.description?.toLowerCase().includes('interface') &&
-                                !project.description?.toLowerCase().includes('diabetes') &&
-                                !project.description?.toLowerCase().includes('medical') &&
-                                !project.description?.toLowerCase().includes('insulin'));
-        
-        // Default to case study unless it's explicitly a design project
-        const isCaseStudy = !isDesignProject;
-        
-        console.log(`🔍 Project "${project.title}": isDesignProject = ${isDesignProject}, isCaseStudy = ${isCaseStudy}`);
-        return isCaseStudy;
-      })
-      .map(project => {
-        console.log('🔍 Processing case study project:', { 
-          title: project.title, 
-          url: project.url,
-          hasBlobUrl: project.url?.startsWith('blob:') || false
-        });
-        
-        return {
-          ...project,
-          position: { x: project.position_x, y: project.position_y },
-          url: cleanProjectUrl(project.url || '', project.title),
-          // Map other fields as needed
-        };
-      });
-    
-    console.log('🏠 Home: Filtered case studies from Supabase:', filtered);
-    
-    // Always check localStorage for additional case studies
-    const savedProjects = localStorage.getItem('caseStudies');
-    let localStorageProjects = [];
-    if (savedProjects) {
-      try {
-        localStorageProjects = JSON.parse(savedProjects);
-        console.log('🏠 Home: Found localStorage case studies:', localStorageProjects.length);
-      } catch (error) {
-        console.log('🏠 Home: Error parsing localStorage case studies:', error);
-      }
-    }
-    
-    // Combine Supabase and localStorage projects, removing duplicates
-    const allProjects = [...filtered, ...localStorageProjects];
-    
-    // Filter out test data and invalid projects
-    const validProjects = allProjects.filter(project => {
-      // Filter out test data
-      if (project.title?.toLowerCase().includes('test') || 
-          project.title?.toLowerCase().includes('mofo') ||
-          project.title?.toLowerCase().includes('debug')) {
-        console.log(`🗑️ Filtering out test data: "${project.title}"`);
-        return false;
-      }
-      
-      // Filter out projects with no title
-      if (!project.title || project.title.trim() === '') {
-        console.log(`🗑️ Filtering out project with no title`);
-        return false;
-      }
-      
-      return true;
-    });
+  // Add cleanup function to window for debugging (only once)
+  React.useEffect(() => {
+    const loadCleanup = async () => {
+      const { cleanupDuplicateProjects } = await import('../utils/cleanupDuplicates');
+      (window as any).cleanupDuplicates = cleanupDuplicateProjects;
+    };
+    loadCleanup();
+  }, []);
 
-    // Remove duplicates based on title, prioritizing projects with valid URLs
-    const uniqueProjects = validProjects.reduce((acc, project) => {
+  // Memoize deduplication to prevent recalculation on every render
+  const deduplicatedProjects = useMemo(() => {
+    return projects.reduce((acc, project) => {
       const existingIndex = acc.findIndex(p => p.title === project.title);
-      
-      console.log(`🔍 Processing project "${project.title}": existingIndex = ${existingIndex}`);
-      
-      if (existingIndex === -1) {
-        // No duplicate found, add the project
-        console.log(`✅ Adding new project: "${project.title}"`);
-        acc.push(project);
-      } else {
-        // Duplicate found, choose the best one
+      if (existingIndex >= 0) {
+        // Replace with newer project (assuming updated_at or id is newer)
         const existing = acc[existingIndex];
-        
-        // Priority: 1) Valid URL, 2) More content, 3) Supabase over localStorage
-        const projectHasValidUrl = project.url && !project.url.startsWith('blob:') && project.url !== 'NULL';
-        const existingHasValidUrl = existing.url && !existing.url.startsWith('blob:') && existing.url !== 'NULL';
-        
-        const projectContent = project.caseStudyContent || (project as any).case_study_content || '';
-        const existingContent = existing.caseStudyContent || (existing as any).case_study_content || '';
-        
-        let shouldReplace = false;
-        let reason = '';
-        
-        if (projectHasValidUrl && !existingHasValidUrl) {
-          shouldReplace = true;
-          reason = 'has valid URL';
-        } else if (!projectHasValidUrl && existingHasValidUrl) {
-          shouldReplace = false;
-          reason = 'existing has valid URL';
-        } else if (projectContent.length > existingContent.length) {
-          shouldReplace = true;
-          reason = 'has more content';
-        } else if (projectContent.length < existingContent.length) {
-          shouldReplace = false;
-          reason = 'existing has more content';
-        } else {
-          // Same content, prefer Supabase over localStorage
-          const projectIsFromSupabase = project.id && project.id.length > 10; // Supabase IDs are longer
-          const existingIsFromSupabase = existing.id && existing.id.length > 10;
-          
-          if (projectIsFromSupabase && !existingIsFromSupabase) {
-            shouldReplace = true;
-            reason = 'from Supabase';
-          } else {
-            shouldReplace = false;
-            reason = 'existing is from Supabase or same source';
-          }
-        }
-        
-        if (shouldReplace) {
-          console.log(`🔄 Home: Replacing duplicate "${project.title}" (${reason})`);
-          console.log(`🔄 Replacing existing project:`, existing);
-          console.log(`🔄 With new project:`, project);
+        const isNewer = project.updated_at > existing.updated_at || 
+                       (project.updated_at === existing.updated_at && project.id > existing.id);
+        if (isNewer) {
           acc[existingIndex] = project;
-        } else {
-          console.log(`🔄 Home: Keeping existing "${project.title}" (${reason})`);
-          console.log(`🔄 Keeping existing project:`, existing);
-          console.log(`🔄 Discarding new project:`, project);
         }
-      }
-      
+        } else {
+        acc.push(project);
+        }
       return acc;
-    }, []);
-    
-    console.log('🏠 Home: Combined case studies (after deduplication):', uniqueProjects.length);
-    console.log('🏠 Home: Combined case studies details:', uniqueProjects);
-    
-    // Debug each case study in the combined list
-    uniqueProjects.forEach((project, index) => {
-      console.log(`🏠 Home: Case study ${index}:`, {
-        title: project.title,
-        hasContent: !!(project.caseStudyContent || (project as any).case_study_content),
-        contentLength: (project.caseStudyContent || (project as any).case_study_content || '').length,
-        keys: Object.keys(project),
-        fullProject: project
-      });
-    });
-    
-    // Sort projects: published first, then by creation date (newest first)
-    const sortedProjects = uniqueProjects.sort((a, b) => {
-      // First priority: published status (published projects first)
-      const aPublished = a.published === true;
-      const bPublished = b.published === true;
-      
-      if (aPublished && !bPublished) return -1;
-      if (!aPublished && bPublished) return 1;
-      
-      // Second priority: creation date (newest first)
-      const aDate = new Date(a.created_at || a.id).getTime();
-      const bDate = new Date(b.created_at || b.id).getTime();
-      
-      return bDate - aDate;
-    });
-    
-    console.log('🏠 Home: Sorted case studies (published first):', sortedProjects.map(p => ({ 
-      title: p.title, 
-      published: p.published,
-      created_at: p.created_at 
-    })));
-    
-    // If no projects at all, use hardcoded defaults
-    if (sortedProjects.length === 0 && !loading) {
-      console.log('🏠 Home: No projects found, using hardcoded defaults');
-      console.log('🏠 Home: Default case studies:', defaultCaseStudies);
-      return defaultCaseStudies;
-    }
-    
-    console.log('🏠 Home: Returning sorted projects (published first)');
-    return sortedProjects;
-  }, [projects, loading, localStorageVersion]);
+    }, [] as typeof projects);
+  }, [projects]);
   
-  const designProjects = useMemo(() => {
-    const filtered = projects
-      .filter(project => 
-        !project.title.toLowerCase().includes('case study') && 
-        !project.title.toLowerCase().includes('research') &&
-        !project.description?.toLowerCase().includes('case study')
-      )
+  // Memoize case studies filtering to prevent recalculation
+  const caseStudies = useMemo(() => {
+    return deduplicatedProjects
+      .filter(project => {
+        // More precise filtering - only include projects that are clearly case studies
+        const title = project.title?.toLowerCase() || '';
+        const description = project.description?.toLowerCase() || '';
+        
+        // Check if it's a case study
+        const isCaseStudy = description.includes('case study') ||
+                           title.includes('tandem diabetes care') ||
+                           title.includes('skype qik') ||
+                           title.includes('research') ||
+                           title.includes('study');
+        
+        // Exclude design projects
+        const isDesignProject = title.includes('modern tech') ||
+                               title.includes('web design') ||
+                               title.includes('abstract art') ||
+                               title.includes('product design') ||
+                               title.includes('design system');
+        
+        return isCaseStudy && !isDesignProject;
+      })
       .map(project => ({
         ...project,
         position: { x: project.position_x, y: project.position_y },
-        url: cleanProjectUrl(project.url || '', project.title),
+        url: cleanProjectUrl(String(project.url || ''), project.title),
         // Map other fields as needed
       }));
-    
-    console.log('🏠 Home: Filtered design projects from Supabase:', filtered);
-    
-    // Always check localStorage for additional design projects
-    const savedProjects = localStorage.getItem('designProjects');
-    let localStorageProjects = [];
-    if (savedProjects) {
-      try {
-        localStorageProjects = JSON.parse(savedProjects);
-        console.log('🏠 Home: Found localStorage design projects:', localStorageProjects.length);
-      } catch (error) {
-        console.log('🏠 Home: Error parsing localStorage design projects:', error);
-      }
-    }
-    
-    // Combine Supabase and localStorage projects, removing duplicates
-    const allProjects = [...filtered, ...localStorageProjects];
-    
-    // Remove duplicates based on title
-    const uniqueProjects = allProjects.reduce((acc, project) => {
-      const existingIndex = acc.findIndex(p => p.title === project.title);
-      
-      if (existingIndex === -1) {
-        // No duplicate found, add the project
-        acc.push(project);
-      } else {
-        // Duplicate found, keep the one from Supabase (filtered) over localStorage
-        const isFromSupabase = filtered.includes(project);
-        if (isFromSupabase) {
-          console.log(`🔄 Home: Replacing duplicate design project "${project.title}" with Supabase version`);
-          acc[existingIndex] = project;
-        } else {
-          console.log(`🔄 Home: Keeping existing design project "${project.title}", skipping duplicate`);
+  }, [deduplicatedProjects]);
+  
+  // Memoize design projects filtering to prevent recalculation
+  const designProjects = useMemo(() => {
+    return deduplicatedProjects
+      .filter(project => {
+        const title = project.title?.toLowerCase() || '';
+        const description = project.description?.toLowerCase() || '';
+        
+        // Exclude case studies
+        const isCaseStudy = description.includes('case study') ||
+                           title.includes('tandem diabetes care') ||
+                           title.includes('skype qik') ||
+                           title.includes('research') ||
+                           title.includes('study');
+        
+        // Include design projects
+        const isDesignProject = title.includes('modern tech') ||
+                               title.includes('web design') ||
+                               title.includes('abstract art') ||
+                               title.includes('product design') ||
+                               title.includes('design system');
+        
+        return !isCaseStudy && (isDesignProject || (!isCaseStudy && !isDesignProject));
+      })
+      .map(project => ({
+        ...project,
+        position: { x: project.position_x, y: project.position_y },
+        url: cleanProjectUrl(String(project.url || ''), project.title),
+        // Map other fields as needed
+      }));
+  }, [deduplicatedProjects]);
+
+  // Preload images for better perceived performance
+  React.useEffect(() => {
+    const preloadImages = () => {
+      const allProjects = [...caseStudies, ...designProjects];
+      allProjects.forEach(project => {
+        if (project.url && !project.url.startsWith('blob:')) {
+          const img = new Image();
+          img.src = project.url;
         }
-      }
-      
-      return acc;
-    }, []);
+      });
+    };
     
-    console.log('🏠 Home: Combined design projects (after deduplication):', uniqueProjects.length);
-    
-    // Sort design projects: published first, then by creation date (newest first)
-    const sortedProjects = uniqueProjects.sort((a, b) => {
-      // First priority: published status (published projects first)
-      const aPublished = a.published === true;
-      const bPublished = b.published === true;
-      
-      if (aPublished && !bPublished) return -1;
-      if (!aPublished && bPublished) return 1;
-      
-      // Second priority: creation date (newest first)
-      const aDate = new Date(a.created_at || a.id).getTime();
-      const bDate = new Date(b.created_at || b.id).getTime();
-      
-      return bDate - aDate;
-    });
-    
-    console.log('🏠 Home: Sorted design projects (published first):', sortedProjects.map(p => ({ 
-      title: p.title, 
-      published: p.published,
-      created_at: p.created_at 
-    })));
-    
-    // If no projects at all, use hardcoded defaults
-    if (sortedProjects.length === 0 && !loading) {
-      console.log('🏠 Home: No design projects found, using hardcoded defaults');
-      return defaultDesignProjects;
+    if (caseStudies.length > 0 || designProjects.length > 0) {
+      preloadImages();
     }
-    
-    return sortedProjects;
-  }, [projects, loading, localStorageVersion]);
+  }, [caseStudies, designProjects]);
   
   // Home page hero text - editable in edit mode
   const [heroText, setHeroText] = useState(() => {
-  const defaultHeroText = {
-    greeting: "Welcome,",
-    greetings: [
-      "Welcome,",
-      "I'm Brian.",
-      "Designer.",
-      "Researcher.",
-      "Product Builder."
-    ],
-    greetingFont: "Inter, sans-serif",
-    lastGreetingPauseDuration: 30000,
+    const defaultHeroText = {
+      greeting: "Welcome,",
+      greetings: [
+        "Welcome,",
+        "I'm Brian.",
+        "Designer.",
+        "Researcher.",
+        "Product Builder."
+      ],
+      greetingFont: "Inter, sans-serif",
+      lastGreetingPauseDuration: 30000,
     subtitle: "Brian Bureson is a (super rad) product design leader",
-    description: "building high quality products and teams through",
-    word1: "planning",
-    word2: "collaboration",
-    word3: "empathy",
-    word4: "design",
+      description: "building high quality products and teams through",
+      word1: "planning",
+      word2: "collaboration",
+      word3: "empathy",
+      word4: "design",
     buttonText: "About Brian"
-  };
+    };
     
     try {
       console.log('🏠 Home: Loading hero text...');
@@ -2359,7 +2151,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
   
   // Hero text is loaded from localStorage and hardcoded defaults
   // The profiles table doesn't have hero text fields, so we use localStorage
-
+  
   // Save heroText to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem('heroText', JSON.stringify(heroText));
@@ -2523,12 +2315,13 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     }
   };
 
-  const handleUpdateProject = async (updatedProject: ProjectData, type: 'caseStudies' | 'design') => {
+  const handleUpdateProject = async (updatedProject: ProjectData, type: 'caseStudies' | 'design', skipRefetch = false) => {
     console.log('🏠 Home: handleUpdateProject called:', {
       id: updatedProject.id,
       title: updatedProject.title,
       contentLength: updatedProject.caseStudyContent?.length || 0,
       type,
+      skipRefetch,
       'Full updatedProject': updatedProject
     });
     
@@ -2580,8 +2373,10 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
       if (result) {
         console.log('✅ Project updated in Supabase:', updatedProject.id);
         
-        // Refetch projects to ensure UI is updated with latest data
-        await refetch();
+        // Only refetch if not skipping (for minor updates like zoom/position)
+        if (!skipRefetch) {
+          await refetch();
+        }
         
         // CRITICAL: Also update localStorage to keep it in sync
         try {
@@ -2920,7 +2715,6 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
 
   const handleNavigateToProject = (project: ProjectData, type: 'caseStudies' | 'design') => {
     const normalizedProject = normalizeProjectData(project);
-    console.log('🏠 Home: Normalized project for navigation:', normalizedProject);
     
     const updateCallback = (updatedProject: ProjectData) => {
       handleUpdateProject(updatedProject, type);
@@ -3678,7 +3472,10 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                 onTouchMove={handleTouchMove}
                 onTouchEnd={() => handleTouchEnd(caseStudiesScrollRef)}
               >
-                {displayCaseStudies.map((project, index) => (
+                {loading ? (
+                  <ProjectCardSkeleton count={3} />
+                ) : (
+                  displayCaseStudies.map((project, index) => (
                   <DraggableProjectItem
                     key={project.id}
                     project={project}
@@ -3686,12 +3483,13 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                     isEditMode={isEditMode}
                     onMove={moveCaseStudy}
                     onClick={() => handleProjectClick(project, 'caseStudies')}
-                    onUpdate={(p: ProjectData) => handleUpdateProject(p, 'caseStudies')}
+                      onUpdate={(p: ProjectData, skipRefetch?: boolean) => handleUpdateProject(p, 'caseStudies', skipRefetch)}
                     onReplace={(file: File) => handleReplaceImage(project.id, file, 'caseStudies')}
                     onDelete={isEditMode ? () => handleDeleteProject(project.id, project.title, 'caseStudies') : undefined}
-                    onNavigate={isEditMode ? () => handleNavigateToProject(project, 'caseStudies') : undefined}
+                      onNavigate={() => handleNavigateToProject(project, 'caseStudies')}
                   />
-                ))}
+                  ))
+                )}
 
                 {/* Add Project Buttons in Carousel (Edit Mode Only) */}
                 {isEditMode && (

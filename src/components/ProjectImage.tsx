@@ -1,11 +1,19 @@
+import React from "react";
 import { motion } from "motion/react";
 import { useState, useEffect, useRef, memo, useMemo, useCallback } from "react";
-import { Edit2, Move, Check, X, ZoomIn, ZoomOut, RotateCcw, Lock, Eye, Trash2 } from "lucide-react";
+import { Edit2, Move, Check, X, ZoomIn, ZoomOut, RotateCcw, Lock, Eye, Trash2, MoreVertical, Settings } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
 import { Checkbox } from "./ui/checkbox";
-import LazyImage from "./LazyImage";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
+// Removed LazyImage import to fix slow loading
 
 export interface ProjectData {
   id: string;
@@ -56,7 +64,7 @@ interface ProjectImageProps {
   project: ProjectData;
   onClick: () => void;
   isEditMode: boolean;
-  onUpdate: (updatedProject: ProjectData) => void;
+  onUpdate: (updatedProject: ProjectData, skipRefetch?: boolean) => void;
   onReplace: (file: File) => void;
   onNavigate?: () => void;
   onDelete?: () => void;
@@ -77,20 +85,42 @@ export function ProjectImage({
   const [editedProject, setEditedProject] = useState(project);
   const [isPositioning, setIsPositioning] = useState(false);
   const [isDraggingPosition, setIsDraggingPosition] = useState(false);
+  const isDraggingRef = useRef(false);
+  const dragPositionRef = useRef({ x: 0, y: 0 });
+  const lastUpdateTimeRef = useRef(0);
   const [imageLoadError, setImageLoadError] = useState(false);
   const imageRef = useRef<HTMLDivElement>(null);
 
   // Sync local state when project prop changes (e.g., when image is replaced)
+  // But only update if the project ID changes or if we're not currently editing
   useEffect(() => {
+    // Only reset if the project ID actually changed (new project) or if we're not editing
+    if (project.id !== editedProject.id || !isEditing) {
     setEditedProject(project);
     setImageLoadError(false); // Reset error state when project changes
-  }, [project]);
+    }
+  }, [project.id, project.url, project.title, project.description]); // Only depend on specific fields, not the entire project object
 
   // Handle image load error
   const handleImageError = () => {
     console.log('❌ Image failed to load:', editedProject.url);
     setImageLoadError(true);
   };
+
+  // Handle escape key to exit positioning mode
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isPositioning) {
+        console.log('⌨️ Escape key pressed - exiting positioning mode');
+        setIsPositioning(false);
+      }
+    };
+
+    if (isPositioning) {
+      document.addEventListener('keydown', handleKeyDown);
+      return () => document.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [isPositioning]);
 
   // Get the image URL with fallback
   const getImageUrl = () => {
@@ -153,47 +183,76 @@ export function ProjectImage({
     if (!isPositioning) return;
     e.stopPropagation();
     e.preventDefault();
+    console.log('🖱️ Mouse down in positioning mode');
     setIsDraggingPosition(true);
+    isDraggingRef.current = true;
     
-    // Store initial position for smooth dragging
-    const rect = imageRef.current?.getBoundingClientRect();
-    if (rect) {
-      const x = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
-      const y = Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100));
-      
-      setEditedProject({
-        ...editedProject,
-        position: { x, y },
-      });
-    }
+    // Initialize drag position ref with pixel-based precision
+    const rect = e.currentTarget.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    
+    const x = Math.max(0, Math.min(100, (mouseX / rect.width) * 100));
+    const y = Math.max(0, Math.min(100, (mouseY / rect.height) * 100));
+    
+    dragPositionRef.current = { x, y };
+    
+    console.log('📍 Initializing drag position:', { x, y });
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDraggingPosition || !imageRef.current) return;
+    if (!isDraggingPosition) return;
     e.stopPropagation();
     e.preventDefault();
     
-    const rect = imageRef.current.getBoundingClientRect();
-    const x = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
-    const y = Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100));
+    const now = Date.now();
+    // Throttle updates to 60fps for smooth performance
+    if (now - lastUpdateTimeRef.current < 16) return;
+    lastUpdateTimeRef.current = now;
     
-    // More precise positioning with smaller increments
-    const newPosition = {
-      x: Math.round(x * 100) / 100, // Round to 2 decimals for better precision
-      y: Math.round(y * 100) / 100
-    };
+    const rect = e.currentTarget.getBoundingClientRect();
     
-    setEditedProject({
-      ...editedProject,
-      position: newPosition,
-    });
+    // Use pixel-based positioning for much finer control
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    
+    // Convert to percentage with much higher precision
+    const x = Math.max(0, Math.min(100, (mouseX / rect.width) * 100));
+    const y = Math.max(0, Math.min(100, (mouseY / rect.height) * 100));
+    
+    // Store position in ref to avoid re-renders during drag
+    dragPositionRef.current = { x, y };
+    
+    // Update the image transform directly for real-time preview
+    const imageElement = imageRef.current?.querySelector('img');
+    if (imageElement) {
+      imageElement.style.transformOrigin = `${x}% ${y}%`;
+      imageElement.style.transform = `scale(${editedProject.scale})`;
+    }
+    
+    // Add visual feedback - show crosshair at drag position
+    const crosshair = imageRef.current?.querySelector('.drag-crosshair');
+    if (crosshair) {
+      crosshair.style.left = `${x}%`;
+      crosshair.style.top = `${y}%`;
+    }
   };
 
   const handleMouseUp = () => {
     if (isDraggingPosition) {
       setIsDraggingPosition(false);
-      // Auto-save when done dragging
-      onUpdate(editedProject);
+      isDraggingRef.current = false;
+      
+      // Apply the final position from the ref to the state
+      const finalPosition = dragPositionRef.current;
+      const updated = {
+        ...editedProject,
+        position: finalPosition,
+      };
+      setEditedProject(updated);
+      
+      // Auto-save when done dragging - skip refetch for position updates
+      onUpdate(updated, true);
     }
   };
 
@@ -224,28 +283,34 @@ export function ProjectImage({
       scale: 1.0, // Reset to 1:1 scale
       position: { x: 50, y: 50 } // Center the image perfectly
     };
+    console.log('🎯 Fitting image to frame');
     setEditedProject(updated);
-    onUpdate(updated);
+    // Skip refetch for minor position updates to prevent card refresh
+    onUpdate(updated, true);
   };
 
   const handleZoomOut = () => {
-    const newScale = Math.max(0.3, editedProject.scale - 0.2);
+    const newScale = Math.max(0.3, editedProject.scale - 0.1); // Smaller increments for precision
     const updated = {
       ...editedProject,
       scale: newScale
     };
+    console.log('🔍 Zoom Out:', { oldScale: editedProject.scale, newScale });
     setEditedProject(updated);
-    onUpdate(updated);
+    // Skip refetch for minor zoom updates to prevent card refresh
+    onUpdate(updated, true);
   };
 
   const handleZoomIn = () => {
-    const newScale = Math.min(3.0, editedProject.scale + 0.2);
+    const newScale = Math.min(2.0, editedProject.scale + 0.1); // Allow up to 200% zoom
     const updated = {
       ...editedProject,
       scale: newScale
     };
+    console.log('🔍 Zoom In:', { oldScale: editedProject.scale, newScale });
     setEditedProject(updated);
-    onUpdate(updated);
+    // Skip refetch for minor zoom updates to prevent card refresh
+    onUpdate(updated, true);
   };
 
   const handleResetImage = () => {
@@ -254,6 +319,7 @@ export function ProjectImage({
       scale: 1,
       position: { x: 50, y: 50 }
     };
+    console.log('🔄 Resetting image to default scale and position');
     setEditedProject(updated);
     onUpdate(updated);
   };
@@ -292,20 +358,22 @@ export function ProjectImage({
       onDrop={handleDrop}
     >
       <motion.div
-        whileHover={!isEditMode ? { 
+        whileHover={!isEditMode && !isDraggingRef.current ? { 
           scale: 1.05,
           rotate: isHovered ? [0, -2, 2, -2, 0] : 0,
         } : {}}
-        transition={{
+        transition={!isEditMode && !isDraggingRef.current ? {
           scale: { duration: 0.2 },
           rotate: { duration: 0.5, ease: "easeInOut" }
-        }}
+        } : undefined}
         onClick={handleImageClick}
         className={`relative ${!isEditMode ? "cursor-pointer" : ""} ${isPositioning ? "ring-4 ring-yellow-400" : ""}`}
       >
         <div
           ref={imageRef}
-          className={`aspect-[3/4] w-[280px] overflow-hidden shadow-xl transition-all duration-200 ${
+          className={`aspect-[3/4] w-[280px] overflow-hidden shadow-xl ${
+            !isEditMode && !isDraggingRef.current ? "transition-all duration-200" : "no-transitions"
+          } ${
             isDragging ? "ring-4 ring-primary" : ""
           } ${!isEditMode && isHovered ? "shadow-2xl ring-2 ring-primary/30" : ""}`}
           style={{
@@ -328,45 +396,69 @@ export function ProjectImage({
           />
           
           <motion.div
-            className="w-full h-full relative overflow-hidden"
+            className="w-full h-full relative"
             style={{
-              borderRadius: '1rem 1rem 2rem 2rem'
+              borderRadius: '1rem 1rem 2rem 2rem',
+              overflow: 'hidden' // Keep overflow hidden for rounded corners
             }}
-            animate={{
-              scale: !isEditMode && isHovered ? 1.08 : 1,
-            }}
-            transition={{
+            animate={!isEditMode && !isDraggingRef.current ? {
+              scale: isHovered ? 1.08 : 1,
+            } : {}}
+            transition={!isEditMode && !isDraggingRef.current ? {
               duration: 0.3,
               ease: "easeOut",
-            }}
+            } : undefined}
           >
-            <LazyImage
-              src={getImageUrl()}
-              alt={editedProject.title}
-              className="w-full h-full object-cover"
+            <div 
+              className="w-full h-full overflow-hidden"
               style={{
-                transform: `scale(${editedProject.scale})`,
-                transformOrigin: `${editedProject.position.x}% ${editedProject.position.y}%`,
+                position: 'relative',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
               }}
-              onLoad={() => setImageLoadError(false)}
-              onError={handleImageError}
-            />
+            >
+              <img
+                src={getImageUrl()}
+                alt={editedProject.title}
+                className="w-full h-full"
+                style={{
+                  objectFit: 'cover',
+                  transform: `scale(${editedProject.scale})`, // Allow full zoom range
+                  transformOrigin: `${editedProject.position.x}% ${editedProject.position.y}%`,
+                  cursor: isPositioning ? 'crosshair' : 'default',
+                  // Add some padding when scaled to prevent cutoff
+                  padding: editedProject.scale > 1.0 ? '10px' : '0px'
+                }}
+                onLoad={() => setImageLoadError(false)}
+                onError={handleImageError}
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseUp}
+              />
+              
+              {/* Drag crosshair indicator */}
+              {isPositioning && (
+                <div 
+                  className="drag-crosshair absolute pointer-events-none z-10"
+                  style={{
+                    left: `${editedProject.position.x}%`,
+                    top: `${editedProject.position.y}%`,
+                    transform: 'translate(-50%, -50%)',
+                    width: '20px',
+                    height: '20px',
+                    border: '2px solid #3b82f6',
+                    borderRadius: '50%',
+                    backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                    boxShadow: '0 0 10px rgba(59, 130, 246, 0.5)'
+                  }}
+                />
+              )}
+            </div>
             
-            {/* Positioning Mode Visual Feedback */}
-            {isEditMode && isPositioning && (
-              <div className="absolute inset-0 bg-blue-500/20 border-2 border-blue-500 border-dashed flex items-center justify-center z-30">
-                <div className="bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-lg">
-                  🎯 Click and drag to position image
-                </div>
-              </div>
-            )}
             
-            {/* Scale indicator */}
-            {isEditMode && (
-              <div className="absolute top-3 left-3 bg-black/80 text-white px-2 py-1 rounded text-xs font-mono z-20">
-                Scale: {(editedProject.scale * 100).toFixed(0)}%
-              </div>
-            )}
+          {/* Status indicator */}
             {/* Project description badge */}
             {!isEditMode && (
               <div className="absolute bottom-4 left-4 right-4 z-20">
@@ -459,29 +551,29 @@ export function ProjectImage({
           </motion.div>
         )}
 
-        {/* Edit Mode Controls - Better Layout */}
+        {/* Clean Edit Mode Controls with UX Best Practices */}
         {isEditMode && (
           <>
-            {/* Top Row - Status and Actions */}
-            <div className="absolute top-3 left-3 right-3 flex justify-between items-start z-20">
-              {/* Left side - Status */}
-              <Button
-                size="sm"
-                variant={project.published ? "default" : "secondary"}
-                onClick={handleTogglePublish}
-                className="shadow-lg"
-              >
-                {project.published ? "Published" : "Draft"}
-              </Button>
+            {/* Top Bar - Primary Actions */}
+            <div className="absolute top-3 left-3 right-3 flex justify-between items-center z-20">
+              {/* Status Badge */}
+            <Button
+              size="sm"
+              variant={project.published ? "default" : "secondary"}
+              onClick={handleTogglePublish}
+              className="shadow-lg"
+            >
+              {project.published ? "Published" : "Draft"}
+            </Button>
               
-              {/* Right side - Action buttons in organized layout */}
-              <div className="flex gap-1">
+              {/* Primary Actions - Edit & View */}
+              <div className="flex gap-2">
                 <Button
                   size="sm"
                   variant="secondary"
                   onClick={() => setIsEditing(!isEditing)}
                   className="shadow-lg"
-                  title="Edit project"
+                  title="Edit project details"
                 >
                   <Edit2 className="w-4 h-4" />
                 </Button>
@@ -490,51 +582,78 @@ export function ProjectImage({
                   variant="secondary"
                   onClick={handleNavigate}
                   className="shadow-lg"
-                  title="View project"
+                  title="Edit project details"
                 >
                   <Eye className="w-4 h-4" />
                 </Button>
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={handleDelete}
-                  className="shadow-lg"
-                  title="Delete project"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
+                
+                {/* Overflow Menu for Secondary Actions */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="shadow-lg"
+                      title="More actions"
+                    >
+                      <MoreVertical className="w-4 h-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem onClick={handleDelete} className="text-red-600">
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Delete Project
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleFitToFrame}>
+                      <ZoomIn className="w-4 h-4 mr-2" />
+                      Fit to Frame
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleResetImage}>
+                      <RotateCcw className="w-4 h-4 mr-2" />
+                      Reset Image
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
 
-            {/* Bottom Row - Image Controls */}
-            <div className="absolute bottom-3 left-3 right-3 flex justify-between items-center z-20">
-              {/* Left side - Image positioning */}
-              <div className="flex gap-1">
-                <Button
-                  size="sm"
-                  variant={isPositioning ? "default" : "secondary"}
-                  onClick={() => setIsPositioning(!isPositioning)}
-                  className="shadow-lg"
-                  title="Adjust image position"
-                >
-                  <Move className="w-4 h-4" />
-                </Button>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={handleFitToFrame}
-                  className="shadow-lg"
-                  title="Fit image to frame"
-                >
-                  <ZoomIn className="w-4 h-4" />
-                </Button>
-              </div>
-              
-              {/* Right side - Scale controls */}
-              <div className="flex gap-1">
-                <Button
-                  size="sm"
-                  variant="secondary"
+            {/* Bottom Bar - Image Controls - Inside Card Frame */}
+            <div className="absolute bottom-2 left-2 right-2 flex justify-between items-center z-20" style={{
+              padding: '0.5rem 0.75rem'
+            }}>
+              {/* Image Controls */}
+              <div className="flex gap-2">
+            {isPositioning && (
+              <Button
+                size="sm"
+                variant="default"
+                className="shadow-lg"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsPositioning(false);
+                }}
+                title="Done positioning"
+              >
+                <Check className="w-4 h-4 mr-1" />
+                Done
+              </Button>
+            )}
+            <Button
+              size="sm"
+              variant={isPositioning ? "default" : "secondary"}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsPositioning(!isPositioning);
+                  }}
+              className="shadow-lg"
+                  title="Drag to position image"
+            >
+              <Move className="w-4 h-4" />
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
                   onClick={handleZoomIn}
                   className="shadow-lg"
                   title="Zoom in"
@@ -545,20 +664,16 @@ export function ProjectImage({
                   size="sm"
                   variant="secondary"
                   onClick={handleZoomOut}
-                  className="shadow-lg"
+              className="shadow-lg"
                   title="Zoom out"
-                >
+            >
                   <ZoomOut className="w-4 h-4" />
-                </Button>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={handleResetImage}
-                  className="shadow-lg"
-                  title="Reset image"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                </Button>
+            </Button>
+          </div>
+              
+              {/* Scale Indicator */}
+              <div className="bg-black/90 text-white px-3 py-1 rounded-full text-xs font-medium backdrop-blur-sm">
+                {(editedProject.scale * 100).toFixed(0)}%
               </div>
             </div>
           </>
@@ -569,7 +684,7 @@ export function ProjectImage({
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="absolute inset-0 bg-background/95 backdrop-blur-sm shadow-2xl z-10 flex flex-col rounded-b-[2rem]"
+            className="absolute inset-0 bg-background/95 backdrop-blur-sm shadow-2xl z-30 flex flex-col rounded-b-[2rem]"
             style={{
               overflow: 'hidden'
             }}
@@ -668,87 +783,14 @@ export function ProjectImage({
 
             {/* Footer - Fixed */}
             <div className="p-6 pt-4 border-t border-border bg-background/50">
-              <Button onClick={handleSave} className="w-full">
-                <Check className="w-4 h-4 mr-2" />
-                Save Changes
-              </Button>
+            <Button onClick={handleSave} className="w-full">
+              <Check className="w-4 h-4 mr-2" />
+              Save Changes
+            </Button>
             </div>
           </motion.div>
         )}
 
-        {isPositioning && isEditMode && (
-          <div 
-            className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-3 z-20 pointer-events-none rounded-b-[2rem]"
-            style={{
-              overflow: 'hidden'
-            }}
-          >
-            <div className="pointer-events-auto flex flex-col items-center gap-3">
-              {/* Zoom Controls */}
-              <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md rounded-full p-2 border border-white/20">
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="rounded-full w-8 h-8 p-0 hover:bg-white/20"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleScaleChange(Math.max(0.5, editedProject.scale - 0.1));
-                  }}
-                >
-                  <ZoomOut className="w-4 h-4 text-white" />
-                </Button>
-                <span className="text-white text-sm font-semibold min-w-[60px] text-center">
-                  {Math.round(editedProject.scale * 100)}%
-                </span>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="rounded-full w-8 h-8 p-0 hover:bg-white/20"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleScaleChange(Math.min(3, editedProject.scale + 0.1));
-                  }}
-                >
-                  <ZoomIn className="w-4 h-4 text-white" />
-                </Button>
-              </div>
-
-              {/* Position Hint */}
-              <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md rounded-full px-4 py-2 border border-white/20">
-                <Move className="w-4 h-4 text-white" />
-                <span className="text-white text-sm">Drag image to reposition</span>
-              </div>
-
-              {/* Reset Button */}
-              <Button
-                size="sm"
-                variant="ghost"
-                className="rounded-full bg-white/10 backdrop-blur-md hover:bg-white/20 border border-white/20 text-white"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleReset();
-                }}
-              >
-                <RotateCcw className="w-4 h-4 mr-2" />
-                Reset
-              </Button>
-
-              {/* Done Button */}
-              <Button
-                size="sm"
-                variant="default"
-                className="rounded-full shadow-lg"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsPositioning(false);
-                }}
-              >
-                <Check className="w-4 h-4 mr-2" />
-                Done
-              </Button>
-            </div>
-          </div>
-        )}
       </motion.div>
     </motion.div>
   );
@@ -764,6 +806,9 @@ const MemoizedProjectImage = memo(ProjectImage, (prevProps, nextProps) => {
     prevProps.project.url === nextProps.project.url &&
     prevProps.project.published === nextProps.project.published &&
     prevProps.project.requiresPassword === nextProps.project.requiresPassword &&
+    prevProps.project.position?.x === nextProps.project.position?.x &&
+    prevProps.project.position?.y === nextProps.project.position?.y &&
+    prevProps.project.scale === nextProps.project.scale &&
     prevProps.isEditMode === nextProps.isEditMode &&
     prevProps.isDragging === nextProps.isDragging &&
     prevProps.isOver === nextProps.isOver

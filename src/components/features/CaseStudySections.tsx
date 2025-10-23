@@ -851,11 +851,11 @@ export function CaseStudySections({
                       className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
                       style={{
                         background: `radial-gradient(circle at 50% 50%, ${
-                          config.iconColor.includes('blue') ? '#3b82f620' :
-                          config.iconColor.includes('purple') ? '#8b5cf620' :
-                          config.iconColor.includes('pink') ? '#ec489920' :
-                          config.iconColor.includes('green') ? '#10b98120' :
-                          config.iconColor.includes('yellow') ? '#fbbf2420' : '#3b82f620'
+                          config?.iconColor?.includes('blue') ? '#3b82f620' :
+                          config?.iconColor?.includes('purple') ? '#8b5cf620' :
+                          config?.iconColor?.includes('pink') ? '#ec489920' :
+                          config?.iconColor?.includes('green') ? '#10b98120' :
+                          config?.iconColor?.includes('yellow') ? '#fbbf2420' : '#3b82f620'
                         }, transparent 70%)`,
                       }}
                     />
@@ -1013,9 +1013,9 @@ export function CaseStudySections({
                                 {isExpanded ? "Show less" : "Show more"}
                               </motion.span>
                               {isExpanded ? (
-                                <ChevronUp className={`w-4 h-4 ${config.iconColor}`} />
+                                <ChevronUp className={`w-4 h-4 ${config?.iconColor || 'text-blue-500'}`} />
                               ) : (
-                                <ChevronDown className={`w-4 h-4 ${config.iconColor}`} />
+                                <ChevronDown className={`w-4 h-4 ${config?.iconColor || 'text-blue-500'}`} />
                               )}
                             </button>
                           )}
@@ -1032,7 +1032,7 @@ export function CaseStudySections({
         
         const config = getSectionConfig(section.title);
 
-        const Icon = config.icon;
+        const Icon = config?.icon;
 
         // Special handling for My role & impact section (also matches "My role")
         if (section.title.toLowerCase().includes("my role")) {
@@ -1866,7 +1866,7 @@ export function CaseStudySections({
                       <div 
                         className="absolute left-0 top-0 bottom-0 w-1 rounded-l-xl"
                         style={{
-                          background: config.gradient
+                          background: config?.gradient || '#3b82f6'
                         }}
                       />
 
@@ -1942,9 +1942,9 @@ export function CaseStudySections({
                               {isExpanded ? "Show less" : "Show more"}
                             </motion.span>
                             {isExpanded ? (
-                              <ChevronUp className={`w-4 h-4 ${config.iconColor}`} />
+                              <ChevronUp className={`w-4 h-4 ${config?.iconColor || 'text-blue-500'}`} />
                             ) : (
-                              <ChevronDown className={`w-4 h-4 ${config.iconColor}`} />
+                              <ChevronDown className={`w-4 h-4 ${config?.iconColor || 'text-blue-500'}`} />
                             )}
                           </button>
                         )}
@@ -1979,7 +1979,7 @@ export function CaseStudySections({
             <div 
               className="absolute top-0 left-0 right-0 h-1 rounded-t-2xl"
               style={{
-                background: config.gradient
+                background: config?.gradient || '#3b82f6'
               }}
             />
 
@@ -1992,10 +1992,10 @@ export function CaseStudySections({
               <motion.path
                 d="M60,-20 Q70,30 75,80 Q80,130 85,180"
                 fill="none"
-                stroke={config.gradient.includes('#ec4899') ? '#ec4899' : 
-                       config.gradient.includes('#8b5cf6') ? '#8b5cf6' :
-                       config.gradient.includes('#fbbf24') ? '#fbbf24' :
-                       config.gradient.includes('#10b981') ? '#10b981' : '#3b82f6'}
+                stroke={config?.gradient?.includes('#ec4899') ? '#ec4899' : 
+                       config?.gradient?.includes('#8b5cf6') ? '#8b5cf6' :
+                       config?.gradient?.includes('#fbbf24') ? '#fbbf24' :
+                       config?.gradient?.includes('#10b981') ? '#10b981' : '#3b82f6'}
                 strokeWidth="18"
                 strokeLinecap="round"
                 className="group-hover:animate-[drawLine_2s_ease-in-out_forwards]"

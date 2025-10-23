@@ -458,6 +458,129 @@ export default function App() {
     window.scrollTo(0, 0);
   }, [currentPage]);
 
+  // Browser navigation support
+  useEffect(() => {
+    // Update URL when currentPage changes
+    const updateURL = () => {
+      const baseUrl = window.location.origin + window.location.pathname;
+      let newUrl = baseUrl;
+      
+      if (currentPage === "home") {
+        newUrl = baseUrl;
+      } else if (currentPage === "project-detail" && selectedProject) {
+        // Create friendly URL from project title
+        const friendlySlug = selectedProject.title
+          .toLowerCase()
+          .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
+          .replace(/\s+/g, '-') // Replace spaces with hyphens
+          .replace(/-+/g, '-') // Replace multiple hyphens with single
+          .trim();
+        newUrl = `${baseUrl}#/project/${friendlySlug}`;
+      } else {
+        newUrl = `${baseUrl}#/${currentPage}`;
+      }
+      
+      // Only update URL if it's different to avoid infinite loops
+      if (window.location.href !== newUrl) {
+        window.history.pushState({ page: currentPage, project: selectedProject?.id }, '', newUrl);
+      }
+    };
+
+    updateURL();
+  }, [currentPage, selectedProject]);
+
+  // Function to create friendly slug from title
+  const createSlug = (title: string): string => {
+    return title
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
+      .replace(/\s+/g, '-') // Replace spaces with hyphens
+      .replace(/-+/g, '-') // Replace multiple hyphens with single
+      .trim();
+  };
+
+  // Function to find project by friendly slug
+  const findProjectBySlug = async (slug: string): Promise<ProjectData | null> => {
+    try {
+      // First try Supabase
+      const { data, error } = await supabase
+        .from('projects')
+        .select('*');
+      
+      if (data && !error) {
+        const project = data.find((p: any) => createSlug(p.title) === slug);
+        if (project) return project as ProjectData;
+      }
+      
+      // If not found in Supabase, try localStorage
+      const caseStudies = localStorage.getItem('caseStudies');
+      if (caseStudies) {
+        const projects = JSON.parse(caseStudies);
+        const project = projects.find((p: any) => createSlug(p.title) === slug);
+        if (project) return project;
+      }
+      
+      const designProjects = localStorage.getItem('designProjects');
+      if (designProjects) {
+        const projects = JSON.parse(designProjects);
+        const project = projects.find((p: any) => createSlug(p.title) === slug);
+        if (project) return project;
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Error finding project by slug:', error);
+      return null;
+    }
+  };
+
+  // Listen for browser back/forward buttons
+  useEffect(() => {
+    const handlePopState = async (event: PopStateEvent) => {
+      const hash = window.location.hash;
+      
+      if (hash === '' || hash === '#') {
+        // Home page
+        setCurrentPage("home");
+        setSelectedProject(null);
+      } else if (hash.startsWith('#/project/')) {
+        // Project detail page
+        const projectSlug = hash.split('/project/')[1];
+        if (projectSlug) {
+          const project = await findProjectBySlug(projectSlug);
+          if (project) {
+            setSelectedProject(project);
+            setCurrentPage("project-detail");
+          } else {
+            console.warn('Project not found:', projectSlug);
+            setCurrentPage("home");
+            setSelectedProject(null);
+          }
+        }
+      } else if (hash.startsWith('#/')) {
+        // Other pages
+        const page = hash.substring(2) as Page;
+        if (['about', 'contact', 'music', 'visuals'].includes(page)) {
+          setCurrentPage(page);
+          setSelectedProject(null);
+        }
+      }
+    };
+
+    // Listen for browser navigation
+    window.addEventListener('popstate', handlePopState);
+    
+    // Parse initial URL on page load
+    const hash = window.location.hash;
+    if (hash !== '' && hash !== '#') {
+      handlePopState({} as PopStateEvent);
+    }
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, []);
+
   // NOW ALL HOOKS ARE DECLARED - SAFE TO DO CONDITIONAL RENDERING
   // If in emergency mode, show emergency recovery
   if (isEmergencyMode) {

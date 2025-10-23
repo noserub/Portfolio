@@ -35,7 +35,7 @@ export function Contact({ onBack, isEditMode = false }: ContactProps) {
     "Have a question or want to work together? I'd love to hear from you."
   );
   const [contactInfo, setContactInfo] = useState({
-    email: "brian@example.com",
+    email: "brian.bureson@gmail.com",
     location: "Colorado, USA",
     availability: "Open to new opportunities"
   });
@@ -477,7 +477,15 @@ export function Contact({ onBack, isEditMode = false }: ContactProps) {
   return (
     <PageLayout title="Get in touch" onBack={onBack} children={
       <>
-        <div className="max-w-7xl mx-auto">
+        <div 
+          className="max-w-7xl mx-auto"
+          style={{
+            maxWidth: '1200px',
+            margin: '0 auto',
+            paddingLeft: '24px',
+            paddingRight: '24px'
+          }}
+        >
         {/* Subheading */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -518,7 +526,7 @@ export function Contact({ onBack, isEditMode = false }: ContactProps) {
               </div>
             </div>
           ) : (
-            <p className="text-xl text-muted-foreground max-w-2xl">
+            <p className="text-xl text-muted-foreground">
               {pageSubtitle}
             </p>
           )}
