@@ -722,7 +722,7 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
 
   const resumeButton = (
     <motion.div
-      className="rounded-full p-[2px] w-full sm:w-auto"
+      className="rounded-full p-[2px] w-full lg:w-auto"
       animate={{
         background: [
           "linear-gradient(0deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
@@ -747,7 +747,7 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
           handleResumeClick();
           e.currentTarget.blur(); // Remove focus after click
         }}
-        className="relative rounded-full px-6 py-3 shadow-lg hover:shadow-xl transition-all duration-300 bg-background/80 backdrop-blur-sm hover:bg-background/60 cursor-pointer w-full h-[52px] flex items-center justify-center"
+        className="relative rounded-full px-6 py-3 shadow-lg hover:shadow-xl transition-all duration-300 bg-background/80 backdrop-blur-sm hover:bg-background/60 cursor-pointer w-full lg:w-auto h-[52px] flex items-center justify-center"
       >
         <span className="relative z-10 text-foreground font-bold flex items-center justify-center gap-2">
           <FileText className="w-4 h-4" />
@@ -761,11 +761,6 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
     <PageLayout 
       title="About" 
       onBack={onBack}
-      actionButton={
-        <div className="hidden lg:block">
-          {resumeButton}
-        </div>
-      }
     >
       <div 
         className="space-y-16 flex flex-col"
@@ -1052,8 +1047,8 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
               </p>
             )}
             
-            {/* Resume Button - Mobile Only, below text */}
-            <div className="lg:hidden mt-8">
+            {/* Resume Button - All screen sizes, below text */}
+            <div className="mt-8 flex justify-start">
               {resumeButton}
             </div>
           </div>
