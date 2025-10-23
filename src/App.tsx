@@ -274,9 +274,15 @@ export default function App() {
     // Check current auth state
     const checkAuthState = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      const isAuth = !!user;
+      const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
+      const isAuth = !!user || isBypassAuth;
       setIsAuthenticated(isAuth);
-      console.log('🔐 Initial auth check:', { isAuthenticated: isAuth, user: user?.email });
+      console.log('🔐 Initial auth check:', { 
+        isAuthenticated: isAuth, 
+        user: user?.email, 
+        bypassAuth: isBypassAuth,
+        authType: user ? 'Supabase' : (isBypassAuth ? 'Bypass' : 'None')
+      });
     };
 
     checkAuthState();
@@ -285,15 +291,22 @@ export default function App() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log('🔐 Supabase auth state changed:', { event, user: session?.user?.email });
       
-      const isAuth = !!session?.user;
+      const isSupabaseAuth = !!session?.user;
+      const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
+      const isAuth = isSupabaseAuth || isBypassAuth;
       setIsAuthenticated(isAuth);
       
-      if (isAuth) {
+      if (isSupabaseAuth) {
         localStorage.setItem('isAuthenticated', 'true');
         console.log('✅ Signed in - authentication persisted to localStorage');
       } else {
-        localStorage.removeItem('isAuthenticated');
-        console.log('👋 Signed out - authentication cleared from localStorage');
+        // Only clear localStorage if we're actually signing out, not just checking auth state
+        if (event === 'SIGNED_OUT') {
+          localStorage.removeItem('isAuthenticated');
+          console.log('👋 Signed out - authentication cleared from localStorage');
+        } else {
+          console.log('🔍 Auth state changed but not signing out, keeping bypass auth if present');
+        }
       }
     });
 
