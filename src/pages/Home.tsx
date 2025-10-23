@@ -8,6 +8,7 @@ import { Lightbox } from "../components/Lightbox";
 // Removed performance optimizations that were causing slowdown
 import { useSEO } from "../hooks/useSEO";
 import { useProjects } from "../hooks/useProjects";
+import { useDebounce } from "../hooks/useDebounce";
 import { supabase } from "../lib/supabaseClient";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -2199,58 +2200,61 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     loadHeroTextWithCache();
   }, []);
 
-  // Save heroText to localStorage and Supabase (simplified)
-  useEffect(() => {
-    const saveHeroText = async () => {
-      // Always save to localStorage first
+  // Save heroText to localStorage and Supabase (with debouncing to prevent excessive API calls)
+  const saveHeroText = useCallback(async () => {
+    // Always save to localStorage first
     localStorage.setItem('heroText', JSON.stringify(heroText));
-      console.log('💾 Hero text saved to localStorage');
-      
-      // Try to save to Supabase for shared access (with error handling)
-      try {
-        const { supabase } = await import('../lib/supabaseClient');
-        const { data: { user } } = await supabase.auth.getUser();
-        const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
-        
-        if (user || isBypassAuth) {
-          const userId = user?.id || '7cd2752f-93c5-46e6-8535-32769fb10055';
-          console.log('💾 Saving hero text to Supabase for shared access:', userId);
-          
-          // Try to update existing profile first
-          const { error: updateError } = await supabase
-            .from('profiles')
-            .update({ hero_text: heroText })
-            .eq('id', userId);
-            
-          if (updateError) {
-            console.log('📝 Profile not found, creating new profile with hero text...');
-            // If profile doesn't exist, create it
-            const { error: insertError } = await supabase
-              .from('profiles')
-              .insert({
-                id: userId,
-                email: user?.email || 'brian.bureson@gmail.com',
-                full_name: 'Brian Bureson',
-                hero_text: heroText
-              });
-              
-            if (insertError) {
-              console.warn('⚠️ Failed to save to Supabase (egress limits?):', insertError.message);
-            } else {
-              console.log('✅ Created profile with hero text in Supabase');
-            }
-          } else {
-            console.log('✅ Hero text updated in Supabase (shared)');
-          }
-        }
-      } catch (error) {
-        console.warn('⚠️ Supabase save failed (egress limits?):', error);
-        console.log('💾 Hero text saved to localStorage only');
-      }
-    };
+    console.log('💾 Hero text saved to localStorage');
     
-    saveHeroText();
+    // Try to save to Supabase for shared access (with error handling)
+    try {
+      const { supabase } = await import('../lib/supabaseClient');
+      const { data: { user } } = await supabase.auth.getUser();
+      const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
+      
+      if (user || isBypassAuth) {
+        const userId = user?.id || '7cd2752f-93c5-46e6-8535-32769fb10055';
+        console.log('💾 Saving hero text to Supabase for shared access:', userId);
+        
+        // Try to update existing profile first
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({ hero_text: heroText })
+          .eq('id', userId);
+          
+        if (updateError) {
+          console.log('📝 Profile not found, creating new profile with hero text...');
+          // If profile doesn't exist, create it
+          const { error: insertError } = await supabase
+            .from('profiles')
+            .insert({
+              id: userId,
+              email: user?.email || 'brian.bureson@gmail.com',
+              full_name: 'Brian Bureson',
+              hero_text: heroText
+            });
+            
+          if (insertError) {
+            console.warn('⚠️ Failed to save to Supabase (egress limits?):', insertError.message);
+          } else {
+            console.log('✅ Created profile with hero text in Supabase');
+          }
+        } else {
+          console.log('✅ Hero text updated in Supabase (shared)');
+        }
+      }
+    } catch (error) {
+      console.warn('⚠️ Supabase save failed (egress limits?):', error);
+      console.log('💾 Hero text saved to localStorage only');
+    }
   }, [heroText]);
+
+  // Debounce the save operation to prevent excessive API calls
+  const debouncedSaveHeroText = useDebounce(saveHeroText, 1000); // 1 second delay
+
+  useEffect(() => {
+    debouncedSaveHeroText();
+  }, [debouncedSaveHeroText]);
   
   // Use ref to store greetings array - prevents infinite re-render loops
   const greetingsRef = useRef([]);
