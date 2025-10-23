@@ -1447,18 +1447,30 @@ export default function App() {
               const { egressManager } = await import('./utils/egressManager');
               const { cacheManager } = await import('./utils/cacheManager');
               
+              // Force immediate check with enhanced detection
+              console.log('🔍 Running enhanced egress detection...');
+              const isLimited = await egressManager.forceCheck();
+              
+              // Get detailed error analysis
+              const errorAnalysis = await egressManager.analyzeErrors();
+              
               const egressStatus = egressManager.getStatus();
               const cacheStats = cacheManager.getStats();
               const usageStats = egressManager.getUsageStats();
               
               const report = `
-🚀 EGRESS & CACHE STATUS REPORT
+🚀 ENHANCED EGRESS & CACHE STATUS REPORT
 
 📊 Egress Status:
 • Fallback Mode: ${egressStatus.fallbackMode ? '🔄 ON' : '✅ OFF'}
 • Is Limited: ${egressStatus.isLimited ? '🚫 YES' : '✅ NO'}
 • Error Count: ${egressStatus.errorCount}
 • Last Check: ${new Date(egressStatus.lastCheck).toLocaleTimeString()}
+
+🔍 Error Analysis:
+• Has Errors: ${errorAnalysis.hasErrors ? '🚫 YES' : '✅ NO'}
+• Error Types: ${errorAnalysis.errorTypes.length > 0 ? errorAnalysis.errorTypes.join(', ') : 'None detected'}
+• Recommendations: ${errorAnalysis.recommendations.length > 0 ? errorAnalysis.recommendations.join('; ') : 'No issues found'}
 
 📦 Cache Stats:
 • Total Items: ${cacheStats.total}
@@ -1470,29 +1482,33 @@ export default function App() {
 • localStorage Keys: ${usageStats.localStorageKeys}
 • Fallback Mode: ${usageStats.fallbackMode ? '🔄 ON' : '✅ OFF'}
 
-🎯 Recommendations:
+🎯 Action Items:
 ${egressStatus.fallbackMode ? 
-  '• Currently in fallback mode - Supabase calls disabled' : 
-  '• Supabase is working normally'
+  '• ✅ Fallback mode is active - Supabase calls are disabled' : 
+  '• ⚠️ Supabase is working - monitor for limits'
+}
+${errorAnalysis.hasErrors ? 
+  `• 🚨 Issues detected: ${errorAnalysis.errorTypes.join(', ')}` : 
+  '• ✅ No issues detected'
 }
 ${cacheStats.expired > 0 ? 
-  '• Some cache items expired - consider cleanup' : 
-  '• Cache is healthy'
+  '• 🧹 Some cache items expired - consider cleanup' : 
+  '• ✅ Cache is healthy'
 }
               `;
               
               console.log(report);
               alert(report);
             } catch (error) {
-              console.error('Status check error:', error);
-              alert('❌ Error checking status');
+              console.error('Enhanced status check error:', error);
+              alert('❌ Error running enhanced status check: ' + error.message);
             }
           }}
           variant="outline"
           size="sm"
           className="rounded-full shadow-sm backdrop-blur-sm bg-green-50 hover:bg-green-100 dark:bg-green-900/20 dark:hover:bg-green-900/30 border-green-500/50"
         >
-          📊 Egress Status
+          🔍 Enhanced Detection
         </Button>
             <Button
               onClick={handleSignOut}

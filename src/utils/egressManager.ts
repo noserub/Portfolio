@@ -22,7 +22,7 @@ class EgressManager {
   private readonly CHECK_INTERVAL = 5 * 60 * 1000; // 5 minutes
 
   /**
-   * Check if we're hitting egress limits
+   * Check if we're hitting egress limits with enhanced detection
    */
   async checkEgressStatus(): Promise<boolean> {
     const now = Date.now();
@@ -33,29 +33,71 @@ class EgressManager {
     }
 
     try {
-      // Try a simple Supabase query to test connectivity
       const { supabase } = await import('../lib/supabaseClient');
-      const { error } = await supabase
-        .from('profiles')
-        .select('id')
-        .limit(1);
+      
+      // Test multiple endpoints to get a better picture
+      const tests = await Promise.allSettled([
+        // Test 1: Simple profile query
+        supabase.from('profiles').select('id').limit(1),
+        // Test 2: App settings query
+        supabase.from('app_settings').select('id').limit(1),
+        // Test 3: Projects query
+        supabase.from('projects').select('id').limit(1)
+      ]);
 
-      if (error) {
-        // Check if it's an egress/rate limit error
-        if (this.isEgressError(error)) {
-          this.status.isLimited = true;
-          this.status.fallbackMode = true;
-          console.warn('🚫 Egress limit detected, switching to fallback mode');
-          return true;
+      let errorCount = 0;
+      let egressErrors = 0;
+      let rateLimitErrors = 0;
+      let quotaErrors = 0;
+
+      // Analyze all test results
+      for (const test of tests) {
+        if (test.status === 'rejected') {
+          errorCount++;
+          const error = test.reason;
+          if (this.isEgressError(error)) egressErrors++;
+          if (this.isRateLimitError(error)) rateLimitErrors++;
+          if (this.isQuotaError(error)) quotaErrors++;
+        } else if (test.status === 'fulfilled' && test.value.error) {
+          errorCount++;
+          const error = test.value.error;
+          if (this.isEgressError(error)) egressErrors++;
+          if (this.isRateLimitError(error)) rateLimitErrors++;
+          if (this.isQuotaError(error)) quotaErrors++;
         }
+      }
+
+      // Determine if we should enable fallback mode
+      const shouldEnableFallback = 
+        egressErrors > 0 || 
+        rateLimitErrors > 0 || 
+        quotaErrors > 0 || 
+        errorCount >= 2; // If 2+ tests fail
+
+      if (shouldEnableFallback) {
+        this.status.isLimited = true;
+        this.status.fallbackMode = true;
+        this.status.errorCount = errorCount;
+        
+        console.warn('🚫 Supabase limits detected:', {
+          egressErrors,
+          rateLimitErrors,
+          quotaErrors,
+          totalErrors: errorCount,
+          fallbackMode: 'ENABLED'
+        });
+        return true;
       } else {
         // Success - reset error count
         this.status.errorCount = 0;
         this.status.isLimited = false;
         this.status.fallbackMode = false;
+        console.log('✅ Supabase connectivity confirmed');
       }
     } catch (error) {
       this.status.errorCount++;
+      console.error('❌ Egress check failed:', error);
+      
       if (this.status.errorCount >= this.MAX_ERRORS) {
         this.status.isLimited = true;
         this.status.fallbackMode = true;
@@ -81,7 +123,46 @@ class EgressManager {
       message.includes('rate limit') ||
       code === 'PGRST301' || // Rate limit
       code === 'PGRST302' || // Quota exceeded
-      message.includes('too many requests')
+      message.includes('too many requests') ||
+      message.includes('bandwidth') ||
+      message.includes('data transfer') ||
+      message.includes('usage limit')
+    );
+  }
+
+  /**
+   * Check if error is related to rate limiting
+   */
+  private isRateLimitError(error: any): boolean {
+    const message = error?.message?.toLowerCase() || '';
+    const code = error?.code || '';
+    
+    return (
+      message.includes('rate limit') ||
+      message.includes('too many requests') ||
+      message.includes('throttle') ||
+      message.includes('429') ||
+      code === 'PGRST301' ||
+      code === '429' ||
+      message.includes('request limit')
+    );
+  }
+
+  /**
+   * Check if error is related to quota limits
+   */
+  private isQuotaError(error: any): boolean {
+    const message = error?.message?.toLowerCase() || '';
+    const code = error?.code || '';
+    
+    return (
+      message.includes('quota') ||
+      message.includes('exceeded') ||
+      message.includes('limit reached') ||
+      message.includes('usage limit') ||
+      code === 'PGRST302' ||
+      message.includes('plan limit') ||
+      message.includes('subscription limit')
     );
   }
 
@@ -183,6 +264,72 @@ class EgressManager {
     };
 
     return stats;
+  }
+
+  /**
+   * Force immediate egress check (bypasses interval)
+   */
+  async forceCheck(): Promise<boolean> {
+    console.log('🔍 Forcing immediate egress check...');
+    this.status.lastCheck = 0; // Reset last check to force immediate check
+    return await this.checkEgressStatus();
+  }
+
+  /**
+   * Get detailed error analysis
+   */
+  async analyzeErrors(): Promise<{
+    hasErrors: boolean;
+    errorTypes: string[];
+    recommendations: string[];
+  }> {
+    try {
+      const { supabase } = await import('../lib/supabaseClient');
+      
+      const tests = await Promise.allSettled([
+        supabase.from('profiles').select('id').limit(1),
+        supabase.from('app_settings').select('id').limit(1),
+        supabase.from('projects').select('id').limit(1)
+      ]);
+
+      const errorTypes: string[] = [];
+      let hasErrors = false;
+
+      for (const test of tests) {
+        if (test.status === 'rejected') {
+          hasErrors = true;
+          const error = test.reason;
+          if (this.isEgressError(error)) errorTypes.push('Egress Limit');
+          if (this.isRateLimitError(error)) errorTypes.push('Rate Limit');
+          if (this.isQuotaError(error)) errorTypes.push('Quota Exceeded');
+        } else if (test.status === 'fulfilled' && test.value.error) {
+          hasErrors = true;
+          const error = test.value.error;
+          if (this.isEgressError(error)) errorTypes.push('Egress Limit');
+          if (this.isRateLimitError(error)) errorTypes.push('Rate Limit');
+          if (this.isQuotaError(error)) errorTypes.push('Quota Exceeded');
+        }
+      }
+
+      const recommendations: string[] = [];
+      if (errorTypes.includes('Egress Limit')) {
+        recommendations.push('Enable fallback mode to reduce egress usage');
+      }
+      if (errorTypes.includes('Rate Limit')) {
+        recommendations.push('Implement request throttling and caching');
+      }
+      if (errorTypes.includes('Quota Exceeded')) {
+        recommendations.push('Consider upgrading Supabase plan or optimizing data usage');
+      }
+
+      return { hasErrors, errorTypes, recommendations };
+    } catch (error) {
+      return {
+        hasErrors: true,
+        errorTypes: ['Connection Error'],
+        recommendations: ['Check network connectivity and Supabase status']
+      };
+    }
   }
 }
 
