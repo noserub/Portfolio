@@ -370,6 +370,15 @@ export async function uploadFaviconToSupabase(file: File): Promise<string | null
 // Get favicon from Supabase Storage
 export async function getFaviconFromSupabase(): Promise<string | null> {
   try {
+    // First, let's check if there are ANY records in app_settings
+    console.log('🔍 Checking for ANY records in app_settings...');
+    const { data: allRecords, error: allRecordsError } = await supabase
+      .from('app_settings')
+      .select('*')
+      .limit(5);
+    
+    console.log('🔍 All app_settings records:', { allRecords, allRecordsError });
+    
     // First try to get any favicon (most permissive query)
     console.log('🔍 Checking for any favicon...');
     const { data: anySettings, error: anyError } = await supabase
@@ -387,13 +396,14 @@ export async function getFaviconFromSupabase(): Promise<string | null> {
       return anySettings.favicon_url;
     } else {
       console.log('❌ No favicon found:', { anyError, anySettings });
-      console.log('🔍 Debug - anySettings details:', {
-        data: anySettings,
-        hasData: !!anySettings,
-        hasFaviconUrl: !!anySettings?.favicon_url,
-        faviconUrl: anySettings?.favicon_url,
-        isPublic: anySettings?.is_public
-      });
+    console.log('🔍 Debug - anySettings details:', {
+      data: anySettings,
+      hasData: !!anySettings,
+      hasFaviconUrl: !!anySettings?.favicon_url,
+      faviconUrl: anySettings?.favicon_url,
+      isPublic: anySettings?.is_public,
+      fullObject: JSON.stringify(anySettings, null, 2)
+    });
     }
 
     // Try to get public favicon as fallback (more restrictive query)

@@ -1352,36 +1352,82 @@ export default function App() {
             >
               🔧 Fix Issues
             </Button>
-            <Button
-              onClick={async () => {
-                try {
-                  console.log('🔄 Manually refreshing favicon...');
-                  const { getFaviconFromSupabase, updateFavicon, getSEOData } = await import('./utils/seoManager');
-                  const faviconUrl = await getFaviconFromSupabase();
-                  
-                  if (faviconUrl) {
-                    const seoData = getSEOData();
-                    const updatedSitewide = {
-                      ...seoData.sitewide,
-                      faviconType: 'image' as const,
-                      faviconImageUrl: faviconUrl
-                    };
-                    updateFavicon(updatedSitewide);
-                    alert('✅ Favicon refreshed successfully!');
-                  } else {
-                    alert('❌ No favicon found in Supabase');
-                  }
-                } catch (error) {
-                  console.error('Error refreshing favicon:', error);
-                  alert('❌ Error refreshing favicon: ' + error.message);
-                }
-              }}
-              variant="outline"
-              size="sm"
-              className="rounded-full shadow-sm backdrop-blur-sm bg-green-50 hover:bg-green-100 dark:bg-green-900/20 dark:hover:bg-green-900/30 border-green-500/50"
-            >
-              🔄 Refresh Favicon
-            </Button>
+        <Button
+          onClick={async () => {
+            try {
+              console.log('🔄 Manually refreshing favicon...');
+              const { getFaviconFromSupabase, updateFavicon, getSEOData } = await import('./utils/seoManager');
+              const faviconUrl = await getFaviconFromSupabase();
+              
+              if (faviconUrl) {
+                const seoData = getSEOData();
+                const updatedSitewide = {
+                  ...seoData.sitewide,
+                  faviconType: 'image' as const,
+                  faviconImageUrl: faviconUrl
+                };
+                updateFavicon(updatedSitewide);
+                alert('✅ Favicon refreshed successfully!');
+              } else {
+                alert('❌ No favicon found in Supabase');
+              }
+            } catch (error) {
+              console.error('Error refreshing favicon:', error);
+              alert('❌ Error refreshing favicon: ' + error.message);
+            }
+          }}
+          variant="outline"
+          size="sm"
+          className="rounded-full shadow-sm backdrop-blur-sm bg-green-50 hover:bg-green-100 dark:bg-green-900/20 dark:hover:bg-green-900/30 border-green-500/50"
+        >
+          🔄 Refresh Favicon
+        </Button>
+        
+        <Button
+          onClick={async () => {
+            try {
+              console.log('🔍 Testing favicon save...');
+              const { supabase } = await import('./lib/supabaseClient');
+              const { data: { user } } = await supabase.auth.getUser();
+              const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
+              const userId = user?.id || '7cd2752f-93c5-46e6-8535-32769fb10055';
+              
+              console.log('🔍 Test save - user:', userId, 'auth type:', user ? 'Supabase' : 'Bypass');
+              
+              // Try to save a test favicon
+              const testFaviconUrl = 'https://example.com/test-favicon.ico';
+              const { data, error } = await supabase
+                .from('app_settings')
+                .upsert({
+                  user_id: userId,
+                  favicon_url: testFaviconUrl,
+                  theme: 'dark',
+                  is_authenticated: true,
+                  show_debug_panel: false,
+                  is_public: true
+                }, { 
+                  onConflict: 'user_id',
+                  ignoreDuplicates: false 
+                });
+                
+              if (error) {
+                console.error('❌ Test save failed:', error);
+                alert('❌ Test save failed: ' + error.message);
+              } else {
+                console.log('✅ Test save successful:', data);
+                alert('✅ Test favicon saved successfully!');
+              }
+            } catch (error) {
+              console.error('Error testing favicon save:', error);
+              alert('❌ Error testing favicon save: ' + error.message);
+            }
+          }}
+          variant="outline"
+          size="sm"
+          className="rounded-full shadow-sm backdrop-blur-sm bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/30 border-blue-500/50"
+        >
+          🧪 Test Favicon Save
+        </Button>
             <Button
               onClick={handleSignOut}
               variant="ghost"
