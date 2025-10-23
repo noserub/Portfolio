@@ -320,27 +320,11 @@ export default function App() {
   const [showSEOEditor, setShowSEOEditor] = useState(false);
   const [showComponentLibrary, setShowComponentLibrary] = useState(false);
   
-  const [pageVisibility, setPageVisibility] = useState(() => {
-    try {
-      const saved = localStorage.getItem('pageVisibility');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        return {
-          about: parsed.about ?? true,
-          contact: parsed.contact ?? true,
-          music: parsed.music ?? true,
-          visuals: parsed.visuals ?? true
-        };
-      }
-    } catch (e) {
-      console.error('Error loading page visibility:', e);
-    }
-    return {
+  const [pageVisibility, setPageVisibility] = useState({
       about: true,
       contact: true,
       music: true,
       visuals: true
-    };
   });
   
 
@@ -349,9 +333,113 @@ export default function App() {
 
   // Logo is now saved to Supabase via updateSettings
 
-  // Save page visibility to localStorage
+  // Load page visibility from Supabase and localStorage
   useEffect(() => {
-    localStorage.setItem('pageVisibility', JSON.stringify(pageVisibility));
+    const loadPageVisibility = async () => {
+      try {
+        // Try to load from Supabase first
+        const { data: { user } } = await supabase.auth.getUser();
+        const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
+        const userId = user?.id || '7cd2752f-93c5-46e6-8535-32769fb10055';
+        
+        if (user || isBypassAuth) {
+          console.log('📄 Loading page visibility from Supabase for user:', userId);
+          
+          const { data, error } = await supabase
+            .from('page_visibility')
+            .select('*')
+            .eq('user_id', userId)
+            .single();
+            
+          if (data && !error) {
+            console.log('✅ Page visibility loaded from Supabase:', data);
+            setPageVisibility({
+              about: data.about ?? true,
+              contact: data.contact ?? true,
+              music: data.music ?? true,
+              visuals: data.visuals ?? true
+            });
+            return;
+          }
+        }
+        
+        // Fallback to localStorage
+      const saved = localStorage.getItem('pageVisibility');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+          console.log('📄 Page visibility loaded from localStorage:', parsed);
+          setPageVisibility({
+          about: parsed.about ?? true,
+          contact: parsed.contact ?? true,
+          music: parsed.music ?? true,
+          visuals: parsed.visuals ?? true
+          });
+        }
+      } catch (error) {
+        console.error('❌ Error loading page visibility:', error);
+      }
+    };
+    
+    loadPageVisibility();
+  }, []);
+
+  // Save page visibility to both localStorage and Supabase
+  useEffect(() => {
+    const savePageVisibility = async () => {
+      try {
+        // Always save to localStorage first
+        localStorage.setItem('pageVisibility', JSON.stringify(pageVisibility));
+        console.log('💾 Page visibility saved to localStorage');
+        
+        // Try to save to Supabase for shared access
+        const { data: { user } } = await supabase.auth.getUser();
+        const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
+        const userId = user?.id || '7cd2752f-93c5-46e6-8535-32769fb10055';
+        
+        if (user || isBypassAuth) {
+          console.log('💾 Saving page visibility to Supabase for shared access:', userId);
+          
+          // Try to update existing record first
+          const { error: updateError } = await supabase
+            .from('page_visibility')
+            .update({
+              about: pageVisibility.about,
+              contact: pageVisibility.contact,
+              music: pageVisibility.music,
+              visuals: pageVisibility.visuals,
+              updated_at: new Date().toISOString()
+            })
+            .eq('user_id', userId);
+            
+          if (updateError) {
+            console.log('📝 Page visibility record not found, creating new one...');
+            // If record doesn't exist, create it
+            const { error: insertError } = await supabase
+              .from('page_visibility')
+              .insert({
+                user_id: userId,
+                about: pageVisibility.about,
+                contact: pageVisibility.contact,
+                music: pageVisibility.music,
+                visuals: pageVisibility.visuals
+              });
+              
+            if (insertError) {
+              console.warn('⚠️ Failed to save page visibility to Supabase:', insertError.message);
+            } else {
+              console.log('✅ Page visibility created in Supabase');
+            }
+          } else {
+            console.log('✅ Page visibility updated in Supabase');
+          }
+        }
+      } catch (error) {
+        console.warn('⚠️ Page visibility save failed:', error);
+        console.log('💾 Page visibility saved to localStorage only');
+      }
+    };
+    
+    savePageVisibility();
   }, [pageVisibility]);
 
   // Apply theme to document and save to localStorage
@@ -987,6 +1075,14 @@ export default function App() {
     }
   };
 
+  // Handle page visibility changes
+  const handlePageVisibilityChange = async (page: keyof typeof pageVisibility) => {
+    const newVisibility = { ...pageVisibility, [page]: !pageVisibility[page] };
+    setPageVisibility(newVisibility);
+    
+    // The useEffect will handle saving to both localStorage and Supabase
+    console.log(`📄 Page visibility changed: ${String(page)} = ${newVisibility[page]}`);
+  };
 
   // Removed unused import function - data now saved to Supabase automatically
 
@@ -1138,7 +1234,7 @@ export default function App() {
         onLogoClick={navigateHome} 
         isEditMode={isEditMode}
       />
-      
+
 
       {/* Header Controls - Top Left */}
       <motion.div
@@ -1307,7 +1403,7 @@ export default function App() {
               <div className="text-xs font-semibold text-muted-foreground mb-1">Page Visibility</div>
               <div className="flex flex-wrap gap-2">
                 <Button
-                  onClick={() => setPageVisibility({ ...pageVisibility, about: !pageVisibility.about })}
+                  onClick={() => handlePageVisibilityChange('about')}
                   variant={pageVisibility.about ? "default" : "secondary"}
                   size="sm"
                   className="text-xs"
@@ -1315,7 +1411,7 @@ export default function App() {
                   About: {pageVisibility.about ? "Live" : "Draft"}
                 </Button>
                 <Button
-                  onClick={() => setPageVisibility({ ...pageVisibility, contact: !pageVisibility.contact })}
+                  onClick={() => handlePageVisibilityChange('contact')}
                   variant={pageVisibility.contact ? "default" : "secondary"}
                   size="sm"
                   className="text-xs"
@@ -1323,7 +1419,7 @@ export default function App() {
                   Contact: {pageVisibility.contact ? "Live" : "Draft"}
                 </Button>
                 <Button
-                  onClick={() => setPageVisibility({ ...pageVisibility, music: !pageVisibility.music })}
+                  onClick={() => handlePageVisibilityChange('music')}
                   variant={pageVisibility.music ? "default" : "secondary"}
                   size="sm"
                   className="text-xs"
@@ -1331,7 +1427,7 @@ export default function App() {
                   Music: {pageVisibility.music ? "Live" : "Draft"}
                 </Button>
                 <Button
-                  onClick={() => setPageVisibility({ ...pageVisibility, visuals: !pageVisibility.visuals })}
+                  onClick={() => handlePageVisibilityChange('visuals')}
                   variant={pageVisibility.visuals ? "default" : "secondary"}
                   size="sm"
                   className="text-xs"
