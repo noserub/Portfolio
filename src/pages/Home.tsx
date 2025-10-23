@@ -2129,16 +2129,42 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
         
         // Always try to load from Supabase first, regardless of authentication
-        // Use fallback user ID for public access
-        const userId = user?.id || '7cd2752f-93c5-46e6-8535-32769fb10055';
+        let data, error;
         
-        console.log('🏠 Home: Loading hero text from Supabase for user:', userId, 'Auth type:', user ? 'Supabase' : (isBypassAuth ? 'Bypass' : 'Public'));
-        
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('hero_text')
-          .eq('id', userId)
-          .single();
+        if (user || isBypassAuth) {
+          // Authenticated user - use their ID
+          const userId = user?.id || '7cd2752f-93c5-46e6-8535-32769fb10055';
+          console.log('🏠 Home: Loading hero text from Supabase for user:', userId, 'Auth type:', user ? 'Supabase' : 'Bypass');
+          
+          const result = await supabase
+            .from('profiles')
+            .select('hero_text')
+            .eq('id', userId)
+            .single();
+          data = result.data;
+          error = result.error;
+        } else {
+          // Not authenticated - try to get any profile with hero_text
+          console.log('🏠 Home: Loading hero text from Supabase (public access)');
+          
+          // First, let's see what profiles exist
+          const { data: allProfiles, error: listError } = await supabase
+            .from('profiles')
+            .select('id, hero_text, updated_at')
+            .limit(5);
+          
+          console.log('🔍 Available profiles:', { allProfiles, listError });
+          
+          const result = await supabase
+            .from('profiles')
+            .select('hero_text')
+            .not('hero_text', 'is', null)
+            .order('updated_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          data = result.data;
+          error = result.error;
+        }
           
         if (error) {
           console.log('❌ Failed to load hero text from Supabase:', error);
