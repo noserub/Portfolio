@@ -2128,47 +2128,46 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         const { data: { user } } = await supabase.auth.getUser();
         const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
         
-        if (user || isBypassAuth) {
-          const userId = user?.id || '7cd2752f-93c5-46e6-8535-32769fb10055';
+        // Always try to load from Supabase first, regardless of authentication
+        // Use fallback user ID for public access
+        const userId = user?.id || '7cd2752f-93c5-46e6-8535-32769fb10055';
+        
+        console.log('🏠 Home: Loading hero text from Supabase for user:', userId, 'Auth type:', user ? 'Supabase' : (isBypassAuth ? 'Bypass' : 'Public'));
+        
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('hero_text')
+          .eq('id', userId)
+          .single();
           
-          console.log('🏠 Home: Loading hero text from Supabase for user:', userId);
-          
-          const { data, error } = await supabase
-            .from('profiles')
-            .select('hero_text')
-            .eq('id', userId)
-            .single();
-            
-          if (error) {
-            console.log('❌ Failed to load hero text from Supabase:', error);
-            // Fall back to localStorage
-            const saved = localStorage.getItem('heroText');
-            if (saved) {
-              try {
-                const parsed = JSON.parse(saved);
-                if (parsed && typeof parsed === 'object') {
-                  setHeroText(parsed);
-                  console.log('✅ Loaded hero text from localStorage fallback');
-                }
-              } catch (e) {
-                console.error('❌ Error parsing localStorage hero text:', e);
-              }
-            }
-          } else if (data?.hero_text) {
-            setHeroText(data.hero_text);
-            console.log('✅ Loaded hero text from Supabase');
-          } else {
-            console.log('📝 No hero text in Supabase, using defaults');
-          }
-        } else {
-          // Not authenticated, try localStorage
+        if (error) {
+          console.log('❌ Failed to load hero text from Supabase:', error);
+          // Fall back to localStorage
           const saved = localStorage.getItem('heroText');
           if (saved) {
             try {
               const parsed = JSON.parse(saved);
               if (parsed && typeof parsed === 'object') {
                 setHeroText(parsed);
-                console.log('✅ Loaded hero text from localStorage (not authenticated)');
+                console.log('✅ Loaded hero text from localStorage fallback');
+              }
+            } catch (e) {
+              console.error('❌ Error parsing localStorage hero text:', e);
+            }
+          }
+        } else if (data?.hero_text) {
+          setHeroText(data.hero_text);
+          console.log('✅ Loaded hero text from Supabase');
+        } else {
+          console.log('📝 No hero text in Supabase, trying localStorage...');
+          // Fall back to localStorage
+          const saved = localStorage.getItem('heroText');
+          if (saved) {
+            try {
+              const parsed = JSON.parse(saved);
+              if (parsed && typeof parsed === 'object') {
+                setHeroText(parsed);
+                console.log('✅ Loaded hero text from localStorage fallback');
               }
             } catch (e) {
               console.error('❌ Error parsing localStorage hero text:', e);
@@ -2177,6 +2176,19 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         }
       } catch (error) {
         console.error('❌ Error loading hero text from Supabase:', error);
+        // Final fallback to localStorage
+        const saved = localStorage.getItem('heroText');
+        if (saved) {
+          try {
+            const parsed = JSON.parse(saved);
+            if (parsed && typeof parsed === 'object') {
+              setHeroText(parsed);
+              console.log('✅ Loaded hero text from localStorage (error fallback)');
+            }
+          } catch (e) {
+            console.error('❌ Error parsing localStorage hero text:', e);
+          }
+        }
       }
     };
     

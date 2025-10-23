@@ -379,8 +379,8 @@ export async function getFaviconFromSupabase(): Promise<string | null> {
     
     console.log('🔍 All app_settings records:', { allRecords, allRecordsError });
     
-    // First try to get any favicon (most permissive query)
-    console.log('🔍 Checking for any favicon...');
+    // First try to get any favicon (most permissive query) - works for public access
+    console.log('🔍 Checking for any favicon (public access)...');
     const { data: anySettings, error: anyError } = await supabase
       .from('app_settings')
       .select('favicon_url, is_public')
