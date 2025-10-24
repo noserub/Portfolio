@@ -73,12 +73,15 @@ export function Music({ onBack, isEditMode }: MusicProps) {
     const updateTime = () => setCurrentTime(audio.currentTime);
     const updateDuration = () => setDuration(audio.duration);
     const handleEnded = () => {
-      // Auto-play next song
-      if (currentSongIndex < songs.length - 1) {
-        setCurrentSongIndex(currentSongIndex + 1);
-      } else {
-        setIsPlaying(false);
-      }
+      // Auto-play next song using functional state update to avoid stale closures
+      setCurrentSongIndex(prev => {
+        if (prev < songs.length - 1) {
+          return prev + 1;
+        } else {
+          setIsPlaying(false);
+          return prev;
+        }
+      });
     };
 
     audio.addEventListener('timeupdate', updateTime);
@@ -90,7 +93,7 @@ export function Music({ onBack, isEditMode }: MusicProps) {
       audio.removeEventListener('loadedmetadata', updateDuration);
       audio.removeEventListener('ended', handleEnded);
     };
-  }, [currentSongIndex, songs.length]);
+  }, [songs.length]); // Remove currentSongIndex from dependencies
 
   useEffect(() => {
     const audio = audioRef.current;

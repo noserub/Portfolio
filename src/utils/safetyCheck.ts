@@ -6,9 +6,13 @@
 // DON'T import diagnostics here - it might cause issues during initial load
 // We'll import it only when needed inside functions
 
+// Store cleanup functions for global error handlers
+let errorHandlerCleanup: (() => void) | null = null;
+let rejectionHandlerCleanup: (() => void) | null = null;
+
 // Install global error handler before anything else
 if (typeof window !== 'undefined') {
-  window.addEventListener('error', (event) => {
+  const errorHandler = (event: ErrorEvent) => {
     console.error('🚨 GLOBAL ERROR CAUGHT:', event.error);
     console.error('Message:', event.message);
     console.error('Filename:', event.filename);
@@ -120,11 +124,37 @@ if (typeof window !== 'undefined') {
         document.body.innerHTML = errorHtml;
       }
     }, 100);
-  });
+  };
   
-  window.addEventListener('unhandledrejection', (event) => {
+  const rejectionHandler = (event: PromiseRejectionEvent) => {
     console.error('🚨 UNHANDLED PROMISE REJECTION:', event.reason);
-  });
+  };
+  
+  // Add event listeners
+  window.addEventListener('error', errorHandler);
+  window.addEventListener('unhandledrejection', rejectionHandler);
+  
+  // Store cleanup functions
+  errorHandlerCleanup = () => {
+    window.removeEventListener('error', errorHandler);
+  };
+  
+  rejectionHandlerCleanup = () => {
+    window.removeEventListener('unhandledrejection', rejectionHandler);
+  };
+}
+
+// Cleanup function for global error handlers
+export function cleanupErrorHandlers() {
+  if (errorHandlerCleanup) {
+    errorHandlerCleanup();
+    errorHandlerCleanup = null;
+  }
+  
+  if (rejectionHandlerCleanup) {
+    rejectionHandlerCleanup();
+    rejectionHandlerCleanup = null;
+  }
 }
 
 export function runSafetyChecks() {

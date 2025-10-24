@@ -71,7 +71,7 @@ const PerformanceMonitor = memo(({
         console.warn(`🧠 High memory usage in ${componentName}: ${memoryUsage.toFixed(2)}MB`);
       }
     }
-  }, [componentName, enabled, onMetricsUpdate]); // Add dependencies to prevent infinite loops
+  }, [componentName, enabled]); // Remove onMetricsUpdate to prevent infinite loops
 
   if (!enabled) return null;
 

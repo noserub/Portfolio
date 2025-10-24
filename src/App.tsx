@@ -333,55 +333,147 @@ export default function App() {
 
   // Logo is now saved to Supabase via updateSettings
 
-  // Load page visibility from Supabase and localStorage
-  useEffect(() => {
-    const loadPageVisibility = async () => {
-      try {
-        // Try to load from Supabase first
-        const { data: { user } } = await supabase.auth.getUser();
-        const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
-        const userId = user?.id || '7cd2752f-93c5-46e6-8535-32769fb10055';
+  // Function to load page visibility (can be called manually)
+  const loadPageVisibility = async () => {
+    try {
+      // Try to load from Supabase (prioritize public access for consistency)
+      const { data: { user } } = await supabase.auth.getUser();
+      const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
+      const fallbackUserId = '7cd2752f-93c5-46e6-8535-32769fb10055';
+      
+      console.log('📄 Loading page visibility from Supabase (public access):', fallbackUserId);
+      console.log('📄 User auth state:', { user: user?.id, isBypassAuth, fallbackUserId });
+      
+      // Try public access first (for consistency between authenticated and incognito users)
+      const { data: publicData, error: publicError } = await supabase
+        .from('page_visibility')
+        .select('*')
+        .eq('user_id', fallbackUserId)
+        .single();
         
-        if (user || isBypassAuth) {
-          console.log('📄 Loading page visibility from Supabase for user:', userId);
+        console.log('📄 Public access query result:', { publicData, publicError });
           
-          const { data, error } = await supabase
-            .from('page_visibility')
-            .select('*')
-            .eq('user_id', userId)
-            .single();
+        if (publicData && !publicError) {
+          console.log('✅ Page visibility loaded from Supabase (public):', publicData);
+          setPageVisibility({
+            about: publicData.about ?? true,
+            contact: publicData.contact ?? true,
+            music: publicData.music ?? true,
+            visuals: publicData.visuals ?? true
+          });
+          return;
+        } else {
+          console.log('❌ Public access failed:', publicError);
+          // If no public record exists, create one with default values
+          if (publicError?.code === 'PGRST116') {
+            console.log('📝 No public page visibility record found, creating default record...');
             
-          if (data && !error) {
-            console.log('✅ Page visibility loaded from Supabase:', data);
-            setPageVisibility({
-              about: data.about ?? true,
-              contact: data.contact ?? true,
-              music: data.music ?? true,
-              visuals: data.visuals ?? true
-            });
-            return;
+            // Create default record in Supabase
+            const { data: insertData, error: insertError } = await supabase
+              .from('page_visibility')
+              .insert({
+                user_id: fallbackUserId,
+                about: true,
+                contact: true,
+                music: true,
+                visuals: true
+              })
+              .select()
+              .single();
+              
+            if (insertData && !insertError) {
+              console.log('✅ Default page visibility record created in Supabase:', insertData);
+              setPageVisibility({
+                about: insertData.about ?? true,
+                contact: insertData.contact ?? true,
+                music: insertData.music ?? true,
+                visuals: insertData.visuals ?? true
+              });
+              return;
+            } else {
+              console.warn('⚠️ Failed to create default page visibility record:', insertError);
+            }
           }
         }
-        
-        // Fallback to localStorage
+      
+      // Fallback to authenticated user's data if public data not found
+      if (user || isBypassAuth) {
+        console.log('📄 Trying authenticated user data as fallback...');
+        const { data, error } = await supabase
+          .from('page_visibility')
+          .select('*')
+          .eq('user_id', user?.id || fallbackUserId)
+          .single();
+          
+        if (data && !error) {
+          console.log('✅ Page visibility loaded from Supabase (authenticated):', data);
+          setPageVisibility({
+            about: data.about ?? true,
+            contact: data.contact ?? true,
+            music: data.music ?? true,
+            visuals: data.visuals ?? true
+          });
+          return;
+        }
+      }
+      
+      // Fallback to localStorage
       const saved = localStorage.getItem('pageVisibility');
       if (saved) {
         const parsed = JSON.parse(saved);
-          console.log('📄 Page visibility loaded from localStorage:', parsed);
-          setPageVisibility({
+        console.log('📄 Page visibility loaded from localStorage:', parsed);
+        setPageVisibility({
           about: parsed.about ?? true,
           contact: parsed.contact ?? true,
           music: parsed.music ?? true,
           visuals: parsed.visuals ?? true
-          });
-        }
-      } catch (error) {
-        console.error('❌ Error loading page visibility:', error);
+        });
+      } else {
+        // Ultimate fallback to defaults
+        console.log('📄 Using default page visibility values');
+        setPageVisibility({
+          about: true,
+          contact: true,
+          music: true,
+          visuals: true
+        });
       }
-    };
-    
+    } catch (error) {
+      console.error('❌ Error loading page visibility:', error);
+      // Fallback to localStorage on error
+      const saved = localStorage.getItem('pageVisibility');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        setPageVisibility({
+          about: parsed.about ?? true,
+          contact: parsed.contact ?? true,
+          music: parsed.music ?? true,
+          visuals: parsed.visuals ?? true
+        });
+      } else {
+        // Ultimate fallback to defaults
+        setPageVisibility({
+          about: true,
+          contact: true,
+          music: true,
+          visuals: true
+        });
+      }
+    }
+  };
+
+  // Load page visibility from Supabase and localStorage
+  useEffect(() => {
     loadPageVisibility();
   }, []);
+
+  // Load page visibility when switching to preview mode
+  useEffect(() => {
+    if (!isEditMode) {
+      console.log('🔄 Switching to preview mode - reloading page visibility...');
+      loadPageVisibility();
+    }
+  }, [isEditMode]);
 
   // Save page visibility to both localStorage and Supabase
   useEffect(() => {
@@ -391,47 +483,46 @@ export default function App() {
         localStorage.setItem('pageVisibility', JSON.stringify(pageVisibility));
         console.log('💾 Page visibility saved to localStorage');
         
-        // Try to save to Supabase for shared access
+        // Try to save to Supabase for shared access (always use fallback user ID for public access)
         const { data: { user } } = await supabase.auth.getUser();
         const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
-        const userId = user?.id || '7cd2752f-93c5-46e6-8535-32769fb10055';
+        const fallbackUserId = '7cd2752f-93c5-46e6-8535-32769fb10055';
         
-        if (user || isBypassAuth) {
-          console.log('💾 Saving page visibility to Supabase for shared access:', userId);
+        console.log('💾 Saving page visibility to Supabase for shared access (public):', fallbackUserId);
+        
+        // Always save to the fallback user ID so incognito users can access it
+        const { error: updateError } = await supabase
+          .from('page_visibility')
+          .update({
+            about: pageVisibility.about,
+            contact: pageVisibility.contact,
+            music: pageVisibility.music,
+            visuals: pageVisibility.visuals,
+            updated_at: new Date().toISOString()
+          })
+          .eq('user_id', fallbackUserId);
           
-          // Try to update existing record first
-          const { error: updateError } = await supabase
+        if (updateError) {
+          console.log('📝 Page visibility record not found, creating new one...');
+          // If record doesn't exist, create it
+          const { error: insertError } = await supabase
             .from('page_visibility')
-            .update({
+            .insert({
+              user_id: fallbackUserId,
               about: pageVisibility.about,
               contact: pageVisibility.contact,
               music: pageVisibility.music,
-              visuals: pageVisibility.visuals,
-              updated_at: new Date().toISOString()
-            })
-            .eq('user_id', userId);
+              visuals: pageVisibility.visuals
+            });
             
-          if (updateError) {
-            console.log('📝 Page visibility record not found, creating new one...');
-            // If record doesn't exist, create it
-            const { error: insertError } = await supabase
-              .from('page_visibility')
-              .insert({
-                user_id: userId,
-                about: pageVisibility.about,
-                contact: pageVisibility.contact,
-                music: pageVisibility.music,
-                visuals: pageVisibility.visuals
-              });
-              
-            if (insertError) {
-              console.warn('⚠️ Failed to save page visibility to Supabase:', insertError.message);
-            } else {
-              console.log('✅ Page visibility created in Supabase');
-            }
+          if (insertError) {
+            console.warn('⚠️ Failed to save page visibility to Supabase (RLS issue):', insertError.message);
+            console.log('💾 Page visibility saved to localStorage only due to RLS restrictions');
           } else {
-            console.log('✅ Page visibility updated in Supabase');
+            console.log('✅ Page visibility created in Supabase (public)');
           }
+        } else {
+          console.log('✅ Page visibility updated in Supabase (public)');
         }
       } catch (error) {
         console.warn('⚠️ Page visibility save failed:', error);
@@ -1504,6 +1595,18 @@ export default function App() {
             >
           🔄 Refresh Favicon
             </Button>
+        
+        <Button
+          onClick={() => {
+            console.log('🔄 Manual page visibility reload triggered');
+            loadPageVisibility();
+          }}
+          variant="outline"
+          size="sm"
+          className="text-xs"
+        >
+          📄 Reload Page Visibility
+        </Button>
         
         <Button
           onClick={async () => {

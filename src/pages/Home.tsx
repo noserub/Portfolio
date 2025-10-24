@@ -1986,22 +1986,25 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
   }, []);
 
   // Memoize deduplication to prevent recalculation on every render
+  // Optimized from O(n²) to O(n) complexity using Map
   const deduplicatedProjects = useMemo(() => {
-    return projects.reduce((acc, project) => {
-      const existingIndex = acc.findIndex(p => p.title === project.title);
-      if (existingIndex >= 0) {
+    const seen = new Map<string, typeof projects[0]>();
+    
+    for (const project of projects) {
+      const existing = seen.get(project.title);
+      if (!existing) {
+        seen.set(project.title, project);
+      } else {
         // Replace with newer project (assuming updated_at or id is newer)
-        const existing = acc[existingIndex];
         const isNewer = project.updated_at > existing.updated_at || 
                        (project.updated_at === existing.updated_at && project.id > existing.id);
         if (isNewer) {
-          acc[existingIndex] = project;
+          seen.set(project.title, project);
         }
-        } else {
-        acc.push(project);
-        }
-      return acc;
-    }, [] as typeof projects);
+      }
+    }
+    
+    return Array.from(seen.values());
   }, [projects]);
   
   // Memoize case studies filtering to prevent recalculation
@@ -2212,7 +2215,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     // Set a new timeout for saving
     saveTimeoutRef.current = setTimeout(async () => {
       // Always save to localStorage first
-      localStorage.setItem('heroText', JSON.stringify(heroText));
+    localStorage.setItem('heroText', JSON.stringify(heroText));
       console.log('💾 Hero text saved to localStorage');
       
       // Try to save to Supabase for shared access (with error handling)
@@ -2728,16 +2731,25 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
   const handleCreateUnifiedProject = useCallback(async (projectData: any) => {
     console.log('🖱️ Creating blank project:', projectData);
     try {
-      // Get current user for the project
+      // Get current user for the project (with bypass auth support)
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+      const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
+      const fallbackUserId = '7cd2752f-93c5-46e6-8535-32769fb10055';
+      
+      let userId = user?.id;
+      if (!userId && isBypassAuth) {
+        console.log('🔄 Using fallback user ID for project creation');
+        userId = fallbackUserId;
+      }
+      
+      if (!userId) {
         console.error('❌ No authenticated user for creating project');
         return;
       }
 
       // Convert to Supabase format and create in database
       const supabaseProjectData = {
-        user_id: user.id,
+        user_id: userId,
         title: projectData.title,
         description: projectData.description,
         url: projectData.url || "",

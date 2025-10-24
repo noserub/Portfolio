@@ -96,7 +96,7 @@ export function useProjects() {
   const [error, setError] = useState<string | null>(null);
 
   // Fetch all projects
-  const fetchProjects = async () => {
+  const fetchProjects = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -113,10 +113,10 @@ export function useProjects() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   // Fetch published projects only
-  const fetchPublishedProjects = async () => {
+  const fetchPublishedProjects = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -134,10 +134,10 @@ export function useProjects() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   // Get project by ID
-  const getProject = async (id: string): Promise<Project | null> => {
+  const getProject = useCallback(async (id: string): Promise<Project | null> => {
     try {
       const { data, error } = await supabase
         .from('projects')
@@ -151,11 +151,34 @@ export function useProjects() {
       setError(err.message);
       return null;
     }
-  };
+  }, []);
 
   // Create project
-  const createProject = async (project: ProjectInsert): Promise<Project | null> => {
+  const createProject = useCallback(async (project: ProjectInsert): Promise<Project | null> => {
     try {
+      console.log('🔄 useProjects: createProject called with:', project);
+      
+      // Check if user is authenticated (either Supabase auth or bypass)
+      const { data: { user } } = await supabase.auth.getUser();
+      const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
+      
+      if (!user && !isBypassAuth) {
+        console.log('❌ useProjects: No authenticated user for project creation, attempting to force authentication...');
+        
+        // Try to force authentication by checking if we have bypass auth
+        const storedAuth = localStorage.getItem('isAuthenticated');
+        console.log('🔍 Stored auth value:', storedAuth);
+        
+        if (storedAuth === 'true') {
+          console.log('🔄 Bypass auth detected, proceeding with Supabase save...');
+          // Continue with Supabase save using fallback user ID
+        } else {
+          console.log('❌ useProjects: No authentication found, cannot create project in Supabase');
+          setError('Authentication required to create projects');
+          return null;
+        }
+      }
+
       const { data, error } = await supabase
         .from('projects')
         .insert(project)
@@ -168,13 +191,14 @@ export function useProjects() {
       setProjects(prev => [...prev, data].sort((a, b) => a.sort_order - b.sort_order));
       return data;
     } catch (err: any) {
+      console.error('❌ useProjects: createProject error:', err);
       setError(err.message);
       return null;
     }
-  };
+  }, []);
 
   // Update project
-  const updateProject = async (id: string, updates: ProjectUpdate): Promise<Project | null> => {
+  const updateProject = useCallback(async (id: string, updates: ProjectUpdate): Promise<Project | null> => {
     try {
       console.log('🔄 useProjects: updateProject called with:', { id, updates });
       
@@ -388,10 +412,10 @@ export function useProjects() {
       setError(err.message);
       return null;
     }
-  };
+  }, []);
 
   // Delete project
-  const deleteProject = async (id: string): Promise<boolean> => {
+  const deleteProject = useCallback(async (id: string): Promise<boolean> => {
     try {
       const { error } = await supabase
         .from('projects')
@@ -407,10 +431,10 @@ export function useProjects() {
       setError(err.message);
       return false;
     }
-  };
+  }, []);
 
   // Reorder projects
-  const reorderProjects = async (projectIds: string[]): Promise<boolean> => {
+  const reorderProjects = useCallback(async (projectIds: string[]): Promise<boolean> => {
     try {
       console.log('🔄 Reordering projects:', projectIds);
       
@@ -445,10 +469,10 @@ export function useProjects() {
       setError(err.message);
       return false;
     }
-  };
+  }, []);
 
   // Get user's projects
-  const getUserProjects = async (userId: string): Promise<Project[]> => {
+  const getUserProjects = useCallback(async (userId: string): Promise<Project[]> => {
     try {
       const { data, error } = await supabase
         .from('projects')
@@ -462,10 +486,10 @@ export function useProjects() {
       setError(err.message);
       return [];
     }
-  };
+  }, []);
 
   // Get current user's projects
-  const getCurrentUserProjects = async (): Promise<Project[]> => {
+  const getCurrentUserProjects = useCallback(async (): Promise<Project[]> => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return [];
@@ -475,7 +499,7 @@ export function useProjects() {
       setError(err.message);
       return [];
     }
-  };
+  }, [getUserProjects]);
 
   // Load projects on mount
   useEffect(() => {
@@ -500,16 +524,7 @@ export function useProjects() {
   }), [
     projects,
     loading,
-    error,
-    fetchProjects,
-    fetchPublishedProjects,
-    getProject,
-    createProject,
-    updateProject,
-    deleteProject,
-    reorderProjects,
-    getUserProjects,
-    getCurrentUserProjects
+    error
   ]);
 }
 

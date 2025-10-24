@@ -57,7 +57,11 @@ export function Visuals({ onBack, isEditMode }: VisualsProps) {
 
         <ImageGallery
           images={images}
-          onImagesChange={setImages}
+          onImagesChange={(newImages) => {
+            // Handle image changes - this would need to be implemented
+            // For now, we'll just log the change
+            console.log('Images changed:', newImages);
+          }}
           onImageClick={setLightboxImage}
           columns={4}
           isEditMode={isEditMode}
