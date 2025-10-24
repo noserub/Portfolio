@@ -795,8 +795,9 @@ export function Home({ onStartClick, isEditMode, onProjectClick, currentPage }: 
         const project = supabaseProjects[0];
         console.log('📄 Found MassRoots project:', project);
         
+        // DISABLED: This function was overwriting user content
         // Check if it needs content
-        if (!project.case_study_content || project.case_study_content.trim() === '') {
+        if (false && (!project.case_study_content || project.case_study_content.trim() === '')) {
           console.log('🔄 MassRoots project needs content, updating...');
           
           const massRootsContent = `# Overview
@@ -1108,8 +1109,20 @@ Complete UI overhaul with focus on visual content, making the app feel modern an
         const project = skypeProjects[0];
         console.log('📄 Found Skype project:', project);
         
-        // Check if it needs content
-        if (!project.case_study_content || project.case_study_content.trim() === '') {
+        // Check if it needs content - only populate if truly empty (not just missing sections)
+        // Also check if content has been modified by user (contains user-specific content)
+        const hasContent = project.case_study_content && 
+                          project.case_study_content.trim().length > 0 && 
+                          project.case_study_content.trim() !== '';
+        
+        // Check if content has been modified by user (not just template content)
+        const hasUserContent = hasContent && 
+                              !project.case_study_content.includes('**Platform:** (iOS, Android, Web, etc.)') &&
+                              !project.case_study_content.includes('**Role:** (Your role on the project)');
+        
+        // DISABLED: This function was overwriting user content
+        // Only populate if content is completely empty (not just missing sections)
+        if (false && (!hasContent || !hasUserContent)) {
           console.log('🔄 Skype project needs content, updating...');
           
           const skypeContent = `# Overview
@@ -1263,8 +1276,9 @@ Redesigned friend connections and sharing to encourage more social interaction.
           const project = tandemProjects[0];
           console.log('📄 Found Tandem project:', project);
           
+          // DISABLED: This function was overwriting user content
           // Check if it needs content
-          if (!project.case_study_content || project.case_study_content.trim() === '') {
+          if (false && (!project.case_study_content || project.case_study_content.trim() === '')) {
             console.log('🔄 Tandem project needs content, updating...');
             
             const tandemContent = `# Overview
