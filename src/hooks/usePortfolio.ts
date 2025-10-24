@@ -1,8 +1,6 @@
 import { useProfiles } from './useProfiles';
 import { useProjects } from './useProjects';
 import { useContactMessages } from './useContactMessages';
-import { useMusicPlaylist } from './useMusicPlaylist';
-import { useVisualsGallery } from './useVisualsGallery';
 import { useSEOData } from './useSEOData';
 import { usePageVisibility } from './usePageVisibility';
 import { useAppSettings } from './useAppSettings';
@@ -16,24 +14,19 @@ export function usePortfolio() {
   const profiles = useProfiles();
   const projects = useProjects();
   const contactMessages = useContactMessages();
-  const musicPlaylist = useMusicPlaylist();
-  const visualsGallery = useVisualsGallery();
   const seoData = useSEOData();
   const pageVisibility = usePageVisibility();
   const appSettings = useAppSettings();
 
   // Combined loading state
   const isLoading = profiles.loading || projects.loading || contactMessages.loading || 
-                   musicPlaylist.loading || visualsGallery.loading || seoData.loading || 
-                   pageVisibility.loading || appSettings.loading;
+                   seoData.loading || pageVisibility.loading || appSettings.loading;
 
   // Combined error state
   const errors = [
     profiles.error,
     projects.error,
     contactMessages.error,
-    musicPlaylist.error,
-    visualsGallery.error,
     seoData.error,
     pageVisibility.error,
     appSettings.error
@@ -45,8 +38,6 @@ export function usePortfolio() {
       profiles.refetch(),
       projects.refetch(),
       contactMessages.refetch(),
-      musicPlaylist.refetch(),
-      visualsGallery.refetch(),
       seoData.refetch(),
       pageVisibility.refetch(),
       appSettings.refetch()
@@ -59,16 +50,12 @@ export function usePortfolio() {
       const [
         profile,
         userProjects,
-        userSongs,
-        userImages,
         userSEO,
         userPageVisibility,
         userAppSettings
       ] = await Promise.all([
         profiles.getCurrentUserProfile(),
         projects.getCurrentUserProjects(),
-        musicPlaylist.getCurrentUserSongs(),
-        visualsGallery.getCurrentUserImages(),
         seoData.getCurrentUserSEOData(),
         pageVisibility.getCurrentUserPageVisibility(),
         appSettings.getCurrentUserAppSettings()
@@ -77,8 +64,6 @@ export function usePortfolio() {
       return {
         profile,
         projects: userProjects,
-        songs: userSongs,
-        images: userImages,
         seo: userSEO,
         pageVisibility: userPageVisibility,
         appSettings: userAppSettings
@@ -94,22 +79,16 @@ export function usePortfolio() {
     try {
       const [
         publishedProjects,
-        publicSongs,
-        publicImages,
         publicSEO,
         publicPageVisibility
       ] = await Promise.all([
         projects.fetchPublishedProjects(),
-        musicPlaylist.fetchSongs(),
-        visualsGallery.fetchImages(),
         seoData.fetchSEOData(),
         pageVisibility.fetchPageVisibility()
       ]);
 
       return {
         projects: publishedProjects,
-        songs: publicSongs,
-        images: publicImages,
         seo: publicSEO,
         pageVisibility: publicPageVisibility
       };
@@ -127,8 +106,6 @@ export function usePortfolio() {
       draftProjects: projects.projects.filter(p => !p.published).length,
       totalMessages: contactMessages.messages.length,
       unreadMessages: contactMessages.getUnreadCount(),
-      totalSongs: musicPlaylist.songs.length,
-      totalImages: visualsGallery.images.length,
       seoPages: seoData.getPageTypes().length
     };
   };
@@ -139,13 +116,6 @@ export function usePortfolio() {
       projects: projects.projects.filter(p => 
         p.title.toLowerCase().includes(query.toLowerCase()) ||
         p.description?.toLowerCase().includes(query.toLowerCase())
-      ),
-      songs: musicPlaylist.songs.filter(s => 
-        s.title.toLowerCase().includes(query.toLowerCase()) ||
-        s.artist.toLowerCase().includes(query.toLowerCase())
-      ),
-      images: visualsGallery.images.filter(i => 
-        i.alt.toLowerCase().includes(query.toLowerCase())
       ),
       messages: contactMessages.messages.filter(m => 
         m.name.toLowerCase().includes(query.toLowerCase()) ||
@@ -162,8 +132,6 @@ export function usePortfolio() {
     profiles,
     projects,
     contactMessages,
-    musicPlaylist,
-    visualsGallery,
     seoData,
     pageVisibility,
     appSettings,

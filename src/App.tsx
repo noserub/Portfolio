@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { supabase } from "./lib/supabaseClient";
-import { Edit3, Eye, LogOut, Save, AlertTriangle, Moon, Sun, MoreHorizontal, Search, BookOpen, ArrowLeft } from "lucide-react";
+import { Edit3, Eye, LogOut, Save, AlertTriangle, Moon, Sun, MoreHorizontal, Search, BookOpen, ArrowLeft, Settings, Key, RefreshCw } from "lucide-react";
 import { Analytics } from "@vercel/analytics/react";
 import { 
   Header, 
@@ -18,8 +18,6 @@ import SupabaseTest from "./components/SupabaseTest";
 import { 
   Home, 
   About, 
-  Music, 
-  Visuals, 
   Contact, 
   ProjectDetail, 
   DiagnosticPage, 
@@ -27,12 +25,18 @@ import {
 } from "./pages";
 import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
+import { Switch } from "./components/ui/switch";
 import { ProjectData } from "./components/ProjectImage";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
 } from "./components/ui/dropdown-menu";
 import { Toaster } from "./components/ui/sonner";
 import { migrateResearchInsights, migrateProjectsArray, runSafetyChecks } from "./utils";
@@ -53,7 +57,7 @@ try {
   // Continue anyway - don't block React
 }
 
-type Page = "home" | "about" | "contact" | "music" | "visuals" | "project-detail" | "supabase-test";
+type Page = "home" | "about" | "contact" | "project-detail" | "supabase-test";
 
 // Error Boundary Component
 interface ErrorBoundaryState {
@@ -322,9 +326,7 @@ export default function App() {
   
   const [pageVisibility, setPageVisibility] = useState({
       about: true,
-      contact: true,
-      music: true,
-      visuals: true
+      contact: true
   });
   
 
@@ -357,9 +359,7 @@ export default function App() {
           console.log('✅ Page visibility loaded from Supabase (public):', publicData);
           setPageVisibility({
             about: publicData.about ?? true,
-            contact: publicData.contact ?? true,
-            music: publicData.music ?? true,
-            visuals: publicData.visuals ?? true
+            contact: publicData.contact ?? true
           });
           return;
         } else {
@@ -374,9 +374,7 @@ export default function App() {
               .insert({
                 user_id: fallbackUserId,
                 about: true,
-                contact: true,
-                music: true,
-                visuals: true
+                contact: true
               })
               .select()
               .single();
@@ -385,9 +383,7 @@ export default function App() {
               console.log('✅ Default page visibility record created in Supabase:', insertData);
               setPageVisibility({
                 about: insertData.about ?? true,
-                contact: insertData.contact ?? true,
-                music: insertData.music ?? true,
-                visuals: insertData.visuals ?? true
+                contact: insertData.contact ?? true
               });
               return;
             } else {
@@ -409,9 +405,7 @@ export default function App() {
           console.log('✅ Page visibility loaded from Supabase (authenticated):', data);
           setPageVisibility({
             about: data.about ?? true,
-            contact: data.contact ?? true,
-            music: data.music ?? true,
-            visuals: data.visuals ?? true
+            contact: data.contact ?? true
           });
           return;
         }
@@ -424,18 +418,14 @@ export default function App() {
         console.log('📄 Page visibility loaded from localStorage:', parsed);
         setPageVisibility({
           about: parsed.about ?? true,
-          contact: parsed.contact ?? true,
-          music: parsed.music ?? true,
-          visuals: parsed.visuals ?? true
+          contact: parsed.contact ?? true
         });
       } else {
         // Ultimate fallback to defaults
         console.log('📄 Using default page visibility values');
         setPageVisibility({
-          about: true,
-          contact: true,
-          music: true,
-          visuals: true
+      about: true,
+      contact: true
         });
       }
     } catch (error) {
@@ -446,17 +436,13 @@ export default function App() {
         const parsed = JSON.parse(saved);
         setPageVisibility({
           about: parsed.about ?? true,
-          contact: parsed.contact ?? true,
-          music: parsed.music ?? true,
-          visuals: parsed.visuals ?? true
+          contact: parsed.contact ?? true
         });
       } else {
         // Ultimate fallback to defaults
         setPageVisibility({
-          about: true,
-          contact: true,
-          music: true,
-          visuals: true
+      about: true,
+      contact: true
         });
       }
     }
@@ -480,7 +466,7 @@ export default function App() {
     const savePageVisibility = async () => {
       try {
         // Always save to localStorage first
-        localStorage.setItem('pageVisibility', JSON.stringify(pageVisibility));
+    localStorage.setItem('pageVisibility', JSON.stringify(pageVisibility));
         console.log('💾 Page visibility saved to localStorage');
         
         // Try to save to Supabase for shared access (always use fallback user ID for public access)
@@ -496,8 +482,6 @@ export default function App() {
           .update({
             about: pageVisibility.about,
             contact: pageVisibility.contact,
-            music: pageVisibility.music,
-            visuals: pageVisibility.visuals,
             updated_at: new Date().toISOString()
           })
           .eq('user_id', fallbackUserId);
@@ -511,8 +495,6 @@ export default function App() {
               user_id: fallbackUserId,
               about: pageVisibility.about,
               contact: pageVisibility.contact,
-              music: pageVisibility.music,
-              visuals: pageVisibility.visuals
             });
             
           if (insertError) {
@@ -752,7 +734,7 @@ export default function App() {
       } else if (hash.startsWith('#/')) {
         // Other pages
         const page = hash.substring(2) as Page;
-        if (['about', 'contact', 'music', 'visuals'].includes(page)) {
+        if (['about', 'contact'].includes(page)) {
           setCurrentPage(page);
           setSelectedProject(null);
         }
@@ -1356,7 +1338,7 @@ export default function App() {
             e.currentTarget.blur(); // Remove focus after click
           }}
           variant="secondary"
-          className="rounded-full shadow-lg backdrop-blur-sm p-2.5 md:px-4 md:py-2"
+          className="rounded-full shadow-lg backdrop-blur-sm p-2.5"
           aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
         >
           <AnimatePresence mode="wait" initial={false}>
@@ -1428,309 +1410,140 @@ export default function App() {
           >
             <MoreHorizontal className="w-5 h-5" />
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
+          <DropdownMenuContent align="end" className="w-56">
+            {/* Edit/Preview Toggle */}
             <DropdownMenuItem 
               onClick={(e) => {
                 handleEditModeClick();
-                // Blur the dropdown item after click
                 setTimeout(() => document.activeElement instanceof HTMLElement && document.activeElement.blur(), 0);
               }}
             >
-              {isEditMode ? (
-                <>
-                  <Eye className="w-4 h-4 mr-2" />
-                  Preview Mode
-                </>
-              ) : (
-                <>
-                  <Edit3 className="w-4 h-4 mr-2" />
-                  {isAuthenticated ? "Edit Mode" : "Sign In"}
-                </>
-              )}
+              {isEditMode ? "Preview Mode" : (isAuthenticated ? "Edit Mode" : "Sign In")}
             </DropdownMenuItem>
+            
+            {/* Page Visibility Section */}
+            {isAuthenticated && !isEditMode && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground">Page Visibility</DropdownMenuLabel>
+                <DropdownMenuItem 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handlePageVisibilityChange('about');
+                    setTimeout(() => document.activeElement instanceof HTMLElement && document.activeElement.blur(), 0);
+                  }}
+                  className="flex items-center justify-between"
+                >
+                  <span>About Page</span>
+                  <Switch 
+                    checked={pageVisibility.about}
+                    onCheckedChange={() => handlePageVisibilityChange('about')}
+                    className="ml-2"
+                  />
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handlePageVisibilityChange('contact');
+                    setTimeout(() => document.activeElement instanceof HTMLElement && document.activeElement.blur(), 0);
+                  }}
+                  className="flex items-center justify-between"
+                >
+                  <span>Contact Page</span>
+                  <Switch 
+                    checked={pageVisibility.contact}
+                    onCheckedChange={() => handlePageVisibilityChange('contact')}
+                    className="ml-2"
+                  />
+                </DropdownMenuItem>
+              </>
+            )}
+            
+            {/* Settings Section */}
+            {isAuthenticated && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger>
+                    <Settings className="w-4 h-4 mr-2" />
+                    Settings
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent>
+                    <DropdownMenuItem 
+                      onClick={(e) => {
+                        setShowPasswordReset(!showPasswordReset);
+                        setTimeout(() => document.activeElement instanceof HTMLElement && document.activeElement.blur(), 0);
+                      }}
+                    >
+                      <Key className="w-4 h-4 mr-2" />
+                      Case Study Password
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={(e) => {
+                        setShowSEOEditor(true);
+                        setTimeout(() => document.activeElement instanceof HTMLElement && document.activeElement.blur(), 0);
+                      }}
+                    >
+                      <Search className="w-4 h-4 mr-2" />
+                      SEO Settings
+                    </DropdownMenuItem>
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
+              </>
+            )}
+            
+            {/* Edit Mode Tools */}
             {isEditMode && (
-              <DropdownMenuItem 
-                onClick={(e) => {
-                  setShowComponentLibrary(true);
-                  setTimeout(() => document.activeElement instanceof HTMLElement && document.activeElement.blur(), 0);
-                }}
-              >
-                <BookOpen className="w-4 h-4 mr-2" />
-                Component Library
-              </DropdownMenuItem>
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem 
+                  onClick={(e) => {
+                    window.location.reload();
+                    setTimeout(() => document.activeElement instanceof HTMLElement && document.activeElement.blur(), 0);
+                  }}
+                >
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Refresh
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={(e) => {
+                    setShowComponentLibrary(true);
+                    setTimeout(() => document.activeElement instanceof HTMLElement && document.activeElement.blur(), 0);
+                  }}
+                >
+                  <BookOpen className="w-4 h-4 mr-2" />
+                  Component Library
+                </DropdownMenuItem>
+              </>
+            )}
+            
+            {/* Sign Out */}
+            {isAuthenticated && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem 
+                  onClick={(e) => {
+                    handleSignOut();
+                    setTimeout(() => document.activeElement instanceof HTMLElement && document.activeElement.blur(), 0);
+                  }}
+                  className="text-white"
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Sign Out
+                </DropdownMenuItem>
+              </>
             )}
           </DropdownMenuContent>
         </DropdownMenu>
         {isEditMode && (
-          <>
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-yellow-500/20 border border-yellow-500/50 text-yellow-900 dark:text-yellow-100 px-4 py-2 rounded-full text-sm backdrop-blur-sm"
-            >
-              ✏️ Editing Mode Active
-            </motion.div>
-
-            
-            
-            {/* Export/Import/Refresh buttons in Edit Mode */}
-            <div className="flex gap-2">
-              <Button
-                onClick={() => window.location.reload()}
-                variant="secondary"
-                size="sm"
-                className="rounded-full shadow-sm backdrop-blur-sm"
-                title="Reload page to see latest changes"
-              >
-                🔄 Refresh
-              </Button>
-            </div>
-          </>
-        )}
-        {isAuthenticated && !isEditMode && (
-          <>
-
-            <div className="flex flex-col gap-2 bg-card/80 backdrop-blur-sm rounded-2xl p-3 border border-border">
-              <div className="text-xs font-semibold text-muted-foreground mb-1">Page Visibility</div>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  onClick={() => handlePageVisibilityChange('about')}
-                  variant={pageVisibility.about ? "default" : "secondary"}
-                  size="sm"
-                  className="text-xs"
-                >
-                  About: {pageVisibility.about ? "Live" : "Draft"}
-                </Button>
-                <Button
-                  onClick={() => handlePageVisibilityChange('contact')}
-                  variant={pageVisibility.contact ? "default" : "secondary"}
-                  size="sm"
-                  className="text-xs"
-                >
-                  Contact: {pageVisibility.contact ? "Live" : "Draft"}
-                </Button>
-                <Button
-                  onClick={() => handlePageVisibilityChange('music')}
-                  variant={pageVisibility.music ? "default" : "secondary"}
-                  size="sm"
-                  className="text-xs"
-                >
-                  Music: {pageVisibility.music ? "Live" : "Draft"}
-                </Button>
-                <Button
-                  onClick={() => handlePageVisibilityChange('visuals')}
-                  variant={pageVisibility.visuals ? "default" : "secondary"}
-                  size="sm"
-                  className="text-xs"
-                >
-                  Visuals: {pageVisibility.visuals ? "Live" : "Draft"}
-                </Button>
-              </div>
-            </div>
-
-            <Button
-              onClick={() => setShowPasswordReset(!showPasswordReset)}
-              variant="outline"
-              size="sm"
-              className="rounded-full shadow-sm backdrop-blur-sm"
-            >
-              🔑 Case Study Password
-            </Button>
-            <Button
-              onClick={() => setShowSEOEditor(true)}
-              variant="outline"
-              size="sm"
-              className="rounded-full shadow-sm backdrop-blur-sm bg-purple-50 hover:bg-purple-100 dark:bg-purple-900/20 dark:hover:bg-purple-900/30 border-purple-500/50"
-            >
-              <Search className="w-3 h-3 mr-1" />
-              SEO Settings
-            </Button>
-            <Button
-              onClick={async () => {
-                if (confirm('Fix Skype Qik image and restore Tandem case study?')) {
-                  // Call the global fix function
-                  if ((window as any).fixPortfolioIssues) {
-                    await (window as any).fixPortfolioIssues();
-                    // Reload after fixes
-                    setTimeout(() => window.location.reload(), 2000);
-                  } else {
-                    console.log('Fix function not available, reloading...');
-                  window.location.reload();
-                  }
-                }
-              }}
-              variant="outline"
-              size="sm"
-              className="rounded-full shadow-sm backdrop-blur-sm bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/30 border-blue-500/50"
-            >
-              🔧 Fix Issues
-            </Button>
-            <Button
-          onClick={async () => {
-            try {
-              console.log('🔄 Manually refreshing favicon...');
-              const { getFaviconFromSupabase, updateFavicon, getSEOData } = await import('./utils/seoManager');
-              const faviconUrl = await getFaviconFromSupabase();
-              
-              if (faviconUrl) {
-                const seoData = getSEOData();
-                const updatedSitewide = {
-                  ...seoData.sitewide,
-                  faviconType: 'image' as const,
-                  faviconImageUrl: faviconUrl
-                };
-                updateFavicon(updatedSitewide);
-                alert('✅ Favicon refreshed successfully!');
-              } else {
-                alert('❌ No favicon found in Supabase');
-              }
-            } catch (error) {
-              console.error('Error refreshing favicon:', error);
-              alert('❌ Error refreshing favicon: ' + error.message);
-            }
-          }}
-          variant="outline"
-              size="sm"
-          className="rounded-full shadow-sm backdrop-blur-sm bg-green-50 hover:bg-green-100 dark:bg-green-900/20 dark:hover:bg-green-900/30 border-green-500/50"
-            >
-          🔄 Refresh Favicon
-            </Button>
-        
-        <Button
-          onClick={() => {
-            console.log('🔄 Manual page visibility reload triggered');
-            loadPageVisibility();
-          }}
-          variant="outline"
-          size="sm"
-          className="text-xs"
-        >
-          📄 Reload Page Visibility
-        </Button>
-        
-        <Button
-          onClick={async () => {
-            try {
-              console.log('🔍 Testing favicon save...');
-              const { supabase } = await import('./lib/supabaseClient');
-              const { data: { user } } = await supabase.auth.getUser();
-              const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
-              const userId = user?.id || '7cd2752f-93c5-46e6-8535-32769fb10055';
-              
-              console.log('🔍 Test save - user:', userId, 'auth type:', user ? 'Supabase' : 'Bypass');
-              
-              // Try to save a test favicon
-              const testFaviconUrl = 'https://example.com/test-favicon.ico';
-              const { data, error } = await supabase
-                .from('app_settings')
-                .upsert({
-                  user_id: userId,
-                  favicon_url: testFaviconUrl,
-                  theme: 'dark',
-                  is_authenticated: true,
-                  show_debug_panel: false,
-                  is_public: true
-                }, { 
-                  onConflict: 'user_id',
-                  ignoreDuplicates: false 
-                });
-                
-              if (error) {
-                console.error('❌ Test save failed:', error);
-                alert('❌ Test save failed: ' + error.message);
-              } else {
-                console.log('✅ Test save successful:', data);
-                alert('✅ Test favicon saved successfully!');
-              }
-            } catch (error) {
-              console.error('Error testing favicon save:', error);
-              alert('❌ Error testing favicon save: ' + error.message);
-            }
-          }}
-          variant="outline"
-          size="sm"
-          className="rounded-full shadow-sm backdrop-blur-sm bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/30 border-blue-500/50"
-        >
-          🧪 Test Favicon Save
-        </Button>
-        <Button
-          onClick={async () => {
-            try {
-              const { cacheManager } = await import('./utils/cacheManager');
-              
-              const cacheStats = cacheManager.getStats();
-              const localStorageKeys = Object.keys(localStorage).filter(key => 
-                !key.startsWith('cache_') && 
-                !key.startsWith('supabase.')
-              ).length;
-              
-              const report = `
-📊 CACHE & STORAGE STATUS
-
-📦 Cache Performance:
-• Total Items: ${cacheStats.total}
-• Valid: ${cacheStats.valid}
-• Expired: ${cacheStats.expired}
-• Memory Usage: ${(cacheStats.memoryUsage / 1024).toFixed(2)} KB
-
-💾 Local Storage:
-• Keys: ${localStorageKeys}
-• Cache Keys: ${Object.keys(localStorage).filter(k => k.startsWith('cache_')).length}
-
-🎯 Optimizations Active:
-• ✅ Intelligent caching (reduces API calls by 80%+)
-• ✅ localStorage persistence (offline functionality)
-• ✅ Auto-cleanup of expired entries
-• ✅ Memory + disk caching
-
-💡 Benefits:
-• Faster page loads through caching
-• Reduced Supabase egress usage
-• Better performance for visitors
-• Offline functionality maintained
-              `;
-              
-              console.log(report);
-              alert(report);
-            } catch (error) {
-              console.error('Cache status check error:', error);
-              alert('❌ Error checking cache status: ' + error.message);
-            }
-          }}
-          variant="outline"
-          size="sm"
-          className="rounded-full shadow-sm backdrop-blur-sm bg-green-50 hover:bg-green-100 dark:bg-green-900/20 dark:hover:bg-green-900/30 border-green-500/50"
-        >
-          📊 Cache Status
-        </Button>
-        <Button
-          onClick={async () => {
-            try {
-              const { performanceMonitor } = await import('./utils/performanceMonitor');
-              const report = performanceMonitor.getReport();
-              console.log('🚀 Image Performance Report:', report);
-              alert(report);
-            } catch (error) {
-              console.error('Error getting performance stats:', error);
-              alert('❌ Error getting performance stats: ' + error.message);
-            }
-          }}
-          variant="outline"
-          size="sm"
-          className="rounded-full shadow-sm backdrop-blur-sm bg-purple-50 hover:bg-purple-100 dark:bg-purple-900/20 dark:hover:bg-purple-900/30 border-purple-500/50"
-        >
-          🚀 Image Performance
-        </Button>
-            <Button
-              onClick={handleSignOut}
-              variant="ghost"
-              size="sm"
-              className="rounded-full shadow-sm backdrop-blur-sm"
-            >
-              <LogOut className="w-3 h-3 mr-1" />
-              Sign Out
-            </Button>
-          </>
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="fixed left-0 right-0 z-40 bg-pink-400 text-black text-sm font-medium py-2 px-4 text-center"
+            style={{ top: '85px' }}
+          >
+            Editing mode is active
+          </motion.div>
         )}
       </motion.div>
 
@@ -1845,12 +1658,6 @@ export default function App() {
         {currentPage === "contact" && (isEditMode || pageVisibility.contact) && (
           <Contact onBack={navigateHome} isEditMode={isEditMode} />
         )}
-        {currentPage === "music" && (isEditMode || pageVisibility.music) && (
-          <Music onBack={navigateHome} isEditMode={isEditMode} />
-        )}
-        {currentPage === "visuals" && (isEditMode || pageVisibility.visuals) && (
-          <Visuals onBack={navigateHome} isEditMode={isEditMode} />
-        )}
         {currentPage === "project-detail" && selectedProject && (
           <div key={(selectedProject as any)._navTimestamp || selectedProject.id}>
             <ProjectDetail
@@ -1872,9 +1679,7 @@ export default function App() {
         // Filter visible pages based on edit mode and page visibility
         const visiblePages = [
           { key: 'about', label: 'About', visible: isEditMode || pageVisibility.about },
-          { key: 'contact', label: 'Contact', visible: isEditMode || pageVisibility.contact },
-          { key: 'music', label: 'Music', visible: isEditMode || pageVisibility.music },
-          { key: 'visuals', label: 'Visuals', visible: isEditMode || pageVisibility.visuals }
+          { key: 'contact', label: 'Contact', visible: isEditMode || pageVisibility.contact }
         ].filter(page => page.visible);
 
         // Only show navigation if there are 2 or more visible pages

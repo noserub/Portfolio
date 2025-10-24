@@ -8,8 +8,6 @@ This directory contains comprehensive React hooks for managing your portfolio da
 - `useProfiles` - Manage user profiles
 - `useProjects` - Manage portfolio projects/case studies
 - `useContactMessages` - Manage contact form submissions
-- `useMusicPlaylist` - Manage music tracks
-- `useVisualsGallery` - Manage visual gallery images
 - `useSEOData` - Manage SEO metadata
 - `usePageVisibility` - Manage page visibility settings
 - `useAppSettings` - Manage application settings
@@ -42,8 +40,6 @@ function Dashboard() {
     profiles,
     projects,
     contactMessages,
-    musicPlaylist,
-    visualsGallery,
     seoData,
     pageVisibility,
     appSettings,
@@ -254,8 +250,6 @@ These hooks work with the following database tables:
 - `profiles` - User profiles
 - `projects` - Portfolio projects
 - `contact_messages` - Contact form submissions
-- `music_playlist` - Music tracks
-- `visuals_gallery` - Visual gallery images
 - `seo_data` - SEO metadata
 - `page_visibility` - Page visibility settings
 - `app_settings` - Application settings

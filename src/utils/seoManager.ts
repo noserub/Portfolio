@@ -35,8 +35,6 @@ export interface AllSEOData {
     about: SEOData;
     caseStudies: SEOData;
     contact: SEOData;
-    music: SEOData;
-    visuals: SEOData;
   };
   caseStudyDefaults: SEOData; // Template for individual case studies
 }
@@ -107,32 +105,6 @@ const DEFAULT_SEO_DATA: AllSEOData = {
       twitterImage: '',
       canonicalUrl: '',
     },
-    music: {
-      title: 'Music - Brian Bureson',
-      description: 'Discover Brian Bureson\'s musical creations and audio projects.',
-      keywords: 'Brian Bureson music, audio projects, creative work',
-      ogTitle: '',
-      ogDescription: '',
-      ogImage: '',
-      twitterCard: 'summary_large_image',
-      twitterTitle: '',
-      twitterDescription: '',
-      twitterImage: '',
-      canonicalUrl: '',
-    },
-    visuals: {
-      title: 'Visuals - Brian Bureson',
-      description: 'Browse Brian Bureson\'s visual design work, illustrations, and creative projects.',
-      keywords: 'visual design, illustrations, creative work, design portfolio',
-      ogTitle: '',
-      ogDescription: '',
-      ogImage: '',
-      twitterCard: 'summary_large_image',
-      twitterTitle: '',
-      twitterDescription: '',
-      twitterImage: '',
-      canonicalUrl: '',
-    },
   },
   caseStudyDefaults: {
     title: '[Case Study Title] - Brian Bureson',
@@ -164,8 +136,6 @@ export function getSEOData(): AllSEOData {
           about: { ...DEFAULT_SEO_DATA.pages.about, ...parsed.pages?.about },
           caseStudies: { ...DEFAULT_SEO_DATA.pages.caseStudies, ...parsed.pages?.caseStudies },
           contact: { ...DEFAULT_SEO_DATA.pages.contact, ...parsed.pages?.contact },
-          music: { ...DEFAULT_SEO_DATA.pages.music, ...parsed.pages?.music },
-          visuals: { ...DEFAULT_SEO_DATA.pages.visuals, ...parsed.pages?.visuals },
         },
         caseStudyDefaults: { ...DEFAULT_SEO_DATA.caseStudyDefaults, ...parsed.caseStudyDefaults },
       };

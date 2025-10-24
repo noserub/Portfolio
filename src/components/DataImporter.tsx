@@ -151,8 +151,6 @@ export function DataImporter() {
                         {importResults.profiles > 0 && <p>• {importResults.profiles} profiles</p>}
                         {importResults.projects > 0 && <p>• {importResults.projects} projects</p>}
                         {importResults.contactMessages > 0 && <p>• {importResults.contactMessages} contact messages</p>}
-                        {importResults.musicPlaylist > 0 && <p>• {importResults.musicPlaylist} music items</p>}
-                        {importResults.visualsGallery > 0 && <p>• {importResults.visualsGallery} visuals</p>}
                         {importResults.seoData > 0 && <p>• {importResults.seoData} SEO records</p>}
                         {importResults.pageVisibility > 0 && <p>• {importResults.pageVisibility} page visibility records</p>}
                         {importResults.appSettings > 0 && <p>• {importResults.appSettings} app settings</p>}
@@ -174,8 +172,6 @@ export function DataImporter() {
               <li><code>profiles</code> - About page content</li>
               <li><code>projects</code> - Case studies and design projects</li>
               <li><code>contactMessages</code> - Contact form submissions</li>
-              <li><code>musicPlaylist</code> - Music page content</li>
-              <li><code>visualsGallery</code> - Visuals page content</li>
               <li><code>seoData</code> - SEO settings</li>
               <li><code>pageVisibility</code> - Page visibility settings</li>
               <li><code>appSettings</code> - App configuration</li>

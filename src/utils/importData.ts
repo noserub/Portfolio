@@ -4,8 +4,6 @@ export interface ImportData {
   profiles?: any[];
   projects?: any[];
   contactMessages?: any[];
-  musicPlaylist?: any[];
-  visualsGallery?: any[];
   seoData?: any[];
   pageVisibility?: any[];
   appSettings?: any[];
@@ -16,8 +14,6 @@ export async function importDataToSupabase(data: ImportData) {
     profiles: 0,
     projects: 0,
     contactMessages: 0,
-    musicPlaylist: 0,
-    visualsGallery: 0,
     seoData: 0,
     pageVisibility: 0,
     appSettings: 0,
@@ -70,35 +66,6 @@ export async function importDataToSupabase(data: ImportData) {
       }
     }
 
-    // Import music playlist
-    if (data.musicPlaylist && data.musicPlaylist.length > 0) {
-      console.log('📥 Importing music playlist...');
-      const { error } = await supabase
-        .from('music_playlist')
-        .insert(data.musicPlaylist);
-      
-      if (error) {
-        results.errors.push(`Music Playlist: ${error.message}`);
-      } else {
-        results.musicPlaylist = data.musicPlaylist.length;
-        console.log(`✅ Imported ${data.musicPlaylist.length} music items`);
-      }
-    }
-
-    // Import visuals gallery
-    if (data.visualsGallery && data.visualsGallery.length > 0) {
-      console.log('📥 Importing visuals gallery...');
-      const { error } = await supabase
-        .from('visuals_gallery')
-        .insert(data.visualsGallery);
-      
-      if (error) {
-        results.errors.push(`Visuals Gallery: ${error.message}`);
-      } else {
-        results.visualsGallery = data.visualsGallery.length;
-        console.log(`✅ Imported ${data.visualsGallery.length} visuals`);
-      }
-    }
 
     // Import SEO data
     if (data.seoData && data.seoData.length > 0) {
@@ -165,8 +132,6 @@ export async function importFromLocalStorage() {
     const designProjects = localStorage.getItem('designProjects');
     const aboutData = localStorage.getItem('aboutData');
     const contactData = localStorage.getItem('contactData');
-    const musicData = localStorage.getItem('musicPlaylist');
-    const visualsData = localStorage.getItem('visualsGallery');
     const seoData = localStorage.getItem('seoData');
     const pageVisibility = localStorage.getItem('pageVisibility');
     const appSettings = localStorage.getItem('appSettings');
@@ -237,31 +202,6 @@ export async function importFromLocalStorage() {
       }];
     }
 
-    if (musicData) {
-      const music = JSON.parse(musicData);
-      data.musicPlaylist = music.map((song: any, index: number) => ({
-        id: `song-${index}`,
-        title: song.title,
-        artist: song.artist,
-        url: song.url,
-        sort_order: index,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }));
-    }
-
-    if (visualsData) {
-      const visuals = JSON.parse(visualsData);
-      data.visualsGallery = visuals.map((visual: any, index: number) => ({
-        id: `visual-${index}`,
-        title: visual.title,
-        description: visual.description,
-        url: visual.url,
-        sort_order: index,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }));
-    }
 
     if (seoData) {
       const seo = JSON.parse(seoData);
@@ -287,8 +227,6 @@ export async function importFromLocalStorage() {
       profiles: 0,
       projects: 0,
       contactMessages: 0,
-      musicPlaylist: 0,
-      visualsGallery: 0,
       seoData: 0,
       pageVisibility: 0,
       appSettings: 0,
@@ -308,8 +246,6 @@ export async function importFromJSON(jsonData: any) {
       profiles: 0,
       projects: 0,
       contactMessages: 0,
-      musicPlaylist: 0,
-      visualsGallery: 0,
       seoData: 0,
       pageVisibility: 0,
       appSettings: 0,
