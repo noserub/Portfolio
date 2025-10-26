@@ -6,6 +6,7 @@ import { supabase } from "./lib/supabaseClient";
 import { Edit3, Eye, LogOut, Save, AlertTriangle, Moon, Sun, MoreHorizontal, Search, BookOpen, ArrowLeft, Settings, Key, RefreshCw } from "lucide-react";
 import { Analytics } from "@vercel/analytics/react";
 import { Helmet } from "react-helmet-async";
+import { getSEOData } from "./utils/seoManager";
 import { 
   Header, 
   AnimatedBackground, 
@@ -1297,17 +1298,28 @@ export default function App() {
     );
   }
 
+  // Read sitewide SEO once on render; individual pages can override via their own hooks if needed
+  const sitewideSEO = (() => {
+    try { return getSEOData().sitewide; } catch { return undefined as any; }
+  })();
+
   return (
     <ErrorBoundary>
       <div className="min-h-screen relative" data-react-root="true">
         <Helmet>
-          <title>Brian Bureson – Portfolio</title>
-          <meta name="description" content="Case studies, product design, and UI engineering by Brian Bureson." />
+          <title>{sitewideSEO?.siteName || 'Portfolio'}</title>
+          {sitewideSEO?.defaultDescription && (
+            <meta name="description" content={sitewideSEO.defaultDescription} />
+          )}
           <meta property="og:type" content="website" />
-          <meta property="og:title" content="Brian Bureson – Portfolio" />
-          <meta property="og:description" content="Case studies, product design, and UI engineering by Brian Bureson." />
-          <meta property="og:image" content="/api/og" />
-          <meta name="twitter:card" content="summary_large_image" />
+          {sitewideSEO?.siteName && (
+            <meta property="og:title" content={sitewideSEO.siteName} />
+          )}
+          {sitewideSEO?.defaultDescription && (
+            <meta property="og:description" content={sitewideSEO.defaultDescription} />
+          )}
+          <meta property="og:image" content={sitewideSEO?.defaultOGImage || '/api/og'} />
+          <meta name="twitter:card" content={sitewideSEO?.defaultTwitterCard || 'summary_large_image'} />
         </Helmet>
         {/* Fixed backgrounds that show on all pages */}
         <AnimatedBackground />

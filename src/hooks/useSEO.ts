@@ -1,14 +1,13 @@
 import { useEffect } from 'react';
-import { getSEOData, applyPageSEO, getCaseStudySEO, updateFavicon } from '../utils/seoManager';
+import { getSEOData, getCaseStudySEO, updateFavicon } from '../utils/seoManager';
+import { Helmet } from 'react-helmet-async';
 
 export function useSEO(pageKey: 'home' | 'about' | 'caseStudies' | 'contact') {
   useEffect(() => {
     const seoData = getSEOData();
     const pageSEO = seoData.pages[pageKey];
     
-    if (pageSEO) {
-      applyPageSEO(pageSEO, seoData.sitewide);
-    }
+    // Helmet will render tags in the consuming component; here we just ensure favicon is in sync
     
     // Update favicon on every page
     updateFavicon(seoData.sitewide);
@@ -20,6 +19,7 @@ export function useCaseStudySEO(caseStudyId: string, caseStudyTitle?: string) {
   useEffect(() => {
     const seoData = getSEOData();
     const caseStudySEO = getCaseStudySEO(caseStudyId, caseStudyTitle);
-    applyPageSEO(caseStudySEO, seoData.sitewide);
+    // Favicon only; Helmet should be used in the page to render meta
+    updateFavicon(seoData.sitewide);
   }, [caseStudyId, caseStudyTitle]);
 }
