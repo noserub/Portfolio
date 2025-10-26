@@ -24,8 +24,6 @@ import { FlowDiagramGallery } from "../components/FlowDiagramGallery";
 import { VideoGallery } from "../components/VideoGallery";
 import HeroImage from "../components/HeroImage";
 import { useCaseStudySEO } from "../hooks/useSEO";
-import { Helmet } from "react-helmet-async";
-import { getSEOData, getCaseStudySEO } from "../utils/seoManager";
 import { cleanMarkdownContent, isContentCorrupted } from "../utils/cleanMarkdownContent";
 
 interface ProjectDetailProps {
@@ -2240,9 +2238,6 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     isEditMode
   ]);
 
-  const sitewideSEO = (() => { try { return getSEOData().sitewide; } catch { return undefined as any; } })();
-  const caseSEO = getCaseStudySEO(project.id, project.title);
-
   return (
     <PageLayout 
       title={project.title}
@@ -2250,17 +2245,6 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       onBack={handleBack} 
       overline={project.title ? undefined : undefined}
     >
-      <Helmet>
-        <title>{caseSEO.title || project.title}</title>
-        {caseSEO.description && <meta name="description" content={caseSEO.description} />}
-        <meta property="og:type" content="article" />
-        <meta property="og:title" content={caseSEO.ogTitle || caseSEO.title || project.title} />
-        {caseSEO.ogDescription && <meta property="og:description" content={caseSEO.ogDescription} />}
-        <meta property="og:image" content={caseSEO.ogImage || sitewideSEO?.defaultOGImage || '/api/og'} />
-        <meta name="twitter:card" content={caseSEO.twitterCard || sitewideSEO?.defaultTwitterCard || 'summary_large_image'} />
-        {caseSEO.twitterTitle && <meta name="twitter:title" content={caseSEO.twitterTitle} />}
-        {caseSEO.twitterDescription && <meta name="twitter:description" content={caseSEO.twitterDescription} />}
-      </Helmet>
       {/* Editable Title and Description */}
       {isEditMode && (
         <div className="mb-12 px-6 py-4" style={{ maxWidth: '1200px', margin: '0 auto' }}>
