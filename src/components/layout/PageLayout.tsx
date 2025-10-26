@@ -8,9 +8,10 @@ interface PageLayoutProps {
   onBack: () => void;
   overline?: string;
   actionButton?: React.ReactNode;
+  subtitle?: string;
 }
 
-export function PageLayout({ title, children, onBack, overline, actionButton }: PageLayoutProps) {
+export function PageLayout({ title, children, onBack, overline, actionButton, subtitle }: PageLayoutProps) {
   const { scrollY } = useScroll();
   
   // Transform scroll position to background opacity (blur is constant like header)
@@ -68,6 +69,16 @@ export function PageLayout({ title, children, onBack, overline, actionButton }: 
             >
               {title}
             </motion.h1>
+            {subtitle && (
+              <motion.p
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.35 }}
+                className="mt-3 text-lg text-muted-foreground max-w-3xl"
+              >
+                {subtitle}
+              </motion.p>
+            )}
           </div>
           {/* Action button shows here on mobile */}
           {actionButton && (

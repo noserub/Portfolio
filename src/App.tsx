@@ -182,6 +182,14 @@ export default function App() {
     if (typeof window !== 'undefined' && (window as any).__reactMounted) {
       (window as any).__reactMounted();
     }
+    // Prevent browser from restoring scroll position between navigations
+    if ('scrollRestoration' in window.history) {
+      try {
+        window.history.scrollRestoration = 'manual';
+      } catch {}
+    }
+    // Ensure we start at the top on first mount
+    forceScrollToTop();
   }, []);
   
   // Move early returns to after all hooks are declared
@@ -192,6 +200,19 @@ export default function App() {
   const [selectedProject, setSelectedProject] = useState(null);
   const [projectUpdateCallback, setProjectUpdateCallback] = useState(null);
   
+  // Utility: force scroll to top cross-browser
+  const forceScrollToTop = () => {
+    try {
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    } catch {}
+    try {
+      (document.documentElement as HTMLElement).scrollTop = 0;
+    } catch {}
+    try {
+      (document.body as HTMLElement).scrollTop = 0;
+    } catch {}
+  };
+
   // Use Supabase for app settings including logo
   const { settings, updateSettings, getCurrentUserSettings } = useAppSettings();
   const logo = settings?.logo_url;
@@ -627,10 +648,13 @@ export default function App() {
     }
   }, []); // Empty dependency array - only runs once
 
-  // Scroll to top when page changes
+  // Always scroll to top when page or project changes (defeat layout shifts)
   useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [currentPage]);
+    forceScrollToTop();
+    requestAnimationFrame(forceScrollToTop);
+    setTimeout(forceScrollToTop, 0);
+    setTimeout(forceScrollToTop, 32);
+  }, [currentPage, (selectedProject as any)?._navTimestamp]);
 
   // Browser navigation support
   useEffect(() => {
@@ -739,6 +763,8 @@ export default function App() {
           setSelectedProject(null);
         }
       }
+      // Ensure scroll top after navigation caused by browser buttons
+      setTimeout(forceScrollToTop, 0);
     };
 
     // Listen for browser navigation
@@ -877,6 +903,7 @@ export default function App() {
 
   const navigateToStart = () => {
     setCurrentPage("about");
+    setTimeout(forceScrollToTop, 0);
   };
 
   // Supabase test navigation removed
@@ -884,6 +911,7 @@ export default function App() {
   const navigateHome = () => {
     setCurrentPage("home");
     setSelectedProject(null);
+    setTimeout(forceScrollToTop, 0);
   };
 
   const navigateToProject = async (project: ProjectData, updateCallback: (project: ProjectData) => void) => {
@@ -1018,6 +1046,7 @@ export default function App() {
     } as any);
     setProjectUpdateCallback({ fn: updateCallback });
     setCurrentPage("project-detail");
+    setTimeout(forceScrollToTop, 0);
   };
 
   const handlePasswordCorrect = () => {
@@ -1526,7 +1555,7 @@ export default function App() {
                     handleSignOut();
                     setTimeout(() => document.activeElement instanceof HTMLElement && document.activeElement.blur(), 0);
                   }}
-                  className="text-white"
+                  className="text-foreground"
                 >
                   <LogOut className="w-4 h-4 mr-2" />
                   Sign Out
