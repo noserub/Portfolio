@@ -16,6 +16,7 @@ interface AtAGlanceSidebarProps {
 
 export function AtAGlanceSidebar({ content, title, isEditMode, onUpdate, onRemove }: AtAGlanceSidebarProps) {
   const [isEditing, setIsEditing] = useState(false);
+  const [hasUserChanges, setHasUserChanges] = useState(false);
   
   // Extract title from content (first line starting with #)
   const extractTitleFromContent = (content: string): string => {
@@ -35,16 +36,22 @@ export function AtAGlanceSidebar({ content, title, isEditMode, onUpdate, onRemov
   const [originalContent, setOriginalContent] = useState(content);
 
   // Update local state when content or title prop changes
+  // Only update if user hasn't made changes to avoid overwriting user edits
   React.useEffect(() => {
-    // Only update if content is valid and not corrupted
-    if (content && typeof content === 'string' && content.trim().length > 0) {
+    // Only update if content is valid and not corrupted, and user hasn't made changes
+    // Also check if the content is actually different from what we already have
+    if (content && typeof content === 'string' && content.trim().length > 0 && !hasUserChanges) {
       const newTitle = title || extractTitleFromContent(content);
-      setEditedTitle(newTitle);
-      setOriginalTitle(newTitle);
-      setEditedContent(content);
-      setOriginalContent(content);
+      
+      // Only update if the content is actually different
+      if (content !== editedContent || newTitle !== editedTitle) {
+        setEditedTitle(newTitle);
+        setOriginalTitle(newTitle);
+        setEditedContent(content);
+        setOriginalContent(content);
+      }
     }
-  }, [content, title]);
+  }, [content, title, hasUserChanges, editedContent, editedTitle]);
 
   const handleEdit = () => {
     setOriginalTitle(editedTitle);
@@ -56,6 +63,7 @@ export function AtAGlanceSidebar({ content, title, isEditMode, onUpdate, onRemov
     if (onUpdate) {
       onUpdate(editedTitle, editedContent);
     }
+    setHasUserChanges(true); // Mark that user has made changes
     setIsEditing(false);
   };
 
@@ -63,6 +71,12 @@ export function AtAGlanceSidebar({ content, title, isEditMode, onUpdate, onRemov
     setEditedTitle(originalTitle);
     setEditedContent(originalContent);
     setIsEditing(false);
+  };
+
+  // Track when user makes changes to content
+  const handleContentChange = (newContent: string) => {
+    setEditedContent(newContent);
+    setHasUserChanges(true); // Mark that user has made changes
   };
 
   return (
@@ -156,7 +170,7 @@ export function AtAGlanceSidebar({ content, title, isEditMode, onUpdate, onRemov
               <div className="flex-1 overflow-y-auto mb-4 pr-2">
                 <Textarea
                   value={editedContent}
-                  onChange={(e) => setEditedContent(e.target.value)}
+                  onChange={(e) => handleContentChange(e.target.value)}
                   className="min-h-[200px] h-full font-mono text-sm resize-none"
                   placeholder="Enter content (Markdown supported)..."
                 />

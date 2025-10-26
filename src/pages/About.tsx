@@ -397,7 +397,7 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
     };
     
     loadProfile();
-  }, []); // Remove getCurrentUserProfile from dependencies to prevent infinite loop
+  }, [getCurrentUserProfile]); // Now safe to include getCurrentUserProfile since it's memoized
 
   // Auto-save when state changes (debounced)
   useEffect(() => {

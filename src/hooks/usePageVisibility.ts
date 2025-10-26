@@ -8,23 +8,17 @@ export interface PageVisibility {
   user_id: string;
   about: boolean;
   contact: boolean;
-  music: boolean;
-  visuals: boolean;
 }
 
 export interface PageVisibilityInsert {
   user_id: string;
   about?: boolean;
   contact?: boolean;
-  music?: boolean;
-  visuals?: boolean;
 }
 
 export interface PageVisibilityUpdate {
   about?: boolean;
   contact?: boolean;
-  music?: boolean;
-  visuals?: boolean;
 }
 
 export function usePageVisibility() {
@@ -218,7 +212,7 @@ export function usePageVisibility() {
       ? pageVisibility.find(pv => pv.user_id === userId)
       : pageVisibility[0]; // Default to first user's settings
     
-    if (!visibility) return ['about', 'contact', 'music', 'visuals']; // Default visible pages
+    if (!visibility) return ['about', 'contact']; // Default visible pages
     
     return Object.entries(visibility)
       .filter(([key, value]) => key !== 'id' && key !== 'created_at' && key !== 'updated_at' && key !== 'user_id' && value === true)

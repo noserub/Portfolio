@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { getSEOData, applyPageSEO, getCaseStudySEO, updateFavicon } from '../utils/seoManager';
 
-export function useSEO(pageKey: 'home' | 'about' | 'caseStudies' | 'contact' | 'music' | 'visuals') {
+export function useSEO(pageKey: 'home' | 'about' | 'caseStudies' | 'contact') {
   useEffect(() => {
     const seoData = getSEOData();
     const pageSEO = seoData.pages[pageKey];

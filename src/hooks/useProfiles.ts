@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabaseClient';
 
 export interface Profile {
@@ -110,7 +110,7 @@ export function useProfiles() {
   };
 
   // Get profile by ID
-  const getProfile = async (id: string): Promise<Profile | null> => {
+  const getProfile = useCallback(async (id: string): Promise<Profile | null> => {
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -124,7 +124,7 @@ export function useProfiles() {
       setError(err.message);
       return null;
     }
-  };
+  }, []);
 
   // Create profile
   const createProfile = async (profile: ProfileInsert): Promise<Profile | null> => {
@@ -187,7 +187,7 @@ export function useProfiles() {
   };
 
   // Get current user's profile
-  const getCurrentUserProfile = async (): Promise<Profile | null> => {
+  const getCurrentUserProfile = useCallback(async (): Promise<Profile | null> => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return null;
@@ -197,7 +197,7 @@ export function useProfiles() {
       setError(err.message);
       return null;
     }
-  };
+  }, [getProfile]);
 
   // Update current user's profile
   const updateCurrentUserProfile = async (updates: ProfileUpdate): Promise<Profile | null> => {

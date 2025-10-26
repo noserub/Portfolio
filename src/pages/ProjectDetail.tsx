@@ -2239,32 +2239,40 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
   ]);
 
   return (
-    <PageLayout title={project.description || project.title} onBack={handleBack} overline={project.title}>
+    <PageLayout 
+      title={project.title}
+      subtitle={project.description || ''}
+      onBack={handleBack} 
+      overline={project.title ? undefined : undefined}
+    >
       {/* Editable Title and Description */}
       {isEditMode && (
-        <div className="mb-8 space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-2">Project Title</label>
-            <Input
-              value={editedTitle}
-              onChange={(e) => setEditedTitle(e.target.value)}
-              className="w-full"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-2">Project Description</label>
-            <Textarea
-              value={editedDescription}
-              onChange={(e) => setEditedDescription(e.target.value)}
-              className="w-full"
-              rows={3}
-            />
+        <div className="mb-12 px-6 py-4" style={{ maxWidth: '1200px', margin: '0 auto' }}>
+          <div className="grid gap-6">
+            <div>
+              <label className="block text-sm font-medium mb-2">Project Title</label>
+              <Input
+                value={editedTitle}
+                onChange={(e) => setEditedTitle(e.target.value)}
+                className="w-full"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">Project Description</label>
+              <Textarea
+                value={editedDescription}
+                onChange={(e) => setEditedDescription(e.target.value)}
+                className="w-full"
+                rows={3}
+              />
+            </div>
           </div>
         </div>
       )}
       
       {isEditMode && (
-        <div className="mb-4 flex flex-wrap gap-3 items-center">
+        <div className="mb-10 px-6 pt-2" style={{ maxWidth: '1200px', margin: '0 auto' }}>
+          <div className="flex flex-wrap gap-4 items-center">
           <div className="text-sm font-medium">Add:</div>
 
           {/* Galleries dropdown */}
@@ -2322,6 +2330,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
               <DropdownMenuItem disabled={!!impactContent} onClick={() => addMarkdownSection('Impact', 'Summarize the impact and outcomes.')}>Impact</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          </div>
         </div>
       )}
       <div 

@@ -17,8 +17,6 @@ export async function clearAllData() {
       'designProjects', 
       'aboutData',
       'contactData',
-      'musicPlaylist',
-      'visualsGallery',
       'seoData',
       'pageVisibility',
       'appSettings',
@@ -36,8 +34,6 @@ export async function clearAllData() {
     // Delete in order to respect foreign key constraints
     const tables = [
       'contact_messages',
-      'music_playlist', 
-      'visuals_gallery',
       'seo_data',
       'page_visibility',
       'app_settings',
@@ -80,8 +76,6 @@ export async function clearLocalStorageOnly() {
       'designProjects', 
       'aboutData',
       'contactData',
-      'musicPlaylist',
-      'visualsGallery',
       'seoData',
       'pageVisibility',
       'appSettings',
