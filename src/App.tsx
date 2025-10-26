@@ -5,6 +5,7 @@ import { HTML5Backend } from "react-dnd-html5-backend";
 import { supabase } from "./lib/supabaseClient";
 import { Edit3, Eye, LogOut, Save, AlertTriangle, Moon, Sun, MoreHorizontal, Search, BookOpen, ArrowLeft, Settings, Key, RefreshCw } from "lucide-react";
 import { Analytics } from "@vercel/analytics/react";
+import { Helmet } from "react-helmet-async";
 import { 
   Header, 
   AnimatedBackground, 
@@ -1299,6 +1300,15 @@ export default function App() {
   return (
     <ErrorBoundary>
       <div className="min-h-screen relative" data-react-root="true">
+        <Helmet>
+          <title>Brian Bureson – Portfolio</title>
+          <meta name="description" content="Case studies, product design, and UI engineering by Brian Bureson." />
+          <meta property="og:type" content="website" />
+          <meta property="og:title" content="Brian Bureson – Portfolio" />
+          <meta property="og:description" content="Case studies, product design, and UI engineering by Brian Bureson." />
+          <meta property="og:image" content="/api/og" />
+          <meta name="twitter:card" content="summary_large_image" />
+        </Helmet>
         {/* Fixed backgrounds that show on all pages */}
         <AnimatedBackground />
         <AbstractPattern />
