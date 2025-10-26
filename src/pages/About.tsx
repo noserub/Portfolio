@@ -762,15 +762,6 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
       title="About" 
       onBack={onBack}
     >
-      <Helmet>
-        <title>{page.title || seo.sitewide.siteName}</title>
-        {page.description && <meta name="description" content={page.description} />}
-        <meta property="og:type" content="website" />
-        <meta property="og:title" content={page.ogTitle || page.title || seo.sitewide.siteName} />
-        {page.ogDescription && <meta property="og:description" content={page.ogDescription} />}
-        <meta property="og:image" content={page.ogImage || seo.sitewide.defaultOGImage || '/api/og'} />
-        <meta name="twitter:card" content={page.twitterCard || seo.sitewide.defaultTwitterCard || 'summary_large_image'} />
-      </Helmet>
       <div 
         className="space-y-16 flex flex-col"
         style={{
