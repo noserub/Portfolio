@@ -7,6 +7,8 @@ import { Textarea } from '../components/ui/textarea';
 import { PageLayout } from '../components/layout/PageLayout';
 import { MarkdownRenderer } from '../components/MarkdownRenderer';
 import { useSEO } from '../hooks/useSEO';
+import { Helmet } from 'react-helmet-async';
+import { getSEOData } from '../utils/seoManager';
 import { useContactMessages } from '../hooks/useContactMessages';
 
 interface ContactProps {
@@ -17,6 +19,8 @@ interface ContactProps {
 export function Contact({ onBack, isEditMode = false }: ContactProps) {
   // Apply SEO for contact page
   useSEO('contact');
+  const seo = getSEOData();
+  const page = seo.pages.contact;
   
   // Supabase contact messages hook
   const { createMessage } = useContactMessages();
@@ -477,6 +481,15 @@ export function Contact({ onBack, isEditMode = false }: ContactProps) {
   return (
     <PageLayout title="Get in touch" onBack={onBack} children={
       <>
+        <Helmet>
+          <title>{page.title || seo.sitewide.siteName}</title>
+          {page.description && <meta name="description" content={page.description} />}
+          <meta property="og:type" content="website" />
+          <meta property="og:title" content={page.ogTitle || page.title || seo.sitewide.siteName} />
+          {page.ogDescription && <meta property="og:description" content={page.ogDescription} />}
+          <meta property="og:image" content={page.ogImage || seo.sitewide.defaultOGImage || '/api/og'} />
+          <meta name="twitter:card" content={page.twitterCard || seo.sitewide.defaultTwitterCard || 'summary_large_image'} />
+        </Helmet>
         <div 
           className="max-w-7xl mx-auto"
           style={{

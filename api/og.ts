@@ -4,7 +4,9 @@ export const config = {
   runtime: 'edge',
 };
 
-export default function handler() {
+export default function handler(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const title = searchParams.get('title') || 'Brian Bureson – Portfolio';
   return new ImageResponse(
     (
       <div
@@ -16,7 +18,7 @@ export default function handler() {
           justifyContent: 'center',
           background: 'linear-gradient(135deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)',
         }}
-      >
+        >
         <div
           style={{
             fontSize: 64,
@@ -28,7 +30,7 @@ export default function handler() {
             borderRadius: 24,
           }}
         >
-          Brian Bureson – Portfolio
+          {title}
         </div>
       </div>
     ),

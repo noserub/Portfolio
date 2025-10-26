@@ -9,6 +9,8 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "..
 import { Sparkles, Target, Users, Rocket, Zap, Award, Lightbulb, TrendingUp, Boxes, BarChart3, PenTool, BrainCircuit, GraduationCap, Wrench, FileText, Edit2, Save, X, ChevronDown, ChevronUp, ArrowUp, ArrowDown } from "lucide-react";
 import { MarkdownRenderer } from "../components/MarkdownRenderer";
 import { useSEO } from "../hooks/useSEO";
+import { Helmet } from 'react-helmet-async';
+import { getSEOData } from '../utils/seoManager';
 import { useProfiles } from "../hooks/useProfiles";
 
 interface AboutProps {
@@ -20,6 +22,8 @@ interface AboutProps {
 export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
   // Apply SEO for about page
   useSEO('about');
+  const seo = getSEOData();
+  const page = seo.pages.about;
   
   // Supabase profile hook
   const { getCurrentUserProfile, updateCurrentUserProfile, loading: profileLoading } = useProfiles();
@@ -762,6 +766,15 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
       title="About" 
       onBack={onBack}
     >
+      <Helmet>
+        <title>{page.title || seo.sitewide.siteName}</title>
+        {page.description && <meta name="description" content={page.description} />}
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content={page.ogTitle || page.title || seo.sitewide.siteName} />
+        {page.ogDescription && <meta property="og:description" content={page.ogDescription} />}
+        <meta property="og:image" content={page.ogImage || seo.sitewide.defaultOGImage || '/api/og'} />
+        <meta name="twitter:card" content={page.twitterCard || seo.sitewide.defaultTwitterCard || 'summary_large_image'} />
+      </Helmet>
       <div 
         className="space-y-16 flex flex-col"
         style={{

@@ -7,6 +7,8 @@ import { ProjectCardSkeleton } from "../components/ProjectCardSkeleton";
 import { Lightbox } from "../components/Lightbox";
 // Removed performance optimizations that were causing slowdown
 import { useSEO } from "../hooks/useSEO";
+import { Helmet } from 'react-helmet-async';
+import { getSEOData } from '../utils/seoManager';
 import { useProjects } from "../hooks/useProjects";
 import { supabase } from "../lib/supabaseClient";
 import { Button } from "../components/ui/button";
@@ -734,6 +736,8 @@ export function Home({ onStartClick, isEditMode, onProjectClick, currentPage }: 
   // DEBUG: Latest deployment test - if you see this, the new code is deployed
   // Apply SEO for home page
   useSEO('home');
+  const seo = getSEOData();
+  const page = seo.pages.home;
   
   
   // Deployment successful - debug indicators removed
@@ -2972,6 +2976,15 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
 
   return (
     <div className="min-h-screen relative">
+      <Helmet>
+        <title>{page.title || seo.sitewide.siteName}</title>
+        {page.description && <meta name="description" content={page.description} />}
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content={page.ogTitle || page.title || seo.sitewide.siteName} />
+        {page.ogDescription && <meta property="og:description" content={page.ogDescription} />}
+        <meta property="og:image" content={page.ogImage || seo.sitewide.defaultOGImage || '/api/og'} />
+        <meta name="twitter:card" content={page.twitterCard || seo.sitewide.defaultTwitterCard || 'summary_large_image'} />
+      </Helmet>
 
       {/* Hero Section */}
       <section className="min-h-screen flex flex-col items-center justify-center px-6 pt-20 md:pt-32 pb-20">
