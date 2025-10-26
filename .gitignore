@@ -83,7 +83,8 @@ jspm_packages/
 
 # Gatsby files
 .cache/
-public
+# public assets should be committed for Vite/Vercel
+!/public
 
 # Storybook build outputs
 .out
