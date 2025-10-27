@@ -275,6 +275,10 @@ export default function App() {
     }
   });
 
+  const [systemPrefersDark, setSystemPrefersDark] = useState(() => {
+    return window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false;
+  });
+
   const [theme, setTheme] = useState(() => {
     try {
       const saved = localStorage.getItem('theme');
@@ -564,7 +568,10 @@ export default function App() {
   useEffect(() => {
     if (themeSource !== 'system' || typeof window === 'undefined' || !window.matchMedia) return;
     const mql = window.matchMedia('(prefers-color-scheme: dark)');
-    const handler = () => setTheme(mql.matches ? 'dark' : 'light');
+    const handler = () => {
+      setSystemPrefersDark(mql.matches);
+      setTheme(mql.matches ? 'dark' : 'light');
+    };
     try {
       mql.addEventListener?.('change', handler);
     } catch {
@@ -1529,7 +1536,11 @@ export default function App() {
                 e.currentTarget.blur();
               }}
             >
-              <Sun className="w-4 h-4 mr-2" />
+              {systemPrefersDark ? (
+                <Moon className="w-4 h-4 mr-2" />
+              ) : (
+                <Sun className="w-4 h-4 mr-2" />
+              )}
               System Theme (auto)
             </DropdownMenuItem>
             
