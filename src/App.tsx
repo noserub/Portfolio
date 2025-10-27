@@ -1299,6 +1299,7 @@ export default function App() {
   return (
     <ErrorBoundary>
       <div className="min-h-screen relative" data-react-root="true">
+        
         {/* Fixed backgrounds that show on all pages */}
         <AnimatedBackground />
         <AbstractPattern />
