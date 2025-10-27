@@ -2511,6 +2511,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
       contentLength: updatedProject.caseStudyContent?.length || 0,
       type,
       skipRefetch,
+      requiresPassword: updatedProject.requiresPassword,
       'Full updatedProject': updatedProject
     });
     
@@ -2546,7 +2547,8 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
 
       console.log('🔄 Home: Calling updateProject with data:', {
         id: updatedProject.id,
-        case_study_content_length: projectData.case_study_content?.length || 0
+        case_study_content_length: projectData.case_study_content?.length || 0,
+        requires_password: projectData.requires_password
       });
       
       // DEBUG: Detailed content comparison
