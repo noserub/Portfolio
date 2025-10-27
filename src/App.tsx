@@ -1052,6 +1052,12 @@ export default function App() {
           }
         }
       }
+      
+      // Ensure requiresPassword field is properly set for localStorage fallback
+      if (freshProject) {
+        freshProject.requiresPassword = freshProject.requiresPassword || freshProject.requires_password || false;
+        console.log('🔄 localStorage fallback - ensuring requiresPassword field:', freshProject.requiresPassword);
+      }
     } catch (e) {
         console.error('Error loading project data from localStorage:', e);
       }
