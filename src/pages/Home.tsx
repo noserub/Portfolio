@@ -3039,6 +3039,33 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
               }}
             />
           </motion.h1>
+          
+          {/* Dot Indicators */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4, duration: 0.5 }}
+            className="flex justify-center items-center space-x-2 mt-4"
+          >
+            {(greetingsRef.current || []).map((_, index) => (
+              <motion.div
+                key={index}
+                className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                  index === currentGreetingIndex
+                    ? 'bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 scale-125'
+                    : 'bg-gray-300 dark:bg-gray-600'
+                }`}
+                animate={{
+                  scale: index === currentGreetingIndex ? 1.25 : 1,
+                  opacity: index === currentGreetingIndex ? 1 : 0.5,
+                }}
+                transition={{
+                  duration: 0.3,
+                  ease: "easeInOut"
+                }}
+              />
+            ))}
+          </motion.div>
         </motion.div>
 
         {/* Bio Container */}
