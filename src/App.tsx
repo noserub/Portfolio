@@ -331,10 +331,8 @@ export default function App() {
       console.log('🔐 Supabase auth state changed:', { event, user: session?.user?.email });
       
       const isSupabaseAuth = !!session?.user;
-      const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
-      const isAuth = isSupabaseAuth || isBypassAuth;
-      setIsAuthenticated(isAuth);
       
+      // Handle localStorage cleanup BEFORE checking bypass auth
       if (isSupabaseAuth) {
         localStorage.setItem('isAuthenticated', 'true');
         console.log('✅ Signed in - authentication persisted to localStorage');
@@ -342,11 +340,16 @@ export default function App() {
         // Only clear localStorage if we're actually signing out, not just checking auth state
         if (event === 'SIGNED_OUT') {
           localStorage.removeItem('isAuthenticated');
-        console.log('👋 Signed out - authentication cleared from localStorage');
+          console.log('👋 Signed out - authentication cleared from localStorage');
         } else {
           console.log('🔍 Auth state changed but not signing out, keeping bypass auth if present');
         }
       }
+      
+      // Now check bypass auth AFTER potential localStorage cleanup
+      const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
+      const isAuth = isSupabaseAuth || isBypassAuth;
+      setIsAuthenticated(isAuth);
     });
 
     return () => subscription.unsubscribe();
