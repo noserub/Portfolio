@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
 // Get environment variables
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
@@ -21,14 +21,18 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.warn('⚠️ Supabase environment variables not set. Using placeholder values. Please configure .env.local with your Supabase credentials.')
 }
 
-// Create Supabase client
-export const supabase = createClient(url, key, {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: true
-  }
-})
+// Singleton Supabase client (avoid multiple GoTrueClient instances)
+let _supabase: SupabaseClient | undefined
+export const supabase: SupabaseClient = _supabase ?? (
+  _supabase = createClient(url, key, {
+    auth: {
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: true,
+      storageKey: 'sb-portfolio'
+    }
+  })
+)
 
 // Database types (you can generate these with Supabase CLI)
 export interface Database {
@@ -74,10 +78,14 @@ export interface Database {
 }
 
 // Typed Supabase client
-export const typedSupabase = createClient<Database>(url, key, {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: true
-  }
-})
+let _typed: SupabaseClient<Database> | undefined
+export const typedSupabase: SupabaseClient<Database> = _typed ?? (
+  _typed = createClient<Database>(url, key, {
+    auth: {
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: true,
+      storageKey: 'sb-portfolio'
+    }
+  })
+)

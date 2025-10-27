@@ -2023,13 +2023,6 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
   
   // Memoize case studies filtering to prevent recalculation
   const caseStudies = useMemo(() => {
-    console.log('🔍 All projects before filtering:', deduplicatedProjects.map(p => ({
-      id: p.id,
-      title: p.title,
-      requiresPassword: p.requiresPassword || p.requires_password,
-      published: p.published
-    })));
-    
     const filtered = deduplicatedProjects
       .filter(project => {
         // More precise filtering - only include projects that are clearly case studies
@@ -2050,17 +2043,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                                title.includes('product design') ||
                                title.includes('design system');
         
-        const shouldInclude = isCaseStudy && !isDesignProject;
-        
-        console.log('🔍 Project filter check:', {
-          id: project.id,
-          title: project.title,
-          isCaseStudy,
-          isDesignProject,
-          shouldInclude
-        });
-        
-        return shouldInclude;
+        return isCaseStudy && !isDesignProject;
       })
       .map(project => ({
         ...project,
@@ -2068,16 +2051,6 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         url: cleanProjectUrl(String(project.url || ''), project.title),
         // Map other fields as needed
       }));
-    
-    // Debug logging for password-protected projects
-    const passwordStatus = filtered.map(p => ({
-      id: p.id,
-      title: p.title,
-      requiresPassword: p.requiresPassword || p.requires_password,
-      published: p.published
-    }));
-    console.log('🔐 Case Studies Password Status:', passwordStatus);
-    console.log('🔐 Case Studies Password Status (expanded):', JSON.stringify(passwordStatus, null, 2));
     
     return filtered;
   }, [deduplicatedProjects]);

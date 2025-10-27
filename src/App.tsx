@@ -1100,18 +1100,8 @@ export default function App() {
     
         // Check if project requires password and user is not authenticated (site owner)
         // Site owners can view password-protected projects in both edit and preview modes
-        const localStorageAuth = localStorage.getItem('isAuthenticated');
-        const supabaseUser = await supabase.auth.getUser();
-        console.log('🔐 Password check:', {
-          requiresPassword: projectToSet.requiresPassword,
-          isAuthenticated: isAuthenticated,
-          localStorageAuth: localStorageAuth,
-          supabaseUser: !!supabaseUser.data.user,
-          shouldShowPrompt: projectToSet.requiresPassword && !isAuthenticated
-        });
     
     if (projectToSet.requiresPassword && !isAuthenticated) {
-      console.log('🔐 Project requires password and user not authenticated, showing password prompt:', projectToSet.title);
       setPendingProtectedProject({ project: projectToSet, updateCallback });
       return;
     }
@@ -1127,10 +1117,8 @@ export default function App() {
   };
 
   const handlePasswordCorrect = () => {
-    console.log('🔐 Password correct callback triggered');
     if (pendingProtectedProject) {
       const { project, updateCallback } = pendingProtectedProject;
-      console.log('🔐 Unlocking project:', project.title);
       setSelectedProject({
         ...project,
         _navTimestamp: Date.now()
@@ -1394,14 +1382,11 @@ export default function App() {
       {/* Case Study Password Prompt */}
       <AnimatePresence>
         {pendingProtectedProject && (
-          <>
-            {console.log('🔐 Rendering password prompt for:', pendingProtectedProject.project.title)}
-            <CaseStudyPasswordPrompt
-              projectTitle={pendingProtectedProject.project.title}
-              onCorrectPassword={handlePasswordCorrect}
-              onCancel={handlePasswordCancel}
-            />
-          </>
+          <CaseStudyPasswordPrompt
+            projectTitle={pendingProtectedProject.project.title}
+            onCorrectPassword={handlePasswordCorrect}
+            onCancel={handlePasswordCancel}
+          />
         )}
       </AnimatePresence>
       

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supabase Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .info { background-color: #d1ecf1; color: #0c5460; }
+    </style>
+</head>
+<body>
+    <h1>Supabase Integration Test</h1>
+    <div id="status">Loading...</div>
+    
+    <script>
+        console.log('Testing Supabase integration...');
+        
+        // Check URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const supabaseParam = urlParams.get('supabase');
+        
+        document.getElementById('status').innerHTML = `
+            <div class="info">
+                <h3>URL Parameters</h3>
+                <p>Full URL: ${window.location.href}</p>
+                <p>Search: ${window.location.search}</p>
+                <p>Supabase param: ${supabaseParam}</p>
+                <p>Is supabase=true: ${supabaseParam === 'true'}</p>
+            </div>
+        `;
+        
+        // Test if we can access the main app
+        fetch('/')
+            .then(response => response.text())
+            .then(html => {
+                if (html.includes('React')) {
+                    document.getElementById('status').innerHTML += `
+                        <div class="success">
+                            <h3>React App Status</h3>
+                            <p>✅ React app is running</p>
+                        </div>
+                    `;
+                } else {
+                    document.getElementById('status').innerHTML += `
+                        <div class="error">
+                            <h3>React App Status</h3>
+                            <p>❌ React app not found</p>
+                        </div>
+                    `;
+                }
+            })
+            .catch(err => {
+                document.getElementById('status').innerHTML += `
+                    <div class="error">
+                        <h3>Error</h3>
+                        <p>❌ ${err.message}</p>
+                    </div>
+                `;
+            });
+    </script>
+</body>
+</html>
+
