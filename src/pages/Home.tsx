@@ -2003,7 +2003,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
   // Optimized from O(n²) to O(n) complexity using Map
   const deduplicatedProjects = useMemo(() => {
     console.log('🔍 DEBUG: Raw projects count:', projects.length);
-    console.log('🔍 DEBUG: Raw projects:', projects.map(p => ({ id: p.id, title: p.title, updated_at: p.updated_at })));
+    console.log('🔍 DEBUG: Raw projects:', projects.map(p => ({ id: p.id, title: p.title, updated_at: p.updated_at, requires_password: p.requires_password })));
     
     const seen = new Map<string, typeof projects[0]>();
     
@@ -2027,14 +2027,14 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     
     const result = Array.from(seen.values());
     console.log('🔍 DEBUG: Deduplicated projects count:', result.length);
-    console.log('🔍 DEBUG: Deduplicated projects:', result.map(p => ({ id: p.id, title: p.title, updated_at: p.updated_at })));
+    console.log('🔍 DEBUG: Deduplicated projects:', result.map(p => ({ id: p.id, title: p.title, updated_at: p.updated_at, requires_password: p.requires_password })));
     return result;
   }, [projects]);
   
   // Memoize case studies filtering to prevent recalculation
   const caseStudies = useMemo(() => {
     console.log('🔍 DEBUG: deduplicatedProjects count:', deduplicatedProjects.length);
-    console.log('🔍 DEBUG: All projects before filtering:', deduplicatedProjects.map(p => ({ id: p.id, title: p.title, requiresPassword: p.requiresPassword })));
+    console.log('🔍 DEBUG: All projects before filtering:', deduplicatedProjects.map(p => ({ id: p.id, title: p.title, requiresPassword: p.requiresPassword, requires_password: p.requires_password })));
     console.log('🔍 DEBUG: All projects before filtering (expanded):', deduplicatedProjects);
     
     const filtered = deduplicatedProjects
@@ -2069,7 +2069,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         // Map other fields as needed
       }));
     
-    console.log('🔍 DEBUG: Filtered case studies:', filtered.map(p => ({ id: p.id, title: p.title, requiresPassword: p.requiresPassword })));
+    console.log('🔍 DEBUG: Filtered case studies:', filtered.map(p => ({ id: p.id, title: p.title, requiresPassword: p.requiresPassword, requires_password: p.requires_password })));
     console.log('🔍 DEBUG: Filtered case studies (expanded):', filtered);
     return filtered;
   }, [deduplicatedProjects]);
