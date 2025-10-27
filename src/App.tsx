@@ -1062,6 +1062,7 @@ export default function App() {
     
     console.log('📂 Loading project:', {
       id: projectToSet.id,
+      title: projectToSet.title,
       imageCount: projectToSet.caseStudyImages?.length || 0,
       imageIds: projectToSet.caseStudyImages?.map(img => img.id) || [],
       source: freshProject ? 'Supabase' : 'localStorage',
