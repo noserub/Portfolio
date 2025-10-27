@@ -1033,22 +1033,30 @@ export default function App() {
     // If Supabase failed, try localStorage as fallback
     if (!freshProject) {
     try {
+      console.log('🔄 Supabase load failed, trying localStorage fallback...');
+      
       // Try case studies first
       const caseStudiesData = localStorage.getItem('caseStudies');
+      console.log('🔄 localStorage caseStudies data:', caseStudiesData ? 'found' : 'not found');
       if (caseStudiesData) {
         const caseStudies = JSON.parse(caseStudiesData);
         if (Array.isArray(caseStudies)) {
+          console.log('🔄 Searching caseStudies for project:', project.id);
           freshProject = caseStudies.find((p: ProjectData) => p.id === project.id);
+          console.log('🔄 Found in caseStudies:', freshProject ? 'yes' : 'no');
         }
       }
       
       // If not found, try design projects
       if (!freshProject) {
         const designProjectsData = localStorage.getItem('designProjects');
+        console.log('🔄 localStorage designProjects data:', designProjectsData ? 'found' : 'not found');
         if (designProjectsData) {
           const designProjects = JSON.parse(designProjectsData);
           if (Array.isArray(designProjects)) {
+            console.log('🔄 Searching designProjects for project:', project.id);
             freshProject = designProjects.find((p: ProjectData) => p.id === project.id);
+            console.log('🔄 Found in designProjects:', freshProject ? 'yes' : 'no');
           }
         }
       }
@@ -1057,6 +1065,8 @@ export default function App() {
       if (freshProject) {
         freshProject.requiresPassword = freshProject.requiresPassword || freshProject.requires_password || false;
         console.log('🔄 localStorage fallback - ensuring requiresPassword field:', freshProject.requiresPassword);
+      } else {
+        console.log('🔄 localStorage fallback - project not found in localStorage');
       }
     } catch (e) {
         console.error('Error loading project data from localStorage:', e);
