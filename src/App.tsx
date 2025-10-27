@@ -1076,6 +1076,12 @@ export default function App() {
     // Use fresh data if found, otherwise use the project passed in
     const projectToSet = freshProject || project;
     
+    // Ensure requiresPassword field is properly set even when using original project
+    if (!freshProject) {
+      projectToSet.requiresPassword = projectToSet.requiresPassword || projectToSet.requires_password || false;
+      console.log('🔄 Using original project - ensuring requiresPassword field:', projectToSet.requiresPassword);
+    }
+    
     console.log('📂 Loading project:', {
       id: projectToSet.id,
       title: projectToSet.title,
