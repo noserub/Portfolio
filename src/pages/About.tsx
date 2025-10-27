@@ -417,6 +417,8 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
   // Save to Supabase
   const saveToSupabase = async () => {
     try {
+      console.log('💾 About page: Attempting to save profile data to Supabase...');
+      
       // Try to save to Supabase first
       const result = await updateCurrentUserProfile({
         bio_paragraph_1: bioParagraph1,
@@ -442,12 +444,12 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
       });
       
       if (result) {
-        console.log('✅ Saved to Supabase');
+        console.log('✅ About page: Successfully saved to Supabase');
       } else {
         throw new Error('Supabase save failed');
       }
     } catch (error) {
-      console.log('⚠️ Supabase save failed, saving to localStorage instead:', error);
+      console.log('⚠️ About page: Supabase save failed, saving to localStorage instead:', error);
       
       // Fallback to localStorage
       const profileData = {
@@ -475,7 +477,7 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
     };
       
       localStorage.setItem('aboutPageProfile', JSON.stringify(profileData));
-      console.log('✅ Saved to localStorage as fallback');
+      console.log('✅ About page: Saved to localStorage as fallback');
     }
   };
 

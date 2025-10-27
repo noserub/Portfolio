@@ -190,9 +190,16 @@ export function useProfiles() {
   const getCurrentUserProfile = useCallback(async (): Promise<Profile | null> => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return null;
+      const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
       
-      return await getProfile(user.id);
+      if (!user && !isBypassAuth) {
+        return null;
+      }
+      
+      // Use bypass user ID if no real user
+      const userId = user?.id || '7cd2752f-93c5-46e6-8535-32769fb10055';
+      
+      return await getProfile(userId);
     } catch (err: any) {
       setError(err.message);
       return null;
@@ -203,9 +210,31 @@ export function useProfiles() {
   const updateCurrentUserProfile = async (updates: ProfileUpdate): Promise<Profile | null> => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('No authenticated user');
+      const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
       
-      return await updateProfile(user.id, updates);
+      if (!user && !isBypassAuth) {
+        throw new Error('No authenticated user');
+      }
+      
+      // Use bypass user ID if no real user
+      const userId = user?.id || '7cd2752f-93c5-46e6-8535-32769fb10055';
+      
+      // Try to update existing profile first
+      let result = await updateProfile(userId, updates);
+      
+      // If no existing profile, create one
+      if (!result) {
+        console.log('📝 Profile not found, creating new profile...');
+        const newProfile = {
+          id: userId,
+          email: user?.email || 'brian.bureson@gmail.com',
+          full_name: 'Brian Bureson',
+          ...updates
+        };
+        result = await createProfile(newProfile);
+      }
+      
+      return result;
     } catch (err: any) {
       setError(err.message);
       return null;
