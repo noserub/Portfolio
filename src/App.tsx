@@ -1521,7 +1521,19 @@ export default function App() {
               </>
             )}
             
-            {/* Settings Section */}
+            {/* Theme Settings - Available to all users */}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem 
+              onClick={(e) => {
+                setThemeSource('system');
+                e.currentTarget.blur();
+              }}
+            >
+              <Sun className="w-4 h-4 mr-2" />
+              System Theme (auto)
+            </DropdownMenuItem>
+            
+            {/* Settings Section - Authenticated users only */}
             {isAuthenticated && (
               <>
                 <DropdownMenuSeparator />
@@ -1531,14 +1543,6 @@ export default function App() {
                     Settings
                   </DropdownMenuSubTrigger>
                   <DropdownMenuSubContent>
-                    <DropdownMenuItem 
-                      onClick={(e) => {
-                        setThemeSource('system');
-                        e.currentTarget.blur();
-                      }}
-                    >
-                      System Theme (auto)
-                    </DropdownMenuItem>
                     <DropdownMenuItem 
                       onClick={(e) => {
                         setShowPasswordReset(!showPasswordReset);
