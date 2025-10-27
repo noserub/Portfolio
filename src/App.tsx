@@ -1072,6 +1072,7 @@ export default function App() {
     // Check if project requires password and user is not authenticated (site owner)
     // Site owners can view password-protected projects in both edit and preview modes
     if (projectToSet.requiresPassword && !isAuthenticated) {
+      console.log('🔐 Project requires password and user not authenticated, showing password prompt:', projectToSet.title);
       setPendingProtectedProject({ project: projectToSet, updateCallback });
       return;
     }
@@ -1087,8 +1088,10 @@ export default function App() {
   };
 
   const handlePasswordCorrect = () => {
+    console.log('🔐 Password correct callback triggered');
     if (pendingProtectedProject) {
       const { project, updateCallback } = pendingProtectedProject;
+      console.log('🔐 Unlocking project:', project.title);
       setSelectedProject({
         ...project,
         _navTimestamp: Date.now()
