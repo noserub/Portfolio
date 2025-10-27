@@ -3050,13 +3050,13 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
             {(greetingsRef.current || []).map((_, index) => (
               <motion.div
                 key={index}
-                className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                className={`transition-all duration-300 ${
                   index === currentGreetingIndex
-                    ? 'bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 scale-125'
-                    : 'bg-gray-300 dark:bg-gray-600'
+                    ? 'w-6 h-2 rounded-full bg-black dark:bg-white'
+                    : 'w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-600'
                 }`}
                 animate={{
-                  scale: index === currentGreetingIndex ? 1.25 : 1,
+                  scale: index === currentGreetingIndex ? 1 : 1,
                   opacity: index === currentGreetingIndex ? 1 : 0.5,
                 }}
                 transition={{
