@@ -3045,9 +3045,10 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4, duration: 0.5 }}
-            className="flex justify-center items-center space-x-2 mt-4"
+            className="flex justify-center items-center mt-6"
+            style={{ gap: '12px' }}
           >
-            {(greetingsRef.current || []).map((_, index) => (
+            {(heroText.greetings || [heroText.greeting] || ['Hello', 'Hi', 'Hey']).map((_, index) => (
               <motion.div
                 key={index}
                 className={`transition-all duration-300 ${
