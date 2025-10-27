@@ -2053,12 +2053,14 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
       }));
     
     // Debug logging for password-protected projects
-    console.log('🔐 Case Studies Password Status:', filtered.map(p => ({
+    const passwordStatus = filtered.map(p => ({
       id: p.id,
       title: p.title,
       requiresPassword: p.requiresPassword || p.requires_password,
       published: p.published
-    })));
+    }));
+    console.log('🔐 Case Studies Password Status:', passwordStatus);
+    console.log('🔐 Case Studies Password Status (expanded):', JSON.stringify(passwordStatus, null, 2));
     
     return filtered;
   }, [deduplicatedProjects]);

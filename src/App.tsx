@@ -1069,6 +1069,12 @@ export default function App() {
       requiresPassword: projectToSet.requiresPassword,
       isAuthenticated: isAuthenticated
     });
+    console.log('📂 Loading project (expanded):', JSON.stringify({
+      id: projectToSet.id,
+      title: projectToSet.title,
+      requiresPassword: projectToSet.requiresPassword,
+      isAuthenticated: isAuthenticated
+    }, null, 2));
     
     // Check if project requires password and user is not authenticated (site owner)
     // Site owners can view password-protected projects in both edit and preview modes
