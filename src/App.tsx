@@ -1098,13 +1098,17 @@ export default function App() {
       isAuthenticated: isAuthenticated
     }, null, 2));
     
-    // Check if project requires password and user is not authenticated (site owner)
-    // Site owners can view password-protected projects in both edit and preview modes
-    console.log('🔐 Password check:', {
-      requiresPassword: projectToSet.requiresPassword,
-      isAuthenticated: isAuthenticated,
-      shouldShowPrompt: projectToSet.requiresPassword && !isAuthenticated
-    });
+        // Check if project requires password and user is not authenticated (site owner)
+        // Site owners can view password-protected projects in both edit and preview modes
+        const localStorageAuth = localStorage.getItem('isAuthenticated');
+        const supabaseUser = await supabase.auth.getUser();
+        console.log('🔐 Password check:', {
+          requiresPassword: projectToSet.requiresPassword,
+          isAuthenticated: isAuthenticated,
+          localStorageAuth: localStorageAuth,
+          supabaseUser: !!supabaseUser.data.user,
+          shouldShowPrompt: projectToSet.requiresPassword && !isAuthenticated
+        });
     
     if (projectToSet.requiresPassword && !isAuthenticated) {
       console.log('🔐 Project requires password and user not authenticated, showing password prompt:', projectToSet.title);
