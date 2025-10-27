@@ -2023,6 +2023,8 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
   
   // Memoize case studies filtering to prevent recalculation
   const caseStudies = useMemo(() => {
+    console.log('🔍 DEBUG: All projects before filtering:', deduplicatedProjects.map(p => ({ id: p.id, title: p.title, requiresPassword: p.requiresPassword })));
+    
     const filtered = deduplicatedProjects
       .filter(project => {
         // More precise filtering - only include projects that are clearly case studies
@@ -2043,7 +2045,10 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                                title.includes('product design') ||
                                title.includes('design system');
         
-        return isCaseStudy && !isDesignProject;
+        const result = isCaseStudy && !isDesignProject;
+        console.log(`🔍 DEBUG: Project "${project.title}" - isCaseStudy: ${isCaseStudy}, isDesignProject: ${isDesignProject}, result: ${result}`);
+        
+        return result;
       })
       .map(project => ({
         ...project,
@@ -2052,6 +2057,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         // Map other fields as needed
       }));
     
+    console.log('🔍 DEBUG: Filtered case studies:', filtered.map(p => ({ id: p.id, title: p.title, requiresPassword: p.requiresPassword })));
     return filtered;
   }, [deduplicatedProjects]);
   
