@@ -2023,6 +2023,13 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
   
   // Memoize case studies filtering to prevent recalculation
   const caseStudies = useMemo(() => {
+    console.log('🔍 All projects before filtering:', deduplicatedProjects.map(p => ({
+      id: p.id,
+      title: p.title,
+      requiresPassword: p.requiresPassword || p.requires_password,
+      published: p.published
+    })));
+    
     const filtered = deduplicatedProjects
       .filter(project => {
         // More precise filtering - only include projects that are clearly case studies
@@ -2043,7 +2050,17 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                                title.includes('product design') ||
                                title.includes('design system');
         
-        return isCaseStudy && !isDesignProject;
+        const shouldInclude = isCaseStudy && !isDesignProject;
+        
+        console.log('🔍 Project filter check:', {
+          id: project.id,
+          title: project.title,
+          isCaseStudy,
+          isDesignProject,
+          shouldInclude
+        });
+        
+        return shouldInclude;
       })
       .map(project => ({
         ...project,
