@@ -2002,28 +2002,40 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
   // Memoize deduplication to prevent recalculation on every render
   // Optimized from O(n²) to O(n) complexity using Map
   const deduplicatedProjects = useMemo(() => {
+    console.log('🔍 DEBUG: Raw projects count:', projects.length);
+    console.log('🔍 DEBUG: Raw projects:', projects.map(p => ({ id: p.id, title: p.title, updated_at: p.updated_at })));
+    
     const seen = new Map<string, typeof projects[0]>();
     
     for (const project of projects) {
       const existing = seen.get(project.title);
       if (!existing) {
         seen.set(project.title, project);
+        console.log(`🔍 DEBUG: Added project "${project.title}" (${project.id})`);
       } else {
         // Replace with newer project (assuming updated_at or id is newer)
         const isNewer = project.updated_at > existing.updated_at || 
                        (project.updated_at === existing.updated_at && project.id > existing.id);
         if (isNewer) {
           seen.set(project.title, project);
+          console.log(`🔍 DEBUG: Replaced project "${project.title}" with newer version (${project.id})`);
+        } else {
+          console.log(`🔍 DEBUG: Kept existing project "${project.title}" (${existing.id}) over newer (${project.id})`);
         }
       }
     }
     
-    return Array.from(seen.values());
+    const result = Array.from(seen.values());
+    console.log('🔍 DEBUG: Deduplicated projects count:', result.length);
+    console.log('🔍 DEBUG: Deduplicated projects:', result.map(p => ({ id: p.id, title: p.title, updated_at: p.updated_at })));
+    return result;
   }, [projects]);
   
   // Memoize case studies filtering to prevent recalculation
   const caseStudies = useMemo(() => {
+    console.log('🔍 DEBUG: deduplicatedProjects count:', deduplicatedProjects.length);
     console.log('🔍 DEBUG: All projects before filtering:', deduplicatedProjects.map(p => ({ id: p.id, title: p.title, requiresPassword: p.requiresPassword })));
+    console.log('🔍 DEBUG: All projects before filtering (expanded):', deduplicatedProjects);
     
     const filtered = deduplicatedProjects
       .filter(project => {
