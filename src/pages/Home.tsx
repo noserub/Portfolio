@@ -3061,14 +3061,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
           
           {/* Dot Indicators */}
           <div className="flex justify-center items-center mt-6" style={{ gap: '16px' }}>
-            {(() => {
-              const greetingsArray = heroText.greetings || [heroText.greeting] || ['Welcome,', "I'm Brian.", 'Designer.', 'Researcher.', 'Product Builder.'];
-              console.log('🔵 Dot indicators - heroText:', heroText);
-              console.log('🔵 Dot indicators - greetings:', heroText.greetings);
-              console.log('🔵 Dot indicators - greeting:', heroText.greeting);
-              console.log('🔵 Dot indicators - greetingsArray:', greetingsArray);
-              console.log('🔵 Dot indicators - currentGreetingIndex:', currentGreetingIndex);
-              return greetingsArray.map((_, index) => (
+            {(heroText.greetings || [heroText.greeting] || ['Welcome,', "I'm Brian.", 'Designer.', 'Researcher.', 'Product Builder.']).map((_, index) => (
               <button
                 key={index}
                 onClick={() => {
@@ -3086,8 +3079,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                 }}
                 aria-label={`Go to greeting ${index + 1}`}
               />
-              ));
-            })()}
+            ))}
           </div>
         </motion.div>
 

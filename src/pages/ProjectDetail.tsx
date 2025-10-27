@@ -382,6 +382,51 @@ const DraggableImage = ({ image, index, isEditMode, onRemove, onImageClick, move
   );
 };
 
+// Helper function to merge edited content with existing sidebar sections
+function mergeContentWithSidebars(editedContent: string, originalContent: string): string {
+  // Extract sidebar sections from original content
+  const originalLines = originalContent.split('\n');
+  const sidebarSections: string[] = [];
+  let currentSidebarSection: string[] = [];
+  let inSidebarSection = false;
+  
+  for (const line of originalLines) {
+    // Check if this is a sidebar section header
+    if (line.trim() === '# At a glance' || 
+        line.trim() === '# Impact' || 
+        line.trim() === '# Tech stack' || 
+        line.trim() === '# Tools') {
+      // Save previous sidebar section if exists
+      if (currentSidebarSection.length > 0) {
+        sidebarSections.push(currentSidebarSection.join('\n'));
+      }
+      // Start new sidebar section
+      currentSidebarSection = [line];
+      inSidebarSection = true;
+    }
+    // Check if we hit another section header (end of sidebar section)
+    else if (inSidebarSection && line.trim().startsWith('# ')) {
+      // Save current sidebar section
+      sidebarSections.push(currentSidebarSection.join('\n'));
+      currentSidebarSection = [];
+      inSidebarSection = false;
+    }
+    // Add line to current sidebar section
+    else if (inSidebarSection) {
+      currentSidebarSection.push(line);
+    }
+  }
+  
+  // Save last sidebar section if exists
+  if (currentSidebarSection.length > 0) {
+    sidebarSections.push(currentSidebarSection.join('\n'));
+  }
+  
+  // Combine edited content with sidebar sections
+  const sidebarContent = sidebarSections.length > 0 ? '\n\n' + sidebarSections.join('\n\n') : '';
+  return editedContent + sidebarContent;
+}
+
 export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: ProjectDetailProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [showSaveIndicator, setShowSaveIndicator] = useState(false);
@@ -797,54 +842,41 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
   }, [caseStudyContent]); // Run when caseStudyContent changes
 
   // Parse sections directly to extract sidebar sections - memoized to prevent re-parsing on every render
-  // Parse sections to extract both sidebar section (first non-Overview) and second sidebar section
-  const { atGlanceContent, impactContent } = useMemo(() => {
+  // Parse sections to extract sidebar sections based on title, not position
+  const { atGlanceContent, impactContent, needsSidebarRestore } = useMemo(() => {
     const lines = cleanedContent?.split('\n') || [];
     let currentSection: { title: string; content: string } | null = null;
     let currentSubsection: { title: string; content: string } | null = null;
     let atGlanceSection: { title: string; content: string } | null = null;
     let impactSection: { title: string; content: string } | null = null;
-    let foundFirstSidebarSection = false;
-    let foundSecondSidebarSection = false;
-    let sectionCount = 0;
+
+    // Check if we need to restore missing sidebar sections
+    const hasAtAGlance = lines.some(line => line.trim() === '# At a glance');
+    const hasImpact = lines.some(line => line.trim() === '# Impact');
 
     lines.forEach(line => {
       // Check for top-level section (# Header)
       if (line.trim().match(/^# (.+)$/)) {
-        // Save previous subsection if it was the second sidebar section
-        if (currentSubsection && foundSecondSidebarSection && impactSection) {
-          impactSection = currentSubsection;
+        // Save previous section if it was a sidebar section
+        if (currentSection) {
+          const title = currentSection.title.toLowerCase();
+          if (title === "at a glance" || title === "tools" || title === "tech stack") {
+            if (!atGlanceSection) { // Only set if not already found
+              atGlanceSection = currentSection;
+            }
+          } else if (title === "impact") {
+            if (!impactSection) { // Only set if not already found
+              impactSection = currentSection;
+            }
+          }
         }
-        // Save previous section if it was the second sidebar section
-        if (currentSection && foundSecondSidebarSection && impactSection) {
-          impactSection = currentSection;
-        }
-        const title = (line || '').trim().substring(2).trim();
+        
+        const title = (line || '').trim().substring(1).trim();
         currentSection = { title, content: '' };
         currentSubsection = null; // Reset subsection
-        
-        // Count non-Overview sections
-        if (title !== "Overview") {
-          sectionCount++;
-          
-          // First non-Overview section is the first sidebar
-          if (sectionCount === 1) {
-            foundFirstSidebarSection = true;
-            atGlanceSection = { title, content: '' };
-          }
-          // Second non-Overview section is the second sidebar
-          else if (sectionCount === 2) {
-            foundSecondSidebarSection = true;
-            impactSection = { title, content: '' };
-          }
-        }
       }
       // Check for subsection (## Header)
       else if (line.trim().match(/^## (.+)$/)) {
-        // Save previous subsection if it was the second sidebar section
-        if (currentSubsection && foundSecondSidebarSection && impactSection) {
-          impactSection = currentSubsection;
-        }
         const title = (line || '').trim().substring(3).trim();
         currentSubsection = { title, content: '' };
       }
@@ -853,42 +885,70 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
         currentSubsection.content += line + '\n';
       } else if (currentSection) {
         currentSection.content += line + '\n';
-        
-        // If this is a sidebar section, also add content to the sidebar section
-        if (foundFirstSidebarSection && atGlanceSection && currentSection.title === atGlanceSection.title) {
-          atGlanceSection.content += line + '\n';
-        }
-        if (foundSecondSidebarSection && impactSection && currentSection.title === impactSection.title) {
-          impactSection.content += line + '\n';
-        }
       }
     });
 
-    // Check if last section is the second sidebar section
-    if (currentSection && foundSecondSidebarSection && impactSection) {
-      impactSection = currentSection;
-    }
-    // Check if last subsection is the second sidebar section
-    if (currentSubsection && foundSecondSidebarSection && impactSection) {
-      impactSection = currentSubsection;
-    }
-
-    // If we didn't find a sidebar section but found a first sidebar section, use that
-    if (!atGlanceSection && currentSection && foundFirstSidebarSection) {
-      atGlanceSection = currentSection;
-    }
-    
-    // If we didn't find a sidebar section but found a second sidebar section, use that
-    if (!impactSection && currentSection && foundSecondSidebarSection) {
-      impactSection = currentSection;
+    // Check if last section is a sidebar section
+    if (currentSection) {
+      const title = currentSection.title.toLowerCase();
+      if (title === "at a glance" || title === "tools" || title === "tech stack") {
+        if (!atGlanceSection) { // Only set if not already found
+          atGlanceSection = currentSection;
+        }
+      } else if (title === "impact") {
+        if (!impactSection) { // Only set if not already found
+          impactSection = currentSection;
+        }
+      }
     }
 
 
     return {
       atGlanceContent: atGlanceSection,
-      impactContent: impactSection
+      impactContent: impactSection,
+      needsSidebarRestore: !hasAtAGlance || !hasImpact
     };
   }, [cleanedContent]);
+
+  // Restore missing sidebar sections
+  useEffect(() => {
+    if (needsSidebarRestore) {
+      const defaultAtAGlance = `# At a glance
+
+**Platform:** iOS, Android, Windows Phone
+
+**Role:** Lead Interaction Designer
+
+**Team:** Multiple engineering teams across 3 mobile platforms
+
+**Timeline:** 6 months`;
+
+      const defaultImpact = `# Impact
+
+🚀 First mobile app released by Skype beyond its main platform
+
+📱 Pioneered new interaction patterns for video messaging
+
+🎯 Successfully launched across multiple platforms
+
+💡 Design patterns later adopted by other apps, including Marco Polo`;
+
+      // Add missing sections to the end of the content
+      let restoredContent = caseStudyContent;
+      
+      if (!caseStudyContent.includes('# At a glance')) {
+        restoredContent += '\n\n' + defaultAtAGlance;
+      }
+      
+      if (!caseStudyContent.includes('# Impact')) {
+        restoredContent += '\n\n' + defaultImpact;
+      }
+      
+      if (restoredContent !== caseStudyContent) {
+        setCaseStudyContent(restoredContent);
+      }
+    }
+  }, [needsSidebarRestore, caseStudyContent]);
 
   // Track previous content to avoid unnecessary saves
   const prevContentRef = useRef('');
@@ -2561,8 +2621,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
               continue;
             }
             
-            // Check if we hit another section header
-            if (line.trim().startsWith('# ') && !skipSection) {
+            // Check if we hit another section header (reset skipSection)
+            if (line.trim().startsWith('# ')) {
               skipSection = false;
             }
             
@@ -2580,19 +2640,18 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
               setIsEditing(true);
             }}
             onContentUpdate={(newContent) => {
-              console.log('📝 onContentUpdate called - updating case study content');
-              console.log('  Old content length:', caseStudyContent.length);
-              console.log('  New content length:', newContent.length);
+              // Merge edited content with existing sidebar sections
+              const mergedContent = mergeContentWithSidebars(newContent, caseStudyContent);
               
               // Update content when individual section is edited
-              setCaseStudyContent(newContent);
+              setCaseStudyContent(mergedContent);
               
               // Auto-save the project
               const updatedProject: ProjectData = {
                 ...project,
                 title: editedTitle,
                 description: editedDescription,
-                caseStudyContent: newContent,
+                caseStudyContent: mergedContent,
                 caseStudyImages: caseStudyImagesRef.current,
                 flowDiagramImages: flowDiagramImagesRef.current,
                 galleryAspectRatio,
@@ -2604,9 +2663,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                 solutionCardsPosition,
               };
               
-              console.log('💾 Calling onUpdate to save project with new content');
               onUpdate(updatedProject);
-              console.log('✅ onUpdate completed');
             }}
             atAGlanceSidebar={undefined}
             impactSidebar={undefined}
