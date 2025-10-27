@@ -224,7 +224,38 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
     const loadProfile = async () => {
       try {
         console.log('📥 Loading profile data from Supabase...');
-        const profile = await getCurrentUserProfile();
+        
+        // Check authentication status
+        const { supabase } = await import('../lib/supabaseClient');
+        const { data: { user } } = await supabase.auth.getUser();
+        const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
+        
+        let profile = null;
+        
+        if (user || isBypassAuth) {
+          // Authenticated user - load user-specific data
+          const userId = user?.id || '7cd2752f-93c5-46e6-8535-32769fb10055';
+          console.log('📥 About page: Loading profile for authenticated user:', userId);
+          profile = await getCurrentUserProfile();
+        } else {
+          // Not authenticated - load public data (most recent profile with data)
+          console.log('📥 About page: Loading public profile data...');
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .not('bio_paragraph_1', 'is', null)
+            .order('updated_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+            
+          if (error) {
+            console.log('⚠️ About page: Error loading public profile:', error);
+          } else {
+            profile = data;
+            console.log('📥 About page: Public profile data received:', profile);
+          }
+        }
+        
         console.log('📥 Profile data received:', profile);
         
         if (profile) {
