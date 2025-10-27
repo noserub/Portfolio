@@ -2114,13 +2114,13 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
       ],
       greetingFont: "Inter, sans-serif",
       lastGreetingPauseDuration: 30000,
-    subtitle: "Brian Bureson is a (super rad) product design leader",
+      subtitle: "Brian Bureson is a (super rad) product design leader",
       description: "building high quality products and teams through",
       word1: "planning",
       word2: "collaboration",
       word3: "empathy",
       word4: "design",
-    buttonText: "About Brian"
+      buttonText: "About Brian"
     };
     
     // Start with defaults, will be updated from Supabase if available
@@ -2133,87 +2133,98 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
   // Hero text is loaded from localStorage and hardcoded defaults
   // The profiles table doesn't have hero text fields, so we use localStorage
   
-  // Load hero text with intelligent caching to reduce egress usage
+  // Load hero text with localStorage priority (bypassing cache)
   useEffect(() => {
-    const loadHeroTextWithCache = async () => {
+    const loadHeroTextWithLocalStoragePriority = async () => {
       try {
-        const { cacheManager } = await import('../utils/cacheManager');
+        // First, check localStorage for any saved changes
+        const saved = localStorage.getItem('heroText');
+        if (saved) {
+          try {
+            const parsed = JSON.parse(saved);
+            if (parsed && typeof parsed === 'object') {
+              console.log('✅ Loading hero text from localStorage (user changes preserved)');
+              console.log('📝 localStorage hero text:', parsed);
+              setHeroText(parsed);
+              return; // Use localStorage data and skip Supabase
+            }
+          } catch (e) {
+            console.error('❌ Error parsing localStorage hero text:', e);
+          }
+        }
+        
+        // If no localStorage data, fetch from Supabase
         const { supabase } = await import('../lib/supabaseClient');
         const { data: { user } } = await supabase.auth.getUser();
         const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
         
-        // Use cache manager to reduce API calls
-        const heroText = await cacheManager.get(
-          'hero_text',
-          async () => {
-            let data, error;
+        console.log('🔄 Loading fresh hero text from Supabase...');
+        const heroText = await (async () => {
+          let data, error;
+          
+          if (user || isBypassAuth) {
+            // Authenticated user - use their ID
+            const userId = user?.id || '7cd2752f-93c5-46e6-8535-32769fb10055';
+            console.log('🏠 Home: Loading hero text from Supabase for user:', userId, 'Auth type:', user ? 'Supabase' : 'Bypass');
             
-            if (user || isBypassAuth) {
-              // Authenticated user - use their ID
-              const userId = user?.id || '7cd2752f-93c5-46e6-8535-32769fb10055';
-              console.log('🏠 Home: Loading hero text from Supabase for user:', userId, 'Auth type:', user ? 'Supabase' : 'Bypass');
-              
-              const result = await supabase
-                .from('profiles')
-                .select('hero_text')
-                .eq('id', userId)
-                .single();
-              data = result.data;
-              error = result.error;
-            } else {
-              // Not authenticated - try to get any profile with hero_text (public access)
-              console.log('🏠 Home: Loading hero text from Supabase (public access)');
-              
-              const result = await supabase
-                .from('profiles')
-                .select('hero_text')
-                .not('hero_text', 'is', null)
-                .order('updated_at', { ascending: false })
-                .limit(1)
-                .maybeSingle();
-              data = result.data;
-              error = result.error;
-            }
+            const result = await supabase
+              .from('profiles')
+              .select('hero_text')
+              .eq('id', userId)
+              .single();
+            data = result.data;
+            error = result.error;
+          } else {
+            // Not authenticated - try to get any profile with hero_text (public access)
+            console.log('🏠 Home: Loading hero text from Supabase (public access)');
             
-            if (error) throw error;
-            return data?.hero_text || {
-              greeting: "Welcome,",
-              greetings: ["Welcome,", "I'm Brian.", "Designer.", "Researcher.", "Product Builder."],
-              greetingFont: "Inter, sans-serif",
-              lastGreetingPauseDuration: 30000,
-              subtitle: "Brian Bureson is a (super rad) product design leader",
-              description: "building high quality products and teams through",
-              word1: "planning",
-              word2: "collaboration",
-              word3: "empathy",
-              word4: "design",
-              buttonText: "About Brian"
-            };
-          },
-          { ttl: 10 * 60 * 1000 } // Cache for 10 minutes
-        );
+            const result = await supabase
+              .from('profiles')
+              .select('hero_text')
+              .not('hero_text', 'is', null)
+              .order('updated_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            data = result.data;
+            error = result.error;
+          }
+          
+          if (error) throw error;
+          
+          // Ensure data structure consistency
+          const heroData = data?.hero_text || {};
+          const processedData = {
+            ...heroData,
+            // Ensure greetings array exists - use greetings if available, otherwise create from greeting
+            greetings: heroData.greetings || (heroData.greeting ? [heroData.greeting] : ["Welcome,", "I'm Brian.", "Designer.", "Researcher.", "Product Builder."]),
+            // Ensure greeting exists - use first greeting if greetings array exists
+            greeting: heroData.greeting || (heroData.greetings && heroData.greetings[0]) || "Welcome,",
+          };
+          
+          return processedData;
+        })();
         
         setHeroText(heroText);
-        console.log('✅ Loaded hero text with caching');
       } catch (error) {
         console.error('❌ Error loading hero text:', error);
         // Final fallback to localStorage
         const saved = localStorage.getItem('heroText');
         if (saved) {
           try {
-      const parsed = JSON.parse(saved);
+            const parsed = JSON.parse(saved);
             if (parsed && typeof parsed === 'object') {
               setHeroText(parsed);
               console.log('✅ Loaded hero text from localStorage fallback');
+              console.log('📝 localStorage hero text:', parsed);
             }
-    } catch (e) {
+          } catch (e) {
             console.error('❌ Error parsing localStorage hero text:', e);
           }
         }
       }
     };
     
-    loadHeroTextWithCache();
+    loadHeroTextWithLocalStoragePriority();
   }, []);
 
   // Debounce timer ref to prevent excessive API calls
@@ -2354,6 +2365,14 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     
     return () => clearTimeout(timer);
   }, [displayedText, isDeleting, currentGreetingIndex, isWaitingForCycle, heroText.lastGreetingPauseDuration]);
+
+  // Reset animation when pause duration changes
+  useEffect(() => {
+    if (isWaitingForCycle) {
+      setIsWaitingForCycle(false);
+      setIsDeleting(true);
+    }
+  }, [heroText.lastGreetingPauseDuration]);
   
   const [lightboxProject, setLightboxProject] = useState(null);
   const caseStudiesScrollRef = useRef(null);
@@ -3041,32 +3060,35 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
           </motion.h1>
           
           {/* Dot Indicators */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4, duration: 0.5 }}
-            className="flex justify-center items-center mt-6"
-            style={{ gap: '12px' }}
-          >
-            {(heroText.greetings || [heroText.greeting] || ['Hello', 'Hi', 'Hey']).map((_, index) => (
-              <motion.div
+          <div className="flex justify-center items-center mt-6" style={{ gap: '16px' }}>
+            {(() => {
+              const greetingsArray = heroText.greetings || [heroText.greeting] || ['Welcome,', "I'm Brian.", 'Designer.', 'Researcher.', 'Product Builder.'];
+              console.log('🔵 Dot indicators - heroText:', heroText);
+              console.log('🔵 Dot indicators - greetings:', heroText.greetings);
+              console.log('🔵 Dot indicators - greeting:', heroText.greeting);
+              console.log('🔵 Dot indicators - greetingsArray:', greetingsArray);
+              console.log('🔵 Dot indicators - currentGreetingIndex:', currentGreetingIndex);
+              return greetingsArray.map((_, index) => (
+              <button
                 key={index}
-                className={`transition-all duration-300 ${
-                  index === currentGreetingIndex
-                    ? 'w-6 h-2 rounded-full bg-black dark:bg-white'
-                    : 'w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-600'
+                onClick={() => {
+                  setCurrentGreetingIndex(index);
+                  setDisplayedText('');
+                  setIsDeleting(false);
+                  setIsWaitingForCycle(false);
+                }}
+                className={`transition-all duration-300 rounded-full cursor-pointer hover:scale-110 ${
+                  index === currentGreetingIndex ? 'w-6 h-2' : 'w-2 h-2'
                 }`}
-                animate={{
-                  scale: index === currentGreetingIndex ? 1 : 1,
-                  opacity: index === currentGreetingIndex ? 1 : 0.5,
+                style={{
+                  backgroundImage: "linear-gradient(45deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)",
+                  opacity: index === currentGreetingIndex ? 1 : 0.4,
                 }}
-                transition={{
-                  duration: 0.3,
-                  ease: "easeInOut"
-                }}
+                aria-label={`Go to greeting ${index + 1}`}
               />
-            ))}
-          </motion.div>
+              ));
+            })()}
+          </div>
         </motion.div>
 
         {/* Bio Container */}
@@ -3276,7 +3298,53 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                 <div className="flex items-center justify-between border-b border-border pb-4 mb-2">
                   <h3 className="text-lg font-semibold">Edit Hero Text</h3>
                   <Button
-                    onClick={() => setIsEditingHero(false)}
+                    onClick={async () => {
+                      console.log('🔘 Done Editing button clicked!');
+                      console.log('🔘 Current heroText state:', heroText);
+                      // Save all hero text fields before closing edit mode
+                      const greetings = greetingsTextValue
+                        ?.split('\n')
+                        .map(g => g.trim())
+                        .filter(Boolean);
+                      
+                      // Always save the current hero text state (which includes subtitle, description, etc.)
+                      // and update greetings if they were edited
+                      const updatedHeroText = greetings && greetings.length > 0 
+                        ? { 
+                            ...heroText, 
+                            greetings,
+                            greeting: greetings[0]
+                          }
+                        : heroText; // Use current state if no greetings were edited
+                      
+                      // Update local state
+                      setHeroText(updatedHeroText);
+                      
+                      // Save to Supabase
+                      try {
+                        const { supabase } = await import('../lib/supabaseClient');
+                        const { data: { user } } = await supabase.auth.getUser();
+                        const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
+                        
+                        if (user || isBypassAuth) {
+                          const userId = user?.id || '7cd2752f-93c5-46e6-8535-32769fb10055';
+                          
+                          const { error } = await supabase
+                            .from('profiles')
+                            .update({ hero_text: updatedHeroText })
+                            .eq('id', userId);
+                          
+                          if (error) throw error;
+                          
+                          console.log('✅ Hero text saved to Supabase successfully');
+                          console.log('📝 Saved data:', updatedHeroText);
+                        }
+                      } catch (error) {
+                        console.error('❌ Error saving hero text:', error);
+                      }
+                      
+                      setIsEditingHero(false);
+                    }}
                     variant="default"
                     size="sm"
                     className="rounded-full"
@@ -3334,6 +3402,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                           ...heroText, 
                           lastGreetingPauseDuration: seconds * 1000 
                         });
+                        // No cache to clear since we're loading directly from Supabase
                       }}
                       className="w-24"
                     />
