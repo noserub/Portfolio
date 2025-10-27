@@ -7,7 +7,15 @@ export function useSEO(pageKey: 'home' | 'about' | 'caseStudies' | 'contact') {
     const pageSEO = seoData.pages[pageKey];
     // Apply meta tags imperatively (no Helmet)
     if (pageSEO) {
-      applyPageSEO(pageSEO, seoData.sitewide);
+      // Ensure sensible fallbacks for basic pages
+      const withFallbacks = {
+        ...pageSEO,
+        ogTitle: pageSEO.ogTitle || pageSEO.title,
+        ogDescription: pageSEO.ogDescription || pageSEO.description,
+        twitterTitle: pageSEO.twitterTitle || pageSEO.title,
+        twitterDescription: pageSEO.twitterDescription || pageSEO.description,
+      } as typeof pageSEO;
+      applyPageSEO(withFallbacks, seoData.sitewide);
     }
     // Update favicon on every page
     updateFavicon(seoData.sitewide);
