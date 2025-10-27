@@ -1100,6 +1100,12 @@ export default function App() {
     
     // Check if project requires password and user is not authenticated (site owner)
     // Site owners can view password-protected projects in both edit and preview modes
+    console.log('🔐 Password check:', {
+      requiresPassword: projectToSet.requiresPassword,
+      isAuthenticated: isAuthenticated,
+      shouldShowPrompt: projectToSet.requiresPassword && !isAuthenticated
+    });
+    
     if (projectToSet.requiresPassword && !isAuthenticated) {
       console.log('🔐 Project requires password and user not authenticated, showing password prompt:', projectToSet.title);
       setPendingProtectedProject({ project: projectToSet, updateCallback });
@@ -1384,11 +1390,14 @@ export default function App() {
       {/* Case Study Password Prompt */}
       <AnimatePresence>
         {pendingProtectedProject && (
-          <CaseStudyPasswordPrompt
-            projectTitle={pendingProtectedProject.project.title}
-            onCorrectPassword={handlePasswordCorrect}
-            onCancel={handlePasswordCancel}
-          />
+          <>
+            {console.log('🔐 Rendering password prompt for:', pendingProtectedProject.project.title)}
+            <CaseStudyPasswordPrompt
+              projectTitle={pendingProtectedProject.project.title}
+              onCorrectPassword={handlePasswordCorrect}
+              onCancel={handlePasswordCancel}
+            />
+          </>
         )}
       </AnimatePresence>
       
