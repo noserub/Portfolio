@@ -266,10 +266,24 @@ export default function App() {
   
   // Debug logging removed to prevent infinite loops
   
+  const [themeSource, setThemeSource] = useState<'system' | 'user'>(() => {
+    try {
+      const saved = localStorage.getItem('themeSource');
+      return saved === 'user' ? 'user' : 'system';
+    } catch {
+      return 'system';
+    }
+  });
+
+  const [systemPrefersDark, setSystemPrefersDark] = useState(() => {
+    return window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false;
+  });
+
   const [theme, setTheme] = useState(() => {
     try {
       const saved = localStorage.getItem('theme');
       if (saved === 'dark' || saved === 'light') return saved;
+      // default to system preference
       return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     } catch (e) {
       console.error('Error loading theme:', e);
@@ -539,13 +553,36 @@ export default function App() {
   // Apply theme to document and save to localStorage
   useEffect(() => {
     const root = document.documentElement;
-    if (theme === 'dark') {
-      root.classList.add('dark');
-    } else {
-      root.classList.remove('dark');
-    }
+    const effectiveTheme = themeSource === 'system'
+      ? (window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+      : theme;
+
+    if (effectiveTheme === 'dark') root.classList.add('dark');
+    else root.classList.remove('dark');
+
     localStorage.setItem('theme', theme);
-  }, [theme]);
+    localStorage.setItem('themeSource', themeSource);
+  }, [theme, themeSource]);
+
+  // Listen for system theme changes when themeSource is 'system'
+  useEffect(() => {
+    if (themeSource !== 'system' || typeof window === 'undefined' || !window.matchMedia) return;
+    const mql = window.matchMedia('(prefers-color-scheme: dark)');
+    const handler = () => {
+      setSystemPrefersDark(mql.matches);
+      setTheme(mql.matches ? 'dark' : 'light');
+    };
+    try {
+      mql.addEventListener?.('change', handler);
+    } catch {
+      // Safari fallback
+      mql.addListener?.(handler as any);
+    }
+    handler();
+    return () => {
+      try { mql.removeEventListener?.('change', handler); } catch { mql.removeListener?.(handler as any); }
+    };
+  }, [themeSource]);
 
   useEffect(() => {
     // Skip if already initialized
@@ -1364,6 +1401,8 @@ export default function App() {
         {/* Theme Toggle */}
         <Button
           onClick={(e) => {
+            // user toggles lock themeSource to 'user'
+            setThemeSource('user');
             setTheme(theme === 'light' ? 'dark' : 'light');
             e.currentTarget.blur(); // Remove focus after click
           }}
@@ -1440,7 +1479,7 @@ export default function App() {
           >
             <MoreHorizontal className="w-5 h-5" />
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuContent align="end" className="w-56">
             {/* Edit/Preview Toggle */}
             <DropdownMenuItem 
               onClick={(e) => {
@@ -1489,7 +1528,23 @@ export default function App() {
               </>
             )}
             
-            {/* Settings Section */}
+            {/* Theme Settings - Available to all users */}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem 
+              onClick={(e) => {
+                setThemeSource('system');
+                e.currentTarget.blur();
+              }}
+            >
+              {systemPrefersDark ? (
+                <Moon className="w-4 h-4 mr-2" />
+              ) : (
+                <Sun className="w-4 h-4 mr-2" />
+              )}
+              System Theme (auto)
+            </DropdownMenuItem>
+            
+            {/* Settings Section - Authenticated users only */}
             {isAuthenticated && (
               <>
                 <DropdownMenuSeparator />
