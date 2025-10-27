@@ -107,6 +107,7 @@ export function useProjects() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
+      console.log('🔍 DEBUG: useProjects loaded projects:', data?.map(p => ({ id: p.id, title: p.title, requires_password: p.requires_password })));
       setProjects(data || []);
     } catch (err: any) {
       setError(err.message);

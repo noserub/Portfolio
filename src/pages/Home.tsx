@@ -2058,6 +2058,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
       }));
     
     console.log('🔍 DEBUG: Filtered case studies:', filtered.map(p => ({ id: p.id, title: p.title, requiresPassword: p.requiresPassword })));
+    console.log('🔍 DEBUG: Filtered case studies (expanded):', filtered);
     return filtered;
   }, [deduplicatedProjects]);
   
