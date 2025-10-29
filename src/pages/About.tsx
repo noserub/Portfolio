@@ -853,6 +853,7 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
               strokeWidth="58"
               strokeLinecap="round"
               opacity="0.5"
+              initial={{ d: "M150,-100 Q180,0 200,100 Q220,200 230,300 Q240,400 260,500" }}
               animate={{
                 d: [
                   "M150,-100 Q180,0 200,100 Q220,200 230,300 Q240,400 260,500",
@@ -875,6 +876,7 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
               strokeWidth="54"
               strokeLinecap="round"
               opacity="0.55"
+              initial={{ d: "M120,200 Q160,250 190,300 Q220,350 250,380 Q280,410 350,460" }}
               animate={{
                 d: [
                   "M120,200 Q160,250 190,300 Q220,350 250,380 Q280,410 350,460",
@@ -897,6 +899,7 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
               strokeWidth="52"
               strokeLinecap="round"
               opacity="0.48"
+              initial={{ d: "M180,520 Q210,600 230,680 Q250,760 270,840 Q290,900 330,960" }}
               animate={{
                 d: [
                   "M180,520 Q210,600 230,680 Q250,760 270,840 Q290,900 330,960",
