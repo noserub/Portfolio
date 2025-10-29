@@ -89,18 +89,31 @@ export function ProjectImage({
   const isDraggingRef = useRef(false);
   const dragPositionRef = useRef({ x: 0, y: 0 });
   const lastUpdateTimeRef = useRef(0);
+
   const [imageLoadError, setImageLoadError] = useState(false);
   const imageRef = useRef<HTMLDivElement>(null);
 
   // Sync local state when project prop changes (e.g., when image is replaced)
   // But only update if the project ID changes or if we're not currently editing
   useEffect(() => {
+    console.log('🔄 ProjectImage: Project prop changed:');
+    console.log('  projectId:', project.id);
+    console.log('  project.requiresPassword:', project.requiresPassword);
+    console.log('  editedProjectId:', editedProject.id);
+    console.log('  editedProject.requiresPassword:', editedProject.requiresPassword);
+    console.log('  isEditing:', isEditing);
+    
     // Only reset if the project ID actually changed (new project) or if we're not editing
     if (project.id !== editedProject.id || !isEditing) {
-    setEditedProject(project);
-    setImageLoadError(false); // Reset error state when project changes
+      console.log('🔄 ProjectImage: Updating editedProject with new data');
+      setEditedProject(project);
+      setImageLoadError(false); // Reset error state when project changes
+    } else if (project.id === editedProject.id && project.requiresPassword !== editedProject.requiresPassword) {
+      // If it's the same project but requiresPassword changed, update it
+      console.log('🔄 ProjectImage: Updating requiresPassword from', editedProject.requiresPassword, 'to', project.requiresPassword);
+      setEditedProject(prev => ({ ...prev, requiresPassword: project.requiresPassword }));
     }
-  }, [project.id, project.url, project.title, project.description]); // Only depend on specific fields, not the entire project object
+  }, [project.id, project.url, project.title, project.description, project.requiresPassword]); // Include requiresPassword in dependencies
 
   // Handle image load error
   const handleImageError = () => {
@@ -726,12 +739,18 @@ export function ProjectImage({
                 <Checkbox
                   id={`password-${project.id}`}
                   checked={editedProject.requiresPassword || false}
-                  onCheckedChange={(checked) =>
+                  onCheckedChange={(checked) => {
+                    console.log('🔐 Password checkbox changed:', {
+                      projectId: project.id,
+                      oldValue: editedProject.requiresPassword,
+                      newValue: checked,
+                      projectRequiresPassword: project.requiresPassword
+                    });
                     setEditedProject({ 
                       ...editedProject, 
                       requiresPassword: checked as boolean 
-                    })
-                  }
+                    });
+                  }}
                 />
                 <div className="flex-1">
                   <label

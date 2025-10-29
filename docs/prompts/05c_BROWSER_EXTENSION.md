@@ -617,3 +617,4 @@ After completing extension architecture:
 - Background service workers have limited APIs
 - All communication happens through message passing
 
+

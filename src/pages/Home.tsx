@@ -2031,6 +2031,36 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     return result;
   }, [projects]);
   
+  // Function to normalize project data structure for ProjectDetail
+  const normalizeProjectData = (project: any): ProjectData => {
+    const nn = (v: any) => (v === null || v === undefined ? undefined : v);
+    return {
+      ...project,
+      // Ensure camelCase fields are available
+      caseStudyContent: project.caseStudyContent || project.case_study_content,
+      caseStudyImages: project.caseStudyImages || project.case_study_images || [],
+      flowDiagramImages: project.flowDiagramImages || project.flow_diagram_images || [],
+      videoItems: project.videoItems || project.video_items || [],
+      galleryAspectRatio: project.galleryAspectRatio || project.gallery_aspect_ratio || "3x4",
+      flowDiagramAspectRatio: project.flowDiagramAspectRatio || project.flow_diagram_aspect_ratio || "16x9",
+      videoAspectRatio: project.videoAspectRatio || project.video_aspect_ratio || "16x9",
+      galleryColumns: project.galleryColumns || project.gallery_columns || 3,
+      flowDiagramColumns: project.flowDiagramColumns || project.flow_diagram_columns || 2,
+      videoColumns: project.videoColumns || project.video_columns || 1,
+      // Map section positions from snake_case → camelCase, coercing null → undefined
+      projectImagesPosition: nn(project.projectImagesPosition ?? project.project_images_position),
+      videosPosition: nn(project.videosPosition ?? project.videos_position),
+      flowDiagramsPosition: nn(project.flowDiagramsPosition ?? project.flow_diagrams_position),
+      solutionCardsPosition: nn(project.solutionCardsPosition ?? project.solution_cards_position),
+      sectionPositions: project.sectionPositions ?? project.section_positions ?? {},
+      sortOrder: project.sortOrder || project.sort_order || 0,
+      // Convert requires_password from snake_case to camelCase
+      requiresPassword: project.requiresPassword !== undefined ? project.requiresPassword : project.requires_password,
+      // Ensure position is an object
+      position: project.position || { x: project.position_x || 50, y: project.position_y || 50 }
+    };
+  };
+  
   // Memoize case studies filtering to prevent recalculation
   const caseStudies = useMemo(() => {
     console.log('🔍 DEBUG: deduplicatedProjects count:', deduplicatedProjects.length);
@@ -2062,7 +2092,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         
         return result;
       })
-      .map(project => ({
+      .map(project => normalizeProjectData({
         ...project,
         position: { x: project.position_x, y: project.position_y },
         url: cleanProjectUrl(String(project.url || ''), project.title),
@@ -2757,32 +2787,6 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
 
   // REMOVED: handleAddFromTemplate - using unified project creator instead
 
-  // Function to normalize project data structure for ProjectDetail
-  const normalizeProjectData = (project: any): ProjectData => {
-    const nn = (v: any) => (v === null || v === undefined ? undefined : v);
-    return {
-      ...project,
-      // Ensure camelCase fields are available
-      caseStudyContent: project.caseStudyContent || project.case_study_content,
-      caseStudyImages: project.caseStudyImages || project.case_study_images || [],
-      flowDiagramImages: project.flowDiagramImages || project.flow_diagram_images || [],
-      videoItems: project.videoItems || project.video_items || [],
-      galleryAspectRatio: project.galleryAspectRatio || project.gallery_aspect_ratio || "3x4",
-      flowDiagramAspectRatio: project.flowDiagramAspectRatio || project.flow_diagram_aspect_ratio || "16x9",
-      videoAspectRatio: project.videoAspectRatio || project.video_aspect_ratio || "16x9",
-      galleryColumns: project.galleryColumns || project.gallery_columns || 3,
-      flowDiagramColumns: project.flowDiagramColumns || project.flow_diagram_columns || 2,
-      videoColumns: project.videoColumns || project.video_columns || 1,
-      // Map section positions from snake_case → camelCase, coercing null → undefined
-      projectImagesPosition: nn(project.projectImagesPosition ?? project.project_images_position),
-      videosPosition: nn(project.videosPosition ?? project.videos_position),
-      flowDiagramsPosition: nn(project.flowDiagramsPosition ?? project.flow_diagrams_position),
-      solutionCardsPosition: nn(project.solutionCardsPosition ?? project.solution_cards_position),
-      sectionPositions: project.sectionPositions ?? project.section_positions ?? {},
-      // Ensure position is an object
-      position: project.position || { x: project.position_x || 50, y: project.position_y || 50 }
-    };
-  };
 
   const handleCreateUnifiedProject = useCallback(async (projectData: any) => {
     console.log('🖱️ Creating blank project:', projectData);

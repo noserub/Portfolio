@@ -26,18 +26,9 @@ export function CaseStudyPasswordPrompt({
     // Get stored password or use default
     const storedPassword = localStorage.getItem('caseStudyPassword') || DEFAULT_PASSWORD;
     
-    console.log('🔐 Password validation:', {
-      enteredPassword: password,
-      storedPassword: storedPassword,
-      defaultPassword: DEFAULT_PASSWORD,
-      passwordsMatch: password === storedPassword
-    });
-    
     if (password === storedPassword) {
-      console.log('✅ Password correct, unlocking project');
       onCorrectPassword();
     } else {
-      console.log('❌ Password incorrect');
       setError("Incorrect password");
       setPassword("");
     }

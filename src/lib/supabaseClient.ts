@@ -21,19 +21,6 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.warn('⚠️ Supabase environment variables not set. Using placeholder values. Please configure .env.local with your Supabase credentials.')
 }
 
-// Singleton Supabase client (avoid multiple GoTrueClient instances)
-let _supabase: SupabaseClient | undefined
-export const supabase: SupabaseClient = _supabase ?? (
-  _supabase = createClient(url, key, {
-    auth: {
-      autoRefreshToken: true,
-      persistSession: true,
-      detectSessionInUrl: true,
-      storageKey: 'sb-portfolio'
-    }
-  })
-)
-
 // Database types (you can generate these with Supabase CLI)
 export interface Database {
   public: {
@@ -77,10 +64,10 @@ export interface Database {
   }
 }
 
-// Typed Supabase client
-let _typed: SupabaseClient<Database> | undefined
-export const typedSupabase: SupabaseClient<Database> = _typed ?? (
-  _typed = createClient<Database>(url, key, {
+// Singleton Supabase client (avoid multiple GoTrueClient instances)
+let _supabase: SupabaseClient<Database> | undefined
+export const supabase: SupabaseClient<Database> = _supabase ?? (
+  _supabase = createClient<Database>(url, key, {
     auth: {
       autoRefreshToken: true,
       persistSession: true,
@@ -89,3 +76,6 @@ export const typedSupabase: SupabaseClient<Database> = _typed ?? (
     }
   })
 )
+
+// Export the same client with a typed alias for backward compatibility
+export const typedSupabase = supabase
