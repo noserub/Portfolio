@@ -194,9 +194,29 @@ export default function App() {
   
   // Move early returns to after all hooks are declared
 
+  // Function to determine initial page from URL hash
+  const getInitialPage = (): Page => {
+    const hash = window.location.hash;
+    
+    if (hash === '' || hash === '#') {
+      return "home";
+    } else if (hash.startsWith('#/project/')) {
+      // Set to project-detail immediately for project URLs
+      // The URL parsing will load the project data
+      return "project-detail";
+    } else if (hash.startsWith('#/')) {
+      const page = hash.substring(2) as Page;
+      if (['about', 'contact'].includes(page)) {
+        return page;
+      }
+    }
+    
+    return "home"; // Default fallback
+  };
+
   // Initialize state with safe defaults and error handling
   const [isInitialized, setIsInitialized] = useState(true); // Start initialized to render immediately
-  const [currentPage, setCurrentPage] = useState("home");
+  const [currentPage, setCurrentPage] = useState(getInitialPage()); // Use URL-based initial state
   const [selectedProject, setSelectedProject] = useState(null);
   const [projectUpdateCallback, setProjectUpdateCallback] = useState(null);
   
@@ -705,15 +725,28 @@ export default function App() {
       
       if (currentPage === "home") {
         newUrl = baseUrl;
-      } else if (currentPage === "project-detail" && selectedProject) {
-        // Create friendly URL from project title
-        const friendlySlug = selectedProject.title
-          .toLowerCase()
-          .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
-          .replace(/\s+/g, '-') // Replace spaces with hyphens
-          .replace(/-+/g, '-') // Replace multiple hyphens with single
-          .trim();
-        newUrl = `${baseUrl}#/project/${friendlySlug}`;
+      } else if (currentPage === "project-detail") {
+        if (selectedProject) {
+          // Create friendly URL from project title
+          const friendlySlug = selectedProject.title
+            .toLowerCase()
+            .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
+            .replace(/\s+/g, '-') // Replace spaces with hyphens
+            .replace(/-+/g, '-') // Replace multiple hyphens with single
+            .trim();
+          newUrl = `${baseUrl}#/project/${friendlySlug}`;
+        } else {
+          // If we're on project-detail but no project is selected, check if we're already on a project URL
+          const currentHash = window.location.hash;
+          if (currentHash.startsWith('#/project/')) {
+            // We're already on a project URL, don't change it
+            return;
+          } else {
+            // We're on project-detail but not on a project URL, don't update URL yet
+            // Let the URL parsing handle it - this prevents premature redirects
+            return;
+          }
+        }
       } else {
         newUrl = `${baseUrl}#/${currentPage}`;
       }
@@ -724,7 +757,12 @@ export default function App() {
       }
     };
 
-    updateURL();
+    // Only update URL if we're not in the middle of initial page load
+    // This prevents premature URL updates that cause routing issues
+    const isInitialLoad = !selectedProject && currentPage === "project-detail";
+    if (!isInitialLoad) {
+      updateURL();
+    }
   }, [currentPage, selectedProject]);
 
   // Function to create friendly slug from title
@@ -812,9 +850,14 @@ export default function App() {
     
     // Parse initial URL on page load
     const hash = window.location.hash;
-    if (hash !== '' && hash !== '#') {
+    if (hash.startsWith('#/project/')) {
+      // If we're on a project page, we need to load the project data
+      handlePopState({} as PopStateEvent);
+    } else if (hash.startsWith('#/') && !['#/about', '#/contact'].includes(hash)) {
+      // Handle any other hash-based routing
       handlePopState({} as PopStateEvent);
     }
+    // For about/contact pages, the initial state is already correct
 
     return () => {
       window.removeEventListener('popstate', handlePopState);
