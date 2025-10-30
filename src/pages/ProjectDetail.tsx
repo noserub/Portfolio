@@ -757,6 +757,13 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     const newContent = `${base}${prefix}# ${title}\n\n${seeded}`;
     console.log('📝 Adding markdown section:', { title, newContentLength: newContent.length });
     setCaseStudyContent(newContent);
+    // Clear persistent hide flags when adding sidebars back
+    const lowerTitle = title.toLowerCase();
+    const updatedSectionPositions = {
+      ...(sectionPositions as any) || (project as any)?.sectionPositions || {},
+      ...(lowerTitle === 'impact' ? { hideImpact: false } : {}),
+      ...(lowerTitle === 'at a glance' ? { hideAtAGlance: false } : {})
+    };
     onUpdate({
       ...project,
       title: editedTitle,
@@ -775,7 +782,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       videosPosition,
       flowDiagramsPosition,
       solutionCardsPosition,
-      sectionPositions,
+      sectionPositions: updatedSectionPositions as any,
+      section_positions: updatedSectionPositions as any,
     });
   }, [caseStudyContent, project, editedTitle, editedDescription, galleryAspectRatio, flowDiagramAspectRatio, videoAspectRatio, galleryColumns, flowDiagramColumns, videoColumns, projectImagesPosition, videosPosition, flowDiagramsPosition, solutionCardsPosition, sectionPositions, onUpdate]);
 
