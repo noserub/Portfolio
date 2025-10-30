@@ -2069,27 +2069,33 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     
     const filtered = deduplicatedProjects
       .filter(project => {
-        // More precise filtering - only include projects that are clearly case studies
+        // Broaden criteria so new case studies are not hidden
         const title = project.title?.toLowerCase() || '';
         const description = project.description?.toLowerCase() || '';
-        
-        // Check if it's a case study
-        const isCaseStudy = description.includes('case study') ||
+
+        const hasImages = (project.case_study_images?.length || project.caseStudyImages?.length || 0) > 0;
+        const hasContent = ((project.case_study_content || project.caseStudyContent || '') + '').trim().length > 0;
+        const isPublished = Boolean(project.published);
+
+        // Consider as case study if published OR has content/images OR explicit keywords
+        const isCaseStudy = isPublished || hasImages || hasContent ||
+                           description.includes('case study') ||
+                           title.includes('case study') ||
                            title.includes('tandem diabetes care') ||
                            title.includes('skype qik') ||
                            title.includes('research') ||
                            title.includes('study');
-        
-        // Exclude design projects
+
+        // Explicitly exclude obvious design-only demo cards
         const isDesignProject = title.includes('modern tech') ||
                                title.includes('web design') ||
                                title.includes('abstract art') ||
                                title.includes('product design') ||
                                title.includes('design system');
-        
+
         const result = isCaseStudy && !isDesignProject;
         console.log(`🔍 DEBUG: Project "${project.title}" - isCaseStudy: ${isCaseStudy}, isDesignProject: ${isDesignProject}, result: ${result}`);
-        
+
         return result;
       })
       .map(project => normalizeProjectData({

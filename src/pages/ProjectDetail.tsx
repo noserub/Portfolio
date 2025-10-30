@@ -845,6 +845,9 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
   // Parse sections directly to extract sidebar sections - memoized to prevent re-parsing on every render
   // Parse sections to extract sidebar sections based on title, not position
   const { atGlanceContent, impactContent, needsSidebarRestore } = useMemo(() => {
+    // Read persistent hide flags from section positions (stored in DB)
+    const hideAtAGlance = Boolean((project as any)?.sectionPositions?.hideAtAGlance);
+    const hideImpact = Boolean((project as any)?.sectionPositions?.hideImpact);
     const lines = cleanedContent?.split('\n') || [];
     let currentSection: { title: string; content: string } | null = null;
     let currentSubsection: { title: string; content: string } | null = null;
@@ -905,9 +908,11 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
 
 
     return {
-      atGlanceContent: atGlanceSection,
-      impactContent: impactSection,
-      needsSidebarRestore: !hasAtAGlance || !hasImpact
+      // Respect persistent hide flags
+      atGlanceContent: hideAtAGlance ? null : atGlanceSection,
+      impactContent: hideImpact ? null : impactSection,
+      // Only auto-restore sections that are missing AND not explicitly hidden by user
+      needsSidebarRestore: (!hasAtAGlance && !hideAtAGlance) || (!hasImpact && !hideImpact)
     };
   }, [cleanedContent]);
 
@@ -937,11 +942,11 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       // Add missing sections to the end of the content
       let restoredContent = caseStudyContent;
       
-      if (!caseStudyContent.includes('# At a glance')) {
+      if (!caseStudyContent.includes('# At a glance') && !Boolean((project as any)?.sectionPositions?.hideAtAGlance)) {
         restoredContent += '\n\n' + defaultAtAGlance;
       }
       
-      if (!caseStudyContent.includes('# Impact')) {
+      if (!caseStudyContent.includes('# Impact') && !Boolean((project as any)?.sectionPositions?.hideImpact)) {
         restoredContent += '\n\n' + defaultImpact;
       }
       
@@ -2191,10 +2196,18 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     const updatedContent = newLines.join('\n');
     setCaseStudyContent(updatedContent);
     
+    // Persist user's choice to hide Impact so it doesn't auto-restore
+    const updatedSectionPositions = {
+      ...(project as any)?.sectionPositions,
+      hideImpact: true
+    };
+    
     const updatedProject = {
       ...project,
-      case_study_content: updatedContent
-    };
+      case_study_content: updatedContent,
+      section_positions: updatedSectionPositions,
+      sectionPositions: updatedSectionPositions
+    } as any;
     onUpdate(updatedProject);
   };
 
