@@ -948,7 +948,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
         setCaseStudyContent(restoredContent);
       }
     }
-  }, [needsSidebarRestore, caseStudyContent, (project as any)?.sectionPositions]);
+  }, [needsSidebarRestore, caseStudyContent]);
 
   // Track previous content to avoid unnecessary saves
   const prevContentRef = useRef('');
