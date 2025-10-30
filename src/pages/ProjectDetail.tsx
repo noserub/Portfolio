@@ -948,8 +948,33 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
 
   // With JSON sidebars authoritative, skip auto-seeding via markdown
   useEffect(() => {
-    return;
-  }, [needsSidebarRestore, caseStudyContent]);
+    // One-time cleanup: strip legacy sidebar blocks if JSON sidebars exist
+    const hasJson = Boolean((sidebarsJson as any).atGlance) || Boolean((sidebarsJson as any).impact);
+    if (!hasJson) return;
+    const src = caseStudyContent || '';
+    const headers = ['# Sidebar 1', '# Sidebar 2', '# At a glance', '# Impact', '# Tech stack', '# Tools'];
+    const lines = src.split('\n');
+    const out: string[] = [];
+    let i = 0;
+    let changed = false;
+    const isHeader = (s: string) => headers.includes(s.trim());
+    while (i < lines.length) {
+      const line = lines[i];
+      if (isHeader(line)) {
+        changed = true;
+        i++;
+        while (i < lines.length && !lines[i].trim().match(/^#\s+.+$/)) i++;
+        continue;
+      }
+      out.push(line);
+      i++;
+    }
+    const cleaned = out.join('\n');
+    if (changed && cleaned !== src) {
+      console.log('🧹 Stripping legacy sidebar blocks from markdown (JSON authoritative)');
+      setCaseStudyContent(cleaned);
+    }
+  }, [needsSidebarRestore, caseStudyContent, sidebarsJson]);
 
   // Track previous content to avoid unnecessary saves
   const prevContentRef = useRef('');
@@ -2162,7 +2187,9 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     
     // Build base items
     const items: Array<{ title: string; type: string }> = sections.filter(title => {
-      if (title === "At a glance" || title === "Impact") return false;
+      // Exclude any sidebar headers from being treated as narrative sections
+      const t = title.toLowerCase();
+      if (t === 'at a glance' || t === 'impact' || t === 'sidebar 1' || t === 'sidebar 2' || t === 'tech stack' || t === 'tools') return false;
       const isDecorative = decorativeCardSections.some(dec => title.toLowerCase().includes(dec.toLowerCase()));
       const isSolution = title.toLowerCase().includes("solution");
       return isDecorative || isSolution;
