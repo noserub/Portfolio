@@ -258,10 +258,28 @@ export function useProjects() {
       const userId = user?.id || '7cd2752f-93c5-46e6-8535-32769fb10055';
       console.log('🔄 useProjects: Using user ID:', userId, 'Auth type:', user ? 'Supabase' : 'Bypass');
       
+      // Filter to valid DB columns only and drop undefined
+      const allowedKeys: (keyof ProjectUpdate)[] = [
+        'title','description','url','position_x','position_y','scale','published','requires_password','password',
+        'case_study_content','case_study_images','flow_diagram_images','video_items','gallery_aspect_ratio',
+        'flow_diagram_aspect_ratio','video_aspect_ratio','gallery_columns','flow_diagram_columns','video_columns',
+        'project_images_position','videos_position','flow_diagrams_position','solution_cards_position','section_positions','sort_order'
+      ];
+      const payload: Record<string, any> = {};
+      for (const key of allowedKeys) {
+        const value = (updates as any)[key];
+        if (value !== undefined) payload[key as string] = value;
+      }
+      // Pass JSON sidebars if present under snake_case key
+      const sidebars = (updates as any).case_study_sidebars || (updates as any).caseStudySidebars;
+      if (sidebars !== undefined) payload['case_study_sidebars'] = sidebars;
+
+      console.log('🛰️ useProjects: filtered payload:', payload);
+
       let { data, error } = await Promise.race([
         supabase
           .from('projects')
-          .update(updates)
+          .update(payload)
           .eq('id', id)
           .select()
           .single(),
