@@ -1956,6 +1956,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
 
   // Handler for updating first sidebar section (At a glance)
   const handleUpdateAtAGlance = (title: string, content: string) => {
+    // Normalize: strip any leading markdown header from provided content
+    const normalizedContent = (content || '').replace(/^#\s+.*\n?/, '').trim();
     
     // Update the markdown content by replacing the first sidebar section
     const lines = caseStudyContent?.split('\n') || [];
@@ -1984,7 +1986,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
             foundSidebarSection = true;
             inSidebarSection = true;
           newLines.push(`# ${title}`);
-          newLines.push(content);
+          newLines.push(normalizedContent);
           continue;
           }
         }
@@ -2000,7 +2002,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     
     // If no sidebar section was found, add it at the beginning
     if (!foundSidebarSection) {
-      newLines.unshift(`# ${title}`, content, '');
+      newLines.unshift(`# ${title}`, normalizedContent, '');
     }
     
     const newContent = newLines.join('\n');
@@ -2028,6 +2030,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
 
   // Handler for updating second sidebar section (Impact)
   const handleUpdateImpact = (title: string, content: string) => {
+    // Normalize: strip any leading markdown header from provided content
+    const normalizedContent = (content || '').replace(/^#\s+.*\n?/, '').trim();
     // Update the markdown content by replacing the second sidebar section
     const lines = caseStudyContent?.split('\n') || [];
     const newLines: string[] = [];
@@ -2055,7 +2059,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
             foundImpactSection = true;
             inImpactSection = true;
             newLines.push(`# ${title}`);
-          newLines.push(content);
+          newLines.push(normalizedContent);
           continue;
         }
       }
@@ -2071,7 +2075,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     
     // If Impact section wasn't found, add it at the end
     if (!foundImpactSection) {
-      newLines.push('', `# ${title}`, content);
+      newLines.push('', `# ${title}`, normalizedContent);
     }
     
     const newContent = newLines.join('\n');
@@ -2143,10 +2147,16 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     const updatedContent = newLines.join('\n');
     setCaseStudyContent(updatedContent);
     
+    const updatedSectionPositions = {
+      ...(project as any)?.sectionPositions,
+      hideAtAGlance: true
+    };
     const updatedProject = {
       ...project,
-      case_study_content: updatedContent
-    };
+      case_study_content: updatedContent,
+      section_positions: updatedSectionPositions,
+      sectionPositions: updatedSectionPositions
+    } as any;
     onUpdate(updatedProject);
   };
 
