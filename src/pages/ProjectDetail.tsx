@@ -844,20 +844,6 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
   // Store original content when entering edit mode (for Cancel functionality)
   const [originalContent, setOriginalContent] = useState(caseStudyContent);
 
-  // Clean up corrupted content on mount and use cleaned content for parsing
-  const [cleanedContent, setCleanedContent] = useState(caseStudyContent);
-  
-  useEffect(() => {
-    if (isContentCorrupted(caseStudyContent)) {
-      console.log('🧹 Detected corrupted content, cleaning up...');
-      const cleaned = cleanMarkdownContent(caseStudyContent);
-      setCleanedContent(cleaned);
-      setCaseStudyContent(cleaned);
-    } else {
-      setCleanedContent(caseStudyContent);
-    }
-  }, [caseStudyContent]); // Run when caseStudyContent changes
-
   // Sidebars via JSON with local state to reflect immediate edits
   const [caseStudySidebars, setCaseStudySidebars] = useState<any>(() => {
     return (project as any).caseStudySidebars || (project as any).case_study_sidebars || {};
@@ -865,6 +851,66 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
   useEffect(() => {
     setCaseStudySidebars((project as any).caseStudySidebars || (project as any).case_study_sidebars || {});
   }, [project]);
+
+  // Clean up corrupted content on mount and use cleaned content for parsing
+  // ALSO strip legacy sidebar blocks on LOAD if JSON sidebars exist
+  const [cleanedContent, setCleanedContent] = useState(caseStudyContent);
+  
+  useEffect(() => {
+    const hasAt = Boolean((caseStudySidebars as any)?.atGlance);
+    const hasImpact = Boolean((caseStudySidebars as any)?.impact);
+    
+    if (!hasAt && !hasImpact) {
+      // No JSON sidebars, just clean corrupted content if needed
+      if (isContentCorrupted(caseStudyContent)) {
+        console.log('🧹 Detected corrupted content, cleaning up...');
+        const cleaned = cleanMarkdownContent(caseStudyContent);
+        setCleanedContent(cleaned);
+        setCaseStudyContent(cleaned);
+      } else {
+        setCleanedContent(caseStudyContent);
+      }
+      return;
+    }
+    
+    // JSON sidebars exist - aggressively strip legacy blocks from markdown
+    const src = caseStudyContent || '';
+    let cleaned = src;
+    
+    // Strip all sidebar-related headers and their content
+    const titlesToStrip: string[] = [];
+    if (hasAt) titlesToStrip.push('At a glance', 'Sidebar 1');
+    if (hasImpact) titlesToStrip.push('Impact', 'Sidebar 2');
+    
+    if (titlesToStrip.length > 0) {
+      const escaped = titlesToStrip.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+      const pattern = new RegExp(`^#\\s*(?:${escaped.join('|')})\\s*\n[\\s\\S]*?(?=\n#\\s|\n?$)`, 'gmi');
+      cleaned = cleaned.replace(pattern, '').trim();
+    }
+    
+    // Also clean corrupted content if needed
+    if (isContentCorrupted(cleaned)) {
+      cleaned = cleanMarkdownContent(cleaned);
+    }
+    
+    // Only update if we actually removed something
+    if (cleaned !== src) {
+      console.log('🧹 Stripping legacy sidebar blocks on LOAD (JSON authoritative)');
+      setCleanedContent(cleaned);
+      setCaseStudyContent(cleaned);
+      
+      // Persist the cleaned markdown immediately
+      onUpdate({
+        ...project,
+        caseStudyContent: cleaned,
+        case_study_content: cleaned,
+        caseStudySidebars: caseStudySidebars,
+        case_study_sidebars: caseStudySidebars
+      } as any);
+    } else {
+      setCleanedContent(cleaned);
+    }
+  }, [caseStudyContent, caseStudySidebars, project, onUpdate]); // Run when content or JSON sidebars change
 
   
 
