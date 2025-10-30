@@ -2258,9 +2258,15 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
   const { actualPositions, totalSections } = useMemo(() => {
     console.log('🔄 Calculating actualPositions and totalSections...');
     
-    // Parse sections once
+    // Parse sections once (exclude any sidebar-like headers)
     const lines = caseStudyContent?.split('\n') || [];
-    const sections = lines?.filter(line => (line || '').trim().match(/^# (.+)$/)).map(line => (line || '').trim().substring(2).trim()) || [];
+    const excludedSidebarTitles = [
+      'Sidebar 1', 'Sidebar 2', 'At a glance', 'Impact', 'Tech stack', 'Tools'
+    ];
+    const sections = lines
+      ?.filter(line => (line || '').trim().match(/^# (.+)$/))
+      .map(line => (line || '').trim().substring(2).trim())
+      .filter(title => !excludedSidebarTitles.includes(title)) || [];
     const decorativeCardSections = ["Overview", "My role", "Research insights", "Competitive analysis"];
     
     // Build base items
@@ -2297,12 +2303,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       });
     }
     
-    const hasCards = sections.some(title => {
-      if (title === "At a glance" || title === "Impact") return false;
-      const isDecorative = decorativeCardSections.some(dec => title.toLowerCase().includes(dec.toLowerCase()));
-      const isSolution = title.toLowerCase().includes("solution");
-      return !isDecorative && !isSolution;
-    });
+    // Only insert Solution Cards when there are explicit solution sections
+    const hasCards = sections.some(title => title.toLowerCase().includes('solution'));
     
     console.log('🔍 Solution Cards Debug:', {
       hasCards,
