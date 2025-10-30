@@ -909,7 +909,10 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
 
   // Restore missing sidebar sections
   useEffect(() => {
-    if (needsSidebarRestore) {
+    // Only auto-seed sidebars for brand-new/empty documents and only when not explicitly hidden
+    if (!needsSidebarRestore) return;
+    const contentTrim = (caseStudyContent || '').trim();
+    if (contentTrim.length > 0) return;
       const defaultAtAGlance = `# At a glance
 
 **Platform:** iOS, Android, Windows Phone
@@ -945,7 +948,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
         setCaseStudyContent(restoredContent);
       }
     }
-  }, [needsSidebarRestore, caseStudyContent]);
+  }, [needsSidebarRestore, caseStudyContent, (project as any)?.sectionPositions]);
 
   // Track previous content to avoid unnecessary saves
   const prevContentRef = useRef('');
