@@ -907,46 +907,45 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     };
   }, [cleanedContent, sectionPositions, (project as any)?.sectionPositions]);
 
-  // Restore missing sidebar sections
+  // Restore missing sidebar sections (only for brand-new/empty docs)
   useEffect(() => {
-    // Only auto-seed sidebars for brand-new/empty documents and only when not explicitly hidden
     if (!needsSidebarRestore) return;
-    const contentTrim = (caseStudyContent || '').trim();
-    if (contentTrim.length > 0) return;
-      const defaultAtAGlance = `# At a glance
+    const trimmed = (caseStudyContent || '').trim();
+    if (trimmed.length > 0) return;
 
-**Platform:** iOS, Android, Windows Phone
+    const defaultAtAGlance = [
+      '# At a glance',
+      '',
+      '**Platform:** iOS, Android, Windows Phone',
+      '',
+      '**Role:** Lead Interaction Designer',
+      '',
+      '**Team:** Multiple engineering teams across 3 mobile platforms',
+      '',
+      '**Timeline:** 6 months'
+    ].join('\n');
 
-**Role:** Lead Interaction Designer
+    const defaultImpact = [
+      '# Impact',
+      '',
+      '🚀 First mobile app released by Skype beyond its main platform',
+      '',
+      '📱 Pioneered new interaction patterns for video messaging',
+      '',
+      '🎯 Successfully launched across multiple platforms',
+      '',
+      '💡 Design patterns later adopted by other apps, including Marco Polo'
+    ].join('\n');
 
-**Team:** Multiple engineering teams across 3 mobile platforms
+    let restored = caseStudyContent || '';
+    const hideA = Boolean((project as any)?.sectionPositions?.hideAtAGlance);
+    const hideI = Boolean((project as any)?.sectionPositions?.hideImpact);
 
-**Timeline:** 6 months`;
+    if (!restored.includes('# At a glance') && !hideA) restored += '\n\n' + defaultAtAGlance;
+    if (!restored.includes('# Impact') && !hideI) restored += '\n\n' + defaultImpact;
 
-      const defaultImpact = `# Impact
-
-🚀 First mobile app released by Skype beyond its main platform
-
-📱 Pioneered new interaction patterns for video messaging
-
-🎯 Successfully launched across multiple platforms
-
-💡 Design patterns later adopted by other apps, including Marco Polo`;
-
-      // Add missing sections to the end of the content
-      let restoredContent = caseStudyContent;
-      
-      if (!caseStudyContent.includes('# At a glance') && !Boolean((project as any)?.sectionPositions?.hideAtAGlance)) {
-        restoredContent += '\n\n' + defaultAtAGlance;
-      }
-      
-      if (!caseStudyContent.includes('# Impact') && !Boolean((project as any)?.sectionPositions?.hideImpact)) {
-        restoredContent += '\n\n' + defaultImpact;
-      }
-      
-      if (restoredContent !== caseStudyContent) {
-        setCaseStudyContent(restoredContent);
-      }
+    if (restored !== (caseStudyContent || '')) {
+      setCaseStudyContent(restored);
     }
   }, [needsSidebarRestore, caseStudyContent]);
 
