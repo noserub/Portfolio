@@ -832,13 +832,29 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     }
   }, [caseStudyContent]); // Run when caseStudyContent changes
 
+  // Sidebars via JSON (durable) with fallback to legacy markdown
+  const sidebarsJson = useMemo(() => {
+    return (project as any).caseStudySidebars || (project as any).case_study_sidebars || {};
+  }, [project]);
+
   // Parse sections directly to extract sidebar sections - memoized to prevent re-parsing on every render
-  // Parse sections to extract sidebar sections based on title, not position
   const { atGlanceContent, impactContent, needsSidebarRestore } = useMemo(() => {
     // Read persistent hide flags from latest local sectionPositions state when available
     const currentSectionPositions = (sectionPositions as any) || (project as any)?.sectionPositions || {};
     const hideAtAGlance = Boolean(currentSectionPositions?.hideAtAGlance);
     const hideImpact = Boolean(currentSectionPositions?.hideImpact);
+
+    // Prefer JSON sidebars if present
+    const atJson = (sidebarsJson as any).atGlance;
+    const impactJson = (sidebarsJson as any).impact;
+    if (atJson || impactJson) {
+      return {
+        atGlanceContent: hideAtAGlance ? null : (atJson ? { title: atJson.title || 'At a glance', content: atJson.content || '' } : null),
+        impactContent: hideImpact ? null : (impactJson ? { title: impactJson.title || 'Impact', content: impactJson.content || '' } : null),
+        needsSidebarRestore: false
+      };
+    }
+
     const lines = cleanedContent?.split('\n') || [];
     let currentSection: { title: string; content: string } | null = null;
     let currentSubsection: { title: string; content: string } | null = null;
@@ -905,7 +921,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       // Only auto-restore sections that are missing AND not explicitly hidden by user
       needsSidebarRestore: (!hasAtAGlance && !hideAtAGlance) || (!hasImpact && !hideImpact)
     };
-  }, [cleanedContent, sectionPositions, (project as any)?.sectionPositions]);
+  }, [cleanedContent, sectionPositions, (project as any)?.sectionPositions, sidebarsJson]);
 
   // Restore missing sidebar sections (only for brand-new/empty docs)
   useEffect(() => {
@@ -2058,10 +2074,15 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     const newContent = newLines.join('\n');
     setCaseStudyContent(newContent);
 
-    // Immediately persist: clear hideImpact and save to Supabase
+    // Immediately persist: clear hideImpact and save sidebars JSON
     const updatedSectionPositions = {
       ...(sectionPositions as any) || (project as any)?.sectionPositions || {},
       hideImpact: false
+    } as any;
+
+    const updatedSidebars = {
+      ...((project as any).caseStudySidebars || (project as any).case_study_sidebars || {}),
+      impact: { title, content: normalizedContent, hidden: false }
     } as any;
 
     onUpdate({
@@ -2083,7 +2104,9 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       flowDiagramsPosition,
       solutionCardsPosition,
       sectionPositions: updatedSectionPositions,
-      section_positions: updatedSectionPositions
+      section_positions: updatedSectionPositions,
+      caseStudySidebars: updatedSidebars,
+      case_study_sidebars: updatedSidebars
     });
   };
 
@@ -2152,59 +2175,45 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       return;
     }
     
-    // Remove the second sidebar section from the markdown content
+    // Remove the '# Impact' section by exact header match
     const lines = caseStudyContent?.split('\n') || [];
     const newLines: string[] = [];
-    let inImpactSection = false;
-    let foundImpactSection = false;
-    let sectionCount = 0;
-    
-    for (const line of lines) {
-      const topLevelMatch = line.trim().match(/^# (.+)$/);
-      
-      if (topLevelMatch) {
-        const sectionTitle = topLevelMatch[1].trim();
-        
-        // If we were in an Impact section, stop skipping
-        if (inImpactSection) {
-          inImpactSection = false;
-        }
-        
-        // Count non-Overview sections
-        if (sectionTitle !== "Overview") {
-          sectionCount++;
-          
-          // Second non-Overview section is the Impact sidebar
-          if (sectionCount === 2) {
-            foundImpactSection = true;
-            inImpactSection = true;
-            continue; // Skip the header line
-          }
-        }
+    let i = 0;
+    while (i < lines.length) {
+      const line = lines[i];
+      if (line.trim() === '# Impact') {
+        i++;
+        // Skip until next top-level header
+        while (i < lines.length && !lines[i].trim().match(/^#\s+.+$/)) i++;
+        continue;
       }
-      
-      // Only keep lines that are not in the Impact section
-      if (!inImpactSection) {
-        newLines.push(line);
-      }
+      newLines.push(line);
+      i++;
     }
     
     const updatedContent = newLines.join('\n');
     setCaseStudyContent(updatedContent);
     
-    // Persist user's choice to hide Impact so it doesn't auto-restore
+    // Persist hide flag and clear JSON sidebar for impact
     const updatedSectionPositions = {
       ...(project as any)?.sectionPositions,
       hideImpact: true
     };
-    
-    const updatedProject = {
+
+    const updatedSidebars = {
+      ...((project as any).caseStudySidebars || (project as any).case_study_sidebars || {}),
+      impact: { title: 'Impact', content: '', hidden: true }
+    } as any;
+
+    onUpdate({
       ...project,
       case_study_content: updatedContent,
+      caseStudyContent: updatedContent,
       section_positions: updatedSectionPositions,
-      sectionPositions: updatedSectionPositions
-    } as any;
-    onUpdate(updatedProject);
+      sectionPositions: updatedSectionPositions,
+      caseStudySidebars: updatedSidebars,
+      case_study_sidebars: updatedSidebars
+    } as any);
   };
 
   // Memoize expensive position calculations to prevent timeout
