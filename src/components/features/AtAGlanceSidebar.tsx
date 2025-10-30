@@ -61,7 +61,8 @@ export function AtAGlanceSidebar({ content, title, isEditMode, onUpdate, onRemov
 
   const handleSave = () => {
     if (onUpdate) {
-      onUpdate(editedTitle, editedContent);
+      const safeTitle = (editedTitle || '').trim() || 'At a glance';
+      onUpdate(safeTitle, editedContent);
     }
     setHasUserChanges(true); // Mark that user has made changes
     setIsEditing(false);
@@ -129,7 +130,7 @@ export function AtAGlanceSidebar({ content, title, isEditMode, onUpdate, onRemov
             <div className="flex-1">
               <Input
                 value={editedTitle}
-                onChange={(e) => setEditedTitle(e.target.value)}
+                onChange={(e) => { setEditedTitle(e.target.value); setHasUserChanges(true); }}
                 className="text-xl font-bold"
                 placeholder="Section title..."
               />

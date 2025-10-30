@@ -845,9 +845,10 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
   // Parse sections directly to extract sidebar sections - memoized to prevent re-parsing on every render
   // Parse sections to extract sidebar sections based on title, not position
   const { atGlanceContent, impactContent, needsSidebarRestore } = useMemo(() => {
-    // Read persistent hide flags from section positions (stored in DB)
-    const hideAtAGlance = Boolean((project as any)?.sectionPositions?.hideAtAGlance);
-    const hideImpact = Boolean((project as any)?.sectionPositions?.hideImpact);
+    // Read persistent hide flags from latest local sectionPositions state when available
+    const currentSectionPositions = (sectionPositions as any) || (project as any)?.sectionPositions || {};
+    const hideAtAGlance = Boolean(currentSectionPositions?.hideAtAGlance);
+    const hideImpact = Boolean(currentSectionPositions?.hideImpact);
     const lines = cleanedContent?.split('\n') || [];
     let currentSection: { title: string; content: string } | null = null;
     let currentSubsection: { title: string; content: string } | null = null;
@@ -914,7 +915,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       // Only auto-restore sections that are missing AND not explicitly hidden by user
       needsSidebarRestore: (!hasAtAGlance && !hideAtAGlance) || (!hasImpact && !hideImpact)
     };
-  }, [cleanedContent]);
+  }, [cleanedContent, sectionPositions, (project as any)?.sectionPositions]);
 
   // Restore missing sidebar sections
   useEffect(() => {
