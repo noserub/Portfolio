@@ -865,9 +865,33 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
   const [caseStudySidebars, setCaseStudySidebars] = useState<any>(() => {
     return (project as any).caseStudySidebars || (project as any).case_study_sidebars || {};
   });
+  // Sync caseStudySidebars from project prop, but don't overwrite if local state has been modified
+  // This prevents overwriting hidden flags when we've just removed a sidebar
   useEffect(() => {
-    setCaseStudySidebars((project as any).caseStudySidebars || (project as any).case_study_sidebars || {});
-  }, [project]);
+    const projectSidebars = (project as any).caseStudySidebars || (project as any).case_study_sidebars || {};
+    // Only sync if project sidebars are different AND local state doesn't have more recent changes
+    // Check if hidden flags differ (indicating a removal happened locally)
+    const projectAtHidden = projectSidebars?.atGlance?.hidden;
+    const projectImpactHidden = projectSidebars?.impact?.hidden;
+    const localAtHidden = (caseStudySidebars as any)?.atGlance?.hidden;
+    const localImpactHidden = (caseStudySidebars as any)?.impact?.hidden;
+    
+    // If local state has hidden: true but project has hidden: false/undefined, don't overwrite
+    // This means we just removed it and it hasn't synced yet
+    const shouldPreserveLocal = 
+      (localAtHidden === true && projectAtHidden !== true) ||
+      (localImpactHidden === true && projectImpactHidden !== true);
+    
+    if (!shouldPreserveLocal) {
+      // Safe to sync from project
+      setCaseStudySidebars(projectSidebars);
+    } else {
+      console.log('⚠️ Preserving local sidebar state (removal in progress):', {
+        local: { atGlance: localAtHidden, impact: localImpactHidden },
+        project: { atGlance: projectAtHidden, impact: projectImpactHidden }
+      });
+    }
+  }, [project, caseStudySidebars]);
 
   // Clean up corrupted content on mount and use cleaned content for parsing
   // ALSO strip legacy sidebar blocks on LOAD if JSON sidebars exist
@@ -1187,6 +1211,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
 
   // Build the sidebars object to persist based on current LOCAL state (most up-to-date)
   // IMPORTANT: Use caseStudySidebars state directly, not atGlanceContent/impactContent which might be stale
+  // IMPORTANT: Respect JSON hidden flag FIRST, only use sectionPositions as fallback
   const buildPersistedSidebars = useCallback(() => {
     // Use local state directly - it's always the most up-to-date (updated immediately when user edits)
     const base: any = { ...(caseStudySidebars as any) };
@@ -1194,18 +1219,25 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     const hideAtAGlance = Boolean(currentSectionPositions?.hideAtAGlance);
     const hideImpact = Boolean(currentSectionPositions?.hideImpact);
 
-    // Only update hidden flags - preserve content from local state (already has latest edits)
+    // Respect JSON hidden flag FIRST, only use sectionPositions as fallback if JSON doesn't have it
+    // This prevents overwriting hidden: true when sidebar is removed
     if (base.atGlance) {
-      base.atGlance = { ...base.atGlance, hidden: hideAtAGlance };
+      // If JSON already has hidden flag, preserve it; otherwise use sectionPositions
+      const hiddenValue = base.atGlance.hidden !== undefined ? base.atGlance.hidden : hideAtAGlance;
+      base.atGlance = { ...base.atGlance, hidden: hiddenValue };
     }
 
     if (base.impact) {
-      base.impact = { ...base.impact, hidden: hideImpact };
+      // If JSON already has hidden flag, preserve it; otherwise use sectionPositions
+      const hiddenValue = base.impact.hidden !== undefined ? base.impact.hidden : hideImpact;
+      base.impact = { ...base.impact, hidden: hiddenValue };
     }
 
     console.log('📦 buildPersistedSidebars:', { 
       hasAtGlance: !!base.atGlance, 
       hasImpact: !!base.impact,
+      atGlanceHidden: base.atGlance?.hidden,
+      impactHidden: base.impact?.hidden,
       atGlanceContent: base.atGlance?.content?.substring(0, 50),
       impactContent: base.impact?.content?.substring(0, 50)
     });
@@ -2436,7 +2468,12 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       case_study_sidebars: updatedSidebars
     } as any);
     
-    console.log('🗑️ Removed Sidebar 2 (hidden=true in JSON, markdown stripped)');
+    console.log('🗑️ Removed Sidebar 2 (hidden=true in JSON, markdown stripped):', {
+      updatedSidebars,
+      cleanedLength: cleaned.length,
+      originalLength: (caseStudyContent || '').length,
+      impactHidden: updatedSidebars.impact?.hidden
+    });
   };
 
   // Memoize expensive position calculations to prevent timeout
