@@ -2025,77 +2025,66 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     onUpdate(updatedProject);
   };
 
-  // Handler for updating second sidebar section (Impact)
+  // Handler for updating second sidebar section (Impact) – persist immediately
   const handleUpdateImpact = (title: string, content: string) => {
-    // Normalize: strip any leading markdown header from provided content
     const normalizedContent = (content || '').replace(/^#\s+.*\n?/, '').trim();
-    // Update the markdown content by replacing the second sidebar section
-    const lines = caseStudyContent?.split('\n') || [];
+
+    // Replace or append a single "# Impact" block using exact title match
+    const lines = (caseStudyContent || '').split('\n');
     const newLines: string[] = [];
-    let inImpactSection = false;
-    let foundImpactSection = false;
-    let sectionCount = 0;
-    
-    for (const line of lines) {
-      const topLevelMatch = line.trim().match(/^# (.+)$/);
-      
-      if (topLevelMatch) {
-        const sectionTitle = topLevelMatch[1].trim();
-        
-        // If we were in an Impact section, stop skipping
-        if (inImpactSection) {
-          inImpactSection = false;
-        }
-        
-        // Count non-Overview sections
-        if (sectionTitle !== "Overview") {
-          sectionCount++;
-          
-          // Second non-Overview section is the Impact sidebar
-          if (sectionCount === 2) {
-            foundImpactSection = true;
-            inImpactSection = true;
-            newLines.push(`# ${title}`);
-          newLines.push(normalizedContent);
-          continue;
-        }
-      }
-      }
-      
-      // Skip old Impact section content
-      if (inImpactSection) {
+    let i = 0;
+    let replaced = false;
+
+    while (i < lines.length) {
+      const line = lines[i];
+      if (line.trim() === '# Impact') {
+        newLines.push(`# ${title}`);
+        if (normalizedContent) newLines.push(normalizedContent);
+        i++;
+        while (i < lines.length && !lines[i].trim().match(/^#\s+.+$/)) i++;
+        replaced = true;
         continue;
       }
-      
       newLines.push(line);
+      i++;
     }
-    
-    // If Impact section wasn't found, add it at the end
-    if (!foundImpactSection) {
-      newLines.push('', `# ${title}`, normalizedContent);
+
+    if (!replaced) {
+      if (newLines.length && newLines[newLines.length - 1].trim() !== '') newLines.push('');
+      newLines.push(`# ${title}`);
+      if (normalizedContent) newLines.push(normalizedContent);
     }
-    
+
     const newContent = newLines.join('\n');
     setCaseStudyContent(newContent);
-    
-    // Auto-save
-    const updatedProject: ProjectData = {
+
+    // Immediately persist: clear hideImpact and save to Supabase
+    const updatedSectionPositions = {
+      ...(sectionPositions as any) || (project as any)?.sectionPositions || {},
+      hideImpact: false
+    } as any;
+
+    onUpdate({
       ...project,
       title: editedTitle,
       description: editedDescription,
       caseStudyContent: newContent,
       caseStudyImages: caseStudyImagesRef.current,
       flowDiagramImages: flowDiagramImagesRef.current,
+      videoItems: videoItemsRef.current,
       galleryAspectRatio,
       flowDiagramAspectRatio,
+      videoAspectRatio,
       galleryColumns,
       flowDiagramColumns,
+      videoColumns,
       projectImagesPosition,
+      videosPosition,
       flowDiagramsPosition,
       solutionCardsPosition,
-      sectionPositions,
-    };
-    onUpdate(updatedProject);
+      sectionPositions: updatedSectionPositions,
+      section_positions: updatedSectionPositions
+    });
   };
 
   // Handler for removing first sidebar section (At a glance)
