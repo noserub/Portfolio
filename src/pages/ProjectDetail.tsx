@@ -2303,8 +2303,11 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       });
     }
     
-    // Only insert Solution Cards when there are explicit solution sections
-    const hasCards = sections.some(title => title.toLowerCase().includes('solution'));
+    // Only insert Solution Cards when an EXPLICIT marker exists
+    const hasCards = sections.some(title => {
+      const t = title.toLowerCase();
+      return t === 'solution cards' || t === 'the solution' || t.startsWith('solution:') || t.includes('solution cards');
+    });
     
     console.log('🔍 Solution Cards Debug:', {
       hasCards,
