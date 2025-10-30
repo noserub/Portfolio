@@ -1022,6 +1022,8 @@ export default function App() {
           caseStudyImages: data.case_study_images || [],
           flowDiagramImages: data.flow_diagram_images || [],
           videoItems: data.video_items || [],
+          // Convert sidebars JSON
+          caseStudySidebars: (data as any).case_study_sidebars || {},
           // Convert aspect ratio fields
           galleryAspectRatio: data.gallery_aspect_ratio,
           flowDiagramAspectRatio: data.flow_diagram_aspect_ratio,
@@ -1045,6 +1047,7 @@ export default function App() {
           case_study_images: undefined,
           flow_diagram_images: undefined,
           video_items: undefined,
+          case_study_sidebars: undefined,
           gallery_aspect_ratio: undefined,
           flow_diagram_aspect_ratio: undefined,
           video_aspect_ratio: undefined,
