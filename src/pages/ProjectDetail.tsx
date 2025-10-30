@@ -948,21 +948,28 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
 
   // With JSON sidebars authoritative, skip auto-seeding via markdown
   useEffect(() => {
-    // One-time cleanup: strip legacy sidebar blocks if JSON sidebars exist
-    const hasJson = Boolean((sidebarsJson as any).atGlance) || Boolean((sidebarsJson as any).impact);
-    if (!hasJson) return;
+    // One-time cleanup: strip legacy blocks only for sidebars that exist in JSON.
+    const hasJsonAt = Boolean((sidebarsJson as any).atGlance);
+    const hasJsonImpact = Boolean((sidebarsJson as any).impact);
+    if (!hasJsonAt && !hasJsonImpact) return;
+
     const src = caseStudyContent || '';
-    const headers = ['# Sidebar 1', '# Sidebar 2', '# At a glance', '# Impact', '# Tech stack', '# Tools'];
     const lines = src.split('\n');
     const out: string[] = [];
     let i = 0;
     let changed = false;
-    const isHeader = (s: string) => headers.includes(s.trim());
+    const shouldStripHeader = (s: string) => {
+      const t = s.trim();
+      if (hasJsonAt && (t === '# Sidebar 1' || t === '# At a glance')) return true;
+      if (hasJsonImpact && (t === '# Sidebar 2' || t === '# Impact')) return true;
+      return false;
+    };
     while (i < lines.length) {
       const line = lines[i];
-      if (isHeader(line)) {
+      if (shouldStripHeader(line)) {
         changed = true;
         i++;
+        // Skip until next top-level header
         while (i < lines.length && !lines[i].trim().match(/^#\s+.+$/)) i++;
         continue;
       }
@@ -971,7 +978,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     }
     const cleaned = out.join('\n');
     if (changed && cleaned !== src) {
-      console.log('🧹 Stripping legacy sidebar blocks from markdown (JSON authoritative)');
+      console.log('🧹 Stripping legacy sidebar blocks for keys present in JSON');
       setCaseStudyContent(cleaned);
     }
   }, [needsSidebarRestore, caseStudyContent, sidebarsJson]);
