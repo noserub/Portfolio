@@ -881,11 +881,14 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     const hasAt = Boolean(atJson && !atJson.hidden && (atJson.content || atJson.title));
     const hasImpact = Boolean(impactJson && !impactJson.hidden && (impactJson.content || impactJson.title));
     
-    // Only run cleanup if we have actual content in JSON sidebars (not just empty objects or hidden)
+    // Check if JSON sidebars exist (even if hidden) - needed for stripping markdown
     const hasJsonSidebars = hasAt || hasImpact;
+    const hasAnyJsonSidebar = Boolean(atJson || impactJson);
     
-    if (!hasJsonSidebars) {
-      // No JSON sidebars with content, just clean corrupted content if needed
+    // Always strip sidebar blocks from markdown if JSON sidebars exist (even if hidden)
+    // This prevents hidden sidebars from reappearing from markdown on refresh
+    if (!hasAnyJsonSidebar) {
+      // No JSON sidebars at all, just clean corrupted content if needed
     if (isContentCorrupted(caseStudyContent)) {
       console.log('🧹 Detected corrupted content, cleaning up...');
       const cleaned = cleanMarkdownContent(caseStudyContent);
@@ -896,6 +899,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     }
       return;
     }
+    // Continue with cleanup/stripping logic (even if sidebars are hidden)
     
     // BEFORE stripping, extract any sidebar content from markdown if JSON is missing it
     let updatedSidebars = { ...(caseStudySidebars || {}), ...(projectSidebars || {}) };
@@ -969,30 +973,29 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       }
     }
     
-    // JSON sidebars with content exist - strip legacy blocks AND non-whitelisted sections from markdown
+    // JSON sidebars exist - strip legacy blocks from markdown (even if hidden)
+    // If JSON sidebar exists (hidden or not), markdown should not contain that sidebar
     const src = caseStudyContent || '';
     let cleaned = src;
     
-    // ONLY strip sidebar blocks from markdown if JSON has CONTENT for that sidebar (not just if it exists)
-    // This prevents losing content during migration
+    // Strip sidebar blocks from markdown if JSON sidebar exists (regardless of hidden flag)
+    // This ensures hidden sidebars don't reappear from markdown on refresh
     const titlesToStrip: string[] = [];
-    if (hasAt && atJson?.content) {
-      // Only strip if JSON has actual content (not just empty object)
+    if (atJson) {
+      // Sidebar exists in JSON - strip from markdown (even if hidden)
       titlesToStrip.push('At a glance', 'Sidebar 1');
-      console.log('🧹 Stripping Sidebar 1 from markdown (JSON has content)');
+      console.log('🧹 Stripping Sidebar 1 from markdown (exists in JSON, hidden:', atJson.hidden, ')');
     }
-    if (hasImpact && impactJson?.content) {
-      // Only strip if JSON has actual content (not just empty object)
+    if (impactJson) {
+      // Sidebar exists in JSON - strip from markdown (even if hidden)
       titlesToStrip.push('Impact', 'Sidebar 2');
-      console.log('🧹 Stripping Sidebar 2 from markdown (JSON has content)');
+      console.log('🧹 Stripping Sidebar 2 from markdown (exists in JSON, hidden:', impactJson.hidden, ')');
     }
     
     if (titlesToStrip.length > 0) {
       const escaped = titlesToStrip.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
       const pattern = new RegExp(`^#\\s*(?:${escaped.join('|')})\\s*\n[\\s\\S]*?(?=\n#\\s|\n?$)`, 'gmi');
       cleaned = cleaned.replace(pattern, '').trim();
-    } else {
-      console.log('⚠️ Skipping sidebar block removal - JSON sidebars exist but have no content yet');
     }
     
     // Also strip non-whitelisted sections when JSON sidebars exist
