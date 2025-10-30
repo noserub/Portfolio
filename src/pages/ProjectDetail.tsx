@@ -739,6 +739,28 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     // Seed sensible starter content so sections render immediately
     let seeded = body;
     const lower = title.toLowerCase();
+    // Route sidebars to JSON storage, not markdown
+    if (lower === 'impact' || lower === 'at a glance') {
+      const key = lower === 'impact' ? 'impact' : 'atGlance';
+      const updatedSidebars = {
+        ...((project as any).caseStudySidebars || (project as any).case_study_sidebars || {}),
+        [key]: { title, content: body || '', hidden: false }
+      } as any;
+
+      const updatedSectionPositions = {
+        ...(sectionPositions as any) || (project as any)?.sectionPositions || {},
+        ...(key === 'impact' ? { hideImpact: false } : { hideAtAGlance: false })
+      } as any;
+
+      onUpdate({
+        ...project,
+        sectionPositions: updatedSectionPositions,
+        section_positions: updatedSectionPositions,
+        caseStudySidebars: updatedSidebars,
+        case_study_sidebars: updatedSidebars
+      } as any);
+      return;
+    }
     if (lower.includes('research insights')) {
       seeded = '## Insight 1\nDescribe the insight and evidence.\n';
     } else if (lower.includes('key features')) {
