@@ -956,15 +956,26 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     const src = caseStudyContent || '';
     let cleaned = src;
     
-    // Strip sidebar blocks ONLY if we have JSON content for that sidebar
+    // ONLY strip sidebar blocks from markdown if JSON has CONTENT for that sidebar (not just if it exists)
+    // This prevents losing content during migration
     const titlesToStrip: string[] = [];
-    if (hasAt) titlesToStrip.push('At a glance', 'Sidebar 1');
-    if (hasImpact) titlesToStrip.push('Impact', 'Sidebar 2');
+    if (hasAt && atJson?.content) {
+      // Only strip if JSON has actual content (not just empty object)
+      titlesToStrip.push('At a glance', 'Sidebar 1');
+      console.log('🧹 Stripping Sidebar 1 from markdown (JSON has content)');
+    }
+    if (hasImpact && impactJson?.content) {
+      // Only strip if JSON has actual content (not just empty object)
+      titlesToStrip.push('Impact', 'Sidebar 2');
+      console.log('🧹 Stripping Sidebar 2 from markdown (JSON has content)');
+    }
     
     if (titlesToStrip.length > 0) {
       const escaped = titlesToStrip.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
       const pattern = new RegExp(`^#\\s*(?:${escaped.join('|')})\\s*\n[\\s\\S]*?(?=\n#\\s|\n?$)`, 'gmi');
       cleaned = cleaned.replace(pattern, '').trim();
+    } else {
+      console.log('⚠️ Skipping sidebar block removal - JSON sidebars exist but have no content yet');
     }
     
     // Also strip non-whitelisted sections when JSON sidebars exist
