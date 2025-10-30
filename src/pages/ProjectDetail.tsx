@@ -743,7 +743,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     if (lower === 'impact' || lower === 'at a glance' || lower === 'sidebar 1' || lower === 'sidebar 2') {
       const key = (lower === 'impact' || lower === 'sidebar 2') ? 'impact' : 'atGlance';
       const updatedSidebars = {
-        ...((project as any).caseStudySidebars || (project as any).case_study_sidebars || {}),
+        ...(caseStudySidebars || {}),
         [key]: { title, content: body || '', hidden: false }
       } as any;
 
@@ -752,6 +752,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
         ...(key === 'impact' ? { hideImpact: false } : { hideAtAGlance: false })
       } as any;
 
+      setCaseStudySidebars(updatedSidebars);
       onUpdate({
         ...project,
         sectionPositions: updatedSectionPositions,
@@ -854,9 +855,12 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     }
   }, [caseStudyContent]); // Run when caseStudyContent changes
 
-  // Sidebars via JSON (durable) with fallback to legacy markdown
-  const sidebarsJson = useMemo(() => {
+  // Sidebars via JSON with local state to reflect immediate edits
+  const [caseStudySidebars, setCaseStudySidebars] = useState<any>(() => {
     return (project as any).caseStudySidebars || (project as any).case_study_sidebars || {};
+  });
+  useEffect(() => {
+    setCaseStudySidebars((project as any).caseStudySidebars || (project as any).case_study_sidebars || {});
   }, [project]);
 
   
@@ -869,8 +873,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     const hideImpact = Boolean(currentSectionPositions?.hideImpact);
 
     // Prefer JSON per-key, but fallback to legacy markdown for keys that are missing in JSON
-    const atJson = (sidebarsJson as any).atGlance;
-    const impactJson = (sidebarsJson as any).impact;
+    const atJson = (caseStudySidebars as any).atGlance;
+    const impactJson = (caseStudySidebars as any).impact;
 
     const lines = cleanedContent?.split('\n') || [];
     let currentSection: { title: string; content: string } | null = null;
@@ -946,11 +950,11 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
         ((!resolvedAt && !hideAtAGlance) && !hasAtAGlance && !atJson) ||
         ((!resolvedImpact && !hideImpact) && !hasImpact && !impactJson)
     };
-  }, [cleanedContent, sectionPositions, (project as any)?.sectionPositions, sidebarsJson]);
+  }, [cleanedContent, sectionPositions, (project as any)?.sectionPositions, caseStudySidebars]);
 
   // Build the sidebars object to persist based on current UI state (JSON first, fallback to resolved content)
   const buildPersistedSidebars = useCallback(() => {
-    const base: any = { ...(sidebarsJson as any) };
+    const base: any = { ...(caseStudySidebars as any) };
     const currentSectionPositions = (sectionPositions as any) || (project as any)?.sectionPositions || {};
     const hideAtAGlance = Boolean(currentSectionPositions?.hideAtAGlance);
     const hideImpact = Boolean(currentSectionPositions?.hideImpact);
@@ -977,13 +981,13 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     }
 
     return base;
-  }, [sidebarsJson, atGlanceContent, impactContent, sectionPositions, project]);
+  }, [caseStudySidebars, atGlanceContent, impactContent, sectionPositions, project]);
 
   // With JSON sidebars authoritative, skip auto-seeding via markdown
   useEffect(() => {
     // One-time cleanup: strip legacy blocks only for sidebars that exist in JSON.
-    const hasJsonAt = Boolean((sidebarsJson as any).atGlance);
-    const hasJsonImpact = Boolean((sidebarsJson as any).impact);
+    const hasJsonAt = Boolean((caseStudySidebars as any).atGlance);
+    const hasJsonImpact = Boolean((caseStudySidebars as any).impact);
     if (!hasJsonAt && !hasJsonImpact) return;
 
     const src = caseStudyContent || '';
@@ -1014,7 +1018,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       console.log('🧹 Stripping legacy sidebar blocks for keys present in JSON');
       setCaseStudyContent(cleaned);
     }
-  }, [needsSidebarRestore, caseStudyContent, sidebarsJson]);
+  }, [needsSidebarRestore, caseStudyContent, caseStudySidebars]);
 
   // Track previous content to avoid unnecessary saves
   const prevContentRef = useRef('');
