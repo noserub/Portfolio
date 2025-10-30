@@ -742,20 +742,35 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     // Route sidebars to JSON storage, not markdown
     if (lower === 'impact' || lower === 'at a glance' || lower === 'sidebar 1' || lower === 'sidebar 2') {
       const key = (lower === 'impact' || lower === 'sidebar 2') ? 'impact' : 'atGlance';
+      
+      // Check if sidebar already exists (might be hidden)
+      const existingSidebar = (caseStudySidebars as any)?.[key] || 
+                              (project as any)?.caseStudySidebars?.[key] || 
+                              (project as any)?.case_study_sidebars?.[key];
+      
+      // Preserve existing content/title if sidebar was previously removed (hidden)
+      // Otherwise use the new body/title
       const updatedSidebars = {
-        ...(caseStudySidebars || {}),
-        [key]: { title, content: body || '', hidden: false }
+        ...(caseStudySidebars || (project as any)?.caseStudySidebars || (project as any)?.case_study_sidebars || {}),
+        [key]: { 
+          title: existingSidebar?.title || title, 
+          content: body || existingSidebar?.content || '', 
+          hidden: false // Always set to false when adding back
+        }
       } as any;
+
+      // Update local state immediately so UI reflects the change
+      setCaseStudySidebars(updatedSidebars);
 
       const updatedSectionPositions = {
         ...(sectionPositions as any) || (project as any)?.sectionPositions || {},
         ...(key === 'impact' ? { hideImpact: false } : { hideAtAGlance: false })
       } as any;
 
-      setCaseStudySidebars(updatedSidebars);
       // Immediately remove any legacy blocks from markdown to avoid leakage
       const cleaned = stripLegacySidebarBlocks(caseStudyContent || '');
       if (cleaned !== (caseStudyContent || '')) setCaseStudyContent(cleaned);
+      
       onUpdate({
         ...project,
         sectionPositions: updatedSectionPositions,
@@ -763,6 +778,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
         caseStudySidebars: updatedSidebars,
         case_study_sidebars: updatedSidebars
       } as any);
+      
+      console.log('✅ Added Sidebar back (hidden=false, preserved existing content):', { key, title: updatedSidebars[key].title, hasContent: !!updatedSidebars[key].content });
       return;
     }
     if (lower.includes('research insights')) {
