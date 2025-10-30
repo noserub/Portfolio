@@ -857,11 +857,18 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
   const [cleanedContent, setCleanedContent] = useState(caseStudyContent);
   
   useEffect(() => {
-    const hasAt = Boolean((caseStudySidebars as any)?.atGlance);
-    const hasImpact = Boolean((caseStudySidebars as any)?.impact);
+    // Check JSON sidebars from both local state and project prop (defensive)
+    const projectSidebars = (project as any).caseStudySidebars || (project as any).case_study_sidebars || {};
+    const atJson = (caseStudySidebars as any)?.atGlance || projectSidebars?.atGlance;
+    const impactJson = (caseStudySidebars as any)?.impact || projectSidebars?.impact;
+    const hasAt = Boolean(atJson && !atJson.hidden && (atJson.content || atJson.title));
+    const hasImpact = Boolean(impactJson && !impactJson.hidden && (impactJson.content || impactJson.title));
     
-    if (!hasAt && !hasImpact) {
-      // No JSON sidebars, just clean corrupted content if needed
+    // Only run cleanup if we have actual content in JSON sidebars (not just empty objects or hidden)
+    const hasJsonSidebars = hasAt || hasImpact;
+    
+    if (!hasJsonSidebars) {
+      // No JSON sidebars with content, just clean corrupted content if needed
       if (isContentCorrupted(caseStudyContent)) {
         console.log('🧹 Detected corrupted content, cleaning up...');
         const cleaned = cleanMarkdownContent(caseStudyContent);
@@ -873,11 +880,83 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       return;
     }
     
-    // JSON sidebars exist - aggressively strip legacy blocks AND non-whitelisted sections from markdown
+    // BEFORE stripping, extract any sidebar content from markdown if JSON is missing it
+    let updatedSidebars = { ...(caseStudySidebars || {}), ...(projectSidebars || {}) };
+    let sidebarChanged = false;
+    
+    // Migrate/restore Sidebar 1 from markdown if JSON doesn't have content
+    const needsSidebar1Migration = !atJson?.content && !atJson?.hidden;
+    if (needsSidebar1Migration) {
+      // Try to extract Sidebar 1/At a glance from markdown
+      const lines = (caseStudyContent || '').split('\n');
+      let inSidebarSection = false;
+      let sidebarContent: string[] = [];
+      for (const line of lines) {
+        if (line.trim().match(/^#\s*(At a glance|Sidebar 1)\s*$/i)) {
+          inSidebarSection = true;
+          continue;
+        }
+        if (inSidebarSection && line.trim().match(/^#\s+/)) {
+          break; // Hit next section
+        }
+        if (inSidebarSection) {
+          sidebarContent.push(line);
+        }
+      }
+      if (sidebarContent.length > 0) {
+        const content = sidebarContent.join('\n').trim();
+        if (content) {
+          updatedSidebars.atGlance = { 
+            ...(atJson || {}), 
+            content, 
+            title: atJson?.title || 'Sidebar 1', 
+            hidden: false 
+          };
+          sidebarChanged = true;
+          console.log('🔄 Migrated Sidebar 1 content from markdown to JSON');
+        }
+      }
+    }
+    
+    // Migrate/restore Sidebar 2 from markdown if JSON doesn't have content
+    const needsSidebar2Migration = !impactJson?.content && !impactJson?.hidden;
+    if (needsSidebar2Migration) {
+      // Try to extract Impact/Sidebar 2 from markdown
+      const lines = (caseStudyContent || '').split('\n');
+      let inSidebarSection = false;
+      let sidebarContent: string[] = [];
+      for (const line of lines) {
+        if (line.trim().match(/^#\s*(Impact|Sidebar 2)\s*$/i)) {
+          inSidebarSection = true;
+          continue;
+        }
+        if (inSidebarSection && line.trim().match(/^#\s+/)) {
+          break; // Hit next section
+        }
+        if (inSidebarSection) {
+          sidebarContent.push(line);
+        }
+      }
+      if (sidebarContent.length > 0) {
+        const content = sidebarContent.join('\n').trim();
+        if (content) {
+          updatedSidebars.impact = { 
+            ...(impactJson || {}), 
+            content, 
+            title: impactJson?.title || 'Sidebar 2', 
+            hidden: false 
+          };
+          sidebarChanged = true;
+          console.log('🔄 Migrated Sidebar 2 content from markdown to JSON');
+        }
+      }
+    }
+    
+    // JSON sidebars with content exist - strip legacy blocks AND non-whitelisted sections from markdown
     const src = caseStudyContent || '';
     let cleaned = src;
     
-    // Strip all sidebar-related headers and their content
+    // Strip sidebar blocks ONLY if we have JSON content for that sidebar
     const titlesToStrip: string[] = [];
     if (hasAt) titlesToStrip.push('At a glance', 'Sidebar 1');
     if (hasImpact) titlesToStrip.push('Impact', 'Sidebar 2');
@@ -938,19 +1017,30 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       cleaned = cleanMarkdownContent(cleaned);
     }
     
-    // Only update if we actually removed something
-    if (cleaned !== src) {
+    // Update local state if we restored sidebars
+    if (sidebarChanged) {
+      setCaseStudySidebars(updatedSidebars);
+    }
+    
+    // Only update if we actually removed something AND ensure we preserve JSON sidebars
+    if (cleaned !== src || sidebarChanged) {
       console.log('🧹 Stripping legacy sidebar blocks and non-whitelisted sections on LOAD (JSON authoritative)');
       setCleanedContent(cleaned);
       setCaseStudyContent(cleaned);
       
-      // Persist the cleaned markdown immediately
+      // Preserve JSON sidebars when saving - use updated sidebars if we restored from markdown
+      const preservedSidebars = sidebarChanged ? updatedSidebars : 
+        ((caseStudySidebars && Object.keys(caseStudySidebars).length > 0) 
+          ? caseStudySidebars 
+          : (projectSidebars && Object.keys(projectSidebars).length > 0 ? projectSidebars : {}));
+      
+      // Persist the cleaned markdown immediately, preserving JSON sidebars
       onUpdate({
         ...project,
         caseStudyContent: cleaned,
         case_study_content: cleaned,
-        caseStudySidebars: caseStudySidebars,
-        case_study_sidebars: caseStudySidebars
+        caseStudySidebars: preservedSidebars,
+        case_study_sidebars: preservedSidebars
       } as any);
     } else {
       setCleanedContent(cleaned);
@@ -2833,10 +2923,10 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
               
               // Always skip sidebar titles
               if (excludedSidebarTitles.includes(currentSectionTitle) || t === 'at a glance' || t === 'impact' || t === 'sidebar 1' || t === 'sidebar 2' || t === 'tech stack' || t === 'tools') {
-                skipSection = true;
-                continue;
-              }
-              
+              skipSection = true;
+              continue;
+            }
+            
               // When JSON sidebars exist, ONLY allow whitelisted sections
               if (hasJsonSidebars) {
                 const isWhitelisted = whitelistedSections.some(w => {
