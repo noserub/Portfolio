@@ -866,16 +866,9 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     const hideAtAGlance = Boolean(currentSectionPositions?.hideAtAGlance);
     const hideImpact = Boolean(currentSectionPositions?.hideImpact);
 
-    // Prefer JSON sidebars if present
+    // Prefer JSON per-key, but fallback to legacy markdown for keys that are missing in JSON
     const atJson = (sidebarsJson as any).atGlance;
     const impactJson = (sidebarsJson as any).impact;
-    if (atJson || impactJson) {
-      return {
-        atGlanceContent: hideAtAGlance ? null : (atJson ? { title: atJson.title || 'At a glance', content: atJson.content || '' } : null),
-        impactContent: hideImpact ? null : (impactJson ? { title: impactJson.title || 'Impact', content: impactJson.content || '' } : null),
-        needsSidebarRestore: false
-      };
-    }
 
     const lines = cleanedContent?.split('\n') || [];
     let currentSection: { title: string; content: string } | null = null;
@@ -936,12 +929,20 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     }
 
 
+    const resolvedAt = hideAtAGlance
+      ? null
+      : (atJson ? { title: atJson.title || 'At a glance', content: atJson.content || '' } : atGlanceSection);
+    const resolvedImpact = hideImpact
+      ? null
+      : (impactJson ? { title: impactJson.title || 'Impact', content: impactJson.content || '' } : impactSection);
+
     return {
-      // Respect persistent hide flags
-      atGlanceContent: hideAtAGlance ? null : atGlanceSection,
-      impactContent: hideImpact ? null : impactSection,
-      // Only auto-restore sections that are missing AND not explicitly hidden by user
-      needsSidebarRestore: (!hasAtAGlance && !hideAtAGlance) || (!hasImpact && !hideImpact)
+      atGlanceContent: resolvedAt,
+      impactContent: resolvedImpact,
+      // Only auto-restore when both JSON and markdown are missing and user didn't hide
+      needsSidebarRestore:
+        ((!resolvedAt && !hideAtAGlance) && !hasAtAGlance && !atJson) ||
+        ((!resolvedImpact && !hideImpact) && !hasImpact && !impactJson)
     };
   }, [cleanedContent, sectionPositions, (project as any)?.sectionPositions, sidebarsJson]);
 
