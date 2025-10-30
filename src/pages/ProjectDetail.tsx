@@ -1214,10 +1214,12 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
   }, [caseStudySidebars, sectionPositions, project]);
 
   // Remove legacy sidebar blocks from markdown for keys that exist in JSON
-  const stripLegacySidebarBlocks = useCallback((content: string) => {
+  // Optionally accepts sidebars parameter to use updated sidebars immediately
+  const stripLegacySidebarBlocks = useCallback((content: string, sidebars?: any) => {
     if (!content) return content;
-    const hasAt = Boolean((caseStudySidebars as any)?.atGlance);
-    const hasImpact = Boolean((caseStudySidebars as any)?.impact);
+    const sidebarsToCheck = sidebars || caseStudySidebars || {};
+    const hasAt = Boolean((sidebarsToCheck as any)?.atGlance);
+    const hasImpact = Boolean((sidebarsToCheck as any)?.impact);
     if (!hasAt && !hasImpact) return content;
 
     // Build a case-insensitive regex that strips whole blocks starting at a matching H1
@@ -2350,7 +2352,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       return;
     }
     
-    // JSON authoritative: set hidden flag in JSON sidebar, don't modify markdown
+    // JSON authoritative: set hidden flag in JSON sidebar AND strip markdown immediately
     const currentSidebars = caseStudySidebars || (project as any).caseStudySidebars || (project as any).case_study_sidebars || {};
     const updatedSidebars = {
       ...currentSidebars,
@@ -2368,17 +2370,26 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       hideAtAGlance: true
     } as any;
 
+    // Strip markdown immediately - don't wait for cleanup effect
+    const cleaned = stripLegacySidebarBlocks(caseStudyContent || '', updatedSidebars);
+    if (cleaned !== (caseStudyContent || '')) {
+      setCaseStudyContent(cleaned);
+      setCleanedContent(cleaned);
+    }
+
     // Persist immediately with both camelCase and snake_case for compatibility
-    // Don't modify markdown - let cleanup effect handle stripping if needed
+    // Include cleaned markdown to ensure it's persisted
     onUpdate({
       ...project,
+      caseStudyContent: cleaned,
+      case_study_content: cleaned,
       sectionPositions: updatedSectionPositions,
       section_positions: updatedSectionPositions,
       caseStudySidebars: updatedSidebars,
       case_study_sidebars: updatedSidebars
     } as any);
     
-    console.log('🗑️ Removed Sidebar 1 (hidden=true in JSON)');
+    console.log('🗑️ Removed Sidebar 1 (hidden=true in JSON, markdown stripped)');
   };
 
   // Handler for removing Impact sidebar (flexible to handle renamed sections)
@@ -2387,7 +2398,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       return;
     }
     
-    // JSON authoritative: set hidden flag in JSON sidebar, don't modify markdown
+    // JSON authoritative: set hidden flag in JSON sidebar AND strip markdown immediately
     const currentSidebars = caseStudySidebars || (project as any).caseStudySidebars || (project as any).case_study_sidebars || {};
     const updatedSidebars = {
       ...currentSidebars,
@@ -2406,17 +2417,26 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       hideImpact: true
     } as any;
 
+    // Strip markdown immediately - don't wait for cleanup effect
+    const cleaned = stripLegacySidebarBlocks(caseStudyContent || '', updatedSidebars);
+    if (cleaned !== (caseStudyContent || '')) {
+      setCaseStudyContent(cleaned);
+      setCleanedContent(cleaned);
+    }
+
     // Persist immediately with both camelCase and snake_case for compatibility
-    // Don't modify markdown - let cleanup effect handle stripping if needed
+    // Include cleaned markdown to ensure it's persisted
     onUpdate({
       ...project,
+      caseStudyContent: cleaned,
+      case_study_content: cleaned,
       sectionPositions: updatedSectionPositions,
       section_positions: updatedSectionPositions,
       caseStudySidebars: updatedSidebars,
       case_study_sidebars: updatedSidebars
     } as any);
     
-    console.log('🗑️ Removed Sidebar 2 (hidden=true in JSON)');
+    console.log('🗑️ Removed Sidebar 2 (hidden=true in JSON, markdown stripped)');
   };
 
   // Memoize expensive position calculations to prevent timeout
