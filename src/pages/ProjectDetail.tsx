@@ -873,7 +873,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       return;
     }
     
-    // JSON sidebars exist - aggressively strip legacy blocks from markdown
+    // JSON sidebars exist - aggressively strip legacy blocks AND non-whitelisted sections from markdown
     const src = caseStudyContent || '';
     let cleaned = src;
     
@@ -888,6 +888,51 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       cleaned = cleaned.replace(pattern, '').trim();
     }
     
+    // Also strip non-whitelisted sections when JSON sidebars exist
+    const whitelistedSections = [
+      'Overview', 'The challenge', 'My role', 'My role & impact', 'Research insights', 
+      'Competitive analysis', 'The solution', 'Solution cards', 'Key features'
+    ];
+    const excludedSidebarTitles = ['Sidebar 1', 'Sidebar 2', 'At a glance', 'Impact', 'Tech stack', 'Tools'];
+    
+    const lines = cleaned.split('\n');
+    const filteredLines: string[] = [];
+    let skipSection = false;
+    let currentSectionTitle = '';
+    
+    for (const line of lines) {
+      const headerMatch = line.trim().match(/^#\s+(.+)$/);
+      if (headerMatch) {
+        currentSectionTitle = headerMatch[1].trim();
+        const t = currentSectionTitle.toLowerCase();
+        
+        // Always skip sidebar titles
+        if (excludedSidebarTitles.includes(currentSectionTitle) || t === 'at a glance' || t === 'impact' || t === 'sidebar 1' || t === 'sidebar 2' || t === 'tech stack' || t === 'tools') {
+          skipSection = true;
+          continue;
+        }
+        
+        // Only allow whitelisted sections
+        const isWhitelisted = whitelistedSections.some(w => {
+          const wLower = w.toLowerCase();
+          return t === wLower || t.startsWith(wLower + ' ') || t.includes(wLower);
+        });
+        if (!isWhitelisted) {
+          console.log('🧹 Stripping non-whitelisted section on LOAD:', currentSectionTitle);
+          skipSection = true;
+          continue;
+        }
+        
+        skipSection = false;
+      }
+      
+      if (!skipSection) {
+        filteredLines.push(line);
+      }
+    }
+    
+    cleaned = filteredLines.join('\n').trim();
+    
     // Also clean corrupted content if needed
     if (isContentCorrupted(cleaned)) {
       cleaned = cleanMarkdownContent(cleaned);
@@ -895,7 +940,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     
     // Only update if we actually removed something
     if (cleaned !== src) {
-      console.log('🧹 Stripping legacy sidebar blocks on LOAD (JSON authoritative)');
+      console.log('🧹 Stripping legacy sidebar blocks and non-whitelisted sections on LOAD (JSON authoritative)');
       setCleanedContent(cleaned);
       setCaseStudyContent(cleaned);
       
