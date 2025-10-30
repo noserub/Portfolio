@@ -757,6 +757,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     const newContent = `${base}${prefix}# ${title}\n\n${seeded}`;
     console.log('📝 Adding markdown section:', { title, newContentLength: newContent.length });
     setCaseStudyContent(newContent);
+    // Mark unsaved and update local flags/state; defer persist until Save
+    try { document.body.setAttribute('data-unsaved', 'true'); } catch {}
     // Clear persistent hide flags when adding sidebars back
     const lowerTitle = title.toLowerCase();
     const updatedSectionPositions = {
@@ -764,27 +766,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       ...(lowerTitle === 'impact' ? { hideImpact: false } : {}),
       ...(lowerTitle === 'at a glance' ? { hideAtAGlance: false } : {})
     };
-    onUpdate({
-      ...project,
-      title: editedTitle,
-      description: editedDescription,
-      caseStudyContent: newContent,
-      caseStudyImages: caseStudyImagesRef.current,
-      flowDiagramImages: flowDiagramImagesRef.current,
-      videoItems: videoItemsRef.current,
-      galleryAspectRatio,
-      flowDiagramAspectRatio,
-      videoAspectRatio,
-      galleryColumns,
-      flowDiagramColumns,
-      videoColumns,
-      projectImagesPosition,
-      videosPosition,
-      flowDiagramsPosition,
-      solutionCardsPosition,
-      sectionPositions: updatedSectionPositions as any,
-      section_positions: updatedSectionPositions as any,
-    });
+    setSectionPositions(updatedSectionPositions as any);
   }, [caseStudyContent, project, editedTitle, editedDescription, galleryAspectRatio, flowDiagramAspectRatio, videoAspectRatio, galleryColumns, flowDiagramColumns, videoColumns, projectImagesPosition, videosPosition, flowDiagramsPosition, solutionCardsPosition, sectionPositions, onUpdate]);
 
   const removeMarkdownSection = useCallback((title: string) => {
@@ -975,6 +957,10 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
 
   // Auto-save content changes with debouncing
   useEffect(() => {
+    // Explicit-save mode: do not persist while user is editing. Save only via Save/Done.
+    if (isEditMode) {
+      return;
+    }
     const currentContent = caseStudyContent || '';
     const currentTitle = editedTitle || '';
     const currentDescription = editedDescription || '';
