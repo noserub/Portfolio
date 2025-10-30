@@ -767,6 +767,9 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
         ...(key === 'impact' ? { hideImpact: false } : { hideAtAGlance: false })
       } as any;
 
+      // Update local sectionPositions state immediately so UI reflects the change
+      setSectionPositions(updatedSectionPositions);
+
       // Immediately remove any legacy blocks from markdown to avoid leakage
       const cleaned = stripLegacySidebarBlocks(caseStudyContent || '');
       if (cleaned !== (caseStudyContent || '')) setCaseStudyContent(cleaned);
@@ -779,7 +782,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
         case_study_sidebars: updatedSidebars
       } as any);
       
-      console.log('✅ Added Sidebar back (hidden=false, preserved existing content):', { key, title: updatedSidebars[key].title, hasContent: !!updatedSidebars[key].content });
+      console.log('✅ Added Sidebar back (hidden=false, preserved existing content):', { key, title: updatedSidebars[key].title, hasContent: !!updatedSidebars[key].content, hideFlag: key === 'impact' ? updatedSectionPositions.hideImpact : updatedSectionPositions.hideAtAGlance });
       return;
     }
     if (lower.includes('research insights')) {
