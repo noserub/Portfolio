@@ -983,6 +983,36 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     return base;
   }, [caseStudySidebars, atGlanceContent, impactContent, sectionPositions, project]);
 
+  // Remove legacy sidebar blocks from markdown for keys that exist in JSON
+  const stripLegacySidebarBlocks = useCallback((content: string) => {
+    if (!content) return content;
+    const hasAt = Boolean((caseStudySidebars as any)?.atGlance);
+    const hasImpact = Boolean((caseStudySidebars as any)?.impact);
+    if (!hasAt && !hasImpact) return content;
+
+    const lines = (content || '').split('\n');
+    const out: string[] = [];
+    let i = 0;
+    const isHeaderToStrip = (t: string) => {
+      const s = t.trim();
+      if (hasAt && (s === '# Sidebar 1' || s === '# At a glance')) return true;
+      if (hasImpact && (s === '# Sidebar 2' || s === '# Impact')) return true;
+      return false;
+    };
+    while (i < lines.length) {
+      const line = lines[i];
+      if (isHeaderToStrip(line)) {
+        i++;
+        // Skip until next top-level header
+        while (i < lines.length && !lines[i].trim().match(/^#\s+.+$/)) i++;
+        continue;
+      }
+      out.push(line);
+      i++;
+    }
+    return out.join('\n');
+  }, [caseStudySidebars]);
+
   // With JSON sidebars authoritative, skip auto-seeding via markdown
   useEffect(() => {
     // One-time cleanup: strip legacy blocks only for sidebars that exist in JSON.
@@ -1204,11 +1234,12 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
   const handleSave = () => {
     // CRITICAL: Use refs to get latest image arrays, not stale state
     const persistedSidebars = buildPersistedSidebars();
+    const cleanedForSave = stripLegacySidebarBlocks(caseStudyContent || '');
     const updatedProject: ProjectData = {
       ...project,
       title: editedTitle,
       description: editedDescription,
-      caseStudyContent,
+      caseStudyContent: cleanedForSave,
       caseStudyImages: caseStudyImagesRef.current,
       flowDiagramImages: flowDiagramImagesRef.current,
       videoItems: videoItemsRef.current,
@@ -1255,11 +1286,12 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
           // Always save immediately when adding images
           // CRITICAL: Use ref for flowDiagramImages to avoid stale state
           const persistedSidebars = buildPersistedSidebars();
+          const cleanedForSave = stripLegacySidebarBlocks(caseStudyContent || '');
           const updatedProject: ProjectData = {
             ...project,
             title: editedTitle,
             description: editedDescription,
-            caseStudyContent,
+            caseStudyContent: cleanedForSave,
             caseStudyImages: updatedImages,
             flowDiagramImages: flowDiagramImagesRef.current,
             videoItems: videoItemsRef.current,
@@ -1420,11 +1452,12 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
   const handleSaveAndBack = () => {
     // CRITICAL: Use refs for image arrays to avoid stale state
     const persistedSidebars = buildPersistedSidebars();
+    const cleanedForSave = stripLegacySidebarBlocks(caseStudyContent || '');
     const updatedProject: ProjectData = {
       ...project,
       title: editedTitle,
       description: editedDescription,
-      caseStudyContent,
+      caseStudyContent: cleanedForSave,
       caseStudyImages: caseStudyImagesRef.current,
       flowDiagramImages: flowDiagramImagesRef.current,
       videoItems: videoItemsRef.current,
@@ -2068,13 +2101,13 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     while (i < lines.length) {
       const line = lines[i];
       if (line.trim() === '# Impact') {
-        newLines.push(`# ${title}`);
+            newLines.push(`# ${title}`);
         if (normalizedContent) newLines.push(normalizedContent);
         i++;
         while (i < lines.length && !lines[i].trim().match(/^#\s+.+$/)) i++;
         replaced = true;
-        continue;
-      }
+          continue;
+        }
       newLines.push(line);
       i++;
     }
@@ -2084,10 +2117,10 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       newLines.push(`# ${title}`);
       if (normalizedContent) newLines.push(normalizedContent);
     }
-
+    
     const newContent = newLines.join('\n');
     setCaseStudyContent(newContent);
-
+    
     // Immediately persist: clear hideImpact and save sidebars JSON
     const updatedSectionPositions = {
       ...(sectionPositions as any) || (project as any)?.sectionPositions || {},
@@ -2201,7 +2234,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
         while (i < lines.length && !lines[i].trim().match(/^#\s+.+$/)) i++;
         continue;
       }
-      newLines.push(line);
+        newLines.push(line);
       i++;
     }
     
