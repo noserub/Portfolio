@@ -2304,15 +2304,35 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
   const { actualPositions, totalSections } = useMemo(() => {
     console.log('🔄 Calculating actualPositions and totalSections...');
     
+    // When JSON sidebars exist, ONLY parse explicitly whitelisted sections (prevents legacy sidebar content from becoming cards)
+    const hasJsonSidebars = Boolean((caseStudySidebars as any)?.atGlance) || Boolean((caseStudySidebars as any)?.impact);
+    
     // Parse sections once (exclude any sidebar-like headers)
-    const lines = caseStudyContent?.split('\n') || [];
+    const lines = cleanedContent?.split('\n') || [];
     const excludedSidebarTitles = [
       'Sidebar 1', 'Sidebar 2', 'At a glance', 'Impact', 'Tech stack', 'Tools'
     ];
+    
+    // Whitelist of legitimate section titles (only these are allowed when JSON sidebars exist)
+    const whitelistedSections = [
+      'Overview', 'The challenge', 'My role', 'My role & impact', 'Research insights', 
+      'Competitive analysis', 'The solution', 'Solution cards', 'Key features'
+    ];
+    
+    // If JSON sidebars exist, ONLY allow whitelisted sections
     const sections = lines
       ?.filter(line => (line || '').trim().match(/^# (.+)$/))
       .map(line => (line || '').trim().substring(2).trim())
-      .filter(title => !excludedSidebarTitles.includes(title)) || [];
+      .filter(title => {
+        // Always exclude known sidebar titles
+        if (excludedSidebarTitles.includes(title)) return false;
+        // If JSON sidebars exist, ONLY allow whitelisted sections
+        if (hasJsonSidebars) {
+          const t = title.toLowerCase();
+          return whitelistedSections.some(whitelisted => t === whitelisted.toLowerCase() || t.includes(whitelisted.toLowerCase()));
+        }
+        return true; // If no JSON sidebars, allow all sections
+      }) || [];
     const decorativeCardSections = ["Overview", "My role", "Research insights", "Competitive analysis"];
     
     // Build base items
@@ -2403,7 +2423,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       totalSections: items.length
     };
   }, [
-    caseStudyContent,
+    cleanedContent, // Use cleanedContent, not caseStudyContent
+    caseStudySidebars, // Recalculate when JSON sidebars change
     caseStudyImages.length,
     videoItems.length,
     flowDiagramImages.length,
