@@ -740,8 +740,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     let seeded = body;
     const lower = title.toLowerCase();
     // Route sidebars to JSON storage, not markdown
-    if (lower === 'impact' || lower === 'at a glance') {
-      const key = lower === 'impact' ? 'impact' : 'atGlance';
+    if (lower === 'impact' || lower === 'at a glance' || lower === 'sidebar 1' || lower === 'sidebar 2') {
+      const key = (lower === 'impact' || lower === 'sidebar 2') ? 'impact' : 'atGlance';
       const updatedSidebars = {
         ...((project as any).caseStudySidebars || (project as any).case_study_sidebars || {}),
         [key]: { title, content: body || '', hidden: false }
@@ -2346,8 +2346,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
             <DropdownMenuContent align="start">
               <DropdownMenuLabel>Sidebars</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem disabled={!!atGlanceContent} onClick={() => addMarkdownSection('At a glance', 'Add quick project facts here.')}>At a glance</DropdownMenuItem>
-              <DropdownMenuItem disabled={!!impactContent} onClick={() => addMarkdownSection('Impact', 'Summarize the impact and outcomes.')}>Impact</DropdownMenuItem>
+              <DropdownMenuItem disabled={!!atGlanceContent} onClick={() => addMarkdownSection('Sidebar 1', 'Add quick project facts here.')}>Sidebar 1</DropdownMenuItem>
+              <DropdownMenuItem disabled={!!impactContent} onClick={() => addMarkdownSection('Sidebar 2', 'Describe outcomes or results here.')}>Sidebar 2</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
           </div>
