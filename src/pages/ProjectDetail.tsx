@@ -2305,34 +2305,51 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     console.log('🔄 Calculating actualPositions and totalSections...');
     
     // When JSON sidebars exist, ONLY parse explicitly whitelisted sections (prevents legacy sidebar content from becoming cards)
-    const hasJsonSidebars = Boolean((caseStudySidebars as any)?.atGlance) || Boolean((caseStudySidebars as any)?.impact);
+    // Check both local state and project prop (in case local state hasn't synced yet on initial load)
+    const projectSidebars = (project as any).caseStudySidebars || (project as any).case_study_sidebars || {};
+    const hasJsonSidebars = Boolean((caseStudySidebars as any)?.atGlance) || Boolean((caseStudySidebars as any)?.impact) ||
+                            Boolean(projectSidebars?.atGlance) || Boolean(projectSidebars?.impact);
     
-    // Parse sections once (exclude any sidebar-like headers)
+    // Parse sections once
     const lines = cleanedContent?.split('\n') || [];
     const excludedSidebarTitles = [
       'Sidebar 1', 'Sidebar 2', 'At a glance', 'Impact', 'Tech stack', 'Tools'
     ];
     
-    // Whitelist of legitimate section titles (only these are allowed when JSON sidebars exist)
+    // Strict whitelist of legitimate section titles (only these are allowed when JSON sidebars exist)
     const whitelistedSections = [
       'Overview', 'The challenge', 'My role', 'My role & impact', 'Research insights', 
       'Competitive analysis', 'The solution', 'Solution cards', 'Key features'
     ];
     
-    // If JSON sidebars exist, ONLY allow whitelisted sections
-    const sections = lines
-      ?.filter(line => (line || '').trim().match(/^# (.+)$/))
-      .map(line => (line || '').trim().substring(2).trim())
-      .filter(title => {
-        // Always exclude known sidebar titles
-        if (excludedSidebarTitles.includes(title)) return false;
-        // If JSON sidebars exist, ONLY allow whitelisted sections
-        if (hasJsonSidebars) {
+    let sections: string[] = [];
+    
+    // If JSON sidebars exist, ONLY parse whitelisted sections - ignore everything else
+    if (hasJsonSidebars) {
+      sections = lines
+        .filter(line => (line || '').trim().match(/^# (.+)$/))
+        .map(line => (line || '').trim().substring(2).trim())
+        .filter(title => {
+          // Exclude sidebar titles
+          if (excludedSidebarTitles.includes(title)) return false;
+          // ONLY include if it's in the whitelist (case-insensitive, exact or contains match)
           const t = title.toLowerCase();
-          return whitelistedSections.some(whitelisted => t === whitelisted.toLowerCase() || t.includes(whitelisted.toLowerCase()));
-        }
-        return true; // If no JSON sidebars, allow all sections
-      }) || [];
+          const isWhitelisted = whitelistedSections.some(w => {
+            const wLower = w.toLowerCase();
+            return t === wLower || t.startsWith(wLower + ' ') || t.includes(wLower);
+          });
+          if (!isWhitelisted) {
+            console.log('🚫 Excluding non-whitelisted section (JSON sidebars exist):', title);
+          }
+          return isWhitelisted;
+        });
+    } else {
+      // No JSON sidebars - parse all sections (legacy behavior)
+      sections = lines
+        .filter(line => (line || '').trim().match(/^# (.+)$/))
+        .map(line => (line || '').trim().substring(2).trim())
+        .filter(title => !excludedSidebarTitles.includes(title));
+    }
     const decorativeCardSections = ["Overview", "My role", "Research insights", "Competitive analysis"];
     
     // Build base items
@@ -2369,20 +2386,24 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       });
     }
     
-    // Only insert Solution Cards when an EXPLICIT marker exists
-    const hasCards = sections.some(title => {
+    // Only insert Solution Cards when EXPLICITLY added via UI (solutionCardsPosition is set)
+    // OR when there's an explicit "Solution cards" section (not just "The solution")
+    const hasExplicitSolutionCards = sections.some(title => {
       const t = title.toLowerCase();
-      return t === 'solution cards' || t === 'the solution' || t.startsWith('solution:') || t.includes('solution cards');
+      return t === 'solution cards' || t.startsWith('solution cards:');
     });
     
     console.log('🔍 Solution Cards Debug:', {
-      hasCards,
+      hasExplicitSolutionCards,
       isEditMode,
       solutionCardsPosition,
-      shouldInsert: (hasCards || isEditMode) && solutionCardsPosition !== undefined
+      sections: sections,
+      hasJsonSidebars,
+      shouldInsert: (hasExplicitSolutionCards || (isEditMode && solutionCardsPosition !== undefined)) && solutionCardsPosition !== undefined
     });
     
-    if ((hasCards || isEditMode) && solutionCardsPosition !== undefined) {
+    // Only insert if explicitly added via UI OR if there's an explicit "Solution cards" section
+    if ((hasExplicitSolutionCards || (isEditMode && solutionCardsPosition !== undefined)) && solutionCardsPosition !== undefined) {
       console.log('🎴 Inserting Solution Cards at position:', solutionCardsPosition);
       insertions.push({ 
         pos: solutionCardsPosition, 
@@ -2425,6 +2446,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
   }, [
     cleanedContent, // Use cleanedContent, not caseStudyContent
     caseStudySidebars, // Recalculate when JSON sidebars change
+    project, // Include project so it recalculates when project prop changes (e.g., on hard refresh)
     caseStudyImages.length,
     videoItems.length,
     flowDiagramImages.length,
