@@ -753,6 +753,9 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       } as any;
 
       setCaseStudySidebars(updatedSidebars);
+      // Immediately remove any legacy blocks from markdown to avoid leakage
+      const cleaned = stripLegacySidebarBlocks(caseStudyContent || '');
+      if (cleaned !== (caseStudyContent || '')) setCaseStudyContent(cleaned);
       onUpdate({
         ...project,
         sectionPositions: updatedSectionPositions,
@@ -990,27 +993,15 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     const hasImpact = Boolean((caseStudySidebars as any)?.impact);
     if (!hasAt && !hasImpact) return content;
 
-    const lines = (content || '').split('\n');
-    const out: string[] = [];
-    let i = 0;
-    const isHeaderToStrip = (t: string) => {
-      const s = t.trim();
-      if (hasAt && (s === '# Sidebar 1' || s === '# At a glance')) return true;
-      if (hasImpact && (s === '# Sidebar 2' || s === '# Impact')) return true;
-      return false;
-    };
-    while (i < lines.length) {
-      const line = lines[i];
-      if (isHeaderToStrip(line)) {
-        i++;
-        // Skip until next top-level header
-        while (i < lines.length && !lines[i].trim().match(/^#\s+.+$/)) i++;
-        continue;
-      }
-      out.push(line);
-      i++;
-    }
-    return out.join('\n');
+    // Build a case-insensitive regex that strips whole blocks starting at a matching H1
+    const titlesToStrip: string[] = [];
+    if (hasAt) titlesToStrip.push('At a glance', 'Sidebar 1');
+    if (hasImpact) titlesToStrip.push('Impact', 'Sidebar 2');
+    if (titlesToStrip.length === 0) return content;
+
+    const escaped = titlesToStrip.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+    const pattern = new RegExp(`^#\\s*(?:${escaped.join('|')})\\s*\n[\\s\\S]*?(?=\n#\\s|\n?$)`, 'gmi');
+    return (content || '').replace(pattern, '').trim();
   }, [caseStudySidebars]);
 
   // With JSON sidebars authoritative, skip auto-seeding via markdown
