@@ -1184,6 +1184,9 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       videosPosition,
       flowDiagramsPosition,
       solutionCardsPosition,
+      // carry through JSON sidebars so they aren't dropped on save
+      caseStudySidebars: (project as any).caseStudySidebars || (project as any).case_study_sidebars,
+      case_study_sidebars: (project as any).caseStudySidebars || (project as any).case_study_sidebars,
     };
     console.log('💾 [handleSave] Saving with', caseStudyImagesRef.current.length, 'project images,', videoItemsRef.current.length, 'videos and', flowDiagramImagesRef.current.length, 'flow diagrams');
     onUpdate(updatedProject);
@@ -1231,6 +1234,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
             videosPosition,
             flowDiagramsPosition,
             solutionCardsPosition,
+      caseStudySidebars: (project as any).caseStudySidebars || (project as any).case_study_sidebars,
+      case_study_sidebars: (project as any).caseStudySidebars || (project as any).case_study_sidebars,
           };
           console.log('📸 Adding new image to project:', {
             projectId: project.id,
@@ -1393,6 +1398,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       videosPosition,
       flowDiagramsPosition,
       solutionCardsPosition,
+      caseStudySidebars: (project as any).caseStudySidebars || (project as any).case_study_sidebars,
+      case_study_sidebars: (project as any).caseStudySidebars || (project as any).case_study_sidebars,
     };
     
     console.log('💾 [handleSaveAndBack] Saving all changes synchronously before navigation:', {
