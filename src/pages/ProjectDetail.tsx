@@ -575,6 +575,9 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
   const [videoColumns, setVideoColumns] = useState(
     project.videoColumns || (project as any).video_columns || 1
   );
+  const [keyFeaturesColumns, setKeyFeaturesColumns] = useState<2 | 3>(
+    (project as any).keyFeaturesColumns || (project as any).key_features_columns || 3
+  );
   const [lightboxImage, setLightboxImage] = useState(null);
   const [flowDiagramLightboxImage, setFlowDiagramLightboxImage] = useState(null);
   const [isEditingHeroImage, setIsEditingHeroImage] = useState(false);
@@ -1511,7 +1514,9 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       // Persist current sidebars from UI resolution
       caseStudySidebars: persistedSidebars,
       case_study_sidebars: persistedSidebars,
-    };
+      keyFeaturesColumns,
+      key_features_columns: keyFeaturesColumns,
+    } as any;
     console.log('💾 [handleSave] Saving with', caseStudyImagesRef.current.length, 'project images,', videoItemsRef.current.length, 'videos and', flowDiagramImagesRef.current.length, 'flow diagrams');
     onUpdate(updatedProject);
     setIsEditing(false);
@@ -1562,7 +1567,9 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
             solutionCardsPosition,
             caseStudySidebars: persistedSidebars,
             case_study_sidebars: persistedSidebars,
-          };
+            keyFeaturesColumns,
+            key_features_columns: keyFeaturesColumns,
+          } as any;
           console.log('📸 Adding new image to project:', {
             projectId: project.id,
             totalImages: updatedImages.length,
@@ -1728,7 +1735,9 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       solutionCardsPosition,
       caseStudySidebars: persistedSidebars,
       case_study_sidebars: persistedSidebars,
-    };
+      keyFeaturesColumns,
+      key_features_columns: keyFeaturesColumns,
+    } as any;
     
     console.log('💾 [handleSaveAndBack] Saving all changes synchronously before navigation:', {
       imageCount: caseStudyImagesRef.current.length,
@@ -3452,6 +3461,33 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                 </motion.div>
               ) : undefined
             }
+            keyFeaturesColumns={keyFeaturesColumns}
+            onKeyFeaturesColumnsChange={(columns) => {
+              setKeyFeaturesColumns(columns);
+              // Auto-save when columns change
+              const updatedProject: ProjectData = {
+                ...project,
+                title: editedTitle,
+                description: editedDescription,
+                caseStudyContent,
+                caseStudyImages: caseStudyImagesRef.current,
+                flowDiagramImages: flowDiagramImagesRef.current,
+                videoItems: videoItemsRef.current,
+                galleryAspectRatio,
+                flowDiagramAspectRatio,
+                videoAspectRatio,
+                galleryColumns,
+                flowDiagramColumns,
+                videoColumns,
+                projectImagesPosition,
+                videosPosition,
+                flowDiagramsPosition,
+                solutionCardsPosition,
+                keyFeaturesColumns: columns,
+                key_features_columns: columns,
+              } as any;
+              onUpdate(updatedProject);
+            }}
           />
           </div>
         )}

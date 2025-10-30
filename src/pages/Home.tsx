@@ -2047,6 +2047,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
       galleryColumns: project.galleryColumns || project.gallery_columns || 3,
       flowDiagramColumns: project.flowDiagramColumns || project.flow_diagram_columns || 2,
       videoColumns: project.videoColumns || project.video_columns || 1,
+      keyFeaturesColumns: (project.keyFeaturesColumns || project.key_features_columns || 3) as 2 | 3,
       // Map section positions from snake_case → camelCase, coercing null → undefined
       projectImagesPosition: nn(project.projectImagesPosition ?? project.project_images_position),
       videosPosition: nn(project.videosPosition ?? project.videos_position),
@@ -2584,6 +2585,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         gallery_columns: updatedProject.galleryColumns || 1,
         flow_diagram_columns: updatedProject.flowDiagramColumns || 1,
         video_columns: updatedProject.videoColumns || 1,
+        key_features_columns: (updatedProject as any).keyFeaturesColumns || (updatedProject as any).key_features_columns || 3,
         project_images_position: updatedProject.projectImagesPosition,
         videos_position: updatedProject.videosPosition,
         flow_diagrams_position: updatedProject.flowDiagramsPosition,

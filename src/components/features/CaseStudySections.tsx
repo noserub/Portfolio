@@ -68,6 +68,8 @@ interface CaseStudySectionsProps {
     total: number;
   };
   totalSections?: number;
+  keyFeaturesColumns?: 2 | 3;
+  onKeyFeaturesColumnsChange?: (columns: 2 | 3) => void;
 }
 
 // Map section titles to icons and gradients
@@ -207,7 +209,9 @@ export function CaseStudySections({
   onRemoveFlowDiagrams,
   onRemoveSolutionCards,
   onMoveMarkdownSection,
-  totalSections = 1000
+  totalSections = 1000,
+  keyFeaturesColumns = 3,
+  onKeyFeaturesColumnsChange
 }: CaseStudySectionsProps) {
   const [expandedCards, setExpandedCards] = useState<Set<number>>(new Set());
   const [editingSection, setEditingSection] = useState<string | null>(null);
@@ -1637,7 +1641,29 @@ export function CaseStudySections({
               <div className="mb-8 flex items-center justify-between">
                 <h2>{section.title}</h2>
                 {isEditMode && editingSection !== section.title && (
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 items-center">
+                    {onKeyFeaturesColumnsChange && (
+                      <div className="flex gap-1 mr-2">
+                        <Button
+                          size="sm"
+                          variant={keyFeaturesColumns === 2 ? "default" : "outline"}
+                          onClick={() => onKeyFeaturesColumnsChange(2)}
+                          className="rounded-full"
+                          title="2x2 Layout"
+                        >
+                          2×2
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={keyFeaturesColumns === 3 ? "default" : "outline"}
+                          onClick={() => onKeyFeaturesColumnsChange(3)}
+                          className="rounded-full"
+                          title="3x3 Layout"
+                        >
+                          3×3
+                        </Button>
+                      </div>
+                    )}
                     <Button
                       size="sm"
                       variant="outline"
@@ -1688,8 +1714,8 @@ export function CaseStudySections({
                   </div>
                 </div>
               ) : (
-                /* 3 Feature Cards in a Row */
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                /* Feature Cards with configurable columns (2x2 or 3x3) */
+                <div className={`grid grid-cols-1 gap-6 ${keyFeaturesColumns === 2 ? 'md:grid-cols-2' : 'md:grid-cols-3'}`}>
                   {featureCards.map((feature, idx) => {
                     const gradient = "linear-gradient(135deg, #10b981, #06b6d4)";
                     
@@ -1720,16 +1746,8 @@ export function CaseStudySections({
 
                         {/* Content with z-depth */}
                         <div className="relative z-10 flex flex-col">
-                          {/* Header */}
-                          <div className="flex items-center gap-3 mb-4">
-                            <motion.div 
-                              className="p-2.5 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl text-emerald-600 dark:text-emerald-400 shadow-md transition-all duration-300 group-hover:shadow-xl flex-shrink-0"
-                              style={{ transform: 'translateZ(10px)' }}
-                            >
-                              <CheckCircle className="w-5 h-5" />
-                            </motion.div>
-                            <h3 className="text-lg">{feature.title}</h3>
-                          </div>
+                          {/* Header - No icon */}
+                          <h3 className="text-lg mb-4">{feature.title}</h3>
                           
                           {/* Content */}
                           <div className="text-muted-foreground text-sm">
