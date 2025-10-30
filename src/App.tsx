@@ -41,6 +41,7 @@ import {
 import { Toaster } from "./components/ui/sonner";
 import { migrateResearchInsights, migrateProjectsArray, runSafetyChecks } from "./utils";
 import { useAppSettings } from "./hooks/useAppSettings";
+import { useProjects } from "./hooks/useProjects";
 
 // Lazy load diagnostics to avoid blocking React mount
 if (typeof window !== 'undefined') {
@@ -236,6 +237,9 @@ export default function App() {
   // Use Supabase for app settings including logo
   const { settings, updateSettings, getCurrentUserSettings } = useAppSettings();
   const logo = settings?.logo_url;
+  
+  // Use projects hook for direct persistence when callback isn't available
+  const { updateProject } = useProjects();
   
   // Load settings on mount
   useEffect(() => {
@@ -1182,7 +1186,7 @@ export default function App() {
     setPendingProtectedProject(null);
   };
 
-  const handleUpdateProject = (updatedProject: ProjectData) => {
+  const handleUpdateProject = async (updatedProject: ProjectData) => {
     const { _navTimestamp, ...cleanProject } = updatedProject as any;
     
     setSelectedProject({
@@ -1220,7 +1224,46 @@ export default function App() {
       setShowSaveIndicator(true);
       setTimeout(() => setShowSaveIndicator(false), 3000);
     } else {
-      console.error('⚠️ ERROR: Cannot save - no update callback!');
+      // Fallback: persist directly to Supabase if callback isn't available
+      console.log('⚠️ No update callback available, persisting directly to Supabase');
+      try {
+        // Convert camelCase to snake_case for Supabase
+        const projectData: any = {
+          title: cleanProject.title,
+          description: cleanProject.description,
+          url: cleanProject.url,
+          position_x: cleanProject.position?.x || 50,
+          position_y: cleanProject.position?.y || 50,
+          scale: cleanProject.scale || 1,
+          published: cleanProject.published || false,
+          requires_password: cleanProject.requiresPassword || false,
+          password: (cleanProject as any).password || '',
+          case_study_content: cleanProject.caseStudyContent,
+          case_study_images: cleanProject.caseStudyImages || [],
+          flow_diagram_images: cleanProject.flowDiagramImages || [],
+          video_items: cleanProject.videoItems || [],
+          gallery_aspect_ratio: cleanProject.galleryAspectRatio || '3x4',
+          flow_diagram_aspect_ratio: cleanProject.flowDiagramAspectRatio || '3x4',
+          video_aspect_ratio: cleanProject.videoAspectRatio || '3x4',
+          gallery_columns: cleanProject.galleryColumns || 1,
+          flow_diagram_columns: cleanProject.flowDiagramColumns || 1,
+          video_columns: cleanProject.videoColumns || 1,
+          project_images_position: cleanProject.projectImagesPosition,
+          videos_position: cleanProject.videosPosition,
+          flow_diagrams_position: cleanProject.flowDiagramsPosition,
+          solution_cards_position: cleanProject.solutionCardsPosition,
+          section_positions: cleanProject.sectionPositions || {},
+          case_study_sidebars: (cleanProject as any).caseStudySidebars || (cleanProject as any).case_study_sidebars || undefined,
+          sort_order: (cleanProject as any).sortOrder || 0
+        };
+        
+        await updateProject(cleanProject.id, projectData);
+        console.log('✅ Project persisted directly to Supabase:', { id: cleanProject.id, hasSidebars: !!projectData.case_study_sidebars });
+        setShowSaveIndicator(true);
+        setTimeout(() => setShowSaveIndicator(false), 3000);
+      } catch (error) {
+        console.error('❌ Failed to persist project directly to Supabase:', error);
+      }
     }
   };
 
