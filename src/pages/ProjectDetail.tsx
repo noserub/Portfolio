@@ -2765,27 +2765,51 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
             )}
             <CaseStudySections 
         content={(() => {
-          // Remove sidebar sections from content
-          const lines = caseStudyContent.split('\n');
+          // Use cleanedContent (has legacy sidebars stripped) and filter non-whitelisted sections when JSON sidebars exist
+          const hasJsonSidebars = Boolean((caseStudySidebars as any)?.atGlance) || Boolean((caseStudySidebars as any)?.impact) ||
+                                  Boolean((project as any).caseStudySidebars?.atGlance) || Boolean((project as any).caseStudySidebars?.impact);
+          const whitelistedSections = [
+            'Overview', 'The challenge', 'My role', 'My role & impact', 'Research insights', 
+            'Competitive analysis', 'The solution', 'Solution cards', 'Key features'
+          ];
+          const excludedSidebarTitles = ['Sidebar 1', 'Sidebar 2', 'At a glance', 'Impact', 'Tech stack', 'Tools'];
+          
+          const lines = cleanedContent?.split('\n') || [];
           const filteredLines: string[] = [];
           let skipSection = false;
+          let currentSectionTitle = '';
           
           for (const line of lines) {
-            // Check if this is a sidebar section header
-            if (line.trim() === '# At a glance' || 
-                line.trim() === '# Impact' || 
-                line.trim() === '# Tech stack' || 
-                line.trim() === '# Tools') {
-              skipSection = true;
-              continue;
-            }
-            
-            // Check if we hit another section header (reset skipSection)
-            if (line.trim().startsWith('# ')) {
+            // Check if this is a section header
+            const headerMatch = line.trim().match(/^#\s+(.+)$/);
+            if (headerMatch) {
+              currentSectionTitle = headerMatch[1].trim();
+              const t = currentSectionTitle.toLowerCase();
+              
+              // Always skip sidebar titles
+              if (excludedSidebarTitles.includes(currentSectionTitle) || t === 'at a glance' || t === 'impact' || t === 'sidebar 1' || t === 'sidebar 2' || t === 'tech stack' || t === 'tools') {
+                skipSection = true;
+                continue;
+              }
+              
+              // When JSON sidebars exist, ONLY allow whitelisted sections
+              if (hasJsonSidebars) {
+                const isWhitelisted = whitelistedSections.some(w => {
+                  const wLower = w.toLowerCase();
+                  return t === wLower || t.startsWith(wLower + ' ') || t.includes(wLower);
+                });
+                if (!isWhitelisted) {
+                  console.log('🚫 Filtering out non-whitelisted section from rendered content:', currentSectionTitle);
+                  skipSection = true;
+                  continue;
+                }
+              }
+              
+              // Reset skipSection for whitelisted sections
               skipSection = false;
             }
             
-            // Only add lines if we're not in a sidebar section
+            // Only add lines if we're not in a filtered section
             if (!skipSection) {
               filteredLines.push(line);
             }
