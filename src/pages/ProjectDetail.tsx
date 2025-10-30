@@ -931,10 +931,10 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
 
     const resolvedAt = hideAtAGlance
       ? null
-      : (atJson ? { title: atJson.title || 'At a glance', content: atJson.content || '' } : atGlanceSection);
+      : (atJson ? { title: atJson.title || 'Sidebar 1', content: atJson.content || '' } : atGlanceSection);
     const resolvedImpact = hideImpact
       ? null
-      : (impactJson ? { title: impactJson.title || 'Impact', content: impactJson.content || '' } : impactSection);
+      : (impactJson ? { title: impactJson.title || 'Sidebar 2', content: impactJson.content || '' } : impactSection);
 
     return {
       atGlanceContent: resolvedAt,
@@ -946,46 +946,9 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     };
   }, [cleanedContent, sectionPositions, (project as any)?.sectionPositions, sidebarsJson]);
 
-  // Restore missing sidebar sections (only for brand-new/empty docs)
+  // With JSON sidebars authoritative, skip auto-seeding via markdown
   useEffect(() => {
-    if (!needsSidebarRestore) return;
-    const trimmed = (caseStudyContent || '').trim();
-    if (trimmed.length > 0) return;
-
-    const defaultAtAGlance = [
-      '# At a glance',
-      '',
-      '**Platform:** iOS, Android, Windows Phone',
-      '',
-      '**Role:** Lead Interaction Designer',
-      '',
-      '**Team:** Multiple engineering teams across 3 mobile platforms',
-      '',
-      '**Timeline:** 6 months'
-    ].join('\n');
-
-    const defaultImpact = [
-      '# Impact',
-      '',
-      '🚀 First mobile app released by Skype beyond its main platform',
-      '',
-      '📱 Pioneered new interaction patterns for video messaging',
-      '',
-      '🎯 Successfully launched across multiple platforms',
-      '',
-      '💡 Design patterns later adopted by other apps, including Marco Polo'
-    ].join('\n');
-
-    let restored = caseStudyContent || '';
-    const hideA = Boolean((project as any)?.sectionPositions?.hideAtAGlance);
-    const hideI = Boolean((project as any)?.sectionPositions?.hideImpact);
-
-    if (!restored.includes('# At a glance') && !hideA) restored += '\n\n' + defaultAtAGlance;
-    if (!restored.includes('# Impact') && !hideI) restored += '\n\n' + defaultImpact;
-
-    if (restored !== (caseStudyContent || '')) {
-      setCaseStudyContent(restored);
-    }
+    return;
   }, [needsSidebarRestore, caseStudyContent]);
 
   // Track previous content to avoid unnecessary saves
@@ -1992,76 +1955,25 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
 
   // Handler for updating first sidebar section (At a glance)
   const handleUpdateAtAGlance = (title: string, content: string) => {
-    // Normalize: strip any leading markdown header from provided content
+    // JSON authoritative update
     const normalizedContent = (content || '').replace(/^#\s+.*\n?/, '').trim();
-    
-    // Update the markdown content by replacing the first sidebar section
-    const lines = caseStudyContent?.split('\n') || [];
-    const newLines: string[] = [];
-    let inSidebarSection = false;
-    let foundSidebarSection = false;
-    let sectionCount = 0;
-    
-    for (const line of lines) {
-      const topLevelMatch = line.trim().match(/^# (.+)$/);
-      
-      if (topLevelMatch) {
-        const sectionTitle = topLevelMatch[1].trim();
-        
-        // If we were in a sidebar section, stop skipping
-        if (inSidebarSection) {
-          inSidebarSection = false;
-        }
-        
-        // Count non-Overview sections
-        if (sectionTitle !== "Overview") {
-          sectionCount++;
-          
-          // First non-Overview section is the sidebar section
-          if (sectionCount === 1) {
-            foundSidebarSection = true;
-            inSidebarSection = true;
-          newLines.push(`# ${title}`);
-          newLines.push(normalizedContent);
-          continue;
-          }
-        }
-      }
-      
-      // Skip old sidebar section content
-      if (inSidebarSection) {
-        continue;
-      }
-      
-      newLines.push(line);
-    }
-    
-    // If no sidebar section was found, add it at the beginning
-    if (!foundSidebarSection) {
-      newLines.unshift(`# ${title}`, normalizedContent, '');
-    }
-    
-    const newContent = newLines.join('\n');
-    setCaseStudyContent(newContent);
-    
-    // Auto-save
-    const updatedProject: ProjectData = {
+    const updatedSidebars = {
+      ...((project as any).caseStudySidebars || (project as any).case_study_sidebars || {}),
+      atGlance: { title: title || 'Sidebar 1', content: normalizedContent, hidden: false }
+    } as any;
+
+    const updatedSectionPositions = {
+      ...(sectionPositions as any) || (project as any)?.sectionPositions || {},
+      hideAtAGlance: false
+    } as any;
+
+    onUpdate({
       ...project,
-      title: editedTitle,
-      description: editedDescription,
-      caseStudyContent: newContent,
-      caseStudyImages: caseStudyImagesRef.current,
-      flowDiagramImages: flowDiagramImagesRef.current,
-      galleryAspectRatio,
-      flowDiagramAspectRatio,
-      galleryColumns,
-      flowDiagramColumns,
-      projectImagesPosition,
-      flowDiagramsPosition,
-      solutionCardsPosition,
-      sectionPositions,
-    };
-    onUpdate(updatedProject);
+      sectionPositions: updatedSectionPositions,
+      section_positions: updatedSectionPositions,
+      caseStudySidebars: updatedSidebars,
+      case_study_sidebars: updatedSidebars
+    } as any);
   };
 
   // Handler for updating second sidebar section (Impact) – persist immediately
