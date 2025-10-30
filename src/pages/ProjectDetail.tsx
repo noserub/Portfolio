@@ -869,14 +869,14 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     
     if (!hasJsonSidebars) {
       // No JSON sidebars with content, just clean corrupted content if needed
-      if (isContentCorrupted(caseStudyContent)) {
-        console.log('🧹 Detected corrupted content, cleaning up...');
-        const cleaned = cleanMarkdownContent(caseStudyContent);
-        setCleanedContent(cleaned);
-        setCaseStudyContent(cleaned);
-      } else {
-        setCleanedContent(caseStudyContent);
-      }
+    if (isContentCorrupted(caseStudyContent)) {
+      console.log('🧹 Detected corrupted content, cleaning up...');
+      const cleaned = cleanMarkdownContent(caseStudyContent);
+      setCleanedContent(cleaned);
+      setCaseStudyContent(cleaned);
+    } else {
+      setCleanedContent(caseStudyContent);
+    }
       return;
     }
     
@@ -1039,20 +1039,33 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       setCleanedContent(cleaned);
       setCaseStudyContent(cleaned);
       
-      // Preserve JSON sidebars when saving - use updated sidebars if we restored from markdown
+      // ALWAYS preserve JSON sidebars from local state (most up-to-date)
+      // This ensures we never overwrite sidebars that were just saved
       const preservedSidebars = sidebarChanged ? updatedSidebars : 
         ((caseStudySidebars && Object.keys(caseStudySidebars).length > 0) 
           ? caseStudySidebars 
           : (projectSidebars && Object.keys(projectSidebars).length > 0 ? projectSidebars : {}));
       
-      // Persist the cleaned markdown immediately, preserving JSON sidebars
-      onUpdate({
-        ...project,
-        caseStudyContent: cleaned,
-        case_study_content: cleaned,
-        caseStudySidebars: preservedSidebars,
-        case_study_sidebars: preservedSidebars
-      } as any);
+      // Only persist cleaned markdown if we actually cleaned something
+      // AND preserve JSON sidebars (never overwrite them with stale project data)
+      if (cleaned !== src) {
+        console.log('💾 Persisting cleaned markdown, preserving JSON sidebars:', Object.keys(preservedSidebars));
+        onUpdate({
+          ...project,
+          caseStudyContent: cleaned,
+          case_study_content: cleaned,
+          caseStudySidebars: preservedSidebars,
+          case_study_sidebars: preservedSidebars
+        } as any);
+      } else if (sidebarChanged) {
+        // Only sidebar migration happened, no markdown cleaning needed
+        console.log('💾 Persisting migrated sidebars only:', Object.keys(preservedSidebars));
+        onUpdate({
+          ...project,
+          caseStudySidebars: preservedSidebars,
+          case_study_sidebars: preservedSidebars
+        } as any);
+      }
     } else {
       setCleanedContent(cleaned);
     }
@@ -1147,36 +1160,33 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     };
   }, [cleanedContent, sectionPositions, (project as any)?.sectionPositions, caseStudySidebars]);
 
-  // Build the sidebars object to persist based on current UI state (JSON first, fallback to resolved content)
+  // Build the sidebars object to persist based on current LOCAL state (most up-to-date)
+  // IMPORTANT: Use caseStudySidebars state directly, not atGlanceContent/impactContent which might be stale
   const buildPersistedSidebars = useCallback(() => {
+    // Use local state directly - it's always the most up-to-date (updated immediately when user edits)
     const base: any = { ...(caseStudySidebars as any) };
     const currentSectionPositions = (sectionPositions as any) || (project as any)?.sectionPositions || {};
     const hideAtAGlance = Boolean(currentSectionPositions?.hideAtAGlance);
     const hideImpact = Boolean(currentSectionPositions?.hideImpact);
 
-    if (atGlanceContent) {
-      base.atGlance = {
-        title: atGlanceContent.title || 'Sidebar 1',
-        content: atGlanceContent.content || '',
-        hidden: hideAtAGlance
-      };
-    } else if (base.atGlance) {
-      // Keep existing hidden state if currently hidden
+    // Only update hidden flags - preserve content from local state (already has latest edits)
+    if (base.atGlance) {
       base.atGlance = { ...base.atGlance, hidden: hideAtAGlance };
     }
 
-    if (impactContent) {
-      base.impact = {
-        title: impactContent.title || 'Sidebar 2',
-        content: impactContent.content || '',
-        hidden: hideImpact
-      };
-    } else if (base.impact) {
+    if (base.impact) {
       base.impact = { ...base.impact, hidden: hideImpact };
     }
 
+    console.log('📦 buildPersistedSidebars:', { 
+      hasAtGlance: !!base.atGlance, 
+      hasImpact: !!base.impact,
+      atGlanceContent: base.atGlance?.content?.substring(0, 50),
+      impactContent: base.impact?.content?.substring(0, 50)
+    });
+
     return base;
-  }, [caseStudySidebars, atGlanceContent, impactContent, sectionPositions, project]);
+  }, [caseStudySidebars, sectionPositions, project]);
 
   // Remove legacy sidebar blocks from markdown for keys that exist in JSON
   const stripLegacySidebarBlocks = useCallback((content: string) => {
@@ -2253,15 +2263,19 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     // JSON authoritative update
     const normalizedContent = (content || '').replace(/^#\s+.*\n?/, '').trim();
     const updatedSidebars = {
-      ...((project as any).caseStudySidebars || (project as any).case_study_sidebars || {}),
+      ...(caseStudySidebars || (project as any).caseStudySidebars || (project as any).case_study_sidebars || {}),
       atGlance: { title: title || 'Sidebar 1', content: normalizedContent, hidden: false }
     } as any;
+
+    // Update local state immediately so UI reflects the change
+    setCaseStudySidebars(updatedSidebars);
 
     const updatedSectionPositions = {
       ...(sectionPositions as any) || (project as any)?.sectionPositions || {},
       hideAtAGlance: false
     } as any;
 
+    // Persist immediately with both camelCase and snake_case for compatibility
     onUpdate({
       ...project,
       sectionPositions: updatedSectionPositions,
@@ -2269,40 +2283,22 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       caseStudySidebars: updatedSidebars,
       case_study_sidebars: updatedSidebars
     } as any);
+    
+    console.log('💾 Saved Sidebar 1 to JSON:', { title, content: normalizedContent.substring(0, 50) + '...' });
   };
 
   // Handler for updating second sidebar section (Impact) – persist immediately
   const handleUpdateImpact = (title: string, content: string) => {
     const normalizedContent = (content || '').replace(/^#\s+.*\n?/, '').trim();
 
-    // Replace or append a single "# Impact" block using exact title match
-    const lines = (caseStudyContent || '').split('\n');
-    const newLines: string[] = [];
-    let i = 0;
-    let replaced = false;
+    // JSON authoritative update (don't modify markdown - it will be cleaned by the cleanup effect)
+    const updatedSidebars = {
+      ...(caseStudySidebars || (project as any).caseStudySidebars || (project as any).case_study_sidebars || {}),
+      impact: { title: title || 'Sidebar 2', content: normalizedContent, hidden: false }
+    } as any;
 
-    while (i < lines.length) {
-      const line = lines[i];
-      if (line.trim() === '# Impact') {
-            newLines.push(`# ${title}`);
-        if (normalizedContent) newLines.push(normalizedContent);
-        i++;
-        while (i < lines.length && !lines[i].trim().match(/^#\s+.+$/)) i++;
-        replaced = true;
-          continue;
-        }
-      newLines.push(line);
-      i++;
-    }
-
-    if (!replaced) {
-      if (newLines.length && newLines[newLines.length - 1].trim() !== '') newLines.push('');
-      newLines.push(`# ${title}`);
-      if (normalizedContent) newLines.push(normalizedContent);
-    }
-    
-    const newContent = newLines.join('\n');
-    setCaseStudyContent(newContent);
+    // Update local state immediately so UI reflects the change
+    setCaseStudySidebars(updatedSidebars);
     
     // Immediately persist: clear hideImpact and save sidebars JSON
     const updatedSectionPositions = {
@@ -2310,34 +2306,17 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       hideImpact: false
     } as any;
 
-    const updatedSidebars = {
-      ...((project as any).caseStudySidebars || (project as any).case_study_sidebars || {}),
-      impact: { title, content: normalizedContent, hidden: false }
-    } as any;
-
+    // Persist immediately with both camelCase and snake_case for compatibility
+    // DO NOT modify caseStudyContent here - let cleanup handle markdown removal
     onUpdate({
       ...project,
-      title: editedTitle,
-      description: editedDescription,
-      caseStudyContent: newContent,
-      caseStudyImages: caseStudyImagesRef.current,
-      flowDiagramImages: flowDiagramImagesRef.current,
-      videoItems: videoItemsRef.current,
-      galleryAspectRatio,
-      flowDiagramAspectRatio,
-      videoAspectRatio,
-      galleryColumns,
-      flowDiagramColumns,
-      videoColumns,
-      projectImagesPosition,
-      videosPosition,
-      flowDiagramsPosition,
-      solutionCardsPosition,
       sectionPositions: updatedSectionPositions,
       section_positions: updatedSectionPositions,
       caseStudySidebars: updatedSidebars,
       case_study_sidebars: updatedSidebars
-    });
+    } as any);
+    
+    console.log('💾 Saved Sidebar 2 to JSON:', { title, content: normalizedContent.substring(0, 50) + '...' });
   };
 
   // Handler for removing first sidebar section (At a glance)
