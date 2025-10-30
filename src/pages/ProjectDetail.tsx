@@ -1143,10 +1143,14 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     }
 
 
-    const resolvedAt = hideAtAGlance
+    // Respect both hide flags from sectionPositions AND hidden flag from JSON
+    const atIsHidden = hideAtAGlance || Boolean(atJson?.hidden);
+    const impactIsHidden = hideImpact || Boolean(impactJson?.hidden);
+    
+    const resolvedAt = atIsHidden
       ? null
       : (atJson ? { title: atJson.title || 'Sidebar 1', content: atJson.content || '' } : atGlanceSection);
-    const resolvedImpact = hideImpact
+    const resolvedImpact = impactIsHidden
       ? null
       : (impactJson ? { title: impactJson.title || 'Sidebar 2', content: impactJson.content || '' } : impactSection);
 
@@ -1154,9 +1158,10 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       atGlanceContent: resolvedAt,
       impactContent: resolvedImpact,
       // Only auto-restore when both JSON and markdown are missing and user didn't hide
+      // Don't restore if JSON sidebar exists with hidden: true
       needsSidebarRestore:
-        ((!resolvedAt && !hideAtAGlance) && !hasAtAGlance && !atJson) ||
-        ((!resolvedImpact && !hideImpact) && !hasImpact && !impactJson)
+        ((!resolvedAt && !atIsHidden) && !hasAtAGlance && (!atJson || !atJson.hidden)) ||
+        ((!resolvedImpact && !impactIsHidden) && !hasImpact && (!impactJson || !impactJson.hidden))
     };
   }, [cleanedContent, sectionPositions, (project as any)?.sectionPositions, caseStudySidebars]);
 
@@ -2325,57 +2330,35 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       return;
     }
     
-    // Remove the first sidebar section from the markdown content
-    const lines = caseStudyContent?.split('\n') || [];
-    const newLines: string[] = [];
-    let inSidebarSection = false;
-    let foundSidebarSection = false;
-    let sectionCount = 0;
-    
-    for (const line of lines) {
-      const topLevelMatch = line.trim().match(/^# (.+)$/);
-      
-      if (topLevelMatch) {
-        const sectionTitle = topLevelMatch[1].trim();
-        
-        // If we were in a sidebar section, stop skipping
-        if (inSidebarSection) {
-          inSidebarSection = false;
-        }
-        
-        // Count non-Overview sections
-        if (sectionTitle !== "Overview") {
-          sectionCount++;
-          
-          // First non-Overview section is the sidebar section
-          if (sectionCount === 1) {
-            foundSidebarSection = true;
-            inSidebarSection = true;
-            continue; // Skip the header line
-          }
-        }
+    // JSON authoritative: set hidden flag in JSON sidebar, don't modify markdown
+    const currentSidebars = caseStudySidebars || (project as any).caseStudySidebars || (project as any).case_study_sidebars || {};
+    const updatedSidebars = {
+      ...currentSidebars,
+      atGlance: { 
+        ...(currentSidebars.atGlance || {}),
+        hidden: true 
       }
-      
-      // Only keep lines that are not in the sidebar section
-      if (!inSidebarSection) {
-        newLines.push(line);
-      }
-    }
-    
-    const updatedContent = newLines.join('\n');
-    setCaseStudyContent(updatedContent);
+    } as any;
+
+    // Update local state immediately so UI reflects the change
+    setCaseStudySidebars(updatedSidebars);
     
     const updatedSectionPositions = {
-      ...(project as any)?.sectionPositions,
+      ...(sectionPositions as any) || (project as any)?.sectionPositions || {},
       hideAtAGlance: true
-    };
-    const updatedProject = {
-      ...project,
-      case_study_content: updatedContent,
-      section_positions: updatedSectionPositions,
-      sectionPositions: updatedSectionPositions
     } as any;
-    onUpdate(updatedProject);
+
+    // Persist immediately with both camelCase and snake_case for compatibility
+    // Don't modify markdown - let cleanup effect handle stripping if needed
+    onUpdate({
+      ...project,
+      sectionPositions: updatedSectionPositions,
+      section_positions: updatedSectionPositions,
+      caseStudySidebars: updatedSidebars,
+      case_study_sidebars: updatedSidebars
+    } as any);
+    
+    console.log('🗑️ Removed Sidebar 1 (hidden=true in JSON)');
   };
 
   // Handler for removing Impact sidebar (flexible to handle renamed sections)
@@ -2384,45 +2367,36 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       return;
     }
     
-    // Remove the '# Impact' section by exact header match
-    const lines = caseStudyContent?.split('\n') || [];
-    const newLines: string[] = [];
-    let i = 0;
-    while (i < lines.length) {
-      const line = lines[i];
-      if (line.trim() === '# Impact') {
-        i++;
-        // Skip until next top-level header
-        while (i < lines.length && !lines[i].trim().match(/^#\s+.+$/)) i++;
-        continue;
-      }
-        newLines.push(line);
-      i++;
-    }
-    
-    const updatedContent = newLines.join('\n');
-    setCaseStudyContent(updatedContent);
-    
-    // Persist hide flag and clear JSON sidebar for impact
-    const updatedSectionPositions = {
-      ...(project as any)?.sectionPositions,
-      hideImpact: true
-    };
-
+    // JSON authoritative: set hidden flag in JSON sidebar, don't modify markdown
+    const currentSidebars = caseStudySidebars || (project as any).caseStudySidebars || (project as any).case_study_sidebars || {};
     const updatedSidebars = {
-      ...((project as any).caseStudySidebars || (project as any).case_study_sidebars || {}),
-      impact: { title: 'Impact', content: '', hidden: true }
+      ...currentSidebars,
+      impact: { 
+        ...(currentSidebars.impact || {}),
+        hidden: true 
+      }
     } as any;
 
+    // Update local state immediately so UI reflects the change
+    setCaseStudySidebars(updatedSidebars);
+    
+    // Persist hide flag and JSON sidebar
+    const updatedSectionPositions = {
+      ...(sectionPositions as any) || (project as any)?.sectionPositions || {},
+      hideImpact: true
+    } as any;
+
+    // Persist immediately with both camelCase and snake_case for compatibility
+    // Don't modify markdown - let cleanup effect handle stripping if needed
     onUpdate({
       ...project,
-      case_study_content: updatedContent,
-      caseStudyContent: updatedContent,
-      section_positions: updatedSectionPositions,
       sectionPositions: updatedSectionPositions,
+      section_positions: updatedSectionPositions,
       caseStudySidebars: updatedSidebars,
       case_study_sidebars: updatedSidebars
     } as any);
+    
+    console.log('🗑️ Removed Sidebar 2 (hidden=true in JSON)');
   };
 
   // Memoize expensive position calculations to prevent timeout
