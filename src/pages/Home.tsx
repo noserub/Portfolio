@@ -2053,6 +2053,8 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
       flowDiagramsPosition: nn(project.flowDiagramsPosition ?? project.flow_diagrams_position),
       solutionCardsPosition: nn(project.solutionCardsPosition ?? project.solution_cards_position),
       sectionPositions: project.sectionPositions ?? project.section_positions ?? {},
+      // NEW: include JSON sidebars (camelCase)
+      caseStudySidebars: (project as any).caseStudySidebars || (project as any).case_study_sidebars || {},
       sortOrder: project.sortOrder || project.sort_order || 0,
       // Convert requires_password from snake_case to camelCase
       requiresPassword: project.requiresPassword !== undefined ? project.requiresPassword : project.requires_password,
@@ -2587,6 +2589,8 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         flow_diagrams_position: updatedProject.flowDiagramsPosition,
         solution_cards_position: updatedProject.solutionCardsPosition,
         section_positions: updatedProject.sectionPositions || {},
+        // NEW: persist JSON sidebars if present
+        case_study_sidebars: (updatedProject as any).caseStudySidebars || (updatedProject as any).case_study_sidebars || undefined,
         sort_order: (updatedProject as any).sortOrder || 0
       };
 
