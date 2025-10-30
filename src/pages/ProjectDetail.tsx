@@ -1169,7 +1169,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
             id: Math.random().toString(36).substr(2, 9),
             url: url,
             alt: file.name,
-            scale: 1,
+            scale: 0.8, // Use smaller scale to prevent cropping
             position: { x: 50, y: 50 }
           };
           const updatedImages = [...caseStudyImages, newImage];
@@ -1262,7 +1262,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
           const newImageUrl = await uploadImage(file, 'hero');
           
           // New images default to 100% zoom, centered (for both detail and home views)
-          const newScale = 1;
+          // Use a smaller scale to prevent cropping issues
+          const newScale = 0.8;
           const newPosition = { x: 50, y: 50 };
           
           // Update local display state
@@ -1302,6 +1303,13 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
             
           // Force immediate save for hero image changes
           console.log('🖼️ FORCING IMMEDIATE SAVE for hero image upload');
+          console.log('🖼️ Updated project data:', {
+            id: updatedProject.id,
+            title: updatedProject.title,
+            url: updatedProject.url?.substring(0, 50) + '...',
+            scale: updatedProject.scale,
+            position: updatedProject.position
+          });
           onUpdate(updatedProject);
           
           // Clear the unsaved flag after a delay

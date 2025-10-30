@@ -437,14 +437,14 @@ export function ProjectImage({
                 alt={editedProject.title}
                 className="w-full h-full"
                 style={{
-                  objectFit: 'cover',
+                  objectFit: editedProject.scale > 1.0 ? 'cover' : 'contain',
                   transform: `scale(${editedProject.scale})`,
                   transformOrigin: `${editedProject.position.x}% ${editedProject.position.y}%`,
                   cursor: isPositioning ? 'crosshair' : 'default',
                   padding: editedProject.scale > 1.0 ? '10px' : '0px'
                 }}
                 quality={85}
-                fit="cover"
+                fit={editedProject.scale > 1.0 ? "cover" : "contain"}
                 onLoad={() => setImageLoadError(false)}
                 onError={handleImageError}
                 priority={false}
