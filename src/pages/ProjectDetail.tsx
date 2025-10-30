@@ -25,6 +25,7 @@ import { VideoGallery } from "../components/VideoGallery";
 import HeroImage from "../components/HeroImage";
 import { useCaseStudySEO } from "../hooks/useSEO";
 import { cleanMarkdownContent, isContentCorrupted } from "../utils/cleanMarkdownContent";
+import { uploadImage } from "../utils/imageHelpers";
 
 interface ProjectDetailProps {
   project: ProjectData;
@@ -1162,7 +1163,6 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       if (file) {
         try {
           // Use placeholder URL instead of base64
-          const { uploadImage } = await import('../utils/imageHelpers');
           const url = await uploadImage(file, 'portrait');
           
           const newImage: CaseStudyImage = {
@@ -1259,7 +1259,6 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       if (file) {
         try {
           // Upload to Supabase Storage instead of base64
-          const { uploadImage } = await import('../utils/imageHelpers');
           const newImageUrl = await uploadImage(file, 'hero');
           
           // New images default to 100% zoom, centered (for both detail and home views)
