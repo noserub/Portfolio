@@ -859,36 +859,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     return (project as any).caseStudySidebars || (project as any).case_study_sidebars || {};
   }, [project]);
 
-  // Build the sidebars object to persist based on current UI state (JSON first, fallback to resolved content)
-  const buildPersistedSidebars = useCallback(() => {
-    const base: any = { ...(sidebarsJson as any) };
-    const currentSectionPositions = (sectionPositions as any) || (project as any)?.sectionPositions || {};
-    const hideAtAGlance = Boolean(currentSectionPositions?.hideAtAGlance);
-    const hideImpact = Boolean(currentSectionPositions?.hideImpact);
-
-    if (atGlanceContent) {
-      base.atGlance = {
-        title: atGlanceContent.title || 'Sidebar 1',
-        content: atGlanceContent.content || '',
-        hidden: hideAtAGlance
-      };
-    } else if (base.atGlance) {
-      // Keep existing hidden state if currently hidden
-      base.atGlance = { ...base.atGlance, hidden: hideAtAGlance };
-    }
-
-    if (impactContent) {
-      base.impact = {
-        title: impactContent.title || 'Sidebar 2',
-        content: impactContent.content || '',
-        hidden: hideImpact
-      };
-    } else if (base.impact) {
-      base.impact = { ...base.impact, hidden: hideImpact };
-    }
-
-    return base;
-  }, [sidebarsJson, atGlanceContent, impactContent, sectionPositions, project]);
+  
 
   // Parse sections directly to extract sidebar sections - memoized to prevent re-parsing on every render
   const { atGlanceContent, impactContent, needsSidebarRestore } = useMemo(() => {
@@ -976,6 +947,37 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
         ((!resolvedImpact && !hideImpact) && !hasImpact && !impactJson)
     };
   }, [cleanedContent, sectionPositions, (project as any)?.sectionPositions, sidebarsJson]);
+
+  // Build the sidebars object to persist based on current UI state (JSON first, fallback to resolved content)
+  const buildPersistedSidebars = useCallback(() => {
+    const base: any = { ...(sidebarsJson as any) };
+    const currentSectionPositions = (sectionPositions as any) || (project as any)?.sectionPositions || {};
+    const hideAtAGlance = Boolean(currentSectionPositions?.hideAtAGlance);
+    const hideImpact = Boolean(currentSectionPositions?.hideImpact);
+
+    if (atGlanceContent) {
+      base.atGlance = {
+        title: atGlanceContent.title || 'Sidebar 1',
+        content: atGlanceContent.content || '',
+        hidden: hideAtAGlance
+      };
+    } else if (base.atGlance) {
+      // Keep existing hidden state if currently hidden
+      base.atGlance = { ...base.atGlance, hidden: hideAtAGlance };
+    }
+
+    if (impactContent) {
+      base.impact = {
+        title: impactContent.title || 'Sidebar 2',
+        content: impactContent.content || '',
+        hidden: hideImpact
+      };
+    } else if (base.impact) {
+      base.impact = { ...base.impact, hidden: hideImpact };
+    }
+
+    return base;
+  }, [sidebarsJson, atGlanceContent, impactContent, sectionPositions, project]);
 
   // With JSON sidebars authoritative, skip auto-seeding via markdown
   useEffect(() => {
