@@ -859,6 +859,37 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     return (project as any).caseStudySidebars || (project as any).case_study_sidebars || {};
   }, [project]);
 
+  // Build the sidebars object to persist based on current UI state (JSON first, fallback to resolved content)
+  const buildPersistedSidebars = useCallback(() => {
+    const base: any = { ...(sidebarsJson as any) };
+    const currentSectionPositions = (sectionPositions as any) || (project as any)?.sectionPositions || {};
+    const hideAtAGlance = Boolean(currentSectionPositions?.hideAtAGlance);
+    const hideImpact = Boolean(currentSectionPositions?.hideImpact);
+
+    if (atGlanceContent) {
+      base.atGlance = {
+        title: atGlanceContent.title || 'Sidebar 1',
+        content: atGlanceContent.content || '',
+        hidden: hideAtAGlance
+      };
+    } else if (base.atGlance) {
+      // Keep existing hidden state if currently hidden
+      base.atGlance = { ...base.atGlance, hidden: hideAtAGlance };
+    }
+
+    if (impactContent) {
+      base.impact = {
+        title: impactContent.title || 'Sidebar 2',
+        content: impactContent.content || '',
+        hidden: hideImpact
+      };
+    } else if (base.impact) {
+      base.impact = { ...base.impact, hidden: hideImpact };
+    }
+
+    return base;
+  }, [sidebarsJson, atGlanceContent, impactContent, sectionPositions, project]);
+
   // Parse sections directly to extract sidebar sections - memoized to prevent re-parsing on every render
   const { atGlanceContent, impactContent, needsSidebarRestore } = useMemo(() => {
     // Read persistent hide flags from latest local sectionPositions state when available
@@ -1166,6 +1197,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
 
   const handleSave = () => {
     // CRITICAL: Use refs to get latest image arrays, not stale state
+    const persistedSidebars = buildPersistedSidebars();
     const updatedProject: ProjectData = {
       ...project,
       title: editedTitle,
@@ -1184,9 +1216,9 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       videosPosition,
       flowDiagramsPosition,
       solutionCardsPosition,
-      // carry through JSON sidebars so they aren't dropped on save
-      caseStudySidebars: (project as any).caseStudySidebars || (project as any).case_study_sidebars,
-      case_study_sidebars: (project as any).caseStudySidebars || (project as any).case_study_sidebars,
+      // Persist current sidebars from UI resolution
+      caseStudySidebars: persistedSidebars,
+      case_study_sidebars: persistedSidebars,
     };
     console.log('💾 [handleSave] Saving with', caseStudyImagesRef.current.length, 'project images,', videoItemsRef.current.length, 'videos and', flowDiagramImagesRef.current.length, 'flow diagrams');
     onUpdate(updatedProject);
@@ -1216,6 +1248,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
           
           // Always save immediately when adding images
           // CRITICAL: Use ref for flowDiagramImages to avoid stale state
+          const persistedSidebars = buildPersistedSidebars();
           const updatedProject: ProjectData = {
             ...project,
             title: editedTitle,
@@ -1234,8 +1267,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
             videosPosition,
             flowDiagramsPosition,
             solutionCardsPosition,
-      caseStudySidebars: (project as any).caseStudySidebars || (project as any).case_study_sidebars,
-      case_study_sidebars: (project as any).caseStudySidebars || (project as any).case_study_sidebars,
+            caseStudySidebars: persistedSidebars,
+            case_study_sidebars: persistedSidebars,
           };
           console.log('📸 Adding new image to project:', {
             projectId: project.id,
@@ -1380,6 +1413,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
   // Save changes and navigate back
   const handleSaveAndBack = () => {
     // CRITICAL: Use refs for image arrays to avoid stale state
+    const persistedSidebars = buildPersistedSidebars();
     const updatedProject: ProjectData = {
       ...project,
       title: editedTitle,
@@ -1398,8 +1432,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       videosPosition,
       flowDiagramsPosition,
       solutionCardsPosition,
-      caseStudySidebars: (project as any).caseStudySidebars || (project as any).case_study_sidebars,
-      case_study_sidebars: (project as any).caseStudySidebars || (project as any).case_study_sidebars,
+      caseStudySidebars: persistedSidebars,
+      case_study_sidebars: persistedSidebars,
     };
     
     console.log('💾 [handleSaveAndBack] Saving all changes synchronously before navigation:', {
