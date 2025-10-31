@@ -265,7 +265,9 @@ export function useProjects() {
       const allowedKeys: (keyof ProjectUpdate)[] = [
         'title','description','url','position_x','position_y','scale','published','requires_password','password',
         'case_study_content','case_study_images','flow_diagram_images','video_items','gallery_aspect_ratio',
-        'flow_diagram_aspect_ratio','video_aspect_ratio','gallery_columns','flow_diagram_columns','video_columns','key_features_columns',
+        'flow_diagram_aspect_ratio','video_aspect_ratio','gallery_columns','flow_diagram_columns','video_columns',
+        // Note: 'key_features_columns' is commented out until migration 0021_add_key_features_columns.sql is run
+        // 'key_features_columns',
         'project_images_position','videos_position','flow_diagrams_position','solution_cards_position','section_positions','sort_order'
       ];
       const payload: Record<string, any> = {};

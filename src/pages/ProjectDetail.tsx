@@ -2288,9 +2288,9 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       videoAspectRatio,
         galleryColumns,
         flowDiagramColumns,
-      videoColumns,
-        keyFeaturesColumns,
-        key_features_columns: keyFeaturesColumns,
+        videoColumns,
+        // Note: keyFeaturesColumns is excluded from update until migration 0021_add_key_features_columns.sql is run
+        // It will be included once the database column exists
         projectImagesPosition,
       videosPosition,
         flowDiagramsPosition,
