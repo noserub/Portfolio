@@ -3645,7 +3645,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.5, duration: 0.5 }}
-              className="flex flex-col min-[360px]:flex-row items-start min-[360px]:items-center gap-4 pr-8 md:pr-12 lg:pr-16"
+              className="flex flex-col min-[430px]:flex-row items-start min-[430px]:items-center gap-4 pr-8 md:pr-12 lg:pr-16"
             >
               {/* Animated Gradient Border Wrapper */}
               <motion.div
@@ -3671,11 +3671,11 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
               >
                 <button
                   onClick={onStartClick}
-                  className="relative rounded-full px-6 py-3 shadow-lg hover:shadow-xl transition-all duration-300 bg-background/80 backdrop-blur-sm hover:bg-background/60 cursor-pointer"
+                  className="relative rounded-full px-6 py-3 shadow-lg hover:shadow-xl transition-all duration-300 bg-background/80 backdrop-blur-sm hover:bg-background/60 cursor-pointer whitespace-nowrap"
                 >
                   {/* Button Text */}
                   <span
-                    className="relative z-10 text-foreground"
+                    className="relative z-10 text-foreground whitespace-nowrap"
                     style={{
                       fontFamily: "Inter, sans-serif",
                       fontWeight: 700,
