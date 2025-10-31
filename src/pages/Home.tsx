@@ -3847,7 +3847,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         </motion.div>
 
         {/* Quick Stats Section */}
-        <section className="w-full max-w-[1400px] mx-auto px-4 sm:px-6 md:px-8 py-24 md:py-32 lg:py-40 relative z-10">
+        <section className="w-full max-w-[1400px] mx-auto px-4 py-24 md:py-32 lg:py-40 relative z-10">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
             {[
               { 
@@ -3856,14 +3856,14 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                 description: "Innovation and IP contribution"
               },
               { 
-                number: "100M+", 
-                label: "Users Delighted",
-                description: "Across all platforms"
+                number: "5+", 
+                label: "0-1 product launches",
+                description: "From ambiguity to product-market fit"
               },
               { 
                 number: "20+", 
                 label: "Years Experience",
-                description: "Leading design"
+                description: "Leading and doing design"
               }
             ].map((stat, index) => (
               <div
