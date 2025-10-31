@@ -7,6 +7,7 @@ import { Edit3, Eye, LogOut, Save, AlertTriangle, Moon, Sun, MoreHorizontal, Sea
 import { Analytics } from "@vercel/analytics/react";
 import { 
   Header, 
+  Footer,
   AnimatedBackground, 
   AbstractPattern, 
   SignIn, 
@@ -1927,6 +1928,9 @@ export default function App() {
         );
       })()}
       </div>
+
+      {/* Footer - shown on all pages */}
+      <Footer />
 
       {/* Component Library Modal */}
       <ComponentLibrary 

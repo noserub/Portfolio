@@ -1,6 +1,7 @@
 // Layout components
 export { default as Header } from './layout/Header';
 export { default as PageLayout } from './layout/PageLayout';
+export { default as Footer } from './layout/Footer';
 
 // Common components
 export { default as Hero } from './common/Hero';
