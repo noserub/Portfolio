@@ -2318,15 +2318,22 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
 
   // Save heroText to localStorage and Supabase (with debouncing to prevent excessive API calls)
   useEffect(() => {
+    // Prevent saving empty or invalid hero text that would overwrite user content
+    const hasValidContent = heroText?.greetings?.length > 0 || heroText?.greeting;
+    if (!hasValidContent) {
+      console.log('⏸️ Skipping save: Hero text is empty or invalid');
+      return;
+    }
+    
     // Clear any existing timeout
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
     }
 
-    // Set a new timeout for saving
+    // Set a new timeout for saving (increased debounce to prevent excessive saves)
     saveTimeoutRef.current = setTimeout(async () => {
       // Always save to localStorage first
-    localStorage.setItem('heroText', JSON.stringify(heroText));
+      localStorage.setItem('heroText', JSON.stringify(heroText));
       console.log('💾 Hero text saved to localStorage');
       
       // Try to save to Supabase for shared access (with error handling)
@@ -2370,7 +2377,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         console.warn('⚠️ Supabase save failed (egress limits?):', error);
         console.log('💾 Hero text saved to localStorage only');
       }
-    }, 1000); // 1 second delay
+    }, 2000); // Increased to 2 seconds to reduce save frequency
 
     // Cleanup function
     return () => {
@@ -2519,42 +2526,8 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     return () => clearTimeout(timer);
   }, [windowWidth, caseStudies, isEditMode]);
   
-  // Save hero text to both localStorage and Supabase whenever it changes
-  useEffect(() => {
-    localStorage.setItem('heroText', JSON.stringify(heroText));
-    
-    // Also save to Supabase if authenticated
-    const saveHeroTextToSupabase = async () => {
-      try {
-        const { supabase } = await import('../lib/supabaseClient');
-        const { data: { user } } = await supabase.auth.getUser();
-        const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
-        
-        if (user || isBypassAuth) {
-          const userId = user?.id || '7cd2752f-93c5-46e6-8535-32769fb10055';
-          
-          console.log('💾 Saving hero text to Supabase for user:', userId);
-          
-          const { error } = await supabase
-            .from('profiles')
-            .update({
-              hero_text: heroText
-            })
-            .eq('id', userId);
-            
-          if (error) {
-            console.error('❌ Failed to save hero text to Supabase:', error);
-          } else {
-            console.log('✅ Hero text saved to Supabase successfully');
-          }
-        }
-      } catch (error) {
-        console.error('❌ Error saving hero text to Supabase:', error);
-      }
-    };
-    
-    saveHeroTextToSupabase();
-  }, [heroText]);
+  // REMOVED: Duplicate save effect - hero text is already saved by the debounced effect above
+  // This was causing multiple simultaneous saves and potential data loss
 
   // Data is now loaded from Supabase via useProjects hook
   // No need to reload from localStorage
