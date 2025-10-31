@@ -3687,7 +3687,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
               </motion.div>
 
               {/* Social Icons Container - keeps icons on same line above 429px, allows wrap below */}
-              <div className="flex items-center gap-3 min-[429px]:flex-shrink-0 max-[428px]:flex-wrap max-[428px]:w-full max-[428px]:max-w-full">
+              <div className="flex items-center gap-3 min-[429px]:flex-shrink-0 max-[428px]:flex-wrap max-[428px]:flex-1 max-[428px]:min-w-0">
                 {/* LinkedIn Icon */}
                 <motion.a
                   href="https://www.linkedin.com/in/bureson/"
