@@ -3686,56 +3686,59 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                 </button>
               </motion.div>
 
-              {/* LinkedIn Icon */}
-              <motion.a
-                href="https://www.linkedin.com/in/bureson/"
-                target="_blank"
-                rel="noopener noreferrer"
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                transition={{ delay: 0.6, duration: 0.3 }}
-                className="group relative flex items-center justify-center w-12 h-12 rounded-full transition-all duration-300"
-                aria-label="LinkedIn Profile"
-              >
-                {/* Inverted background on hover */}
-                <div className="absolute inset-0 rounded-full bg-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-300 shadow-lg" />
-                
-                {/* "in" text */}
-                <span
-                  className="relative z-10 text-foreground group-hover:text-background font-semibold transition-colors duration-300"
-                  style={{
-                    fontFamily: "Inter, sans-serif",
-                    fontSize: "1.125rem",
-                    fontWeight: 600,
-                  }}
+              {/* Social Icons Container - keeps icons on same line */}
+              <div className="flex items-center gap-3">
+                {/* LinkedIn Icon */}
+                <motion.a
+                  href="https://www.linkedin.com/in/bureson/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  transition={{ delay: 0.6, duration: 0.3 }}
+                  className="group relative flex items-center justify-center w-12 h-12 rounded-full transition-all duration-300"
+                  aria-label="LinkedIn Profile"
                 >
-                  in
-                </span>
-              </motion.a>
+                  {/* Inverted background on hover */}
+                  <div className="absolute inset-0 rounded-full bg-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-300 shadow-lg" />
+                  
+                  {/* "in" text */}
+                  <span
+                    className="relative z-10 text-foreground group-hover:text-background font-semibold transition-colors duration-300"
+                    style={{
+                      fontFamily: "Inter, sans-serif",
+                      fontSize: "1.125rem",
+                      fontWeight: 600,
+                    }}
+                  >
+                    in
+                  </span>
+                </motion.a>
 
-              {/* GitHub Icon */}
-              <motion.a
-                href="https://github.com/noserub"
-                target="_blank"
-                rel="noopener noreferrer"
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                transition={{ delay: 0.65, duration: 0.3 }}
-                className="group relative flex items-center justify-center w-12 h-12 rounded-full transition-all duration-300"
-                aria-label="GitHub Profile"
-              >
-                {/* Inverted background on hover */}
-                <div className="absolute inset-0 rounded-full bg-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-300 shadow-lg" />
-                
-                {/* GitHub icon */}
-                <Github
-                  className="relative z-10 w-5 h-5 text-foreground group-hover:text-background transition-colors duration-300"
-                />
-              </motion.a>
+                {/* GitHub Icon */}
+                <motion.a
+                  href="https://github.com/noserub"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  transition={{ delay: 0.65, duration: 0.3 }}
+                  className="group relative flex items-center justify-center w-12 h-12 rounded-full transition-all duration-300"
+                  aria-label="GitHub Profile"
+                >
+                  {/* Inverted background on hover */}
+                  <div className="absolute inset-0 rounded-full bg-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-300 shadow-lg" />
+                  
+                  {/* GitHub icon */}
+                  <Github
+                    className="relative z-10 w-5 h-5 text-foreground group-hover:text-background transition-colors duration-300"
+                  />
+                </motion.a>
+              </div>
             </motion.div>
           </div>
         </motion.div>
