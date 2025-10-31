@@ -205,6 +205,9 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
   
   // Show more/less state for AI cards
   const [expandedAICards, setExpandedAICards] = useState(new Set());
+  
+  // Show more/less state for Highlights cards
+  const [expandedHighlights, setExpandedHighlights] = useState(new Set<number>());
 
   // Debug logging for About page state
   useEffect(() => {
@@ -1419,14 +1422,34 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
               </div>
               
               {/* Cards Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
-              {highlights?.map((item, idx) => (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {highlights?.map((item, idx) => {
+                // Estimate if content is long enough to need "show more"
+                // Only for Product Launches card (idx 1) with longer content
+                const contentLength = item.text?.length || 0;
+                const estimatedLines = Math.ceil(contentLength / 80);
+                const needsExpansion = estimatedLines > 4 && idx === 1; // Only for Product Launches (idx 1)
+                const isExpanded = expandedHighlights.has(idx);
+                
+                const toggleHighlight = () => {
+                  setExpandedHighlights(prev => {
+                    const newSet = new Set(prev);
+                    if (newSet.has(idx)) {
+                      newSet.delete(idx);
+                    } else {
+                      newSet.add(idx);
+                    }
+                    return newSet;
+                  });
+                };
+                
+                return (
                 <motion.div
                   key={idx}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.7 + idx * 0.1 }}
-                  className="flex flex-col gap-3 p-6 rounded-xl bg-white/40 dark:bg-slate-800/40 backdrop-blur-sm border border-border/30 hover:border-border/50 transition-all duration-300 h-full"
+                  className="flex flex-col gap-3 p-4 rounded-xl bg-white/40 dark:bg-slate-800/40 backdrop-blur-sm border border-border/30 hover:border-border/50 transition-all duration-300"
                 >
                   {isEditMode && editingSection === `highlight-${idx}` ? (
                     <div className="space-y-4">
@@ -1462,22 +1485,61 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
                       </div>
                     </div>
                   ) : (
-                    <div className="flex items-start gap-3 h-full">
-                      <div className={`p-2 rounded-lg bg-white/70 dark:bg-slate-800/70 ${idx === 0 ? 'text-yellow-600 dark:text-yellow-400' : 'text-blue-600 dark:text-blue-400'} flex-shrink-0 self-start`}>
+                    <div className="flex items-start gap-3">
+                      <div className={`p-2 rounded-lg bg-white/70 dark:bg-slate-800/70 ${idx === 0 ? 'text-yellow-600 dark:text-yellow-400' : 'text-blue-600 dark:text-blue-400'} flex-shrink-0`}>
                         {idx === 0 ? <Award className="w-5 h-5" /> : <Rocket className="w-5 h-5" />}
                       </div>
-                      <div className="flex-1 min-w-0 flex flex-col h-full">
-                        <h4 className="mb-3 text-lg font-semibold">{item.title}</h4>
-                        <div className="text-muted-foreground leading-relaxed flex-1 flex flex-col justify-start">
+                      <div className="flex-1 min-w-0">
+                        <h4 className="mb-2">{item.title}</h4>
+                        <div className={`text-muted-foreground leading-relaxed ${needsExpansion && !isExpanded ? 'line-clamp-4' : ''}`}>
                           <MarkdownRenderer content={item.text} variant="compact" />
                         </div>
+                        {needsExpansion && (
+                          <button
+                            onClick={(e) => {
+                              toggleHighlight();
+                              e.currentTarget.blur();
+                            }}
+                            className="mt-3 flex items-center gap-1 text-sm font-medium transition-all relative cursor-pointer hover:translate-x-0.5 text-primary hover:text-primary/80"
+                          >
+                            <motion.span
+                              className="inline-block"
+                              animate={{
+                                backgroundImage: [
+                                  "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%)",
+                                  "linear-gradient(180deg, #8b5cf6 0%, #ec4899 50%, #3b82f6 100%)",
+                                  "linear-gradient(225deg, #ec4899 0%, #3b82f6 50%, #8b5cf6 100%)",
+                                  "linear-gradient(270deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%)",
+                                  "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%)",
+                                ],
+                              }}
+                              transition={{
+                                duration: 3,
+                                repeat: Infinity,
+                                ease: "linear",
+                              }}
+                              style={{
+                                backgroundClip: "text",
+                                WebkitBackgroundClip: "text",
+                                WebkitTextFillColor: "transparent",
+                              }}
+                            >
+                              {isExpanded ? "Show less" : "Show more"}
+                            </motion.span>
+                            {isExpanded ? (
+                              <ChevronUp className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                            ) : (
+                              <ChevronDown className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                            )}
+                          </button>
+                        )}
                       </div>
                       {isEditMode && (
                         <Button
                           size="sm"
                           variant="ghost"
                           onClick={() => handleEditCard('highlight', idx, item)}
-                          className="flex-shrink-0 self-start"
+                          className="flex-shrink-0"
                         >
                           <Edit2 className="w-3 h-3" />
                         </Button>
@@ -1485,7 +1547,8 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
                     </div>
                   )}
                 </motion.div>
-              ))}
+                );
+              })}
             </div>
           </div>
           </motion.div>
