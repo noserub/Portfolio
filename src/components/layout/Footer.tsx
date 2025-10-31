@@ -70,11 +70,11 @@ export function Footer() {
                     className="group relative flex items-center justify-center w-12 h-12 rounded-full transition-all duration-300"
                     aria-label="LinkedIn Profile"
                   >
-                    {/* Inverted background on hover - matches home page design */}
-                    <div className="absolute inset-0 rounded-full bg-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-300 shadow-lg" />
+                    {/* Dark background on hover */}
+                    <div className="absolute inset-0 rounded-full bg-gray-900 dark:bg-gray-900 opacity-0 group-hover:opacity-100 transition-opacity duration-300 shadow-lg" />
                     
-                    {/* Icon */}
-                    <Linkedin className="relative z-10 w-5 h-5 text-foreground group-hover:text-background transition-colors duration-300" />
+                    {/* Icon - light text on hover */}
+                    <Linkedin className="relative z-10 w-5 h-5 text-foreground group-hover:text-white transition-colors duration-300" />
                   </motion.a>
                 </TooltipTrigger>
                 <FooterTooltipContent 
@@ -97,11 +97,11 @@ export function Footer() {
                     className="group relative flex items-center justify-center w-12 h-12 rounded-full transition-all duration-300"
                     aria-label="GitHub Profile"
                   >
-                    {/* Inverted background on hover - matches home page design */}
-                    <div className="absolute inset-0 rounded-full bg-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-300 shadow-lg" />
+                    {/* Dark background on hover */}
+                    <div className="absolute inset-0 rounded-full bg-gray-900 dark:bg-gray-900 opacity-0 group-hover:opacity-100 transition-opacity duration-300 shadow-lg" />
                     
-                    {/* Icon */}
-                    <Github className="relative z-10 w-5 h-5 text-foreground group-hover:text-background transition-colors duration-300" />
+                    {/* Icon - light text on hover */}
+                    <Github className="relative z-10 w-5 h-5 text-foreground group-hover:text-white transition-colors duration-300" />
                   </motion.a>
                 </TooltipTrigger>
                 <FooterTooltipContent 
@@ -122,11 +122,11 @@ export function Footer() {
                     className="group relative flex items-center justify-center w-12 h-12 rounded-full transition-all duration-300"
                     aria-label="Send Email"
                   >
-                    {/* Inverted background on hover - matches home page design */}
-                    <div className="absolute inset-0 rounded-full bg-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-300 shadow-lg" />
+                    {/* Dark background on hover */}
+                    <div className="absolute inset-0 rounded-full bg-gray-900 dark:bg-gray-900 opacity-0 group-hover:opacity-100 transition-opacity duration-300 shadow-lg" />
                     
-                    {/* Icon */}
-                    <Mail className="relative z-10 w-5 h-5 text-foreground group-hover:text-background transition-colors duration-300" />
+                    {/* Icon - light text on hover */}
+                    <Mail className="relative z-10 w-5 h-5 text-foreground group-hover:text-white transition-colors duration-300" />
                   </motion.a>
                 </TooltipTrigger>
                 <FooterTooltipContent 
