@@ -1409,13 +1409,6 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
             <div className="relative z-10">
               {/* Section Title - Editable */}
               <div className="flex items-center gap-3 mb-6">
-                <motion.div 
-                  className="p-3 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl text-yellow-600 dark:text-yellow-400 shadow-md group-hover:shadow-xl transition-all duration-300 group-hover:animate-[wiggleIcon_0.5s_ease-in-out_forwards]"
-                  style={{ transform: 'translateZ(10px)' }}
-                >
-                  <Award className="w-6 h-6" />
-                </motion.div>
-                
                 {isEditMode && editingSection === 'highlightsTitle' ? (
                   <div className="flex-1 space-y-2">
                     <Input
@@ -1667,13 +1660,6 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
               <div className="relative z-10">
                 {/* Section Title - Editable */}
                 <div className="flex items-center gap-3 mb-6">
-                  <motion.div 
-                    className="p-3 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl text-purple-600 dark:text-purple-400 shadow-md group-hover:shadow-xl transition-all duration-300 group-hover:animate-[wiggleIcon_0.5s_ease-in-out_forwards]"
-                    style={{ transform: 'translateZ(10px)' }}
-                  >
-                    <Users className="w-6 h-6" />
-                  </motion.div>
-                  
                   {isEditMode && editingSection === 'leadershipTitle' ? (
                     <div className="flex-1 space-y-2">
                       <Input
