@@ -2500,9 +2500,23 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     // Swapping with another markdown section - update markdown content
     const currentSection = markdownSections.find(s => s.title === sectionTitle);
     const targetSection = markdownSections.find(s => s.title === target.title);
+    
+    console.log('🔍 Section lookup:', {
+      sectionTitle,
+      targetTitle: target.title,
+      currentSection: currentSection ? { title: currentSection.title, startLine: currentSection.startLine, endLine: currentSection.endLine } : null,
+      targetSection: targetSection ? { title: targetSection.title, startLine: targetSection.startLine, endLine: targetSection.endLine } : null,
+      availableSections: markdownSections.map(s => s.title)
+    });
       
       if (!currentSection || !targetSection) {
-        console.error('❌ Sections not found in markdown');
+        console.error('❌ Sections not found in markdown', {
+          sectionTitle,
+          targetTitle: target.title,
+          currentSectionFound: !!currentSection,
+          targetSectionFound: !!targetSection,
+          allMarkdownSections: markdownSections.map(s => s.title)
+        });
         return;
       }
       
