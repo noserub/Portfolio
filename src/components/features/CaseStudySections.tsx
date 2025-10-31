@@ -475,6 +475,7 @@ export function CaseStudySections({
     "Overview",
     "The challenge",
     "My role",
+    "My role & impact", // Explicitly include full title
     "Research insights",
     "Competitive analysis",
     "Solution highlights",
@@ -483,10 +484,18 @@ export function CaseStudySections({
   
   // Split into sections before and after "The Solution"
   // Include "Key features" explicitly (it has special rendering, not decorative card style)
+  // Include ALL sections in beforeSolution - they should all be renderable and moveable
   const beforeSolution = regularSections.filter(s => {
-    const isDecorative = decorativeCardSections.some(dec => s.title.toLowerCase().includes(dec.toLowerCase()));
-    const isSolution = s.title.toLowerCase().includes("solution");
-    const isKeyFeatures = s.title.toLowerCase() === "key features";
+    const titleLower = s.title.toLowerCase();
+    // Check if it matches decorative sections (bidirectional matching for "My role" vs "My role & impact")
+    const isDecorative = decorativeCardSections.some(dec => {
+      const decLower = dec.toLowerCase();
+      return titleLower.includes(decLower) || decLower.includes(titleLower);
+    });
+    const isSolution = titleLower.includes("solution");
+    const isKeyFeatures = titleLower === "key features";
+    // Include ALL sections that aren't explicitly excluded elsewhere
+    // This ensures "The challenge" and "My role & impact" are included
     return isDecorative || isSolution || isKeyFeatures;
   });
   
