@@ -44,7 +44,7 @@ export function Footer() {
                     aria-label="LinkedIn Profile"
                   >
                     {/* Background with subtle backdrop blur */}
-                    <div className="absolute inset-0 rounded-full bg-background/50 dark:bg-background/30 backdrop-blur-sm border border-border/20 group-hover:border-border/50 group-hover:bg-background/70 dark:group-hover:bg-background/50 transition-all duration-300 shadow-sm group-hover:shadow-md" />
+                    <div className="absolute inset-0 rounded-full bg-background/50 dark:bg-background/30 backdrop-blur-sm border border-border/20 group-hover:border-border/50 group-hover:bg-background/70 dark:group-hover:bg-background/50 transition-all duration-300" />
                     
                     {/* Icon */}
                     <Linkedin className="relative z-10 w-5 h-5 text-foreground/70 group-hover:text-foreground transition-colors duration-300" />
@@ -72,7 +72,7 @@ export function Footer() {
                     aria-label="GitHub Profile"
                   >
                     {/* Background */}
-                    <div className="absolute inset-0 rounded-full bg-background/50 dark:bg-background/30 backdrop-blur-sm border border-border/20 group-hover:border-border/50 group-hover:bg-background/70 dark:group-hover:bg-background/50 transition-all duration-300 shadow-sm group-hover:shadow-md" />
+                    <div className="absolute inset-0 rounded-full bg-background/50 dark:bg-background/30 backdrop-blur-sm border border-border/20 group-hover:border-border/50 group-hover:bg-background/70 dark:group-hover:bg-background/50 transition-all duration-300" />
                     
                     {/* Icon */}
                     <Github className="relative z-10 w-5 h-5 text-foreground/70 group-hover:text-foreground transition-colors duration-300" />
@@ -98,7 +98,7 @@ export function Footer() {
                     aria-label="Send Email"
                   >
                     {/* Background */}
-                    <div className="absolute inset-0 rounded-full bg-background/50 dark:bg-background/30 backdrop-blur-sm border border-border/20 group-hover:border-border/50 group-hover:bg-background/70 dark:group-hover:bg-background/50 transition-all duration-300 shadow-sm group-hover:shadow-md" />
+                    <div className="absolute inset-0 rounded-full bg-background/50 dark:bg-background/30 backdrop-blur-sm border border-border/20 group-hover:border-border/50 group-hover:bg-background/70 dark:group-hover:bg-background/50 transition-all duration-300" />
                     
                     {/* Icon */}
                     <Mail className="relative z-10 w-5 h-5 text-foreground/70 group-hover:text-foreground transition-colors duration-300" />
