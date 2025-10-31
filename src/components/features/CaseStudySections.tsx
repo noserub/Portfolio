@@ -1648,6 +1648,29 @@ export function CaseStudySections({
                 <h2>{section.title}</h2>
                 {isEditMode && editingSection !== section.title && (
                   <div className="flex gap-2 items-center">
+                    {/* Move up/down arrows */}
+                    {index > 0 && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => moveSectionUp(section.title)}
+                        className="rounded-full p-2"
+                        title="Move section up"
+                      >
+                        <ArrowUp className="w-4 h-4" />
+                      </Button>
+                    )}
+                    {index < sectionsWithInserts.length - 1 && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => moveSectionDown(section.title)}
+                        className="rounded-full p-2"
+                        title="Move section down"
+                      >
+                        <ArrowDown className="w-4 h-4" />
+                      </Button>
+                    )}
                     {onKeyFeaturesColumnsChange && (
                       <div className="flex gap-1 mr-2">
                         <Button
