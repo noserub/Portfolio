@@ -3853,7 +3853,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "0px" }}
             transition={{ duration: 0.8, ease: "easeOut" }}
-            className="flex flex-col gap-6 md:gap-8"
+            className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8"
           >
             {[
               { 
@@ -3882,11 +3882,11 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                   delay: index * 0.1,
                   ease: "easeOut"
                 }}
-                className="bg-white dark:bg-slate-900 rounded-3xl shadow-lg hover:shadow-xl transition-shadow duration-300 p-6 md:p-8 lg:p-10 flex items-center gap-6 md:gap-8 lg:gap-10"
+                className="bg-gradient-to-br from-slate-50/80 via-white/60 to-gray-50/40 dark:from-slate-800/30 dark:via-slate-900/25 dark:to-slate-800/20 backdrop-blur-md rounded-3xl border border-border/20 shadow-lg hover:shadow-xl transition-all duration-300 p-6 md:p-8 flex flex-col items-center text-center gap-4 md:gap-6"
               >
-                {/* Number Container - Square on Left */}
+                {/* Number Container - Centered */}
                 <motion.div
-                  className="flex-shrink-0 w-28 h-28 md:w-36 md:h-36 lg:w-44 lg:h-44 xl:w-52 xl:h-52 rounded-2xl bg-white dark:bg-slate-800 flex items-center justify-center"
+                  className="flex-shrink-0 w-24 h-24 md:w-28 md:h-28 lg:w-32 lg:h-32 rounded-2xl bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm flex items-center justify-center border border-border/10"
                   initial={{ scale: 0.8, opacity: 0 }}
                   whileInView={{ scale: 1, opacity: 1 }}
                   viewport={{ once: true, margin: "0px" }}
@@ -3899,7 +3899,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                   }}
                 >
                   <motion.span
-                    className="block text-5xl md:text-6xl lg:text-7xl xl:text-8xl 2xl:text-9xl font-extrabold tracking-tight leading-none"
+                    className="block text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-none"
                     animate={{
                       backgroundImage: [
                         "linear-gradient(45deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)",
@@ -3925,9 +3925,9 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                   </motion.span>
                 </motion.div>
                 
-                {/* Content - Right Side */}
+                {/* Content - Centered */}
                 <motion.div 
-                  className="flex-1"
+                  className="flex-1 flex flex-col items-center"
                   initial={{ opacity: 0 }}
                   whileInView={{ opacity: 1 }}
                   viewport={{ once: true, margin: "0px" }}
