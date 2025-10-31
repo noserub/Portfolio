@@ -3184,57 +3184,103 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
             className="aspect-video overflow-hidden rounded-2xl shadow-2xl relative"
             style={{
               background: 'linear-gradient(135deg, #ec4899 0%, #8b5cf6 25%, #3b82f6 50%, #06b6d4 75%, #fbbf24 100%)',
-              cursor: isEditingHeroImage ? 'crosshair' : 'pointer'
+              cursor: isEditingHeroImage ? 'crosshair' : (project.url ? 'pointer' : 'default')
             }}
-            onClick={() => !isEditMode && !isEditingHeroImage && setLightboxImage({ id: 'hero', url: project.url, alt: project.title })}
+            onClick={() => !isEditMode && !isEditingHeroImage && project.url && setLightboxImage({ id: 'hero', url: project.url, alt: project.title })}
             onMouseDown={handleHeroMouseDown}
             onMouseMove={handleHeroMouseMove}
             onMouseUp={handleHeroMouseUp}
             onMouseLeave={handleHeroMouseUp}
           >
-            <HeroImage
-              src={project.url}
-              alt={project.title}
-              className="w-full h-full"
-              style={{
-                transform: `scale(${heroScale})`,
-                transformOrigin: `${heroPosition.x}% ${heroPosition.y}%`,
-              }}
-              quality={90}
-              fit="cover"
-              priority={true}
-            />
-            {/* Edit Buttons - Only visible in Edit Mode when not editing */}
-            {isEditMode && !isEditingHeroImage && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="absolute inset-0 bg-black/50 flex items-center justify-center gap-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-              >
-                <Button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleChangeHeroImage();
+            {/* Empty State - When no image URL */}
+            {!project.url || project.url.trim() === '' ? (
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                {/* Empty State Content - Grouped and Centered */}
+                <div className="flex flex-col items-center justify-center gap-6">
+                  {/* Picture Icon and Text */}
+                  <div className="flex flex-col items-center justify-center gap-3">
+                    <ImageIcon className="w-12 h-12 text-white" />
+                    <p className="text-white text-lg font-medium">Add a hero image</p>
+                  </div>
+                  
+                  {/* Buttons Below - Only in Edit Mode */}
+                  {isEditMode && !isEditingHeroImage && (
+                    <div className="flex items-center gap-4">
+                      <Button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleChangeHeroImage();
+                        }}
+                        size="lg"
+                        className="rounded-full shadow-xl"
+                      >
+                        <ImageIcon className="w-5 h-5 mr-2" />
+                        Change Image
+                      </Button>
+                      <Button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setIsEditingHeroImage(true);
+                        }}
+                        size="lg"
+                        variant="secondary"
+                        className="rounded-full shadow-xl"
+                        disabled
+                      >
+                        <Edit2 className="w-5 h-5 mr-2" />
+                        Adjust Image
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <>
+                <HeroImage
+                  src={project.url}
+                  alt={project.title}
+                  className="w-full h-full"
+                  style={{
+                    transform: `scale(${heroScale})`,
+                    transformOrigin: `${heroPosition.x}% ${heroPosition.y}%`,
                   }}
-                  size="lg"
-                  className="rounded-full shadow-xl"
-                >
-                  <ImageIcon className="w-5 h-5 mr-2" />
-                  Change Image
-                </Button>
-                <Button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsEditingHeroImage(true);
-                  }}
-                  size="lg"
-                  variant="secondary"
-                  className="rounded-full shadow-xl"
-                >
-                  <Edit2 className="w-5 h-5 mr-2" />
-                  Adjust Image
-                </Button>
-              </motion.div>
+                  quality={90}
+                  fit="cover"
+                  priority={true}
+                />
+                {/* Edit Buttons - Only visible in Edit Mode when not editing */}
+                {isEditMode && !isEditingHeroImage && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="absolute inset-0 bg-black/50 flex items-center justify-center gap-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                  >
+                    <Button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleChangeHeroImage();
+                      }}
+                      size="lg"
+                      className="rounded-full shadow-xl"
+                    >
+                      <ImageIcon className="w-5 h-5 mr-2" />
+                      Change Image
+                    </Button>
+                    <Button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsEditingHeroImage(true);
+                      }}
+                      size="lg"
+                      variant="secondary"
+                      className="rounded-full shadow-xl"
+                    >
+                      <Edit2 className="w-5 h-5 mr-2" />
+                      Adjust Image
+                    </Button>
+                  </motion.div>
+                )}
+              </>
             )}
             
             {/* Image Editor for Hero Image */}
