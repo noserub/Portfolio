@@ -2180,8 +2180,112 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     
     if (target.type === 'special') {
       // Move the special section to make room for the markdown section
+      // Also need to actually move the markdown section in the content by swapping with next markdown section
       console.log('🔄 Moving special section to make room for markdown section');
       
+      // Find the next markdown section in the desired direction to swap with
+      let nextMarkdownIndex = -1;
+      if (direction === 'up') {
+        // Look backwards for next markdown section
+        for (let i = currentIndex - 1; i >= 0; i--) {
+          if (combined[i].type === 'markdown') {
+            nextMarkdownIndex = i;
+            break;
+          }
+        }
+      } else {
+        // Look forwards for next markdown section
+        for (let i = currentIndex + 1; i < combined.length; i++) {
+          if (combined[i].type === 'markdown') {
+            nextMarkdownIndex = i;
+            break;
+          }
+        }
+      }
+      
+      // If we found a markdown section to swap with, do that instead
+      if (nextMarkdownIndex !== -1 && combined[nextMarkdownIndex].type === 'markdown') {
+        const nextMarkdown = combined[nextMarkdownIndex];
+        const currentSection = markdownSections.find(s => s.title === sectionTitle);
+        const targetSection = markdownSections.find(s => s.title === nextMarkdown.title);
+        
+        if (currentSection && targetSection) {
+          console.log(`↔️ Swapping "${sectionTitle}" with "${nextMarkdown.title}" (past special section)`);
+          // Swap in markdown content
+          const currentLines = lines.slice(currentSection.startLine, currentSection.endLine + 1);
+          const targetLines = lines.slice(targetSection.startLine, targetSection.endLine + 1);
+          
+          const newLines = direction === 'up' ? [
+            ...lines.slice(0, targetSection.startLine),
+            ...currentLines,
+            ...targetLines,
+            ...lines.slice(currentSection.endLine + 1)
+          ] : [
+            ...lines.slice(0, currentSection.startLine),
+            ...targetLines,
+            ...currentLines,
+            ...lines.slice(targetSection.endLine + 1)
+          ];
+          
+          const newContent = newLines.join('\n');
+          console.log('✅ Markdown content updated (past special section)');
+          setCaseStudyContent(newContent);
+          
+          // Get persisted sidebars
+          const persistedSidebars = buildPersistedSidebars();
+          
+          // Ensure sectionPositions is serializable
+          let cleanSectionPositions: any = {};
+          try {
+            cleanSectionPositions = sectionPositions ? JSON.parse(JSON.stringify(sectionPositions)) : {};
+          } catch (e) {
+            console.error('⚠️ Error serializing sectionPositions:', e);
+            cleanSectionPositions = {};
+          }
+          
+          // Ensure sidebars are serializable
+          let cleanSidebars: any = {};
+          try {
+            if (persistedSidebars) {
+              cleanSidebars = JSON.parse(JSON.stringify(persistedSidebars));
+              if (typeof cleanSidebars !== 'object' || Array.isArray(cleanSidebars)) {
+                cleanSidebars = {};
+              }
+            }
+          } catch (e) {
+            cleanSidebars = {};
+          }
+          
+          const updatedProject: ProjectData = {
+            ...project,
+            title: editedTitle,
+            description: editedDescription,
+            caseStudyContent: newContent,
+            caseStudyImages: caseStudyImagesRef.current,
+            flowDiagramImages: flowDiagramImagesRef.current,
+            videoItems: videoItemsRef.current,
+            galleryAspectRatio,
+            flowDiagramAspectRatio,
+            videoAspectRatio,
+            galleryColumns,
+            flowDiagramColumns,
+            videoColumns,
+            keyFeaturesColumns,
+            key_features_columns: keyFeaturesColumns,
+            projectImagesPosition,
+            videosPosition,
+            flowDiagramsPosition,
+            solutionCardsPosition,
+            sectionPositions: cleanSectionPositions,
+            caseStudySidebars: cleanSidebars,
+            case_study_sidebars: cleanSidebars,
+          } as any;
+          onUpdate(updatedProject);
+          return;
+        }
+      }
+      
+      // If no markdown section to swap with, just move the special section
       if (target.title === '__PROJECT_IMAGES__') {
         // Move project images to the next available position
         const newProjectImagesPos = direction === 'up' ? projectImagesPosition - 1 : projectImagesPosition + 1;
