@@ -3848,13 +3848,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
 
         {/* Quick Stats Section */}
         <section className="w-full max-w-[1400px] mx-auto px-4 sm:px-6 md:px-8 py-24 md:py-32 lg:py-40 relative z-10">
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "0px" }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
-            className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8"
-          >
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
             {[
               { 
                 number: "9", 
@@ -3872,31 +3866,13 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                 description: "Leading design"
               }
             ].map((stat, index) => (
-              <motion.div
+              <div
                 key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "0px" }}
-                transition={{ 
-                  duration: 0.6, 
-                  delay: index * 0.1,
-                  ease: "easeOut"
-                }}
-                className="bg-gradient-to-br from-slate-50/80 via-white/60 to-gray-50/40 dark:from-slate-800/30 dark:via-slate-900/25 dark:to-slate-800/20 backdrop-blur-md rounded-3xl border border-border/20 shadow-lg hover:shadow-xl transition-all duration-300 p-4 md:p-5 flex flex-row md:flex-col items-start md:items-center gap-4 md:gap-4 text-left md:text-center"
+                className="bg-gradient-to-br from-slate-50/80 via-white/60 to-gray-50/40 dark:from-slate-800/30 dark:via-slate-900/25 dark:to-slate-800/20 backdrop-blur-md rounded-3xl border border-border/20 shadow-lg hover:shadow-xl transition-shadow duration-300 p-4 md:p-5 flex flex-row md:flex-col items-center justify-center gap-4 md:gap-3 text-left md:text-center"
               >
-                {/* Number - No Container */}
+                {/* Number - Left on mobile, Top on desktop */}
                 <motion.span
-                  className="flex-shrink-0 block text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight leading-none"
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  whileInView={{ scale: 1, opacity: 1 }}
-                  viewport={{ once: true, margin: "0px" }}
-                  transition={{ 
-                    duration: 0.6, 
-                    delay: index * 0.1 + 0.2, 
-                    type: "spring", 
-                    stiffness: 200,
-                    damping: 20
-                  }}
+                  className="flex-shrink-0 block text-6xl md:text-4xl lg:text-5xl font-extrabold tracking-tight leading-none"
                   animate={{
                     backgroundImage: [
                       "linear-gradient(45deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)",
@@ -3922,26 +3898,17 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                 </motion.span>
                 
                 {/* Content */}
-                <motion.div 
-                  className="flex-1 flex flex-col md:items-center"
-                  initial={{ opacity: 0 }}
-                  whileInView={{ opacity: 1 }}
-                  viewport={{ once: true, margin: "0px" }}
-                  transition={{ 
-                    duration: 0.5, 
-                    delay: index * 0.1 + 0.4 
-                  }}
-                >
+                <div className="flex-1 flex flex-col md:items-center justify-center">
                   <h3 className="text-base md:text-lg lg:text-xl font-semibold text-foreground mb-1">
                     {stat.label}
                   </h3>
                   <p className="text-sm md:text-base text-muted-foreground">
                     {stat.description}
                   </p>
-                </motion.div>
-              </motion.div>
+                </div>
+              </div>
             ))}
-          </motion.div>
+          </div>
         </section>
 
         {/* Case Studies Carousel */}
