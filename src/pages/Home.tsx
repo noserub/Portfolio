@@ -41,7 +41,7 @@ interface DraggableProjectItemProps {
   index: number;
   totalItems: number;
   isEditMode: boolean;
-  onMove: (dragIndex: number, hoverIndex: number) => void;
+  onMove: (dragId: string, hoverId: string) => void;
   onClick: () => void;
   onUpdate: (project: ProjectData, skipRefetch?: boolean) => void;
   onReplace: (file: File) => void;
@@ -67,7 +67,7 @@ function DraggableProjectItem({
 
   const [{ isDragging }, drag] = useDrag({
     type: 'case-study',
-    item: { id: project.id, index },
+    item: () => ({ id: project.id, originalIndex: index }),
     canDrag: isEditMode,
     collect: (monitor) => ({
       isDragging: monitor.isDragging(),
@@ -80,14 +80,11 @@ function DraggableProjectItem({
 
   const [{ isOver }, drop] = useDrop({
     accept: 'case-study',
-    hover: (draggedItem: { id: string; index: number }, monitor) => {
+    hover: (draggedItem: { id: string; originalIndex: number }, monitor) => {
       if (!ref.current) return;
       
-      const dragIndex = draggedItem.index;
-      const hoverIndex = index;
-
-      // Don't replace items with themselves
-      if (dragIndex === hoverIndex) return;
+      // Don't hover over itself
+      if (draggedItem.id === project.id) return;
 
       // Determine rectangle on screen
       const hoverBoundingRect = ref.current.getBoundingClientRect();
@@ -107,27 +104,24 @@ function DraggableProjectItem({
       // When dragging to the left, only move when the cursor is before 50%
 
       // Dragging to the right
-      if (dragIndex < hoverIndex && hoverClientX < hoverMiddleX) {
+      const draggingRight = draggedItem.originalIndex < index;
+      if (draggingRight && hoverClientX < hoverMiddleX) {
         return;
       }
 
       // Dragging to the left
-      if (dragIndex > hoverIndex && hoverClientX > hoverMiddleX) {
+      const draggingLeft = draggedItem.originalIndex > index;
+      if (draggingLeft && hoverClientX > hoverMiddleX) {
         return;
       }
 
       // Time to actually perform the action
-      console.log(`🔄 Moving item ${dragIndex} to position ${hoverIndex}`);
-      onMove(dragIndex, hoverIndex);
-
-      // Note: we're mutating the monitor item here!
-      // Generally it's better to avoid mutations,
-      // but it's good here for the sake of performance
-      // to avoid expensive index searches.
-      draggedItem.index = hoverIndex;
+      // Use IDs instead of indices to avoid stale index issues
+      console.log(`🔄 Moving item ${draggedItem.id} to position of ${project.id}`);
+      onMove(draggedItem.id, project.id);
     },
     collect: (monitor) => ({
-      isOver: monitor.isOver(),
+      isOver: monitor.isOver({ shallow: true }),
     }),
   });
 
@@ -3045,41 +3039,47 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     }
   }, [sortedCaseStudies, localCaseStudiesOrder]);
 
-  const moveCaseStudy = useCallback(async (dragIndex: number, hoverIndex: number) => {
-    console.log('🔄 moveCaseStudy called:', { dragIndex, hoverIndex });
+  const moveCaseStudy = useCallback((dragId: string, hoverId: string) => {
+    console.log('🔄 moveCaseStudy called:', { dragId, hoverId });
     
     // Get current display order (local if set, otherwise sorted)
-    const currentOrder = localCaseStudiesOrder || sortedCaseStudies;
-    
-    // Clamp indices to valid range
-    const safeDragIndex = Math.max(0, Math.min(dragIndex, currentOrder.length - 1));
-    const safeHoverIndex = Math.max(0, Math.min(hoverIndex, currentOrder.length - 1));
-    
-    if (safeDragIndex === safeHoverIndex) return;
-    
-    const draggedItem = currentOrder[safeDragIndex];
-    const newOrder = [...currentOrder];
-    newOrder.splice(safeDragIndex, 1);
-    newOrder.splice(safeHoverIndex, 0, draggedItem);
-    
-    console.log('📋 New case study order (visual):', newOrder.map(p => ({ id: p.id, title: p.title })));
-    
-    // Update local state immediately for visual feedback
-    setLocalCaseStudiesOrder(newOrder);
-    
-    // Update sort order in Supabase (async, in background)
-    const projectIds = newOrder.map(project => project.id);
-    const success = await reorderProjects(projectIds);
-    
-    if (success) {
-      console.log('✅ Case studies reordered successfully in Supabase');
-      // Keep local order - it matches Supabase now
-    } else {
-      console.error('❌ Failed to reorder case studies in Supabase, reverting');
-      // Revert to sorted order on error
-      setLocalCaseStudiesOrder(null);
-    }
-  }, [localCaseStudiesOrder, sortedCaseStudies, reorderProjects]);
+    setLocalCaseStudiesOrder((currentOrder) => {
+      const order = currentOrder || sortedCaseStudies;
+      
+      // Find current indices by ID (not stale indices)
+      const dragIndex = order.findIndex(p => p.id === dragId);
+      const hoverIndex = order.findIndex(p => p.id === hoverId);
+      
+      if (dragIndex === -1 || hoverIndex === -1) {
+        console.warn('⚠️ Could not find item(s) in order', { dragId, hoverId, order: order.map(p => p.id) });
+        return currentOrder;
+      }
+      
+      if (dragIndex === hoverIndex) return currentOrder;
+      
+      const draggedItem = order[dragIndex];
+      const newOrder = [...order];
+      newOrder.splice(dragIndex, 1);
+      newOrder.splice(hoverIndex, 0, draggedItem);
+      
+      console.log('📋 New case study order (visual):', newOrder.map(p => ({ id: p.id, title: p.title })));
+      
+      // Update sort order in Supabase (async, in background) - debounced
+      const projectIds = newOrder.map(project => project.id);
+      reorderProjects(projectIds).then((success) => {
+        if (success) {
+          console.log('✅ Case studies reordered successfully in Supabase');
+        } else {
+          console.error('❌ Failed to reorder case studies in Supabase');
+          // Don't revert - user can manually fix if needed
+        }
+      }).catch((error) => {
+        console.error('❌ Error reordering case studies:', error);
+      });
+      
+      return newOrder;
+    });
+  }, [sortedCaseStudies, reorderProjects]);
 
   const moveDesignProject = async (dragIndex: number, hoverIndex: number) => {
     console.log('🔄 moveDesignProject called:', { dragIndex, hoverIndex });
