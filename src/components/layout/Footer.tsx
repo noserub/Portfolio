@@ -64,17 +64,17 @@ export function Footer() {
                     href="https://www.linkedin.com/in/bureson/"
                     target="_blank"
                     rel="noopener noreferrer"
-                    whileHover={{ scale: 1.15, y: -2 }}
+                    whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    transition={{ duration: 0.1 }}
-                    className="group relative flex items-center justify-center w-11 h-11 rounded-full transition-all duration-300"
+                    transition={{ duration: 0.3 }}
+                    className="group relative flex items-center justify-center w-12 h-12 rounded-full transition-all duration-300"
                     aria-label="LinkedIn Profile"
                   >
-                    {/* Background with subtle backdrop blur */}
-                    <div className="absolute inset-0 rounded-full bg-background/50 dark:bg-background/30 backdrop-blur-sm border border-border/20 group-hover:border-border/50 group-hover:bg-background/70 dark:group-hover:bg-background/50 transition-all duration-300" />
+                    {/* Inverted background on hover - matches home page design */}
+                    <div className="absolute inset-0 rounded-full bg-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-300 shadow-lg" />
                     
                     {/* Icon */}
-                    <Linkedin className="relative z-10 w-5 h-5 text-foreground/70 group-hover:text-foreground transition-colors duration-300" />
+                    <Linkedin className="relative z-10 w-5 h-5 text-foreground group-hover:text-background transition-colors duration-300" />
                   </motion.a>
                 </TooltipTrigger>
                 <FooterTooltipContent 
@@ -91,17 +91,17 @@ export function Footer() {
                     href="https://github.com/noserub"
                     target="_blank"
                     rel="noopener noreferrer"
-                    whileHover={{ scale: 1.15, y: -2 }}
+                    whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    transition={{ duration: 0.1 }}
-                    className="group relative flex items-center justify-center w-11 h-11 rounded-full transition-all duration-300"
+                    transition={{ duration: 0.3 }}
+                    className="group relative flex items-center justify-center w-12 h-12 rounded-full transition-all duration-300"
                     aria-label="GitHub Profile"
                   >
-                    {/* Background */}
-                    <div className="absolute inset-0 rounded-full bg-background/50 dark:bg-background/30 backdrop-blur-sm border border-border/20 group-hover:border-border/50 group-hover:bg-background/70 dark:group-hover:bg-background/50 transition-all duration-300" />
+                    {/* Inverted background on hover - matches home page design */}
+                    <div className="absolute inset-0 rounded-full bg-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-300 shadow-lg" />
                     
                     {/* Icon */}
-                    <Github className="relative z-10 w-5 h-5 text-foreground/70 group-hover:text-foreground transition-colors duration-300" />
+                    <Github className="relative z-10 w-5 h-5 text-foreground group-hover:text-background transition-colors duration-300" />
                   </motion.a>
                 </TooltipTrigger>
                 <FooterTooltipContent 
@@ -116,17 +116,17 @@ export function Footer() {
                 <TooltipTrigger asChild>
                   <motion.a
                     href="mailto:brian.bureson@gmail.com"
-                    whileHover={{ scale: 1.15, y: -2 }}
+                    whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    transition={{ duration: 0.1 }}
-                    className="group relative flex items-center justify-center w-11 h-11 rounded-full transition-all duration-300"
+                    transition={{ duration: 0.3 }}
+                    className="group relative flex items-center justify-center w-12 h-12 rounded-full transition-all duration-300"
                     aria-label="Send Email"
                   >
-                    {/* Background */}
-                    <div className="absolute inset-0 rounded-full bg-background/50 dark:bg-background/30 backdrop-blur-sm border border-border/20 group-hover:border-border/50 group-hover:bg-background/70 dark:group-hover:bg-background/50 transition-all duration-300" />
+                    {/* Inverted background on hover - matches home page design */}
+                    <div className="absolute inset-0 rounded-full bg-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-300 shadow-lg" />
                     
                     {/* Icon */}
-                    <Mail className="relative z-10 w-5 h-5 text-foreground/70 group-hover:text-foreground transition-colors duration-300" />
+                    <Mail className="relative z-10 w-5 h-5 text-foreground group-hover:text-background transition-colors duration-300" />
                   </motion.a>
                 </TooltipTrigger>
                 <FooterTooltipContent 
