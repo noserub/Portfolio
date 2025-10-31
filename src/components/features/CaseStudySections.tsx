@@ -493,14 +493,18 @@ export function CaseStudySections({
   const afterSolutionRaw = regularSections.filter(s => {
     const isDecorative = decorativeCardSections.some(dec => s.title.toLowerCase().includes(dec.toLowerCase()));
     const isSolution = s.title.toLowerCase().includes("solution");
-    return !isDecorative && !isSolution;
+    const isKeyFeatures = s.title.toLowerCase() === "key features";
+    // Exclude decorative sections, solution sections, AND Key features (it has special rendering)
+    return !isDecorative && !isSolution && !isKeyFeatures;
   });
   
   // Filter out specific sections we don't want in the grid
+  // "Key features" is already excluded above, but add it here too for safety
   const excludedSections = [
     "Key takeaway",
     "Design team",
-    "Business and consumer impact"
+    "Business and consumer impact",
+    "Key features"
   ];
   const afterSolution = afterSolutionRaw.filter(section => 
     !excludedSections.some(excluded => section.title.toLowerCase().includes(excluded.toLowerCase()))
