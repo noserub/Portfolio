@@ -2244,6 +2244,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       
       const newContent = newLines.join('\n');
       console.log('✅ Markdown content updated');
+      
+      // Update content state - this will trigger useEffect to update cleanedContent
       setCaseStudyContent(newContent);
       
       // Get persisted sidebars (preserve JSON sidebars)
