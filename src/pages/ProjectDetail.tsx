@@ -2212,8 +2212,185 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
         return;
       }
       
-      // For other special sections, just allow the movement
-      console.log('✅ Allowing movement past special section');
+      if (target.title === '__FLOW_DIAGRAMS__') {
+        // Move flow diagrams to the next available position
+        const newFlowDiagramsPos = direction === 'up' ? flowDiagramsPosition - 1 : flowDiagramsPosition + 1;
+        setFlowDiagramsPosition(newFlowDiagramsPos);
+        
+        // Get persisted sidebars
+        const persistedSidebars = buildPersistedSidebars();
+        
+        // Ensure sectionPositions is serializable
+        let cleanSectionPositions: any = {};
+        try {
+          cleanSectionPositions = sectionPositions ? JSON.parse(JSON.stringify(sectionPositions)) : {};
+        } catch (e) {
+          console.error('⚠️ Error serializing sectionPositions:', e);
+          cleanSectionPositions = {};
+        }
+        
+        // Ensure sidebars are serializable
+        let cleanSidebars: any = {};
+        try {
+          if (persistedSidebars) {
+            cleanSidebars = JSON.parse(JSON.stringify(persistedSidebars));
+            if (typeof cleanSidebars !== 'object' || Array.isArray(cleanSidebars)) {
+              cleanSidebars = {};
+            }
+          }
+        } catch (e) {
+          cleanSidebars = {};
+        }
+        
+        const updatedProject: ProjectData = {
+          ...project,
+          title: editedTitle,
+          description: editedDescription,
+          caseStudyContent,
+          caseStudyImages: caseStudyImagesRef.current,
+          flowDiagramImages: flowDiagramImagesRef.current,
+          videoItems: videoItemsRef.current,
+          galleryAspectRatio,
+          flowDiagramAspectRatio,
+          videoAspectRatio,
+          galleryColumns,
+          flowDiagramColumns,
+          videoColumns,
+          keyFeaturesColumns,
+          key_features_columns: keyFeaturesColumns,
+          projectImagesPosition,
+          videosPosition,
+          flowDiagramsPosition: newFlowDiagramsPos,
+          solutionCardsPosition,
+          sectionPositions: cleanSectionPositions,
+          caseStudySidebars: cleanSidebars,
+          case_study_sidebars: cleanSidebars,
+        } as any;
+        onUpdate(updatedProject);
+        return;
+      }
+      
+      if (target.title === '__VIDEOS__') {
+        // Move videos to the next available position
+        const newVideosPos = direction === 'up' ? videosPosition - 1 : videosPosition + 1;
+        setVideosPosition(newVideosPos);
+        
+        // Get persisted sidebars
+        const persistedSidebars = buildPersistedSidebars();
+        
+        // Ensure sectionPositions is serializable
+        let cleanSectionPositions: any = {};
+        try {
+          cleanSectionPositions = sectionPositions ? JSON.parse(JSON.stringify(sectionPositions)) : {};
+        } catch (e) {
+          console.error('⚠️ Error serializing sectionPositions:', e);
+          cleanSectionPositions = {};
+        }
+        
+        // Ensure sidebars are serializable
+        let cleanSidebars: any = {};
+        try {
+          if (persistedSidebars) {
+            cleanSidebars = JSON.parse(JSON.stringify(persistedSidebars));
+            if (typeof cleanSidebars !== 'object' || Array.isArray(cleanSidebars)) {
+              cleanSidebars = {};
+            }
+          }
+        } catch (e) {
+          cleanSidebars = {};
+        }
+        
+        const updatedProject: ProjectData = {
+          ...project,
+          title: editedTitle,
+          description: editedDescription,
+          caseStudyContent,
+          caseStudyImages: caseStudyImagesRef.current,
+          flowDiagramImages: flowDiagramImagesRef.current,
+          videoItems: videoItemsRef.current,
+          galleryAspectRatio,
+          flowDiagramAspectRatio,
+          videoAspectRatio,
+          galleryColumns,
+          flowDiagramColumns,
+          videoColumns,
+          keyFeaturesColumns,
+          key_features_columns: keyFeaturesColumns,
+          projectImagesPosition,
+          videosPosition: newVideosPos,
+          flowDiagramsPosition,
+          solutionCardsPosition,
+          sectionPositions: cleanSectionPositions,
+          caseStudySidebars: cleanSidebars,
+          case_study_sidebars: cleanSidebars,
+        } as any;
+        onUpdate(updatedProject);
+        return;
+      }
+      
+      if (target.title === '__SOLUTION_CARDS__') {
+        // Move solution cards to the next available position
+        const newSolutionCardsPos = solutionCardsPosition !== undefined 
+          ? (direction === 'up' ? solutionCardsPosition - 1 : solutionCardsPosition + 1)
+          : (direction === 'up' ? combined[currentIndex].position - 1 : combined[currentIndex].position + 1);
+        setSolutionCardsPosition(newSolutionCardsPos);
+        
+        // Get persisted sidebars
+        const persistedSidebars = buildPersistedSidebars();
+        
+        // Ensure sectionPositions is serializable
+        let cleanSectionPositions: any = {};
+        try {
+          cleanSectionPositions = sectionPositions ? JSON.parse(JSON.stringify(sectionPositions)) : {};
+        } catch (e) {
+          console.error('⚠️ Error serializing sectionPositions:', e);
+          cleanSectionPositions = {};
+        }
+        
+        // Ensure sidebars are serializable
+        let cleanSidebars: any = {};
+        try {
+          if (persistedSidebars) {
+            cleanSidebars = JSON.parse(JSON.stringify(persistedSidebars));
+            if (typeof cleanSidebars !== 'object' || Array.isArray(cleanSidebars)) {
+              cleanSidebars = {};
+            }
+          }
+        } catch (e) {
+          cleanSidebars = {};
+        }
+        
+        const updatedProject: ProjectData = {
+          ...project,
+          title: editedTitle,
+          description: editedDescription,
+          caseStudyContent,
+          caseStudyImages: caseStudyImagesRef.current,
+          flowDiagramImages: flowDiagramImagesRef.current,
+          videoItems: videoItemsRef.current,
+          galleryAspectRatio,
+          flowDiagramAspectRatio,
+          videoAspectRatio,
+          galleryColumns,
+          flowDiagramColumns,
+          videoColumns,
+          keyFeaturesColumns,
+          key_features_columns: keyFeaturesColumns,
+          projectImagesPosition,
+          videosPosition,
+          flowDiagramsPosition,
+          solutionCardsPosition: newSolutionCardsPos,
+          sectionPositions: cleanSectionPositions,
+          caseStudySidebars: cleanSidebars,
+          case_study_sidebars: cleanSidebars,
+        } as any;
+        onUpdate(updatedProject);
+        return;
+      }
+      
+      // If we get here, we don't know how to handle this special section
+      console.error('❌ Unknown special section type:', target.title);
+      return;
     }
     
     // Swapping with another markdown section - update markdown content
