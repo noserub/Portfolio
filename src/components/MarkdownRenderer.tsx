@@ -6,6 +6,33 @@ interface MarkdownRendererProps {
 export function MarkdownRenderer({ content, variant = 'default' }: MarkdownRendererProps) {
   // Add custom CSS for spacing and gradient bullets
   const customStyles = `
+    /* Beautiful accessible link colors matching the color scheme */
+    .markdown-content a,
+    .markdown-content a.markdown-link {
+      color: #2563eb; /* blue-600 for light mode */
+      text-decoration: underline;
+      text-decoration-thickness: 1.5px;
+      text-underline-offset: 3px;
+      transition: all 0.2s ease;
+      font-weight: 500;
+    }
+    
+    .markdown-content a:hover,
+    .markdown-content a.markdown-link:hover {
+      color: #1d4ed8; /* blue-700 for hover */
+      text-decoration-thickness: 2px;
+    }
+    
+    .dark .markdown-content a,
+    .dark .markdown-content a.markdown-link {
+      color: #60a5fa; /* blue-400 for dark mode */
+    }
+    
+    .dark .markdown-content a:hover,
+    .dark .markdown-content a.markdown-link:hover {
+      color: #93c5fd; /* blue-300 for hover in dark mode */
+    }
+    
     .markdown-content p + h1,
     .markdown-content ul + h1,
     .markdown-content p + h2,
@@ -114,6 +141,9 @@ export function MarkdownRenderer({ content, variant = 'default' }: MarkdownRende
     html = html.replace(/^- (.+)$/gm, `<li${listItemStyle}>$1</li>`);
     html = html.replace(/^\* (.+)$/gm, `<li${listItemStyle}>$1</li>`);
 
+    // Links - must come before bold/italic to avoid conflicts
+    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="markdown-link">$1</a>');
+
     // Bold
     html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
 
@@ -187,6 +217,33 @@ export function MarkdownRenderer({ content, variant = 'default' }: MarkdownRende
   const htmlContent = parseMarkdown(content);
 
   const compactStyles = variant === 'compact' ? `
+    /* Link colors for compact variant */
+    .markdown-content-compact a,
+    .markdown-content-compact a.markdown-link {
+      color: #2563eb; /* blue-600 for light mode */
+      text-decoration: underline;
+      text-decoration-thickness: 1.5px;
+      text-underline-offset: 2px;
+      transition: all 0.2s ease;
+      font-weight: 500;
+    }
+    
+    .markdown-content-compact a:hover,
+    .markdown-content-compact a.markdown-link:hover {
+      color: #1d4ed8; /* blue-700 for hover */
+      text-decoration-thickness: 2px;
+    }
+    
+    .dark .markdown-content-compact a,
+    .dark .markdown-content-compact a.markdown-link {
+      color: #60a5fa; /* blue-400 for dark mode */
+    }
+    
+    .dark .markdown-content-compact a:hover,
+    .dark .markdown-content-compact a.markdown-link:hover {
+      color: #93c5fd; /* blue-300 for hover in dark mode */
+    }
+    
     .markdown-content-compact ul li::before {
       content: "•";
       position: absolute;
