@@ -3848,7 +3848,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
 
         {/* Quick Stats Section */}
         <section className="w-full max-w-[1400px] mx-auto py-24 md:py-32 lg:py-40 relative z-10">
-          <div className="px-4 grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+          <div className="px-4 grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-10">
             {[
               { 
                 number: "9", 
@@ -3868,7 +3868,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
             ].map((stat, index) => (
               <div
                 key={index}
-                className="bg-gradient-to-br from-slate-50/80 via-white/60 to-gray-50/40 dark:from-slate-800/30 dark:via-slate-900/25 dark:to-slate-800/20 backdrop-blur-md rounded-3xl border border-border/20 shadow-lg hover:shadow-xl transition-shadow duration-300 p-4 md:p-5 flex flex-row md:flex-col items-center justify-center gap-4 md:gap-3 text-left md:text-center"
+                className="bg-gradient-to-br from-slate-50/80 via-white/60 to-gray-50/40 dark:from-slate-800/30 dark:via-slate-900/25 dark:to-slate-800/20 backdrop-blur-md rounded-3xl border border-border/20 shadow-lg hover:shadow-xl transition-shadow duration-300 p-4 md:p-5 flex flex-row md:flex-col items-center justify-center gap-4 md:gap-3 text-left md:text-center w-full md:max-w-[calc((100%-4rem)/3-0.5rem)]"
               >
                 {/* Number - Left on mobile, Top on desktop */}
                 <motion.span
