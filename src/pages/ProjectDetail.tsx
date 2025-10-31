@@ -3056,10 +3056,10 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
   return (
     // @ts-expect-error - False positive: JSX children are implicitly passed between tags
     <PageLayout 
-      title={project.title}
-      subtitle={project.description || ''}
+      title={project.description || ''}
+      subtitle={undefined}
       onBack={handleBack} 
-      overline={project.title ? undefined : undefined}
+      overline={project.title}
     >
       {/* Editable Title and Description */}
       {isEditMode && (

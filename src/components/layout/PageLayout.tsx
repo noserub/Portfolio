@@ -66,6 +66,7 @@ export function PageLayout({ title, children, onBack, overline, actionButton, su
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.3 }}
+              className="text-foreground"
             >
               {title}
             </motion.h1>
