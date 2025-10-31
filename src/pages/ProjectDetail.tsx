@@ -2102,10 +2102,12 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     const markdownSections: Array<{ title: string; startLine: number; endLine: number }> = [];
     
     // Find all markdown section boundaries
+    // Only match top-level headers (# Title), not subsections (## Subtitle)
     for (let i = 0; i < lines.length; i++) {
-      const headerMatch = lines[i].match(/^#{1,2} (.+)$/);
-      if (headerMatch) {
-        const title = headerMatch[1].trim();
+      const line = lines[i].trim();
+      // Match # Title but NOT ## Subtitle (ensure it starts with # followed by space, not ##)
+      if (line.startsWith('# ') && !line.startsWith('## ')) {
+        const title = line.substring(2).trim();
         markdownSections.push({ title, startLine: i, endLine: -1 });
         
         if (markdownSections.length > 1) {
