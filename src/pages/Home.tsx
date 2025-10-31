@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback, memo, Suspense } from "react";
 import { motion } from "motion/react";
+import { useDrag, useDrop } from "react-dnd";
 import { ProjectImage, ProjectData } from "../components/ProjectImage";
 import MemoizedProjectImage from "../components/ProjectImage";
 import { ProjectCardSkeleton } from "../components/ProjectCardSkeleton";
@@ -12,7 +13,7 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Textarea } from "../components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
-import { Plus, ChevronLeft, ChevronRight, Edit2, Save, Linkedin, Github, FileText, Trash2, Eye, Wand2 } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, Edit2, Save, GripVertical, Linkedin, Github, FileText, Trash2, Eye, Wand2 } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "../components/ui/tooltip";
 // import { createCaseStudyFromTemplate } from "../utils/caseStudyTemplate"; // REMOVED - using unified project creator
 import { loadMigratedProjects } from "../utils/migrateVideoFields";
@@ -62,63 +63,106 @@ function DraggableProjectItem({
   onNavigate,
 }: DraggableProjectItemProps) {
   const ref = useRef(null);
+  const dragHandleRef = useRef(null);
 
-  // Manual reorder handlers - these actually work
-  const handleMoveLeft = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
-    if (index > 0) {
-      onMove(index, index - 1);
-    }
-  };
+  const [{ isDragging }, drag] = useDrag({
+    type: 'case-study',
+    item: { id: project.id, index },
+    canDrag: isEditMode,
+    collect: (monitor) => ({
+      isDragging: monitor.isDragging(),
+    }),
+    end: () => {
+      // Save final order when drag ends
+      console.log('🏁 Drag ended, order saved');
+    },
+  });
 
-  const handleMoveRight = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
-    if (index < totalItems - 1) {
-      onMove(index, index + 1);
-    }
-  };
+  const [{ isOver }, drop] = useDrop({
+    accept: 'case-study',
+    hover: (draggedItem: { id: string; index: number }, monitor) => {
+      if (!ref.current) return;
+      
+      const dragIndex = draggedItem.index;
+      const hoverIndex = index;
+
+      // Don't replace items with themselves
+      if (dragIndex === hoverIndex) return;
+
+      // Determine rectangle on screen
+      const hoverBoundingRect = ref.current.getBoundingClientRect();
+      
+      // Get horizontal middle
+      const hoverMiddleX = (hoverBoundingRect.right - hoverBoundingRect.left) / 2;
+      
+      // Determine mouse position
+      const clientOffset = monitor.getClientOffset();
+      if (!clientOffset) return;
+      
+      // Get pixels to the left
+      const hoverClientX = clientOffset.x - hoverBoundingRect.left;
+
+      // Only perform the move when the mouse has crossed half of the items width
+      // When dragging to the right, only move when the cursor is beyond 50%
+      // When dragging to the left, only move when the cursor is before 50%
+
+      // Dragging to the right
+      if (dragIndex < hoverIndex && hoverClientX < hoverMiddleX) {
+        return;
+      }
+
+      // Dragging to the left
+      if (dragIndex > hoverIndex && hoverClientX > hoverMiddleX) {
+        return;
+      }
+
+      // Time to actually perform the action
+      console.log(`🔄 Moving item ${dragIndex} to position ${hoverIndex}`);
+      onMove(dragIndex, hoverIndex);
+
+      // Note: we're mutating the monitor item here!
+      // Generally it's better to avoid mutations,
+      // but it's good here for the sake of performance
+      // to avoid expensive index searches.
+      draggedItem.index = hoverIndex;
+    },
+    collect: (monitor) => ({
+      isOver: monitor.isOver(),
+    }),
+  });
+
+  // Attach drag to handle, drop to container
+  drag(dragHandleRef);
+  drop(ref);
 
   return (
     <motion.div
       ref={ref}
       initial={{ opacity: 0, x: 50 }}
       animate={{ 
-        opacity: 1,
+        opacity: isDragging ? 0.5 : isOver ? 0.8 : 1,
+        scale: isDragging ? 0.95 : isOver ? 1.02 : 1,
         x: 0 
       }}
       transition={{ 
-        delay: index * 0.1,
+        delay: isDragging ? 0 : index * 0.1,
         duration: 0.2,
       }}
       className="snap-center flex-shrink-0 relative"
     >
       {isEditMode && (
-        <div className="absolute -left-16 top-1/2 -translate-y-1/2 z-40 flex flex-col gap-2">
-          <Button
-            size="lg"
-            variant="secondary"
-            className="h-12 w-12 p-0 bg-white hover:bg-gray-50 shadow-lg rounded-full border-2 border-gray-300 flex items-center justify-center min-w-[48px] min-h-[48px]"
-            onClick={handleMoveLeft}
-            disabled={index === 0}
-            title="Move left"
-            aria-label="Move project left"
-          >
-            <ChevronLeft className="w-6 h-6 text-gray-700" />
-          </Button>
-          <Button
-            size="lg"
-            variant="secondary"
-            className="h-12 w-12 p-0 bg-white hover:bg-gray-50 shadow-lg rounded-full border-2 border-gray-300 flex items-center justify-center min-w-[48px] min-h-[48px]"
-            onClick={handleMoveRight}
-            disabled={index >= totalItems - 1}
-            title="Move right"
-            aria-label="Move project right"
-          >
-            <ChevronRight className="w-6 h-6 text-gray-700" />
-          </Button>
+        <div
+          ref={dragHandleRef}
+          className="absolute -left-12 top-1/2 -translate-y-1/2 z-40 bg-purple-500 hover:bg-purple-600 text-white rounded-lg px-3 py-2 shadow-lg cursor-grab active:cursor-grabbing transition-colors flex items-center justify-center gap-1.5 min-w-[48px] min-h-[48px]"
+          title="Drag to reorder"
+        >
+          <GripVertical className="w-5 h-5" />
+          <span className="text-sm font-medium hidden sm:inline">Drag</span>
         </div>
+      )}
+      {/* Drop indicator */}
+      {isOver && !isDragging && (
+        <div className="absolute inset-0 border-2 border-purple-500 rounded-2xl z-20 pointer-events-none" />
       )}
       <MemoizedProjectImage
         project={project}
@@ -2961,26 +3005,81 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     }
   };
 
-  const moveCaseStudy = async (dragIndex: number, hoverIndex: number) => {
+  // Local state for drag order - updates immediately for visual feedback
+  const [localCaseStudiesOrder, setLocalCaseStudiesOrder] = useState<ProjectData[] | null>(null);
+
+  // Sort case studies: published first (by sortOrder), then drafts (by sortOrder)
+  const sortedCaseStudies = useMemo(() => {
+    const sorted = [...caseStudies].sort((a, b) => {
+      // Published projects always come before drafts
+      if (a.published && !b.published) return -1;
+      if (!a.published && b.published) return 1;
+      
+      // Within each group (published or drafts), sort by sortOrder
+      const aOrder = a.sortOrder || 0;
+      const bOrder = b.sortOrder || 0;
+      return aOrder - bOrder;
+    });
+    return sorted;
+  }, [caseStudies]);
+
+  // Use local order if set (during drag), otherwise use sorted order
+  const displayCaseStudies = useMemo(() => {
+    const source = localCaseStudiesOrder || sortedCaseStudies;
+    return isEditMode ? source : source.filter((p) => p.published);
+  }, [localCaseStudiesOrder, sortedCaseStudies, isEditMode]);
+
+  // Reset local order when caseStudies change from Supabase
+  useEffect(() => {
+    if (sortedCaseStudies.length > 0) {
+      // Only reset if local order is significantly different (not just a reorder)
+      const localIds = localCaseStudiesOrder?.map(p => p.id) || [];
+      const sortedIds = sortedCaseStudies.map(p => p.id);
+      const idsMatch = localIds.length === sortedIds.length && 
+                       localIds.every((id, i) => id === sortedIds[i]);
+      
+      if (!idsMatch && localCaseStudiesOrder !== null) {
+        // Supabase data changed (new/deleted projects), reset local order
+        setLocalCaseStudiesOrder(null);
+      }
+    }
+  }, [sortedCaseStudies, localCaseStudiesOrder]);
+
+  const moveCaseStudy = useCallback(async (dragIndex: number, hoverIndex: number) => {
     console.log('🔄 moveCaseStudy called:', { dragIndex, hoverIndex });
     
-    const draggedItem = caseStudies[dragIndex];
-    const newCaseStudies = [...caseStudies];
-    newCaseStudies.splice(dragIndex, 1);
-    newCaseStudies.splice(hoverIndex, 0, draggedItem);
+    // Get current display order (local if set, otherwise sorted)
+    const currentOrder = localCaseStudiesOrder || sortedCaseStudies;
     
-    console.log('📋 New case study order:', newCaseStudies.map(p => ({ id: p.id, title: p.title })));
+    // Clamp indices to valid range
+    const safeDragIndex = Math.max(0, Math.min(dragIndex, currentOrder.length - 1));
+    const safeHoverIndex = Math.max(0, Math.min(hoverIndex, currentOrder.length - 1));
     
-    // Update sort order in Supabase
-    const projectIds = newCaseStudies.map(project => project.id);
+    if (safeDragIndex === safeHoverIndex) return;
+    
+    const draggedItem = currentOrder[safeDragIndex];
+    const newOrder = [...currentOrder];
+    newOrder.splice(safeDragIndex, 1);
+    newOrder.splice(safeHoverIndex, 0, draggedItem);
+    
+    console.log('📋 New case study order (visual):', newOrder.map(p => ({ id: p.id, title: p.title })));
+    
+    // Update local state immediately for visual feedback
+    setLocalCaseStudiesOrder(newOrder);
+    
+    // Update sort order in Supabase (async, in background)
+    const projectIds = newOrder.map(project => project.id);
     const success = await reorderProjects(projectIds);
     
     if (success) {
-      console.log('✅ Case studies reordered successfully');
+      console.log('✅ Case studies reordered successfully in Supabase');
+      // Keep local order - it matches Supabase now
     } else {
-      console.error('❌ Failed to reorder case studies');
+      console.error('❌ Failed to reorder case studies in Supabase, reverting');
+      // Revert to sorted order on error
+      setLocalCaseStudiesOrder(null);
     }
-  };
+  }, [localCaseStudiesOrder, sortedCaseStudies, reorderProjects]);
 
   const moveDesignProject = async (dragIndex: number, hoverIndex: number) => {
     console.log('🔄 moveDesignProject called:', { dragIndex, hoverIndex });
@@ -3002,22 +3101,6 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
       console.error('❌ Failed to reorder design projects');
     }
   };
-
-  // Sort case studies: published first (by sortOrder), then drafts (by sortOrder)
-  const sortedCaseStudies = [...caseStudies].sort((a, b) => {
-    // Published projects always come before drafts
-    if (a.published && !b.published) return -1;
-    if (!a.published && b.published) return 1;
-    
-    // Within each group (published or drafts), sort by sortOrder
-    const aOrder = a.sortOrder || 0;
-    const bOrder = b.sortOrder || 0;
-    return aOrder - bOrder;
-  });
-
-  const displayCaseStudies = isEditMode
-    ? sortedCaseStudies
-    : sortedCaseStudies.filter((p) => p.published);
 
   const displayDesignProjects = isEditMode
     ? designProjects
