@@ -1,24 +1,44 @@
+import React from "react";
 import { motion } from "motion/react";
 import { Linkedin, Github, Mail } from "lucide-react";
 import {
   Tooltip,
-  TooltipContent,
   TooltipTrigger,
   TooltipProvider,
 } from "../ui/tooltip";
+import * as TooltipPrimitive from "@radix-ui/react-tooltip";
+import { cn } from "../ui/utils";
+
+// Custom TooltipContent without arrow for footer
+function FooterTooltipContent({
+  className,
+  sideOffset = 0,
+  children,
+  ...props
+}: React.ComponentProps<typeof TooltipPrimitive.Content>) {
+  return (
+    <TooltipPrimitive.Portal>
+      <TooltipPrimitive.Content
+        data-slot="tooltip-content"
+        sideOffset={sideOffset}
+        className={cn(
+          "bg-foreground dark:bg-foreground border border-border shadow-lg animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 w-fit origin-(--radix-tooltip-content-transform-origin) rounded-md px-3 py-1.5 text-xs text-balance",
+          className,
+        )}
+        {...props}
+      >
+        {children}
+        {/* Arrow removed */}
+      </TooltipPrimitive.Content>
+    </TooltipPrimitive.Portal>
+  );
+}
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
     <TooltipProvider delayDuration={300}>
-      <style>{`
-        /* Hide tooltip arrows in footer */
-        [data-slot="tooltip-content"] > svg,
-        [data-slot="tooltip-content"] [data-radix-tooltip-arrow] {
-          display: none !important;
-        }
-      `}</style>
       <motion.footer
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -57,12 +77,11 @@ export function Footer() {
                     <Linkedin className="relative z-10 w-5 h-5 text-foreground/70 group-hover:text-foreground transition-colors duration-300" />
                   </motion.a>
                 </TooltipTrigger>
-                <TooltipContent 
-                  className="bg-foreground dark:bg-foreground border border-border shadow-lg"
+                <FooterTooltipContent 
                   sideOffset={8}
                 >
                   <p className="text-background dark:text-background">View my profile on LinkedIn</p>
-                </TooltipContent>
+                </FooterTooltipContent>
               </Tooltip>
 
               {/* GitHub */}
@@ -85,12 +104,11 @@ export function Footer() {
                     <Github className="relative z-10 w-5 h-5 text-foreground/70 group-hover:text-foreground transition-colors duration-300" />
                   </motion.a>
                 </TooltipTrigger>
-                <TooltipContent 
-                  className="bg-foreground dark:bg-foreground border border-border shadow-lg"
+                <FooterTooltipContent 
                   sideOffset={8}
                 >
                   <p className="text-background dark:text-background">Checkout my GitHub</p>
-                </TooltipContent>
+                </FooterTooltipContent>
               </Tooltip>
 
               {/* Email */}
@@ -111,12 +129,11 @@ export function Footer() {
                     <Mail className="relative z-10 w-5 h-5 text-foreground/70 group-hover:text-foreground transition-colors duration-300" />
                   </motion.a>
                 </TooltipTrigger>
-                <TooltipContent 
-                  className="bg-foreground dark:bg-foreground border border-border shadow-lg"
+                <FooterTooltipContent 
                   sideOffset={8}
                 >
                   <p className="text-background dark:text-background">Send me an email</p>
-                </TooltipContent>
+                </FooterTooltipContent>
               </Tooltip>
             </motion.div>
 
