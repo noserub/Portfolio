@@ -3690,7 +3690,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                   </motion.div>
                 </TooltipTrigger>
                 <TooltipContent 
-                  className="bg-foreground text-background border border-border shadow-lg"
+                  className="bg-foreground text-background border border-border shadow-lg [&>svg]:bg-foreground [&>svg]:fill-foreground"
                   sideOffset={8}
                 >
                   <p>About Brian</p>
@@ -3731,7 +3731,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                     </motion.a>
                   </TooltipTrigger>
                   <TooltipContent 
-                    className="bg-foreground text-background border border-border shadow-lg"
+                    className="bg-foreground text-background border border-border shadow-lg [&>svg]:bg-foreground [&>svg]:fill-foreground"
                     sideOffset={8}
                   >
                     <p>View my profile on LinkedIn</p>
@@ -3763,7 +3763,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                     </motion.a>
                   </TooltipTrigger>
                   <TooltipContent 
-                    className="bg-foreground text-background border border-border shadow-lg"
+                    className="bg-foreground text-background border border-border shadow-lg [&>svg]:bg-foreground [&>svg]:fill-foreground"
                     sideOffset={8}
                   >
                     <p>Checkout my GitHub</p>
