@@ -3846,6 +3846,86 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
           </div>
         </motion.div>
 
+        {/* Quick Stats Section */}
+        <section className="w-full max-w-[1200px] mx-auto px-6 py-16 md:py-24 relative z-10">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.6 }}
+            className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12"
+          >
+            {[
+              { 
+                number: "10+", 
+                label: "Products Shipped",
+                description: "From concept to launch"
+              },
+              { 
+                number: "1.2M+", 
+                label: "Users Impacted",
+                description: "Across all platforms"
+              },
+              { 
+                number: "5+", 
+                label: "Years Experience",
+                description: "Design & product leadership"
+              }
+            ].map((stat, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-50px" }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+                className="text-center space-y-2"
+              >
+                <motion.div
+                  className="text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight"
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  whileInView={{ scale: 1, opacity: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.6, delay: index * 0.1 + 0.2, type: "spring", stiffness: 200 }}
+                >
+                  <motion.span
+                    className="inline-block"
+                    animate={{
+                      backgroundImage: [
+                        "linear-gradient(45deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)",
+                        "linear-gradient(90deg, #8b5cf6 0%, #3b82f6 50%, #fbbf24 100%)",
+                        "linear-gradient(135deg, #3b82f6 0%, #fbbf24 50%, #ec4899 100%)",
+                        "linear-gradient(180deg, #fbbf24 0%, #ec4899 50%, #8b5cf6 100%)",
+                        "linear-gradient(225deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)",
+                        "linear-gradient(45deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)",
+                      ],
+                    }}
+                    transition={{
+                      duration: 8,
+                      repeat: Infinity,
+                      ease: "linear",
+                    }}
+                    style={{
+                      backgroundClip: "text",
+                      WebkitBackgroundClip: "text",
+                      WebkitTextFillColor: "transparent",
+                    }}
+                  >
+                    {stat.number}
+                  </motion.span>
+                </motion.div>
+                <div className="space-y-1">
+                  <h3 className="text-lg md:text-xl font-semibold text-foreground">
+                    {stat.label}
+                  </h3>
+                  <p className="text-sm md:text-base text-muted-foreground">
+                    {stat.description}
+                  </p>
+                </div>
+              </motion.div>
+            ))}
+          </motion.div>
+        </section>
+
         {/* Case Studies Carousel */}
         <div className="w-full max-w-[1400px] mx-auto mb-16 mt-16 md:mt-32 relative z-10">
           <motion.h2
