@@ -292,6 +292,17 @@ export function useProjects() {
       ]) as any;
       
       console.log('🔄 useProjects: Supabase update result:', { data, error });
+      
+      // Log detailed error information for debugging
+      if (error) {
+        console.error('❌ useProjects: Detailed Supabase error:', {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          payload: JSON.stringify(payload, null, 2)
+        });
+      }
 
       // If that fails due to user mismatch, try to transfer ownership
       if (error && error.code === 'PGRST116') {

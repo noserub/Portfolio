@@ -2249,6 +2249,9 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       // Get persisted sidebars (preserve JSON sidebars)
       const persistedSidebars = buildPersistedSidebars();
       
+      // Ensure sectionPositions is serializable (remove any functions or non-serializable data)
+      const cleanSectionPositions = sectionPositions ? JSON.parse(JSON.stringify(sectionPositions)) : {};
+      
       const updatedProject: ProjectData = {
         ...project,
         title: editedTitle,
@@ -2269,10 +2272,10 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       videosPosition,
         flowDiagramsPosition,
         solutionCardsPosition,
-      sectionPositions,
-        // Preserve JSON sidebars
-        caseStudySidebars: persistedSidebars,
-        case_study_sidebars: persistedSidebars,
+        sectionPositions: cleanSectionPositions,
+        // Preserve JSON sidebars - ensure it's serializable
+        caseStudySidebars: persistedSidebars ? JSON.parse(JSON.stringify(persistedSidebars)) : {},
+        case_study_sidebars: persistedSidebars ? JSON.parse(JSON.stringify(persistedSidebars)) : {},
       } as any;
       onUpdate(updatedProject);
   };
