@@ -2541,13 +2541,15 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     const decorativeCardSections = ["Overview", "My role", "Research insights", "Competitive analysis"];
     
     // Build base items
+    // Note: "Key features" is excluded from decorativeCardSections because it has special rendering
     const items: Array<{ title: string; type: string }> = sections.filter(title => {
       // Exclude any sidebar headers from being treated as narrative sections
       const t = title.toLowerCase();
       if (t === 'at a glance' || t === 'impact' || t === 'sidebar 1' || t === 'sidebar 2' || t === 'tech stack' || t === 'tools') return false;
       const isDecorative = decorativeCardSections.some(dec => title.toLowerCase().includes(dec.toLowerCase()));
       const isSolution = title.toLowerCase().includes("solution");
-      return isDecorative || isSolution;
+      const isKeyFeatures = t === "key features";
+      return isDecorative || isSolution || isKeyFeatures;
     }).map(s => ({ title: s, type: 'section' }));
     
     // Collect insertions

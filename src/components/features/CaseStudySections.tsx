@@ -470,22 +470,24 @@ export function CaseStudySections({
   const solutionIndex = regularSections.findIndex(s => s.title.toLowerCase().includes("solution"));
   
   // Sections that should always render in decorative card style (not grid style)
+  // Note: "Key features" is excluded here because it has special rendering (grid of cards)
   const decorativeCardSections = [
     "Overview",
     "The challenge",
     "My role",
     "Research insights",
     "Competitive analysis",
-    "Key features",
     "Solution highlights",
     "Key contributions"
   ];
   
   // Split into sections before and after "The Solution"
+  // Include "Key features" explicitly (it has special rendering, not decorative card style)
   const beforeSolution = regularSections.filter(s => {
     const isDecorative = decorativeCardSections.some(dec => s.title.toLowerCase().includes(dec.toLowerCase()));
     const isSolution = s.title.toLowerCase().includes("solution");
-    return isDecorative || isSolution;
+    const isKeyFeatures = s.title.toLowerCase() === "key features";
+    return isDecorative || isSolution || isKeyFeatures;
   });
   
   const afterSolutionRaw = regularSections.filter(s => {
