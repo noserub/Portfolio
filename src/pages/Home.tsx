@@ -3649,7 +3649,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
             >
               {/* Animated Gradient Border Wrapper */}
               <motion.div
-                className="rounded-full p-[2px] inline-block"
+                className="rounded-full p-[2px] inline-block flex-shrink-0"
                 animate={{
                   background: [
                     "linear-gradient(0deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
@@ -3687,7 +3687,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
               </motion.div>
 
               {/* Social Icons Container - keeps icons on same line */}
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 flex-shrink-0">
                 {/* LinkedIn Icon */}
                 <motion.a
                   href="https://www.linkedin.com/in/bureson/"
