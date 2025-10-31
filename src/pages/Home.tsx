@@ -13,7 +13,7 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Textarea } from "../components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
-import { Plus, ChevronLeft, ChevronRight, Edit2, Save, GripVertical, Linkedin, Github, FileText, Trash2, Eye, Wand2 } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, Edit2, Save, GripVertical, Linkedin, Github, FileText, Trash2, Eye, Wand2, ArrowUp, ArrowDown } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "../components/ui/tooltip";
 // import { createCaseStudyFromTemplate } from "../utils/caseStudyTemplate"; // REMOVED - using unified project creator
 import { loadMigratedProjects } from "../utils/migrateVideoFields";
@@ -39,6 +39,7 @@ interface HomeProps {
 interface DraggableProjectItemProps {
   project: ProjectData;
   index: number;
+  totalItems: number;
   isEditMode: boolean;
   onMove: (dragIndex: number, hoverIndex: number) => void;
   onClick: () => void;
@@ -52,6 +53,7 @@ interface DraggableProjectItemProps {
 function DraggableProjectItem({
   project,
   index,
+  totalItems,
   isEditMode,
   onMove,
   onClick,
@@ -61,9 +63,8 @@ function DraggableProjectItem({
   onNavigate,
 }: DraggableProjectItemProps) {
   const ref = useRef(null);
-  const dragHandleRef = useRef(null);
 
-  const [{ isDragging }, drag, preview] = useDrag({
+  const [{ isDragging }, drag] = useDrag({
     type: 'case-study',
     item: { id: project.id, index },
     canDrag: isEditMode,
@@ -72,7 +73,7 @@ function DraggableProjectItem({
     }),
   });
 
-  const [{ isOver, canDrop }, drop] = useDrop({
+  const [{ isOver }, drop] = useDrop({
     accept: 'case-study',
     hover: (draggedItem: { id: string; index: number }, monitor) => {
       if (!ref.current) return;
@@ -82,60 +83,108 @@ function DraggableProjectItem({
 
       if (dragIndex === hoverIndex) return;
 
+      // Improved hover detection: move immediately when over the item
       const hoverBoundingRect = ref.current.getBoundingClientRect();
-      const hoverMiddleX = (hoverBoundingRect.right - hoverBoundingRect.left) / 2;
       const clientOffset = monitor.getClientOffset();
       
       if (!clientOffset) return;
-      
-      const hoverClientX = clientOffset.x - hoverBoundingRect.left;
 
-      if (dragIndex < hoverIndex && hoverClientX < hoverMiddleX) return;
-      if (dragIndex > hoverIndex && hoverClientX > hoverMiddleX) return;
+      // Check if mouse is over the card
+      const isOverCard = 
+        clientOffset.x >= hoverBoundingRect.left &&
+        clientOffset.x <= hoverBoundingRect.right &&
+        clientOffset.y >= hoverBoundingRect.top &&
+        clientOffset.y <= hoverBoundingRect.bottom;
 
-      onMove(dragIndex, hoverIndex);
-      draggedItem.index = hoverIndex;
+      if (isOverCard) {
+        onMove(dragIndex, hoverIndex);
+        draggedItem.index = hoverIndex;
+      }
     },
     collect: (monitor) => ({
       isOver: monitor.isOver(),
-      canDrop: monitor.canDrop(),
     }),
   });
 
-  // Only attach drag to the handle, not the whole item
-  drag(dragHandleRef);
-  drop(ref);
+  // Make entire card draggable in edit mode
+  drag(drop(ref));
+
+  // Manual reorder handlers
+  const handleMoveUp = () => {
+    if (index > 0) {
+      onMove(index, index - 1);
+    }
+  };
+
+  const handleMoveDown = () => {
+    if (index < totalItems - 1) {
+      onMove(index, index + 1);
+    }
+  };
 
   return (
     <motion.div
       ref={ref}
       initial={{ opacity: 0, x: 50 }}
-      animate={{ opacity: isDragging ? 0.5 : 1, x: 0 }}
+      animate={{ 
+        opacity: isDragging ? 0.5 : isOver ? 0.9 : 1,
+        scale: isDragging ? 0.95 : isOver ? 1.05 : 1,
+        x: 0 
+      }}
       transition={{ 
         delay: index * 0.1,
-        duration: 0.4,
+        duration: 0.2,
       }}
-      className={`snap-center flex-shrink-0 relative ${isEditMode ? 'cursor-move' : ''} ${
-        isOver && canDrop ? 'scale-105' : ''
-      }`}
+      className={`snap-center flex-shrink-0 relative ${isEditMode ? 'cursor-grab active:cursor-grabbing' : ''}`}
       style={{
         transition: 'transform 0.2s ease',
       }}
     >
       {isEditMode && (
         <>
+          {/* Drag handle - more visible */}
           <div 
-            ref={dragHandleRef}
-            className="absolute top-2 left-2 z-30 bg-purple-500 hover:bg-purple-600 text-white rounded-full p-1.5 shadow-lg cursor-move transition-colors"
+            className="absolute top-2 left-2 z-30 bg-purple-500 hover:bg-purple-600 text-white rounded-lg px-2 py-1.5 shadow-lg cursor-grab active:cursor-grabbing transition-colors flex items-center gap-1"
             title="Drag to reorder"
           >
             <GripVertical className="w-4 h-4" />
+            <span className="text-xs font-medium">Drag</span>
           </div>
           
-          {/* Action buttons in edit mode */}
-          <div className="absolute -top-2 -right-2 z-30 flex gap-2">
+          {/* Manual reorder buttons - right side */}
+          <div className="absolute top-2 right-2 z-30 flex flex-col gap-1">
+            <Button
+              size="sm"
+              variant="secondary"
+              className="h-8 w-8 p-0 bg-white/90 hover:bg-white shadow-lg rounded-full"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleMoveUp();
+              }}
+              disabled={index === 0}
+              title="Move left"
+            >
+              <ArrowUp className="w-4 h-4" />
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              className="h-8 w-8 p-0 bg-white/90 hover:bg-white shadow-lg rounded-full"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleMoveDown();
+              }}
+              disabled={index >= totalItems - 1}
+              title="Move right"
+            >
+              <ArrowDown className="w-4 h-4" />
+            </Button>
           </div>
           
+          {/* Drop indicator */}
+          {isOver && !isDragging && (
+            <div className="absolute inset-0 border-2 border-purple-500 rounded-2xl z-20 pointer-events-none" />
+          )}
         </>
       )}
       <MemoizedProjectImage
@@ -3846,6 +3895,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                     key={project.id}
                     project={project}
                     index={index}
+                    totalItems={displayCaseStudies.length}
                     isEditMode={isEditMode}
                     onMove={moveCaseStudy}
                     onClick={() => handleProjectClick(project, 'caseStudies')}
