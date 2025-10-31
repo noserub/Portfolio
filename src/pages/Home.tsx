@@ -3872,7 +3872,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
               >
                 {/* Number - Left on mobile, Top on desktop */}
                 <motion.span
-                  className="flex-shrink-0 block text-6xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-none"
+                  className="flex-shrink-0 block text-7xl md:text-6xl lg:text-7xl font-extrabold tracking-tight leading-none"
                   animate={{
                     backgroundImage: [
                       "linear-gradient(45deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)",
