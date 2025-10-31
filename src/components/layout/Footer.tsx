@@ -115,7 +115,7 @@ export function Footer() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.6 }}
-              className="text-xs text-muted-foreground/70 text-center tracking-wide"
+              className="text-xs text-foreground/90 dark:text-foreground/85 text-center tracking-wide"
             >
               Made with vibes by Brian Bureson © {currentYear}
             </motion.div>
