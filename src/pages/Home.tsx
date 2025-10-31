@@ -3690,7 +3690,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                   </motion.div>
                 </TooltipTrigger>
                 <TooltipContent 
-                  className="bg-foreground dark:bg-foreground border border-border shadow-lg [&>svg]:bg-foreground [&>svg]:fill-foreground"
+                  className="bg-foreground dark:bg-foreground border border-border shadow-lg [&>svg]:hidden"
                   sideOffset={8}
                 >
                   <p className="text-background dark:text-background">Learn about Brian</p>
@@ -3731,7 +3731,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                     </motion.a>
                   </TooltipTrigger>
                   <TooltipContent 
-                    className="bg-foreground dark:bg-foreground border border-border shadow-lg [&>svg]:bg-foreground [&>svg]:fill-foreground"
+                    className="bg-foreground dark:bg-foreground border border-border shadow-lg [&>svg]:hidden"
                     sideOffset={8}
                   >
                     <p className="text-background dark:text-background">View my profile on LinkedIn</p>
@@ -3763,7 +3763,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                     </motion.a>
                   </TooltipTrigger>
                   <TooltipContent 
-                    className="bg-foreground dark:bg-foreground border border-border shadow-lg [&>svg]:bg-foreground [&>svg]:fill-foreground"
+                    className="bg-foreground dark:bg-foreground border border-border shadow-lg [&>svg]:hidden"
                     sideOffset={8}
                   >
                     <p className="text-background dark:text-background">Checkout my GitHub</p>
