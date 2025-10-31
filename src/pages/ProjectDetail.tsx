@@ -3215,7 +3215,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                         className="rounded-full shadow-xl"
                       >
                         <ImageIcon className="w-5 h-5 mr-2" />
-                        Change Image
+                        Add
                       </Button>
                       <Button
                         onClick={(e) => {
