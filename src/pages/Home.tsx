@@ -3847,8 +3847,8 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         </motion.div>
 
         {/* Quick Stats Section */}
-        <section className="w-full max-w-[1400px] mx-auto px-4 py-24 md:py-32 lg:py-40 relative z-10">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+        <section className="w-full max-w-[1400px] mx-auto py-24 md:py-32 lg:py-40 relative z-10">
+          <div className="px-4 grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
             {[
               { 
                 number: "9", 
