@@ -3024,17 +3024,26 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
   }, [localCaseStudiesOrder, sortedCaseStudies, isEditMode]);
 
   // Reset local order when caseStudies change from Supabase
+  // BUT: don't reset if it's just a reorder (same IDs, different order)
+  // Only reset if IDs actually changed (new/deleted projects)
   useEffect(() => {
-    if (sortedCaseStudies.length > 0) {
-      // Only reset if local order is significantly different (not just a reorder)
-      const localIds = localCaseStudiesOrder?.map(p => p.id) || [];
-      const sortedIds = sortedCaseStudies.map(p => p.id);
-      const idsMatch = localIds.length === sortedIds.length && 
-                       localIds.every((id, i) => id === sortedIds[i]);
+    if (sortedCaseStudies.length > 0 && localCaseStudiesOrder !== null) {
+      const localIds = new Set(localCaseStudiesOrder.map(p => p.id));
+      const sortedIds = new Set(sortedCaseStudies.map(p => p.id));
       
-      if (!idsMatch && localCaseStudiesOrder !== null) {
-        // Supabase data changed (new/deleted projects), reset local order
+      // Check if IDs match (regardless of order)
+      const idsMatch = localIds.size === sortedIds.size && 
+                       [...localIds].every(id => sortedIds.has(id)) &&
+                       [...sortedIds].every(id => localIds.has(id));
+      
+      if (!idsMatch) {
+        // IDs actually changed (new/deleted projects), reset local order
+        console.log('🔄 IDs changed, resetting local order');
         setLocalCaseStudiesOrder(null);
+      } else {
+        // Same IDs, just possibly reordered - keep local order for visual consistency
+        // The local order should already reflect the drag operation
+        console.log('✅ Same IDs, keeping local order');
       }
     }
   }, [sortedCaseStudies, localCaseStudiesOrder]);
@@ -3064,18 +3073,26 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
       
       console.log('📋 New case study order (visual):', newOrder.map(p => ({ id: p.id, title: p.title })));
       
-      // Update sort order in Supabase (async, in background) - debounced
-      const projectIds = newOrder.map(project => project.id);
-      reorderProjects(projectIds).then((success) => {
-        if (success) {
-          console.log('✅ Case studies reordered successfully in Supabase');
-        } else {
-          console.error('❌ Failed to reorder case studies in Supabase');
-          // Don't revert - user can manually fix if needed
-        }
-      }).catch((error) => {
-        console.error('❌ Error reordering case studies:', error);
-      });
+      // Update sort order in Supabase (async, in background)
+      // Use setTimeout to debounce rapid drag operations
+      if ((window as any).__reorderTimeout) {
+        clearTimeout((window as any).__reorderTimeout);
+      }
+      
+      (window as any).__reorderTimeout = setTimeout(() => {
+        const projectIds = newOrder.map(project => project.id);
+        reorderProjects(projectIds).then((success) => {
+          if (success) {
+            console.log('✅ Case studies reordered successfully in Supabase');
+            // After successful save, don't reset local order - it matches Supabase now
+          } else {
+            console.error('❌ Failed to reorder case studies in Supabase');
+            // Don't revert - user can manually fix if needed
+          }
+        }).catch((error) => {
+          console.error('❌ Error reordering case studies:', error);
+        });
+      }, 500); // 500ms debounce
       
       return newOrder;
     });
