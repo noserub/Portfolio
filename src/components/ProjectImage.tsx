@@ -582,14 +582,14 @@ export function ProjectImage({
                 alt={editedProject.title}
                 className="w-full h-full"
                 style={{
-                  objectFit: editedProject.scale > 1.0 ? 'cover' : 'contain',
+                  objectFit: 'contain', // Always use contain to mask, never crop
                   transform: `scale(${editedProject.scale})`,
                   transformOrigin: `${editedProject.position.x}% ${editedProject.position.y}%`,
                   cursor: isPositioning ? 'crosshair' : 'default',
-                  padding: editedProject.scale > 1.0 ? '10px' : '0px'
+                  transition: 'transform 0.2s ease-out', // Smooth zoom transitions
                 }}
                 quality={85}
-                fit={editedProject.scale > 1.0 ? "cover" : "contain"}
+                fit="contain" // Always contain - frame masks the image, never crops
                 onLoad={() => setImageLoadError(false)}
                 onError={handleImageError}
                 priority={false}
@@ -784,144 +784,117 @@ export function ProjectImage({
               </div>
             </div>
 
-            {/* Bottom Bar - Image Controls - Inside Card Frame */}
-            <div className="absolute bottom-2 left-2 right-2 z-20 bg-black/80 backdrop-blur-md rounded-lg p-3">
-              {/* Control Groups - Organized by function */}
-              <div className="flex flex-col gap-3">
-                {/* Position Controls */}
-                <div className="flex items-center gap-2 flex-wrap">
+            {/* Bottom Bar - Image Controls - Essential controls only, progressive disclosure */}
+            <div className="absolute bottom-2 left-2 right-2 z-20 bg-black/80 backdrop-blur-md rounded-lg p-2.5">
+              {/* Primary Controls Row - Always visible */}
+              <div className="flex items-center gap-2 flex-wrap">
+                {/* Position Button */}
+                <Button
+                  size="sm"
+                  variant={isPositioning ? "default" : "secondary"}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsPositioning(!isPositioning);
+                  }}
+                  className="shadow-lg min-w-[44px] min-h-[44px]"
+                  title="Drag to position image"
+                  aria-label={isPositioning ? "Stop positioning" : "Start positioning image"}
+                >
+                  <Move className="w-4 h-4" />
+                </Button>
+                
+                {/* Zoom Out */}
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={handleZoomOut}
+                  className="shadow-lg min-w-[44px] min-h-[44px]"
+                  title="Zoom out (3%)"
+                  aria-label="Zoom out 3 percent"
+                >
+                  <ZoomOut className="w-4 h-4" />
+                </Button>
+                
+                {/* Zoom Slider - Compact */}
+                <div className="flex items-center gap-1.5 bg-black/60 rounded-lg px-2 py-1.5 flex-1" style={{ minWidth: '100px', maxWidth: '200px' }}>
+                  <ZoomOut className="w-3 h-3 text-white flex-shrink-0" aria-hidden="true" />
+                  <Slider
+                    value={[editedProject.scale * 100]}
+                    min={30}
+                    max={200}
+                    step={0.5}
+                    onValueChange={(values) => {
+                      const newScale = values[0] / 100;
+                      setEditedProject((prev) => {
+                        const updated = {
+                          ...prev,
+                          scale: newScale
+                        };
+                        onUpdate(updated, true);
+                        return updated;
+                      });
+                    }}
+                    className="flex-1"
+                    aria-label="Zoom level"
+                    aria-valuemin={30}
+                    aria-valuemax={200}
+                    aria-valuenow={editedProject.scale * 100}
+                  />
+                  <ZoomIn className="w-3 h-3 text-white flex-shrink-0" aria-hidden="true" />
+                </div>
+                
+                {/* Zoom In */}
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={handleZoomIn}
+                  className="shadow-lg min-w-[44px] min-h-[44px]"
+                  title="Zoom in (3%)"
+                  aria-label="Zoom in 3 percent"
+                >
+                  <ZoomIn className="w-4 h-4" />
+                </Button>
+                
+                {/* Zoom Percentage - Compact inline */}
+                <div className="bg-black/90 text-white px-2 py-1 rounded text-xs font-medium backdrop-blur-sm tabular-nums min-w-[50px] text-center" role="status" aria-live="polite">
+                  {(editedProject.scale * 100).toFixed(0)}%
+                </div>
+                
+                {/* Reset Button - Quick access */}
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={handleResetImage}
+                  className="shadow-lg min-w-[44px] min-h-[44px]"
+                  title="Reset zoom and position"
+                  aria-label="Reset image zoom and position to default"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                </Button>
+              </div>
+              
+              {/* Position Status - Shown when positioning is active */}
+              {isPositioning && (
+                <div className="mt-2 flex items-center gap-2 flex-wrap">
+                  <span className="text-white text-xs bg-black/60 px-2 py-1 rounded" role="status">
+                    Click image to set origin point
+                  </span>
                   <Button
                     size="sm"
-                    variant={isPositioning ? "default" : "secondary"}
+                    variant="default"
+                    className="shadow-lg"
                     onClick={(e) => {
                       e.stopPropagation();
-                      setIsPositioning(!isPositioning);
+                      setIsPositioning(false);
                     }}
-                    className="shadow-lg min-w-[44px] min-h-[44px]"
-                    title="Drag to position image"
-                    aria-label={isPositioning ? "Stop positioning" : "Start positioning image"}
+                    title="Done positioning"
+                    aria-label="Done positioning"
                   >
-                    <Move className="w-4 h-4" />
-                  </Button>
-                  {isPositioning && (
-                    <>
-                      <span className="text-white text-xs bg-black/60 px-2 py-1 rounded">
-                        Click image to set origin
-                      </span>
-                      <Button
-                        size="sm"
-                        variant="default"
-                        className="shadow-lg"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setIsPositioning(false);
-                        }}
-                        title="Done positioning"
-                      >
-                        <Check className="w-4 h-4 mr-1" />
-                        Done
-                      </Button>
-                    </>
-                  )}
-                </div>
-                
-                {/* Zoom Controls - Grouped together */}
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-center gap-2">
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={handleZoomOut}
-                      className="shadow-lg min-w-[44px] min-h-[44px]"
-                      title="Zoom out (3%)"
-                      aria-label="Zoom out 3 percent"
-                    >
-                      <ZoomOut className="w-4 h-4" />
-                    </Button>
-                    
-                    {/* Zoom Slider for Smooth Control */}
-                    <div className="flex items-center gap-2 bg-black/60 rounded-lg px-3 py-2 min-w-[140px] flex-1">
-                      <ZoomOut className="w-3.5 h-3.5 text-white flex-shrink-0" aria-hidden="true" />
-                      <Slider
-                        value={[editedProject.scale * 100]}
-                        min={30}
-                        max={200}
-                        step={1}
-                        onValueChange={(values) => {
-                          const newScale = values[0] / 100;
-                          setEditedProject((prev) => {
-                            const updated = {
-                              ...prev,
-                              scale: newScale
-                            };
-                            onUpdate(updated, true);
-                            return updated;
-                          });
-                        }}
-                        className="flex-1"
-                        aria-label="Zoom level"
-                      />
-                      <ZoomIn className="w-3.5 h-3.5 text-white flex-shrink-0" aria-hidden="true" />
-                    </div>
-                    
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={handleZoomIn}
-                      className="shadow-lg min-w-[44px] min-h-[44px]"
-                      title="Zoom in (3%)"
-                      aria-label="Zoom in 3 percent"
-                    >
-                      <ZoomIn className="w-4 h-4" />
-                    </Button>
-                  </div>
-                  
-                  {/* Zoom Percentage Display */}
-                  <div className="bg-black/90 text-white px-3 py-1.5 rounded-lg text-sm font-medium backdrop-blur-sm flex items-center justify-center gap-1.5">
-                    <span className="tabular-nums">{(editedProject.scale * 100).toFixed(0)}%</span>
-                    {editedProject.scale !== 1 && (
-                      <span className="text-yellow-300 tabular-nums">
-                        ({editedProject.scale > 1 ? '+' : ''}{Math.round((editedProject.scale - 1) * 100)}%)
-                      </span>
-                    )}
-                  </div>
-                </div>
-                
-                {/* Fit Controls - Grouped together */}
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-white text-xs font-medium">Fit:</span>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={handleFitWidth}
-                    className="shadow-lg min-w-[44px] min-h-[44px]"
-                    title="Fit to width"
-                    aria-label="Fit image to container width"
-                  >
-                    <Maximize2 className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={handleFitHeight}
-                    className="shadow-lg min-w-[44px] min-h-[44px]"
-                    title="Fit to height"
-                    aria-label="Fit image to container height"
-                  >
-                    <Minimize2 className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={handleResetImage}
-                    className="shadow-lg min-w-[44px] min-h-[44px]"
-                    title="Reset zoom and position"
-                    aria-label="Reset image zoom and position to default"
-                  >
-                    <RotateCcw className="w-4 h-4" />
+                    <Check className="w-4 h-4 mr-1" />
+                    Done
                   </Button>
                 </div>
-              </div>
+              )}
             </div>
           </>
         )}
