@@ -1179,15 +1179,16 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     });
 
     // Check if last section is a sidebar section
-    if (currentSection) {
-      const title = currentSection.title.toLowerCase();
-      if (title === "at a glance" || title === "tools" || title === "tech stack") {
+    if (currentSection !== null && currentSection !== undefined) {
+      const lastSection: { title: string; content: string } = currentSection;
+      const sectionTitle = lastSection.title.toLowerCase();
+      if (sectionTitle === "at a glance" || sectionTitle === "tools" || sectionTitle === "tech stack") {
         if (!atGlanceSection) { // Only set if not already found
-          atGlanceSection = currentSection;
+          atGlanceSection = lastSection;
         }
-      } else if (title === "impact") {
+      } else if (sectionTitle === "impact") {
         if (!impactSection) { // Only set if not already found
-          impactSection = currentSection;
+          impactSection = lastSection;
         }
       }
     }
@@ -2127,19 +2128,25 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     let markdownIndex = 0;
     
     for (let i = 0; i < 20; i++) { // Max 20 positions
-      // Check if Project Images is at this position
-      if (projectImagesPosition === i && (caseStudyImages.length > 0 || isEditMode)) {
+      // Check if Project Images is at this position (only if position is explicitly set)
+      if (projectImagesPosition !== undefined && projectImagesPosition === i && (caseStudyImages.length > 0 || isEditMode)) {
         combined.push({ title: '__PROJECT_IMAGES__', type: 'special', position: i });
         continue;
       }
       
-      // Check if Flow Diagrams is at this position
-      if (flowDiagramsPosition === i && (flowDiagramImages.length > 0 || isEditMode)) {
+      // Check if Videos is at this position (only if position is explicitly set)
+      if (videosPosition !== undefined && videosPosition === i && (videoItems.length > 0 || isEditMode)) {
+        combined.push({ title: '__VIDEOS__', type: 'special', position: i });
+        continue;
+      }
+      
+      // Check if Flow Diagrams is at this position (only if position is explicitly set)
+      if (flowDiagramsPosition !== undefined && flowDiagramsPosition === i && (flowDiagramImages.length > 0 || isEditMode)) {
         combined.push({ title: '__FLOW_DIAGRAMS__', type: 'special', position: i });
         continue;
       }
       
-      // Check if Solution Cards is at this position
+      // Check if Solution Cards is at this position (only if position is explicitly set)
       if (solutionCardsPosition !== undefined && solutionCardsPosition === i) {
         combined.push({ title: '__SOLUTION_CARDS__', type: 'special', position: i });
         continue;
@@ -2940,24 +2947,27 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       return true;
     }).map(s => ({ title: s, type: 'section' }));
     
-    // Collect insertions
+    // Collect insertions - ONLY insert when position is explicitly set (not undefined)
     const insertions: Array<{ pos: number; item: { title: string; type: string } }> = [];
     
-    if (caseStudyImages.length > 0 || isEditMode) {
+    // Only insert Project Images if position is set AND (images exist OR in edit mode)
+    if (projectImagesPosition !== undefined && (caseStudyImages.length > 0 || isEditMode)) {
       insertions.push({ 
         pos: projectImagesPosition, 
         item: { title: '__PROJECT_IMAGES__', type: 'gallery' }
       });
     }
     
-    if (videoItems.length > 0 || isEditMode) {
+    // Only insert Videos if position is set AND (videos exist OR in edit mode)
+    if (videosPosition !== undefined && (videoItems.length > 0 || isEditMode)) {
       insertions.push({ 
         pos: videosPosition, 
         item: { title: '__VIDEOS__', type: 'gallery' }
       });
     }
     
-    if (flowDiagramImages.length > 0 || isEditMode) {
+    // Only insert Flow Diagrams if position is set AND (diagrams exist OR in edit mode)
+    if (flowDiagramsPosition !== undefined && (flowDiagramImages.length > 0 || isEditMode)) {
       insertions.push({ 
         pos: flowDiagramsPosition, 
         item: { title: '__FLOW_DIAGRAMS__', type: 'gallery' }
@@ -2990,10 +3000,12 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     }
     
     // Sort descending (highest first) to avoid index shifting
-    insertions.sort((a, b) => b.pos - a.pos);
+    // Filter out any invalid insertions and ensure positions are valid numbers
+    const validInsertions = insertions.filter(ins => typeof ins.pos === 'number' && ins.pos >= 0);
+    validInsertions.sort((a, b) => b.pos - a.pos);
     
     // Insert in descending order
-    for (const insertion of insertions) {
+    for (const insertion of validInsertions) {
       items.splice(Math.min(insertion.pos, items.length), 0, insertion.item);
     }
     
@@ -3008,7 +3020,13 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       videos: videosActual,
       flowDiagrams: flowDiagramsActual,
       solutionCards: solutionCardsActual,
-      total: items.length
+      total: items.length,
+      sections: sections,
+      items: items.map(i => i.title),
+      projectImagesPosition,
+      videosPosition,
+      flowDiagramsPosition,
+      solutionCardsPosition
     });
     
     return {
@@ -3036,6 +3054,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
   ]);
 
   return (
+    // @ts-expect-error - False positive: JSX children are implicitly passed between tags
     <PageLayout 
       title={project.title}
       subtitle={project.description || ''}
