@@ -3649,7 +3649,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
               className="cta-container flex items-center gap-4 pr-8 md:pr-12 lg:pr-16"
             >
               {/* Animated Gradient Border Wrapper */}
-              <Tooltip>
+              <Tooltip delayDuration={300}>
                 <TooltipTrigger asChild>
                   <motion.div
                     className="rounded-full p-[2px] inline-block flex-shrink-0"
@@ -3689,7 +3689,10 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                     </button>
                   </motion.div>
                 </TooltipTrigger>
-                <TooltipContent className="bg-popover text-popover-foreground border border-border shadow-lg">
+                <TooltipContent 
+                  className="bg-foreground text-background border border-border shadow-lg"
+                  sideOffset={8}
+                >
                   <p>About Brian</p>
                 </TooltipContent>
               </Tooltip>
@@ -3697,7 +3700,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
               {/* Social Icons Container - row layout below button at mobile, same line at desktop */}
               <div className="flex items-center gap-3">
                 {/* LinkedIn Icon */}
-                <Tooltip>
+                <Tooltip delayDuration={300}>
                   <TooltipTrigger asChild>
                     <motion.a
                       href="https://www.linkedin.com/in/bureson/"
@@ -3727,13 +3730,16 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                       </span>
                     </motion.a>
                   </TooltipTrigger>
-                  <TooltipContent className="bg-popover text-popover-foreground border border-border shadow-lg">
+                  <TooltipContent 
+                    className="bg-foreground text-background border border-border shadow-lg"
+                    sideOffset={8}
+                  >
                     <p>View my profile on LinkedIn</p>
                   </TooltipContent>
                 </Tooltip>
 
                 {/* GitHub Icon */}
-                <Tooltip>
+                <Tooltip delayDuration={300}>
                   <TooltipTrigger asChild>
                     <motion.a
                       href="https://github.com/noserub"
@@ -3756,7 +3762,10 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                       />
                     </motion.a>
                   </TooltipTrigger>
-                  <TooltipContent className="bg-popover text-popover-foreground border border-border shadow-lg">
+                  <TooltipContent 
+                    className="bg-foreground text-background border border-border shadow-lg"
+                    sideOffset={8}
+                  >
                     <p>Checkout my GitHub</p>
                   </TooltipContent>
                 </Tooltip>
