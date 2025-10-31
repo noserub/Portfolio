@@ -16,13 +16,13 @@ export function Footer() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, delay: 0.3 }}
-        className="relative mt-32 pt-8 pb-12"
+        className="relative mt-32 pt-8 pb-20"
       >
         {/* Subtle top border with gradient */}
         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border/50 to-transparent" />
         
         <div className="container mx-auto px-6">
-          <div className="flex flex-col items-center gap-8">
+          <div className="flex flex-col items-center gap-4">
             {/* Social Icons - Top */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
@@ -117,7 +117,7 @@ export function Footer() {
               transition={{ delay: 0.6 }}
               className="text-xs text-muted-foreground/70 text-center tracking-wide"
             >
-              Made with vibes by Brian © {currentYear}
+              Made with vibes by Brian Bureson © {currentYear}
             </motion.div>
           </div>
         </div>
