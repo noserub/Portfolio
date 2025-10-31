@@ -3197,27 +3197,22 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
               <div className="absolute inset-0 flex flex-col items-center justify-center">
                 {/* Empty State Content - Grouped and Centered */}
                 <div className="flex flex-col items-center justify-center gap-6">
-                  {/* Picture Icon and Text */}
-                  <div className="flex flex-col items-center justify-center gap-3">
-                    <ImageIcon className="w-12 h-12 text-white" />
-                    <p className="text-white text-lg font-medium">Add a hero image</p>
-                  </div>
+                  {/* Picture Icon */}
+                  <ImageIcon className="w-12 h-12 text-white" />
                   
-                  {/* Buttons Below - Only in Edit Mode */}
+                  {/* Button - Only in Edit Mode */}
                   {isEditMode && !isEditingHeroImage && (
-                    <div className="flex items-center justify-center">
-                      <Button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleChangeHeroImage();
-                        }}
-                        size="lg"
-                        className="rounded-full shadow-xl bg-white text-gray-900 hover:bg-gray-100"
-                      >
-                        <ImageIcon className="w-5 h-5 mr-2" />
-                        Add
-                      </Button>
-                    </div>
+                    <Button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleChangeHeroImage();
+                      }}
+                      size="lg"
+                      className="rounded-full shadow-xl bg-white text-gray-900 hover:bg-gray-100"
+                    >
+                      <ImageIcon className="w-5 h-5 mr-2" />
+                      Add image
+                    </Button>
                   )}
                 </div>
               </div>
