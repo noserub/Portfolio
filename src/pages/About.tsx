@@ -1419,14 +1419,14 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
               </div>
               
               {/* Cards Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
               {highlights?.map((item, idx) => (
                 <motion.div
                   key={idx}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.7 + idx * 0.1 }}
-                  className="flex flex-col gap-3 p-4 rounded-xl bg-white/40 dark:bg-slate-800/40 backdrop-blur-sm border border-border/30 hover:border-border/50 transition-all duration-300"
+                  className="flex flex-col gap-3 p-6 rounded-xl bg-white/40 dark:bg-slate-800/40 backdrop-blur-sm border border-border/30 hover:border-border/50 transition-all duration-300 h-full"
                 >
                   {isEditMode && editingSection === `highlight-${idx}` ? (
                     <div className="space-y-4">
@@ -1462,13 +1462,13 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
                       </div>
                     </div>
                   ) : (
-                    <div className="flex items-start gap-3">
-                      <div className={`p-2 rounded-lg bg-white/70 dark:bg-slate-800/70 ${idx === 0 ? 'text-yellow-600 dark:text-yellow-400' : 'text-blue-600 dark:text-blue-400'} flex-shrink-0`}>
+                    <div className="flex items-start gap-3 h-full">
+                      <div className={`p-2 rounded-lg bg-white/70 dark:bg-slate-800/70 ${idx === 0 ? 'text-yellow-600 dark:text-yellow-400' : 'text-blue-600 dark:text-blue-400'} flex-shrink-0 self-start`}>
                         {idx === 0 ? <Award className="w-5 h-5" /> : <Rocket className="w-5 h-5" />}
                       </div>
-                      <div className="flex-1">
-                        <h4 className="mb-2">{item.title}</h4>
-                        <div className="text-muted-foreground leading-relaxed">
+                      <div className="flex-1 min-w-0 flex flex-col h-full">
+                        <h4 className="mb-3 text-lg font-semibold">{item.title}</h4>
+                        <div className="text-muted-foreground leading-relaxed flex-1 flex flex-col justify-start">
                           <MarkdownRenderer content={item.text} variant="compact" />
                         </div>
                       </div>
@@ -1477,7 +1477,7 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
                           size="sm"
                           variant="ghost"
                           onClick={() => handleEditCard('highlight', idx, item)}
-                          className="flex-shrink-0"
+                          className="flex-shrink-0 self-start"
                         >
                           <Edit2 className="w-3 h-3" />
                         </Button>
