@@ -3693,7 +3693,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                   className="bg-foreground dark:bg-foreground border border-border shadow-lg [&>svg]:bg-foreground [&>svg]:fill-foreground"
                   sideOffset={8}
                 >
-                  <p className="text-background dark:text-background">About Brian</p>
+                  <p className="text-background dark:text-background">Learn about Brian</p>
                 </TooltipContent>
               </Tooltip>
 
