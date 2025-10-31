@@ -3874,7 +3874,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                 <motion.span
                   className="flex-shrink-0 block font-extrabold tracking-tight leading-none"
                   style={{
-                    fontSize: '64px',
+                    fontSize: '48px',
                     backgroundClip: "text",
                     WebkitBackgroundClip: "text",
                     WebkitTextFillColor: "transparent",
