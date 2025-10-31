@@ -14,6 +14,7 @@ import { Input } from "../components/ui/input";
 import { Textarea } from "../components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { Plus, ChevronLeft, ChevronRight, Edit2, Save, GripVertical, Linkedin, Github, FileText, Trash2, Eye, Wand2 } from "lucide-react";
+import { Tooltip, TooltipTrigger, TooltipContent } from "../components/ui/tooltip";
 // import { createCaseStudyFromTemplate } from "../utils/caseStudyTemplate"; // REMOVED - using unified project creator
 import { loadMigratedProjects } from "../utils/migrateVideoFields";
 import { UnifiedProjectCreator } from "../components/UnifiedProjectCreator";
@@ -3648,96 +3649,117 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
               className="cta-container flex items-center gap-4 pr-8 md:pr-12 lg:pr-16"
             >
               {/* Animated Gradient Border Wrapper */}
-              <motion.div
-                className="rounded-full p-[2px] inline-block flex-shrink-0"
-                animate={{
-                  background: [
-                    "linear-gradient(0deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
-                    "linear-gradient(45deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
-                    "linear-gradient(90deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
-                    "linear-gradient(135deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
-                    "linear-gradient(180deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
-                    "linear-gradient(225deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
-                    "linear-gradient(270deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
-                    "linear-gradient(315deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
-                    "linear-gradient(360deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
-                  ],
-                }}
-                transition={{
-                  duration: 8,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                }}
-              >
-                <button
-                  onClick={onStartClick}
-                  className="relative rounded-full px-6 py-3 shadow-lg hover:shadow-xl transition-all duration-300 bg-background/80 backdrop-blur-sm hover:bg-background/60 cursor-pointer whitespace-nowrap"
-                >
-                  {/* Button Text */}
-                  <span
-                    className="relative z-10 text-foreground whitespace-nowrap"
-                    style={{
-                      fontFamily: "Inter, sans-serif",
-                      fontWeight: 700,
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <motion.div
+                    className="rounded-full p-[2px] inline-block flex-shrink-0"
+                    animate={{
+                      background: [
+                        "linear-gradient(0deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
+                        "linear-gradient(45deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
+                        "linear-gradient(90deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
+                        "linear-gradient(135deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
+                        "linear-gradient(180deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
+                        "linear-gradient(225deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
+                        "linear-gradient(270deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
+                        "linear-gradient(315deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
+                        "linear-gradient(360deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
+                      ],
+                    }}
+                    transition={{
+                      duration: 8,
+                      repeat: Infinity,
+                      ease: "easeInOut",
                     }}
                   >
-                    {heroText.buttonText}
-                  </span>
-                </button>
-              </motion.div>
+                    <button
+                      onClick={onStartClick}
+                      className="relative rounded-full px-6 py-3 shadow-lg hover:shadow-xl transition-all duration-300 bg-background/80 backdrop-blur-sm hover:bg-background/60 cursor-pointer whitespace-nowrap"
+                    >
+                      {/* Button Text */}
+                      <span
+                        className="relative z-10 text-foreground whitespace-nowrap"
+                        style={{
+                          fontFamily: "Inter, sans-serif",
+                          fontWeight: 700,
+                        }}
+                      >
+                        {heroText.buttonText}
+                      </span>
+                    </button>
+                  </motion.div>
+                </TooltipTrigger>
+                <TooltipContent className="bg-popover text-popover-foreground border border-border shadow-lg">
+                  <p>About Brian</p>
+                </TooltipContent>
+              </Tooltip>
 
               {/* Social Icons Container - row layout below button at mobile, same line at desktop */}
               <div className="flex items-center gap-3">
                 {/* LinkedIn Icon */}
-                <motion.a
-                  href="https://www.linkedin.com/in/bureson/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  transition={{ delay: 0.6, duration: 0.3 }}
-                  className="group relative flex items-center justify-center w-12 h-12 rounded-full transition-all duration-300 flex-shrink-0"
-                  aria-label="LinkedIn Profile"
-                >
-                  {/* Inverted background on hover */}
-                  <div className="absolute inset-0 rounded-full bg-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-300 shadow-lg" />
-                  
-                  {/* "in" text */}
-                  <span
-                    className="relative z-10 text-foreground group-hover:text-background font-semibold transition-colors duration-300"
-                    style={{
-                      fontFamily: "Inter, sans-serif",
-                      fontSize: "1.125rem",
-                      fontWeight: 600,
-                    }}
-                  >
-                    in
-                  </span>
-                </motion.a>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <motion.a
+                      href="https://www.linkedin.com/in/bureson/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      transition={{ delay: 0.6, duration: 0.3 }}
+                      className="group relative flex items-center justify-center w-12 h-12 rounded-full transition-all duration-300 flex-shrink-0"
+                      aria-label="LinkedIn Profile"
+                    >
+                      {/* Inverted background on hover */}
+                      <div className="absolute inset-0 rounded-full bg-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-300 shadow-lg" />
+                      
+                      {/* "in" text */}
+                      <span
+                        className="relative z-10 text-foreground group-hover:text-background font-semibold transition-colors duration-300"
+                        style={{
+                          fontFamily: "Inter, sans-serif",
+                          fontSize: "1.125rem",
+                          fontWeight: 600,
+                        }}
+                      >
+                        in
+                      </span>
+                    </motion.a>
+                  </TooltipTrigger>
+                  <TooltipContent className="bg-popover text-popover-foreground border border-border shadow-lg">
+                    <p>View my profile on LinkedIn</p>
+                  </TooltipContent>
+                </Tooltip>
 
                 {/* GitHub Icon */}
-                <motion.a
-                  href="https://github.com/noserub"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  transition={{ delay: 0.65, duration: 0.3 }}
-                  className="group relative flex items-center justify-center w-12 h-12 rounded-full transition-all duration-300 flex-shrink-0"
-                  aria-label="GitHub Profile"
-                >
-                  {/* Inverted background on hover */}
-                  <div className="absolute inset-0 rounded-full bg-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-300 shadow-lg" />
-                  
-                  {/* GitHub icon */}
-                  <Github
-                    className="relative z-10 w-5 h-5 text-foreground group-hover:text-background transition-colors duration-300"
-                  />
-                </motion.a>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <motion.a
+                      href="https://github.com/noserub"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      transition={{ delay: 0.65, duration: 0.3 }}
+                      className="group relative flex items-center justify-center w-12 h-12 rounded-full transition-all duration-300 flex-shrink-0"
+                      aria-label="GitHub Profile"
+                    >
+                      {/* Inverted background on hover */}
+                      <div className="absolute inset-0 rounded-full bg-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-300 shadow-lg" />
+                      
+                      {/* GitHub icon */}
+                      <Github
+                        className="relative z-10 w-5 h-5 text-foreground group-hover:text-background transition-colors duration-300"
+                      />
+                    </motion.a>
+                  </TooltipTrigger>
+                  <TooltipContent className="bg-popover text-popover-foreground border border-border shadow-lg">
+                    <p>Checkout my GitHub</p>
+                  </TooltipContent>
+                </Tooltip>
               </div>
             </motion.div>
           </div>
