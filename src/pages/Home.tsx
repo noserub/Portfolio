@@ -2164,13 +2164,13 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
   // Home page hero text - editable in edit mode
   const [heroText, setHeroText] = useState(() => {
     const defaultHeroText = {
-      greeting: "Welcome,",
+      greeting: "I build things.",
       greetings: [
-        "Welcome,",
-        "I'm Brian.",
-        "Designer.",
-        "Researcher.",
-        "Product Builder."
+        "I build things.",
+        "Design > Code.",
+        "Figma > Cursor.",
+        "? > Insights.",
+        "AI Product Builder."
       ],
       greetingFont: "Inter, sans-serif",
       lastGreetingPauseDuration: 30000,
@@ -2193,27 +2193,11 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
   // Hero text is loaded from localStorage and hardcoded defaults
   // The profiles table doesn't have hero text fields, so we use localStorage
   
-  // Load hero text with localStorage priority (bypassing cache)
+  // Load hero text - prioritize Supabase to ensure all devices get the latest data
   useEffect(() => {
-    const loadHeroTextWithLocalStoragePriority = async () => {
+    const loadHeroText = async () => {
       try {
-        // First, check localStorage for any saved changes
-        const saved = localStorage.getItem('heroText');
-        if (saved) {
-          try {
-            const parsed = JSON.parse(saved);
-            if (parsed && typeof parsed === 'object') {
-              console.log('✅ Loading hero text from localStorage (user changes preserved)');
-              console.log('📝 localStorage hero text:', parsed);
-              setHeroText(parsed);
-              return; // Use localStorage data and skip Supabase
-            }
-          } catch (e) {
-            console.error('❌ Error parsing localStorage hero text:', e);
-          }
-        }
-        
-        // If no localStorage data, fetch from Supabase
+        // ALWAYS fetch from Supabase first to get the latest data
         const { supabase } = await import('../lib/supabaseClient');
         const { data: { user } } = await supabase.auth.getUser();
         const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
@@ -2256,35 +2240,51 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
           const processedData = {
             ...heroData,
             // Ensure greetings array exists - use greetings if available, otherwise create from greeting
-            greetings: heroData.greetings || (heroData.greeting ? [heroData.greeting] : ["Welcome,", "I'm Brian.", "Designer.", "Researcher.", "Product Builder."]),
+            greetings: heroData.greetings || (heroData.greeting ? [heroData.greeting] : ["I build things.", "Design > Code.", "Figma > Cursor.", "? > Insights.", "AI Product Builder."]),
             // Ensure greeting exists - use first greeting if greetings array exists
-            greeting: heroData.greeting || (heroData.greetings && heroData.greetings[0]) || "Welcome,",
+            greeting: heroData.greeting || (heroData.greetings && heroData.greetings[0]) || "I build things.",
           };
+          
+          // Update localStorage with fresh Supabase data to keep it in sync
+          localStorage.setItem('heroText', JSON.stringify(processedData));
+          console.log('✅ Updated localStorage with fresh Supabase hero text');
           
           return processedData;
         })();
         
         setHeroText(heroText);
       } catch (error) {
-        console.error('❌ Error loading hero text:', error);
-        // Final fallback to localStorage
+        console.error('❌ Error loading hero text from Supabase:', error);
+        // Fallback to localStorage only if Supabase fails
         const saved = localStorage.getItem('heroText');
         if (saved) {
           try {
             const parsed = JSON.parse(saved);
             if (parsed && typeof parsed === 'object') {
+              // Check if localStorage has old "Welcome" text - if so, clear it and use defaults
+              const hasOldWelcome = parsed.greeting === "Welcome," || 
+                                    (parsed.greetings && parsed.greetings[0] === "Welcome,");
+              
+              if (hasOldWelcome) {
+                console.log('⚠️ Detected old "Welcome" text in localStorage, using defaults instead');
+                localStorage.removeItem('heroText');
+                // Use defaults which will be set by useState initial value
+                return;
+              }
+              
               setHeroText(parsed);
               console.log('✅ Loaded hero text from localStorage fallback');
               console.log('📝 localStorage hero text:', parsed);
             }
           } catch (e) {
             console.error('❌ Error parsing localStorage hero text:', e);
+            localStorage.removeItem('heroText');
           }
         }
       }
     };
     
-    loadHeroTextWithLocalStoragePriority();
+    loadHeroText();
   }, []);
 
   // Debounce timer ref to prevent excessive API calls
