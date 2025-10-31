@@ -3645,7 +3645,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.5, duration: 0.5 }}
-              className="flex flex-row items-center gap-4 pr-8 md:pr-12 lg:pr-16"
+              className="flex flex-row min-[429px]:items-center max-[428px]:flex-col max-[428px]:items-start gap-4 pr-8 md:pr-12 lg:pr-16"
             >
               {/* Animated Gradient Border Wrapper */}
               <motion.div
@@ -3686,8 +3686,8 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                 </button>
               </motion.div>
 
-              {/* Social Icons Container - allows natural wrapping when needed */}
-              <div className="flex items-center gap-3 flex-wrap">
+              {/* Social Icons Container - row layout below button at mobile, same line at desktop */}
+              <div className="flex items-center gap-3">
                 {/* LinkedIn Icon */}
                 <motion.a
                   href="https://www.linkedin.com/in/bureson/"
