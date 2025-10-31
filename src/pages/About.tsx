@@ -447,12 +447,21 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
   }, [getCurrentUserProfile]); // Now safe to include getCurrentUserProfile since it's memoized
 
   // Auto-save when state changes (debounced)
-  // IMPORTANT: Only save if data has been loaded from Supabase/localStorage
-  // This prevents overwriting user content with hardcoded defaults
+  // IMPORTANT: Only save if:
+  // 1. Data has been loaded from Supabase/localStorage (prevents saving defaults)
+  // 2. We're in production mode (prevents branch work from affecting production database)
   useEffect(() => {
     // Don't auto-save until data has been loaded - prevents saving defaults
     if (!dataLoadedFromSupabase) {
       console.log('⏸️ Auto-save paused: Waiting for data to load from Supabase/localStorage');
+      return;
+    }
+    
+    // Only auto-save in production mode - prevents branch work from affecting database
+    // In development/branch mode, changes won't be saved to Supabase until merged to main
+    const isProduction = import.meta.env.MODE === 'production';
+    if (!isProduction) {
+      console.log('⏸️ Auto-save disabled: Not in production mode. Changes on branches won\'t affect Supabase.');
       return;
     }
     
