@@ -12,6 +12,13 @@ export function Footer() {
 
   return (
     <TooltipProvider delayDuration={300}>
+      <style>{`
+        /* Hide tooltip arrows in footer */
+        [data-slot="tooltip-content"] > svg,
+        [data-slot="tooltip-content"] [data-radix-tooltip-arrow] {
+          display: none !important;
+        }
+      `}</style>
       <motion.footer
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -51,7 +58,7 @@ export function Footer() {
                   </motion.a>
                 </TooltipTrigger>
                 <TooltipContent 
-                  className="bg-foreground dark:bg-foreground border border-border shadow-lg [&>svg]:hidden"
+                  className="bg-foreground dark:bg-foreground border border-border shadow-lg"
                   sideOffset={8}
                 >
                   <p className="text-background dark:text-background">View my profile on LinkedIn</p>
@@ -79,7 +86,7 @@ export function Footer() {
                   </motion.a>
                 </TooltipTrigger>
                 <TooltipContent 
-                  className="bg-foreground dark:bg-foreground border border-border shadow-lg [&>svg]:hidden"
+                  className="bg-foreground dark:bg-foreground border border-border shadow-lg"
                   sideOffset={8}
                 >
                   <p className="text-background dark:text-background">Checkout my GitHub</p>
@@ -105,7 +112,7 @@ export function Footer() {
                   </motion.a>
                 </TooltipTrigger>
                 <TooltipContent 
-                  className="bg-foreground dark:bg-foreground border border-border shadow-lg [&>svg]:hidden"
+                  className="bg-foreground dark:bg-foreground border border-border shadow-lg"
                   sideOffset={8}
                 >
                   <p className="text-background dark:text-background">Send me an email</p>
