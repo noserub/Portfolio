@@ -3847,7 +3847,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         </motion.div>
 
         {/* Quick Stats Section */}
-        <section className="w-full max-w-[1200px] mx-auto px-6 py-16 md:py-24 relative z-10">
+        <section className="w-full max-w-[1200px] mx-auto px-6 pt-24 pb-16 md:pt-32 md:pb-24 relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -3857,19 +3857,19 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
           >
             {[
               { 
-                number: "10+", 
-                label: "Products Shipped",
-                description: "From concept to launch"
+                number: "9", 
+                label: "US patents",
+                description: "Innovation and IP contribution"
               },
               { 
-                number: "1.2M+", 
-                label: "Users Impacted",
+                number: "100M+", 
+                label: "Users Delighted",
                 description: "Across all platforms"
               },
               { 
-                number: "5+", 
+                number: "20+", 
                 label: "Years Experience",
-                description: "Design & product leadership"
+                description: "Leading design"
               }
             ].map((stat, index) => (
               <motion.div
