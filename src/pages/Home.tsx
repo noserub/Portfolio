@@ -63,6 +63,7 @@ function DraggableProjectItem({
   onNavigate,
 }: DraggableProjectItemProps) {
   const ref = useRef(null);
+  const dragHandleRef = useRef(null);
 
   const [{ isDragging }, drag] = useDrag({
     type: 'case-study',
@@ -83,40 +84,36 @@ function DraggableProjectItem({
 
       if (dragIndex === hoverIndex) return;
 
-      // Improved hover detection: move immediately when over the item
       const hoverBoundingRect = ref.current.getBoundingClientRect();
+      const hoverMiddleX = hoverBoundingRect.left + (hoverBoundingRect.right - hoverBoundingRect.left) / 2;
       const clientOffset = monitor.getClientOffset();
       
       if (!clientOffset) return;
 
-      // Check if mouse is over the card
-      const isOverCard = 
-        clientOffset.x >= hoverBoundingRect.left &&
-        clientOffset.x <= hoverBoundingRect.right &&
-        clientOffset.y >= hoverBoundingRect.top &&
-        clientOffset.y <= hoverBoundingRect.bottom;
+      // Move when crossing the middle of the target card
+      if (dragIndex < hoverIndex && clientOffset.x < hoverMiddleX) return;
+      if (dragIndex > hoverIndex && clientOffset.x > hoverMiddleX) return;
 
-      if (isOverCard) {
-        onMove(dragIndex, hoverIndex);
-        draggedItem.index = hoverIndex;
-      }
+      onMove(dragIndex, hoverIndex);
+      draggedItem.index = hoverIndex;
     },
     collect: (monitor) => ({
       isOver: monitor.isOver(),
     }),
   });
 
-  // Make entire card draggable in edit mode
-  drag(drop(ref));
+  // Only attach drag to handle, not whole card to avoid conflicts
+  drag(dragHandleRef);
+  drop(ref);
 
   // Manual reorder handlers
-  const handleMoveUp = () => {
+  const handleMoveLeft = () => {
     if (index > 0) {
       onMove(index, index - 1);
     }
   };
 
-  const handleMoveDown = () => {
+  const handleMoveRight = () => {
     if (index < totalItems - 1) {
       onMove(index, index + 1);
     }
@@ -127,65 +124,52 @@ function DraggableProjectItem({
       ref={ref}
       initial={{ opacity: 0, x: 50 }}
       animate={{ 
-        opacity: isDragging ? 0.5 : isOver ? 0.9 : 1,
-        scale: isDragging ? 0.95 : isOver ? 1.05 : 1,
+        opacity: isDragging ? 0.6 : 1,
+        scale: isDragging ? 0.98 : 1,
         x: 0 
       }}
       transition={{ 
         delay: index * 0.1,
         duration: 0.2,
       }}
-      className={`snap-center flex-shrink-0 relative ${isEditMode ? 'cursor-grab active:cursor-grabbing' : ''}`}
-      style={{
-        transition: 'transform 0.2s ease',
-      }}
+      className="snap-center flex-shrink-0 relative"
     >
       {isEditMode && (
-        <>
-          {/* Drag handle - more visible */}
-          <div 
-            className="absolute top-2 left-2 z-30 bg-purple-500 hover:bg-purple-600 text-white rounded-lg px-2 py-1.5 shadow-lg cursor-grab active:cursor-grabbing transition-colors flex items-center gap-1"
+        <div className="absolute -left-8 top-1/2 -translate-y-1/2 z-40 flex flex-col gap-1">
+          <Button
+            size="sm"
+            variant="secondary"
+            className="h-7 w-7 p-0 bg-white/95 hover:bg-white shadow-md rounded-full border border-gray-200"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleMoveLeft();
+            }}
+            disabled={index === 0}
+            title="Move left"
+          >
+            <ChevronLeft className="w-4 h-4 text-gray-700" />
+          </Button>
+          <div
+            ref={dragHandleRef}
+            className="h-7 w-7 bg-purple-500 hover:bg-purple-600 text-white rounded-full shadow-md cursor-grab active:cursor-grabbing transition-colors flex items-center justify-center"
             title="Drag to reorder"
           >
-            <GripVertical className="w-4 h-4" />
-            <span className="text-xs font-medium">Drag</span>
+            <GripVertical className="w-3.5 h-3.5" />
           </div>
-          
-          {/* Manual reorder buttons - right side */}
-          <div className="absolute top-2 right-2 z-30 flex flex-col gap-1">
-            <Button
-              size="sm"
-              variant="secondary"
-              className="h-8 w-8 p-0 bg-white/90 hover:bg-white shadow-lg rounded-full"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleMoveUp();
-              }}
-              disabled={index === 0}
-              title="Move left"
-            >
-              <ArrowUp className="w-4 h-4" />
-            </Button>
-            <Button
-              size="sm"
-              variant="secondary"
-              className="h-8 w-8 p-0 bg-white/90 hover:bg-white shadow-lg rounded-full"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleMoveDown();
-              }}
-              disabled={index >= totalItems - 1}
-              title="Move right"
-            >
-              <ArrowDown className="w-4 h-4" />
-            </Button>
-          </div>
-          
-          {/* Drop indicator */}
-          {isOver && !isDragging && (
-            <div className="absolute inset-0 border-2 border-purple-500 rounded-2xl z-20 pointer-events-none" />
-          )}
-        </>
+          <Button
+            size="sm"
+            variant="secondary"
+            className="h-7 w-7 p-0 bg-white/95 hover:bg-white shadow-md rounded-full border border-gray-200"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleMoveRight();
+            }}
+            disabled={index >= totalItems - 1}
+            title="Move right"
+          >
+            <ChevronRight className="w-4 h-4 text-gray-700" />
+          </Button>
+        </div>
       )}
       <MemoizedProjectImage
         project={project}
