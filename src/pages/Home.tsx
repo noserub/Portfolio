@@ -3645,7 +3645,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.5, duration: 0.5 }}
-              className="flex flex-row max-[428px]:flex-col items-center max-[428px]:items-start gap-4 pr-8 md:pr-12 lg:pr-16"
+              className="flex flex-row max-[428px]:flex-col items-center max-[428px]:items-start gap-4 pr-8 md:pr-12 lg:pr-16 max-[428px]:w-full max-[428px]:min-w-0"
             >
               {/* Animated Gradient Border Wrapper */}
               <motion.div
@@ -3687,7 +3687,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
               </motion.div>
 
               {/* Social Icons Container - keeps icons on same line above 429px, allows wrap below */}
-              <div className="flex items-center gap-3 max-[428px]:flex-wrap max-[428px]:w-full min-[429px]:flex-shrink-0">
+              <div className="flex items-center gap-3 min-[429px]:flex-shrink-0 max-[428px]:flex-wrap max-[428px]:w-full max-[428px]:min-w-0">
                 {/* LinkedIn Icon */}
                 <motion.a
                   href="https://www.linkedin.com/in/bureson/"
@@ -3698,7 +3698,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   transition={{ delay: 0.6, duration: 0.3 }}
-                  className="group relative flex items-center justify-center w-12 h-12 rounded-full transition-all duration-300"
+                  className="group relative flex items-center justify-center w-12 h-12 rounded-full transition-all duration-300 flex-shrink-0"
                   aria-label="LinkedIn Profile"
                 >
                   {/* Inverted background on hover */}
@@ -3727,7 +3727,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   transition={{ delay: 0.65, duration: 0.3 }}
-                  className="group relative flex items-center justify-center w-12 h-12 rounded-full transition-all duration-300"
+                  className="group relative flex items-center justify-center w-12 h-12 rounded-full transition-all duration-300 flex-shrink-0"
                   aria-label="GitHub Profile"
                 >
                   {/* Inverted background on hover */}
