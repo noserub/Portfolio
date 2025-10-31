@@ -3205,7 +3205,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                   
                   {/* Buttons Below - Only in Edit Mode */}
                   {isEditMode && !isEditingHeroImage && (
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center justify-center">
                       <Button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -3216,19 +3216,6 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                       >
                         <ImageIcon className="w-5 h-5 mr-2" />
                         Add
-                      </Button>
-                      <Button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setIsEditingHeroImage(true);
-                        }}
-                        size="lg"
-                        variant="secondary"
-                        className="rounded-full shadow-xl"
-                        disabled
-                      >
-                        <Edit2 className="w-5 h-5 mr-2" />
-                        Adjust Image
                       </Button>
                     </div>
                   )}
