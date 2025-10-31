@@ -3158,6 +3158,12 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
             margin: '0 auto',
             paddingLeft: '24px',
             paddingRight: '24px'
+          }),
+          ...(!(atGlanceContent || impactContent) && {
+            maxWidth: '1200px',
+            margin: '0 auto',
+            paddingLeft: '24px',
+            paddingRight: '24px'
           })
         }}
         data-desktop-grid={atGlanceContent || impactContent ? 'true' : 'false'}
