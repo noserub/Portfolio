@@ -3882,11 +3882,11 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                   delay: index * 0.1,
                   ease: "easeOut"
                 }}
-                className="bg-gradient-to-br from-slate-50/80 via-white/60 to-gray-50/40 dark:from-slate-800/30 dark:via-slate-900/25 dark:to-slate-800/20 backdrop-blur-md rounded-3xl border border-border/20 shadow-lg hover:shadow-xl transition-all duration-300 p-6 md:p-8 flex flex-col items-center text-center gap-4 md:gap-6"
+                className="bg-gradient-to-br from-slate-50/80 via-white/60 to-gray-50/40 dark:from-slate-800/30 dark:via-slate-900/25 dark:to-slate-800/20 backdrop-blur-md rounded-3xl border border-border/20 shadow-lg hover:shadow-xl transition-all duration-300 p-4 md:p-5 flex flex-row md:flex-col items-start md:items-center gap-4 md:gap-4 text-left md:text-center"
               >
-                {/* Number Container - Centered */}
-                <motion.div
-                  className="flex-shrink-0 w-24 h-24 md:w-28 md:h-28 lg:w-32 lg:h-32 rounded-2xl bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm flex items-center justify-center border border-border/10"
+                {/* Number - No Container */}
+                <motion.span
+                  className="flex-shrink-0 block text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight leading-none"
                   initial={{ scale: 0.8, opacity: 0 }}
                   whileInView={{ scale: 1, opacity: 1 }}
                   viewport={{ once: true, margin: "0px" }}
@@ -3897,37 +3897,33 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                     stiffness: 200,
                     damping: 20
                   }}
+                  animate={{
+                    backgroundImage: [
+                      "linear-gradient(45deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)",
+                      "linear-gradient(90deg, #8b5cf6 0%, #3b82f6 50%, #fbbf24 100%)",
+                      "linear-gradient(135deg, #3b82f6 0%, #fbbf24 50%, #ec4899 100%)",
+                      "linear-gradient(180deg, #fbbf24 0%, #ec4899 50%, #8b5cf6 100%)",
+                      "linear-gradient(225deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)",
+                      "linear-gradient(45deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)",
+                    ],
+                  }}
+                  transition={{
+                    duration: 8,
+                    repeat: Infinity,
+                    ease: "linear",
+                  }}
+                  style={{
+                    backgroundClip: "text",
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                  }}
                 >
-                  <motion.span
-                    className="block text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-none"
-                    animate={{
-                      backgroundImage: [
-                        "linear-gradient(45deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)",
-                        "linear-gradient(90deg, #8b5cf6 0%, #3b82f6 50%, #fbbf24 100%)",
-                        "linear-gradient(135deg, #3b82f6 0%, #fbbf24 50%, #ec4899 100%)",
-                        "linear-gradient(180deg, #fbbf24 0%, #ec4899 50%, #8b5cf6 100%)",
-                        "linear-gradient(225deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)",
-                        "linear-gradient(45deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)",
-                      ],
-                    }}
-                    transition={{
-                      duration: 8,
-                      repeat: Infinity,
-                      ease: "linear",
-                    }}
-                    style={{
-                      backgroundClip: "text",
-                      WebkitBackgroundClip: "text",
-                      WebkitTextFillColor: "transparent",
-                    }}
-                  >
-                    {stat.number}
-                  </motion.span>
-                </motion.div>
+                  {stat.number}
+                </motion.span>
                 
-                {/* Content - Centered */}
+                {/* Content */}
                 <motion.div 
-                  className="flex-1 flex flex-col items-center"
+                  className="flex-1 flex flex-col md:items-center"
                   initial={{ opacity: 0 }}
                   whileInView={{ opacity: 1 }}
                   viewport={{ once: true, margin: "0px" }}
@@ -3936,10 +3932,10 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                     delay: index * 0.1 + 0.4 
                   }}
                 >
-                  <h3 className="text-lg md:text-xl lg:text-2xl font-semibold text-foreground mb-1 md:mb-2">
+                  <h3 className="text-base md:text-lg lg:text-xl font-semibold text-foreground mb-1">
                     {stat.label}
                   </h3>
-                  <p className="text-sm md:text-base lg:text-lg text-muted-foreground">
+                  <p className="text-sm md:text-base text-muted-foreground">
                     {stat.description}
                   </p>
                 </motion.div>
