@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback, memo, Suspense } from "react";
 import { motion } from "motion/react";
-import { useDrag, useDrop } from "react-dnd";
 import { ProjectImage, ProjectData } from "../components/ProjectImage";
 import MemoizedProjectImage from "../components/ProjectImage";
 import { ProjectCardSkeleton } from "../components/ProjectCardSkeleton";
@@ -13,7 +12,7 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Textarea } from "../components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
-import { Plus, ChevronLeft, ChevronRight, Edit2, Save, GripVertical, Linkedin, Github, FileText, Trash2, Eye, Wand2, ArrowUp, ArrowDown } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, Edit2, Save, Linkedin, Github, FileText, Trash2, Eye, Wand2 } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "../components/ui/tooltip";
 // import { createCaseStudyFromTemplate } from "../utils/caseStudyTemplate"; // REMOVED - using unified project creator
 import { loadMigratedProjects } from "../utils/migrateVideoFields";
@@ -63,57 +62,19 @@ function DraggableProjectItem({
   onNavigate,
 }: DraggableProjectItemProps) {
   const ref = useRef(null);
-  const dragHandleRef = useRef(null);
 
-  const [{ isDragging }, drag] = useDrag({
-    type: 'case-study',
-    item: { id: project.id, index },
-    canDrag: isEditMode,
-    collect: (monitor) => ({
-      isDragging: monitor.isDragging(),
-    }),
-  });
-
-  const [{ isOver }, drop] = useDrop({
-    accept: 'case-study',
-    hover: (draggedItem: { id: string; index: number }, monitor) => {
-      if (!ref.current) return;
-      
-      const dragIndex = draggedItem.index;
-      const hoverIndex = index;
-
-      if (dragIndex === hoverIndex) return;
-
-      const hoverBoundingRect = ref.current.getBoundingClientRect();
-      const hoverMiddleX = hoverBoundingRect.left + (hoverBoundingRect.right - hoverBoundingRect.left) / 2;
-      const clientOffset = monitor.getClientOffset();
-      
-      if (!clientOffset) return;
-
-      // Move when crossing the middle of the target card
-      if (dragIndex < hoverIndex && clientOffset.x < hoverMiddleX) return;
-      if (dragIndex > hoverIndex && clientOffset.x > hoverMiddleX) return;
-
-      onMove(dragIndex, hoverIndex);
-      draggedItem.index = hoverIndex;
-    },
-    collect: (monitor) => ({
-      isOver: monitor.isOver(),
-    }),
-  });
-
-  // Only attach drag to handle, not whole card to avoid conflicts
-  drag(dragHandleRef);
-  drop(ref);
-
-  // Manual reorder handlers
-  const handleMoveLeft = () => {
+  // Manual reorder handlers - these actually work
+  const handleMoveLeft = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
     if (index > 0) {
       onMove(index, index - 1);
     }
   };
 
-  const handleMoveRight = () => {
+  const handleMoveRight = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
     if (index < totalItems - 1) {
       onMove(index, index + 1);
     }
@@ -124,8 +85,7 @@ function DraggableProjectItem({
       ref={ref}
       initial={{ opacity: 0, x: 50 }}
       animate={{ 
-        opacity: isDragging ? 0.6 : 1,
-        scale: isDragging ? 0.98 : 1,
+        opacity: 1,
         x: 0 
       }}
       transition={{ 
@@ -135,39 +95,28 @@ function DraggableProjectItem({
       className="snap-center flex-shrink-0 relative"
     >
       {isEditMode && (
-        <div className="absolute -left-8 top-1/2 -translate-y-1/2 z-40 flex flex-col gap-1">
+        <div className="absolute -left-16 top-1/2 -translate-y-1/2 z-40 flex flex-col gap-2">
           <Button
-            size="sm"
+            size="lg"
             variant="secondary"
-            className="h-7 w-7 p-0 bg-white/95 hover:bg-white shadow-md rounded-full border border-gray-200"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleMoveLeft();
-            }}
+            className="h-12 w-12 p-0 bg-white hover:bg-gray-50 shadow-lg rounded-full border-2 border-gray-300 flex items-center justify-center min-w-[48px] min-h-[48px]"
+            onClick={handleMoveLeft}
             disabled={index === 0}
             title="Move left"
+            aria-label="Move project left"
           >
-            <ChevronLeft className="w-4 h-4 text-gray-700" />
+            <ChevronLeft className="w-6 h-6 text-gray-700" />
           </Button>
-          <div
-            ref={dragHandleRef}
-            className="h-7 w-7 bg-purple-500 hover:bg-purple-600 text-white rounded-full shadow-md cursor-grab active:cursor-grabbing transition-colors flex items-center justify-center"
-            title="Drag to reorder"
-          >
-            <GripVertical className="w-3.5 h-3.5" />
-          </div>
           <Button
-            size="sm"
+            size="lg"
             variant="secondary"
-            className="h-7 w-7 p-0 bg-white/95 hover:bg-white shadow-md rounded-full border border-gray-200"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleMoveRight();
-            }}
+            className="h-12 w-12 p-0 bg-white hover:bg-gray-50 shadow-lg rounded-full border-2 border-gray-300 flex items-center justify-center min-w-[48px] min-h-[48px]"
+            onClick={handleMoveRight}
             disabled={index >= totalItems - 1}
             title="Move right"
+            aria-label="Move project right"
           >
-            <ChevronRight className="w-4 h-4 text-gray-700" />
+            <ChevronRight className="w-6 h-6 text-gray-700" />
           </Button>
         </div>
       )}
