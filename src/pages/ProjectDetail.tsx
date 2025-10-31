@@ -2159,9 +2159,27 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     console.log('📋 Combined sections:', combined.map(c => `${c.title} (${c.type}) @${c.position}`));
     
     // Find current section in combined list
-    const currentIndex = combined.findIndex(c => c.title === sectionTitle);
+    // Try exact match first, then case-insensitive, then flexible matching
+    let currentIndex = combined.findIndex(c => c.title === sectionTitle);
     if (currentIndex === -1) {
-      console.error('❌ Section not found in combined list');
+      // Try case-insensitive match
+      currentIndex = combined.findIndex(c => c.title.toLowerCase() === sectionTitle.toLowerCase());
+    }
+    if (currentIndex === -1) {
+      // Try flexible matching (e.g., "My role & impact" vs "My role and impact")
+      currentIndex = combined.findIndex(c => {
+        const cLower = c.title.toLowerCase();
+        const sLower = sectionTitle.toLowerCase();
+        // Match if titles are similar (e.g., "my role & impact" vs "my role and impact")
+        return cLower.replace(/&/g, 'and').replace(/\s+/g, ' ') === sLower.replace(/&/g, 'and').replace(/\s+/g, ' ');
+      });
+    }
+    if (currentIndex === -1) {
+      console.error('❌ Section not found in combined list', {
+        sectionTitle,
+        availableSections: combined.map(c => c.title),
+        markdownSections: markdownSections.map(s => s.title)
+      });
       return;
     }
     
@@ -2206,8 +2224,27 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       // If we found a markdown section to swap with, do that instead
       if (nextMarkdownIndex !== -1 && combined[nextMarkdownIndex].type === 'markdown') {
         const nextMarkdown = combined[nextMarkdownIndex];
-        const currentSection = markdownSections.find(s => s.title === sectionTitle);
-        const targetSection = markdownSections.find(s => s.title === nextMarkdown.title);
+        
+        // Use flexible matching to handle variations like "My role & impact" vs "My role and impact"
+        const normalizeTitle = (title: string) => title.toLowerCase().replace(/&/g, 'and').replace(/\s+/g, ' ').trim();
+        
+        let currentSection = markdownSections.find(s => s.title === sectionTitle);
+        if (!currentSection) {
+          currentSection = markdownSections.find(s => s.title.toLowerCase() === sectionTitle.toLowerCase());
+        }
+        if (!currentSection) {
+          const normalizedSectionTitle = normalizeTitle(sectionTitle);
+          currentSection = markdownSections.find(s => normalizeTitle(s.title) === normalizedSectionTitle);
+        }
+        
+        let targetSection = markdownSections.find(s => s.title === nextMarkdown.title);
+        if (!targetSection) {
+          targetSection = markdownSections.find(s => s.title.toLowerCase() === nextMarkdown.title.toLowerCase());
+        }
+        if (!targetSection) {
+          const normalizedTargetTitle = normalizeTitle(nextMarkdown.title);
+          targetSection = markdownSections.find(s => normalizeTitle(s.title) === normalizedTargetTitle);
+        }
         
         if (currentSection && targetSection) {
           console.log(`↔️ Swapping "${sectionTitle}" with "${nextMarkdown.title}" (past special section)`);
@@ -2498,8 +2535,30 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     }
     
     // Swapping with another markdown section - update markdown content
-    const currentSection = markdownSections.find(s => s.title === sectionTitle);
-    const targetSection = markdownSections.find(s => s.title === target.title);
+    // Use flexible matching to handle variations like "My role & impact" vs "My role and impact"
+    const normalizeTitle = (title: string) => title.toLowerCase().replace(/&/g, 'and').replace(/\s+/g, ' ').trim();
+    
+    let currentSection = markdownSections.find(s => s.title === sectionTitle);
+    if (!currentSection) {
+      // Try case-insensitive match
+      currentSection = markdownSections.find(s => s.title.toLowerCase() === sectionTitle.toLowerCase());
+    }
+    if (!currentSection) {
+      // Try flexible matching
+      const normalizedSectionTitle = normalizeTitle(sectionTitle);
+      currentSection = markdownSections.find(s => normalizeTitle(s.title) === normalizedSectionTitle);
+    }
+    
+    let targetSection = markdownSections.find(s => s.title === target.title);
+    if (!targetSection) {
+      // Try case-insensitive match
+      targetSection = markdownSections.find(s => s.title.toLowerCase() === target.title.toLowerCase());
+    }
+    if (!targetSection) {
+      // Try flexible matching
+      const normalizedTargetTitle = normalizeTitle(target.title);
+      targetSection = markdownSections.find(s => normalizeTitle(s.title) === normalizedTargetTitle);
+    }
     
     console.log('🔍 Section lookup:', {
       sectionTitle,
