@@ -24,6 +24,9 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
   // Supabase profile hook
   const { getCurrentUserProfile, updateCurrentUserProfile, loading: profileLoading } = useProfiles();
   
+  // Track if data has been loaded from Supabase - prevents saving defaults
+  const [dataLoadedFromSupabase, setDataLoadedFromSupabase] = useState(false);
+  
   // Editable content state
   const [isEditing, setIsEditing] = useState(false);
   const [editingSection, setEditingSection] = useState(null);
@@ -349,6 +352,7 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
           }
           
           console.log('✅ Profile state updated from Supabase');
+          setDataLoadedFromSupabase(true); // Mark data as loaded, safe to save now
         } else {
           console.log('ℹ️ No profile found in Supabase, checking localStorage...');
           
@@ -382,11 +386,15 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
               if (profileData.section_order) setSectionOrder(profileData.section_order);
               
               console.log('✅ Loaded from localStorage');
+              setDataLoadedFromSupabase(true); // Mark data as loaded (from localStorage), safe to save now
             } catch (parseError) {
               console.log('❌ Error parsing localStorage data:', parseError);
+              setDataLoadedFromSupabase(true); // Even if parse fails, don't save defaults
             }
           } else {
             console.log('ℹ️ No localStorage data found, using hardcoded defaults');
+            // If no data exists anywhere, allow saves (for first-time setup)
+            setDataLoadedFromSupabase(true);
           }
         }
       } catch (error) {
@@ -422,11 +430,15 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
             if (profileData.section_order) setSectionOrder(profileData.section_order);
             
             console.log('✅ Loaded from localStorage');
+            setDataLoadedFromSupabase(true); // Mark data as loaded (from localStorage), safe to save now
           } catch (parseError) {
             console.log('❌ Error parsing localStorage data:', parseError);
+            setDataLoadedFromSupabase(true); // Even if parse fails, don't save defaults
           }
         } else {
           console.log('ℹ️ No localStorage data found, using hardcoded defaults');
+          // If no data exists anywhere, allow saves (for first-time setup)
+          setDataLoadedFromSupabase(true);
         }
       }
     };
@@ -435,13 +447,22 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
   }, [getCurrentUserProfile]); // Now safe to include getCurrentUserProfile since it's memoized
 
   // Auto-save when state changes (debounced)
+  // IMPORTANT: Only save if data has been loaded from Supabase/localStorage
+  // This prevents overwriting user content with hardcoded defaults
   useEffect(() => {
+    // Don't auto-save until data has been loaded - prevents saving defaults
+    if (!dataLoadedFromSupabase) {
+      console.log('⏸️ Auto-save paused: Waiting for data to load from Supabase/localStorage');
+      return;
+    }
+    
     const timeoutId = setTimeout(() => {
       saveToSupabase();
     }, 1000); // Save 1 second after last change
 
     return () => clearTimeout(timeoutId);
   }, [
+    dataLoadedFromSupabase, // Include this in dependencies
     bioParagraph1, bioParagraph2, superPowersTitle, superPowers, 
     highlightsTitle, highlights, leadershipTitle, leadershipItems,
     expertiseTitle, expertiseItems, howIUseAITitle, howIUseAIItems,
