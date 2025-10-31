@@ -1,11 +1,12 @@
 import React from "react";
 import { motion } from "motion/react";
 import { useState, useEffect, useRef, memo, useMemo, useCallback } from "react";
-import { Edit2, Move, Check, X, ZoomIn, ZoomOut, RotateCcw, Lock, Eye, Trash2, MoreVertical, Settings } from "lucide-react";
+import { Edit2, Move, Check, X, ZoomIn, ZoomOut, RotateCcw, Lock, Eye, Trash2, MoreVertical, Settings, Maximize2, Minimize2 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
 import { Checkbox } from "./ui/checkbox";
+import { Slider } from "./ui/slider";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -304,28 +305,128 @@ export function ProjectImage({
   };
 
   const handleZoomOut = () => {
-    const newScale = Math.max(0.3, editedProject.scale - 0.1); // Smaller increments for precision
+    // Use smaller increments (2-3%) for smoother control
+    const newScale = Math.max(0.3, editedProject.scale - 0.03); // 3% decrement
     const updated = {
       ...editedProject,
       scale: newScale
     };
-    console.log('🔍 Zoom Out:', { oldScale: editedProject.scale, newScale });
+    console.log('🔍 Zoom Out:', { oldScale: editedProject.scale, newScale, percentage: Math.round((newScale - 1) * 100) });
     setEditedProject(updated);
     // Skip refetch for minor zoom updates to prevent card refresh
     onUpdate(updated, true);
   };
 
   const handleZoomIn = () => {
-    const newScale = Math.min(2.0, editedProject.scale + 0.1); // Allow up to 200% zoom
+    // Use smaller increments (2-3%) for smoother control
+    const newScale = Math.min(2.0, editedProject.scale + 0.03); // 3% increment
     const updated = {
       ...editedProject,
       scale: newScale
     };
-    console.log('🔍 Zoom In:', { oldScale: editedProject.scale, newScale });
+    console.log('🔍 Zoom In:', { oldScale: editedProject.scale, newScale, percentage: Math.round((newScale - 1) * 100) });
     setEditedProject(updated);
     // Skip refetch for minor zoom updates to prevent card refresh
     onUpdate(updated, true);
   };
+
+  // Calculate fit-to-width scale (image fills container width)
+  const handleFitWidth = useCallback(() => {
+    const imageRefElement = imageRef.current;
+    if (!imageRefElement) return;
+    
+    const containerRect = imageRefElement.getBoundingClientRect();
+    const containerWidth = containerRect.width;
+    const containerHeight = containerRect.height;
+    
+    // Get the image element
+    const imgElement = imageRefElement.querySelector('img') as HTMLImageElement;
+    if (!imgElement) return;
+    
+    // Use a one-time load handler
+    const handleImageLoad = () => {
+      const naturalWidth = imgElement.naturalWidth;
+      const naturalHeight = imgElement.naturalHeight;
+      
+      if (naturalWidth === 0 || naturalHeight === 0) return;
+      
+      // Calculate scale to fit width (fill width, maintain aspect ratio)
+      const widthScale = containerWidth / naturalWidth;
+      const scaledHeight = naturalHeight * widthScale;
+      
+      // If scaled height exceeds container, we need to scale to fit height instead
+      const scale = scaledHeight > containerHeight 
+        ? containerHeight / naturalHeight 
+        : widthScale;
+      
+      // Use functional update to get latest state
+      setEditedProject((prev) => {
+        const updated = {
+          ...prev,
+          scale: Math.max(0.3, Math.min(3.0, scale)), // Clamp to reasonable range
+          position: { x: 50, y: 50 } // Center when fitting
+        };
+        console.log('📏 Fit Width:', { scale, naturalWidth, naturalHeight, containerWidth, containerHeight });
+        onUpdate(updated, true);
+        return updated;
+      });
+    };
+    
+    if (imgElement.complete && imgElement.naturalWidth > 0) {
+      handleImageLoad();
+    } else {
+      imgElement.addEventListener('load', handleImageLoad, { once: true });
+    }
+  }, [onUpdate]);
+
+  // Calculate fit-to-height scale (image fills container height)
+  const handleFitHeight = useCallback(() => {
+    const imageRefElement = imageRef.current;
+    if (!imageRefElement) return;
+    
+    const containerRect = imageRefElement.getBoundingClientRect();
+    const containerWidth = containerRect.width;
+    const containerHeight = containerRect.height;
+    
+    // Get the image element
+    const imgElement = imageRefElement.querySelector('img') as HTMLImageElement;
+    if (!imgElement) return;
+    
+    // Use a one-time load handler
+    const handleImageLoad = () => {
+      const naturalWidth = imgElement.naturalWidth;
+      const naturalHeight = imgElement.naturalHeight;
+      
+      if (naturalWidth === 0 || naturalHeight === 0) return;
+      
+      // Calculate scale to fit height (fill height, maintain aspect ratio)
+      const heightScale = containerHeight / naturalHeight;
+      const scaledWidth = naturalWidth * heightScale;
+      
+      // If scaled width exceeds container, we need to scale to fit width instead
+      const scale = scaledWidth > containerWidth 
+        ? containerWidth / naturalWidth 
+        : heightScale;
+      
+      // Use functional update to get latest state
+      setEditedProject((prev) => {
+        const updated = {
+          ...prev,
+          scale: Math.max(0.3, Math.min(3.0, scale)), // Clamp to reasonable range
+          position: { x: 50, y: 50 } // Center when fitting
+        };
+        console.log('📏 Fit Height:', { scale, naturalWidth, naturalHeight, containerWidth, containerHeight });
+        onUpdate(updated, true);
+        return updated;
+      });
+    };
+    
+    if (imgElement.complete && imgElement.naturalWidth > 0) {
+      handleImageLoad();
+    } else {
+      imgElement.addEventListener('load', handleImageLoad, { once: true });
+    }
+  }, [onUpdate]);
 
   const handleResetImage = () => {
     const updated = {
@@ -622,6 +723,14 @@ export function ProjectImage({
                       <ZoomIn className="w-4 h-4 mr-2" />
                       Fit to Frame
                     </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleFitWidth}>
+                      <Maximize2 className="w-4 h-4 mr-2" />
+                      Fit Width
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleFitHeight}>
+                      <Minimize2 className="w-4 h-4 mr-2" />
+                      Fit Height
+                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={handleResetImage}>
                       <RotateCcw className="w-4 h-4 mr-2" />
                       Reset Image
@@ -667,26 +776,76 @@ export function ProjectImage({
             <Button
               size="sm"
               variant="secondary"
+                  onClick={handleZoomOut}
+                  className="shadow-lg"
+                  title="Zoom out (3%)"
+                >
+                  <ZoomOut className="w-4 h-4" />
+                </Button>
+                
+                {/* Zoom Slider for Smooth Control */}
+                <div className="flex items-center gap-2 bg-black/60 rounded-full px-3 py-1 min-w-[120px]">
+                  <ZoomOut className="w-3 h-3 text-white" />
+                  <Slider
+                    value={[editedProject.scale * 100]}
+                    min={30}
+                    max={200}
+                    step={1}
+                    onValueChange={(values) => {
+                      const newScale = values[0] / 100;
+                      const updated = {
+                        ...editedProject,
+                        scale: newScale
+                      };
+                      setEditedProject(updated);
+                      onUpdate(updated, true);
+                    }}
+                    className="flex-1"
+                  />
+                  <ZoomIn className="w-3 h-3 text-white" />
+                </div>
+                
+                <Button
+              size="sm"
+              variant="secondary"
                   onClick={handleZoomIn}
                   className="shadow-lg"
-                  title="Zoom in"
+                  title="Zoom in (3%)"
                 >
                   <ZoomIn className="w-4 h-4" />
                 </Button>
+                
+                {/* Fit Width Button */}
                 <Button
                   size="sm"
                   variant="secondary"
-                  onClick={handleZoomOut}
-              className="shadow-lg"
-                  title="Zoom out"
-            >
-                  <ZoomOut className="w-4 h-4" />
-            </Button>
+                  onClick={handleFitWidth}
+                  className="shadow-lg"
+                  title="Fit to width"
+                >
+                  <Maximize2 className="w-4 h-4" />
+                </Button>
+                
+                {/* Fit Height Button */}
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={handleFitHeight}
+                  className="shadow-lg"
+                  title="Fit to height"
+                >
+                  <Minimize2 className="w-4 h-4" />
+                </Button>
           </div>
               
-              {/* Scale Indicator */}
-              <div className="bg-black/90 text-white px-3 py-1 rounded-full text-xs font-medium backdrop-blur-sm">
-                {(editedProject.scale * 100).toFixed(0)}%
+              {/* Scale Indicator - Show actual percentage with change indicator */}
+              <div className="bg-black/90 text-white px-3 py-1 rounded-full text-xs font-medium backdrop-blur-sm flex items-center gap-1">
+                <span>{(editedProject.scale * 100).toFixed(0)}%</span>
+                {editedProject.scale !== 1 && (
+                  <span className="text-yellow-300">
+                    ({editedProject.scale > 1 ? '+' : ''}{Math.round((editedProject.scale - 1) * 100)}%)
+                  </span>
+                )}
               </div>
             </div>
           </>
