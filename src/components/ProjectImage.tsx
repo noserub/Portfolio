@@ -599,7 +599,7 @@ export function ProjectImage({
               {/* Drag crosshair indicator */}
               {isPositioning && (
                 <div 
-                  className="drag-crosshair absolute pointer-events-none z-10"
+                  className="drag-crosshair absolute pointer-events-none z-30"
                   style={{
                     left: `${editedProject.position.x}%`,
                     top: `${editedProject.position.y}%`,
@@ -713,7 +713,7 @@ export function ProjectImage({
         {isEditMode && (
           <>
             {/* Top Bar - Primary Actions */}
-            <div className="absolute top-3 left-3 right-3 flex justify-between items-center z-20">
+            <div className="absolute top-3 left-3 right-3 flex justify-between items-center z-30">
               {/* Status Badge */}
             <Button
               size="sm"
@@ -785,7 +785,7 @@ export function ProjectImage({
             </div>
 
             {/* Bottom Bar - Image Controls - Essential controls only, progressive disclosure */}
-            <div className="absolute bottom-2 left-2 right-2 z-20 bg-black/80 backdrop-blur-md rounded-lg p-2.5">
+            <div className="absolute bottom-2 left-2 right-2 z-30 bg-black/80 backdrop-blur-md rounded-lg p-2.5">
               {/* Primary Controls Row - Always visible */}
               <div className="flex items-center gap-2 flex-wrap">
                 {/* Position Button */}
