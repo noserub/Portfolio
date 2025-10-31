@@ -3645,7 +3645,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.5, duration: 0.5 }}
-              className="flex flex-col min-[429px]:flex-row items-start min-[429px]:items-center gap-4 pr-8 md:pr-12 lg:pr-16"
+              className="flex flex-row max-[428px]:flex-col items-center max-[428px]:items-start gap-4 pr-8 md:pr-12 lg:pr-16"
             >
               {/* Animated Gradient Border Wrapper */}
               <motion.div
