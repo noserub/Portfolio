@@ -3021,9 +3021,21 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     }
   };
 
+  // Sort case studies: published first (by sortOrder), then drafts (by sortOrder)
+  const sortedCaseStudies = [...caseStudies].sort((a, b) => {
+    // Published projects always come before drafts
+    if (a.published && !b.published) return -1;
+    if (!a.published && b.published) return 1;
+    
+    // Within each group (published or drafts), sort by sortOrder
+    const aOrder = a.sortOrder || 0;
+    const bOrder = b.sortOrder || 0;
+    return aOrder - bOrder;
+  });
+
   const displayCaseStudies = isEditMode
-    ? caseStudies
-    : caseStudies.filter((p) => p.published);
+    ? sortedCaseStudies
+    : sortedCaseStudies.filter((p) => p.published);
 
   const displayDesignProjects = isEditMode
     ? designProjects
