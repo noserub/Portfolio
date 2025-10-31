@@ -3212,7 +3212,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                           handleChangeHeroImage();
                         }}
                         size="lg"
-                        className="rounded-full shadow-xl"
+                        className="rounded-full shadow-xl bg-white text-gray-900 hover:bg-gray-100"
                       >
                         <ImageIcon className="w-5 h-5 mr-2" />
                         Add
