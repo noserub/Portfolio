@@ -3847,13 +3847,13 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         </motion.div>
 
         {/* Quick Stats Section */}
-        <section className="w-full max-w-[1400px] mx-auto px-6 pt-24 pb-16 md:pt-32 md:pb-24 relative z-10">
+        <section className="w-full max-w-[1400px] mx-auto px-4 sm:px-6 pt-16 pb-12 md:pt-32 md:pb-24 relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "0px" }}
             transition={{ duration: 0.8, ease: "easeOut" }}
-            className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12"
+            className="grid grid-cols-1 md:grid-cols-3 gap-12 sm:gap-14 md:gap-12"
           >
             {[
               { 
@@ -3882,10 +3882,10 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                   delay: index * 0.15,
                   ease: "easeOut"
                 }}
-                className="text-center space-y-3"
+                className="text-center space-y-2 sm:space-y-3"
               >
                 <motion.div
-                  className="text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight"
+                  className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight"
                   initial={{ scale: 0.7, opacity: 0 }}
                   whileInView={{ scale: 1, opacity: 1 }}
                   viewport={{ once: true, margin: "0px" }}
@@ -3924,7 +3924,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                   </motion.span>
                 </motion.div>
                 <motion.div 
-                  className="space-y-1"
+                  className="space-y-1 px-2 sm:px-0"
                   initial={{ opacity: 0 }}
                   whileInView={{ opacity: 1 }}
                   viewport={{ once: true, margin: "0px" }}
@@ -3933,10 +3933,10 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                     delay: index * 0.15 + 0.5 
                   }}
                 >
-                  <h3 className="text-lg md:text-xl font-semibold text-foreground">
+                  <h3 className="text-base sm:text-lg md:text-xl font-semibold text-foreground">
                     {stat.label}
                   </h3>
-                  <p className="text-sm md:text-base text-muted-foreground">
+                  <p className="text-xs sm:text-sm md:text-base text-muted-foreground">
                     {stat.description}
                   </p>
                 </motion.div>
