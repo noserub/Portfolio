@@ -3690,10 +3690,10 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                   </motion.div>
                 </TooltipTrigger>
                 <TooltipContent 
-                  className="bg-foreground text-background border border-border shadow-lg [&>svg]:bg-foreground [&>svg]:fill-foreground"
+                  className="bg-foreground dark:bg-foreground border border-border shadow-lg [&>svg]:bg-foreground [&>svg]:fill-foreground"
                   sideOffset={8}
                 >
-                  <p>About Brian</p>
+                  <p className="text-background dark:text-background">About Brian</p>
                 </TooltipContent>
               </Tooltip>
 
@@ -3731,10 +3731,10 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                     </motion.a>
                   </TooltipTrigger>
                   <TooltipContent 
-                    className="bg-foreground text-background border border-border shadow-lg [&>svg]:bg-foreground [&>svg]:fill-foreground"
+                    className="bg-foreground dark:bg-foreground border border-border shadow-lg [&>svg]:bg-foreground [&>svg]:fill-foreground"
                     sideOffset={8}
                   >
-                    <p>View my profile on LinkedIn</p>
+                    <p className="text-background dark:text-background">View my profile on LinkedIn</p>
                   </TooltipContent>
                 </Tooltip>
 
@@ -3763,10 +3763,10 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                     </motion.a>
                   </TooltipTrigger>
                   <TooltipContent 
-                    className="bg-foreground text-background border border-border shadow-lg [&>svg]:bg-foreground [&>svg]:fill-foreground"
+                    className="bg-foreground dark:bg-foreground border border-border shadow-lg [&>svg]:bg-foreground [&>svg]:fill-foreground"
                     sideOffset={8}
                   >
-                    <p>Checkout my GitHub</p>
+                    <p className="text-background dark:text-background">Checkout my GitHub</p>
                   </TooltipContent>
                 </Tooltip>
               </div>
