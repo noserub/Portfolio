@@ -9,28 +9,28 @@ export function MarkdownRenderer({ content, variant = 'default' }: MarkdownRende
     /* Beautiful accessible link colors matching the color scheme */
     .markdown-content a,
     .markdown-content a.markdown-link {
-      color: #2563eb; /* blue-600 for light mode */
-      text-decoration: underline;
-      text-decoration-thickness: 1.5px;
-      text-underline-offset: 3px;
+      color: #ca8a04; /* yellow-600 for light mode */
+      text-decoration: none;
       transition: all 0.2s ease;
       font-weight: 500;
     }
     
     .markdown-content a:hover,
     .markdown-content a.markdown-link:hover {
-      color: #1d4ed8; /* blue-700 for hover */
-      text-decoration-thickness: 2px;
+      color: #a16207; /* yellow-700 for hover */
+      text-decoration: none;
     }
     
     .dark .markdown-content a,
     .dark .markdown-content a.markdown-link {
       color: #60a5fa; /* blue-400 for dark mode */
+      text-decoration: none;
     }
     
     .dark .markdown-content a:hover,
     .dark .markdown-content a.markdown-link:hover {
       color: #93c5fd; /* blue-300 for hover in dark mode */
+      text-decoration: none;
     }
     
     .markdown-content p + h1,
@@ -220,28 +220,28 @@ export function MarkdownRenderer({ content, variant = 'default' }: MarkdownRende
     /* Link colors for compact variant */
     .markdown-content-compact a,
     .markdown-content-compact a.markdown-link {
-      color: #2563eb; /* blue-600 for light mode */
-      text-decoration: underline;
-      text-decoration-thickness: 1.5px;
-      text-underline-offset: 2px;
+      color: #ca8a04; /* yellow-600 for light mode */
+      text-decoration: none;
       transition: all 0.2s ease;
       font-weight: 500;
     }
     
     .markdown-content-compact a:hover,
     .markdown-content-compact a.markdown-link:hover {
-      color: #1d4ed8; /* blue-700 for hover */
-      text-decoration-thickness: 2px;
+      color: #a16207; /* yellow-700 for hover */
+      text-decoration: none;
     }
     
     .dark .markdown-content-compact a,
     .dark .markdown-content-compact a.markdown-link {
       color: #60a5fa; /* blue-400 for dark mode */
+      text-decoration: none;
     }
     
     .dark .markdown-content-compact a:hover,
     .dark .markdown-content-compact a.markdown-link:hover {
       color: #93c5fd; /* blue-300 for hover in dark mode */
+      text-decoration: none;
     }
     
     .markdown-content-compact ul li::before {
