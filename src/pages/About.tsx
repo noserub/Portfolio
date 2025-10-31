@@ -207,7 +207,8 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
   const [expandedAICards, setExpandedAICards] = useState(new Set());
   
   // Show more/less state for Highlights cards
-  const [expandedHighlights, setExpandedHighlights] = useState(new Set<number>());
+  // Default Product Launches (idx 1) to expanded so content is visible
+  const [expandedHighlights, setExpandedHighlights] = useState<Set<number>>(new Set([1]));
 
   // Debug logging for About page state
   useEffect(() => {
@@ -1424,11 +1425,13 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
               {/* Cards Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {highlights?.map((item, idx) => {
-                // Estimate if content is long enough to need "show more"
-                // Only for Product Launches card (idx 1) with longer content
-                const contentLength = item.text?.length || 0;
-                const estimatedLines = Math.ceil(contentLength / 80);
-                const needsExpansion = estimatedLines > 4 && idx === 1; // Only for Product Launches (idx 1)
+                // Check if content is long enough to need "show more"
+                // Count lines in markdown content (accounting for bullets, headers, etc.)
+                const contentLines = item.text?.split('\n').filter(line => line.trim()).length || 0;
+                // Only Product Launches card (idx 1) needs expansion if it has more than ~6 lines
+                // This accounts for markdown formatting (bullets, sections, etc.)
+                const needsExpansion = contentLines > 6 && idx === 1;
+                // Check if this card is expanded (Product Launches defaults to expanded)
                 const isExpanded = expandedHighlights.has(idx);
                 
                 const toggleHighlight = () => {
@@ -1491,7 +1494,7 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
                       </div>
                       <div className="flex-1 min-w-0">
                         <h4 className="mb-2">{item.title}</h4>
-                        <div className={`text-muted-foreground leading-relaxed ${needsExpansion && !isExpanded ? 'line-clamp-4' : ''}`}>
+                        <div className={`text-muted-foreground leading-relaxed ${needsExpansion && !isExpanded ? 'line-clamp-6' : ''}`}>
                           <MarkdownRenderer content={item.text} variant="compact" />
                         </div>
                         {needsExpansion && (
