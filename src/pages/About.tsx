@@ -2482,13 +2482,6 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
             
             {/* Section Title - Editable */}
             <div className="flex items-center gap-3 mb-6">
-              <motion.div 
-                whileHover={{ scale: 1.1, rotate: 5 }}
-                className="p-3 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl shadow-md flex-shrink-0 transition-all duration-300"
-              >
-                <GraduationCap className="w-6 h-6 text-cyan-600 dark:text-cyan-400" />
-              </motion.div>
-              
               {isEditMode && editingSection === 'certificationsTitle' ? (
                 <div className="flex-1 space-y-2">
                   <Input
@@ -2632,13 +2625,6 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
             
             {/* Section Title - Editable */}
             <div className="flex items-center gap-3 mb-6">
-              <motion.div 
-                whileHover={{ scale: 1.1, rotate: 5 }}
-                className="p-3 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl shadow-md flex-shrink-0 transition-all duration-300"
-              >
-                <Wrench className="w-6 h-6 text-purple-600 dark:text-purple-400" />
-              </motion.div>
-              
               {isEditMode && editingSection === 'toolsTitle' ? (
                 <div className="flex-1 space-y-2">
                   <Input
