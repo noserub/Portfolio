@@ -3853,7 +3853,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "0px" }}
             transition={{ duration: 0.8, ease: "easeOut" }}
-            className="grid grid-cols-1 md:grid-cols-3 gap-12 sm:gap-14 md:gap-12"
+            className="flex flex-col gap-10 sm:gap-12 md:gap-16"
           >
             {[
               { 
@@ -3874,18 +3874,19 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
             ].map((stat, index) => (
               <motion.div
                 key={index}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0, x: -30 }}
+                whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true, margin: "0px" }}
                 transition={{ 
                   duration: 0.7, 
                   delay: index * 0.15,
                   ease: "easeOut"
                 }}
-                className="text-center space-y-2 sm:space-y-3"
+                className="flex items-center gap-6 sm:gap-8 md:gap-10"
               >
+                {/* Animated Number - Left */}
                 <motion.div
-                  className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight"
+                  className="flex-shrink-0"
                   initial={{ scale: 0.7, opacity: 0 }}
                   whileInView={{ scale: 1, opacity: 1 }}
                   viewport={{ once: true, margin: "0px" }}
@@ -3898,7 +3899,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                   }}
                 >
                   <motion.span
-                    className="inline-block"
+                    className="inline-block text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-extrabold tracking-tight leading-none"
                     animate={{
                       backgroundImage: [
                         "linear-gradient(45deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)",
@@ -3923,8 +3924,10 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                     {stat.number}
                   </motion.span>
                 </motion.div>
+                
+                {/* Content - Left Aligned */}
                 <motion.div 
-                  className="space-y-1 px-2 sm:px-0"
+                  className="flex-1 space-y-1"
                   initial={{ opacity: 0 }}
                   whileInView={{ opacity: 1 }}
                   viewport={{ once: true, margin: "0px" }}
@@ -3933,10 +3936,10 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                     delay: index * 0.15 + 0.5 
                   }}
                 >
-                  <h3 className="text-base sm:text-lg md:text-xl font-semibold text-foreground">
+                  <h3 className="text-base sm:text-lg md:text-xl lg:text-2xl font-semibold text-foreground text-left">
                     {stat.label}
                   </h3>
-                  <p className="text-xs sm:text-sm md:text-base text-muted-foreground">
+                  <p className="text-sm sm:text-base md:text-lg text-muted-foreground text-left">
                     {stat.description}
                   </p>
                 </motion.div>
