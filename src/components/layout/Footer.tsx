@@ -22,7 +22,7 @@ function FooterTooltipContent({
         data-slot="tooltip-content"
         sideOffset={sideOffset}
         className={cn(
-          "bg-background dark:bg-background border border-border shadow-lg animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 w-fit origin-(--radix-tooltip-content-transform-origin) rounded-md px-3 py-1.5 text-xs text-balance",
+          "bg-foreground dark:bg-foreground border border-border shadow-lg animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 w-fit origin-(--radix-tooltip-content-transform-origin) rounded-md px-3 py-1.5 text-xs text-balance",
           className,
         )}
         {...props}
@@ -80,7 +80,7 @@ export function Footer() {
                 <FooterTooltipContent 
                   sideOffset={8}
                 >
-                  <p className="text-foreground dark:text-foreground">View my profile on LinkedIn</p>
+                  <p className="text-background dark:text-background">View my profile on LinkedIn</p>
                 </FooterTooltipContent>
               </Tooltip>
 
@@ -107,7 +107,7 @@ export function Footer() {
                 <FooterTooltipContent 
                   sideOffset={8}
                 >
-                  <p className="text-foreground dark:text-foreground">Checkout my GitHub</p>
+                  <p className="text-background dark:text-background">Checkout my GitHub</p>
                 </FooterTooltipContent>
               </Tooltip>
 
@@ -132,7 +132,7 @@ export function Footer() {
                 <FooterTooltipContent 
                   sideOffset={8}
                 >
-                  <p className="text-foreground dark:text-foreground">Send me an email</p>
+                  <p className="text-background dark:text-background">Send me an email</p>
                 </FooterTooltipContent>
               </Tooltip>
             </motion.div>
