@@ -3105,7 +3105,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     <div className="min-h-screen relative">
 
       {/* Hero Section */}
-      <section className="min-h-screen flex flex-col items-center justify-center px-6 pt-20 md:pt-32 pb-24 md:pb-32">
+      <section className="min-h-screen flex flex-col items-center justify-center px-6 pt-20 md:pt-32 pb-28 md:pb-36">
         
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -3847,7 +3847,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         </motion.div>
 
         {/* Quick Stats Section */}
-        <section className="w-full max-w-[1400px] mx-auto pt-16 md:pt-24 lg:pt-32 pb-24 md:pb-32 lg:pb-40 relative z-10">
+        <section className="w-full max-w-[1400px] mx-auto pt-20 md:pt-28 lg:pt-36 pb-24 md:pb-32 lg:pb-40 relative z-10">
           <div className="px-4 grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-10">
             {[
               { 
