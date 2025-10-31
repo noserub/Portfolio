@@ -39,6 +39,7 @@ export function Footer() {
                     rel="noopener noreferrer"
                     whileHover={{ scale: 1.15, y: -2 }}
                     whileTap={{ scale: 0.95 }}
+                    transition={{ duration: 0.1 }}
                     className="group relative flex items-center justify-center w-11 h-11 rounded-full transition-all duration-300"
                     aria-label="LinkedIn Profile"
                   >
@@ -66,6 +67,7 @@ export function Footer() {
                     rel="noopener noreferrer"
                     whileHover={{ scale: 1.15, y: -2 }}
                     whileTap={{ scale: 0.95 }}
+                    transition={{ duration: 0.1 }}
                     className="group relative flex items-center justify-center w-11 h-11 rounded-full transition-all duration-300"
                     aria-label="GitHub Profile"
                   >
@@ -91,6 +93,7 @@ export function Footer() {
                     href="mailto:brian.bureson@gmail.com"
                     whileHover={{ scale: 1.15, y: -2 }}
                     whileTap={{ scale: 0.95 }}
+                    transition={{ duration: 0.1 }}
                     className="group relative flex items-center justify-center w-11 h-11 rounded-full transition-all duration-300"
                     aria-label="Send Email"
                   >
