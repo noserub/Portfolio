@@ -2250,7 +2250,30 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       const persistedSidebars = buildPersistedSidebars();
       
       // Ensure sectionPositions is serializable (remove any functions or non-serializable data)
-      const cleanSectionPositions = sectionPositions ? JSON.parse(JSON.stringify(sectionPositions)) : {};
+      let cleanSectionPositions: any = {};
+      try {
+        cleanSectionPositions = sectionPositions ? JSON.parse(JSON.stringify(sectionPositions)) : {};
+      } catch (e) {
+        console.error('⚠️ Error serializing sectionPositions:', e);
+        cleanSectionPositions = {};
+      }
+      
+      // Ensure sidebars are serializable and valid JSONB
+      let cleanSidebars: any = {};
+      try {
+        if (persistedSidebars) {
+          // Deep clone to ensure it's clean
+          cleanSidebars = JSON.parse(JSON.stringify(persistedSidebars));
+          // Ensure it's a valid object (not null, not array)
+          if (typeof cleanSidebars !== 'object' || Array.isArray(cleanSidebars)) {
+            console.warn('⚠️ persistedSidebars is not a valid object, defaulting to {}');
+            cleanSidebars = {};
+          }
+        }
+      } catch (e) {
+        console.error('⚠️ Error serializing persistedSidebars:', e);
+        cleanSidebars = {};
+      }
       
       const updatedProject: ProjectData = {
         ...project,
@@ -2274,8 +2297,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
         solutionCardsPosition,
         sectionPositions: cleanSectionPositions,
         // Preserve JSON sidebars - ensure it's serializable
-        caseStudySidebars: persistedSidebars ? JSON.parse(JSON.stringify(persistedSidebars)) : {},
-        case_study_sidebars: persistedSidebars ? JSON.parse(JSON.stringify(persistedSidebars)) : {},
+        caseStudySidebars: cleanSidebars,
+        case_study_sidebars: cleanSidebars,
       } as any;
       onUpdate(updatedProject);
   };

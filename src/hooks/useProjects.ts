@@ -277,7 +277,8 @@ export function useProjects() {
       const sidebars = (updates as any).case_study_sidebars || (updates as any).caseStudySidebars;
       if (sidebars !== undefined) payload['case_study_sidebars'] = sidebars;
 
-      console.log('🛰️ useProjects: filtered payload:', payload);
+      console.log('🛰️ useProjects: filtered payload keys:', Object.keys(payload));
+      console.log('🛰️ useProjects: filtered payload:', JSON.stringify(payload, null, 2));
 
       let { data, error } = await Promise.race([
         supabase
@@ -295,13 +296,23 @@ export function useProjects() {
       
       // Log detailed error information for debugging
       if (error) {
-        console.error('❌ useProjects: Detailed Supabase error:', {
-          code: error.code,
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          payload: JSON.stringify(payload, null, 2)
-        });
+        console.error('❌ useProjects: Detailed Supabase error:');
+        console.error('  Error code:', error.code);
+        console.error('  Error message:', error.message);
+        console.error('  Error details:', error.details);
+        console.error('  Error hint:', error.hint);
+        console.error('  Full error object:', JSON.stringify(error, null, 2));
+        console.error('  Payload that was sent:', JSON.stringify(payload, null, 2));
+        
+        // Also log individual payload keys to check for issues
+        console.error('  Payload keys:', Object.keys(payload));
+        for (const [key, value] of Object.entries(payload)) {
+          try {
+            JSON.stringify(value);
+          } catch (e) {
+            console.error(`  ⚠️ Payload key "${key}" contains non-serializable data:`, e);
+          }
+        }
       }
 
       // If that fails due to user mismatch, try to transfer ownership
