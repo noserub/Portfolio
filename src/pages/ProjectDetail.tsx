@@ -2246,6 +2246,9 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       console.log('✅ Markdown content updated');
       setCaseStudyContent(newContent);
       
+      // Get persisted sidebars (preserve JSON sidebars)
+      const persistedSidebars = buildPersistedSidebars();
+      
       const updatedProject: ProjectData = {
         ...project,
         title: editedTitle,
@@ -2260,12 +2263,17 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
         galleryColumns,
         flowDiagramColumns,
       videoColumns,
+        keyFeaturesColumns,
+        key_features_columns: keyFeaturesColumns,
         projectImagesPosition,
       videosPosition,
         flowDiagramsPosition,
         solutionCardsPosition,
       sectionPositions,
-      };
+        // Preserve JSON sidebars
+        caseStudySidebars: persistedSidebars,
+        case_study_sidebars: persistedSidebars,
+      } as any;
       onUpdate(updatedProject);
   };
 
