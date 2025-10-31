@@ -1,11 +1,12 @@
 import React from "react";
 import { motion } from "motion/react";
 import { useState, useEffect, useRef, memo, useMemo, useCallback } from "react";
-import { Edit2, Move, Check, X, ZoomIn, ZoomOut, RotateCcw, Lock, Eye, Trash2, MoreVertical, Settings } from "lucide-react";
+import { Edit2, Move, Check, X, ZoomIn, ZoomOut, RotateCcw, Lock, Eye, Trash2, MoreVertical, Settings, Maximize2, Minimize2 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
 import { Checkbox } from "./ui/checkbox";
+import { Slider } from "./ui/slider";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -304,28 +305,172 @@ export function ProjectImage({
   };
 
   const handleZoomOut = () => {
-    const newScale = Math.max(0.3, editedProject.scale - 0.1); // Smaller increments for precision
+    // Use smaller increments (2-3%) for smoother control
+    const newScale = Math.max(0.3, editedProject.scale - 0.03); // 3% decrement
     const updated = {
       ...editedProject,
       scale: newScale
     };
-    console.log('🔍 Zoom Out:', { oldScale: editedProject.scale, newScale });
+    console.log('🔍 Zoom Out:', { oldScale: editedProject.scale, newScale, percentage: Math.round((newScale - 1) * 100) });
     setEditedProject(updated);
     // Skip refetch for minor zoom updates to prevent card refresh
     onUpdate(updated, true);
   };
 
   const handleZoomIn = () => {
-    const newScale = Math.min(2.0, editedProject.scale + 0.1); // Allow up to 200% zoom
+    // Use smaller increments (2-3%) for smoother control
+    const newScale = Math.min(2.0, editedProject.scale + 0.03); // 3% increment
     const updated = {
       ...editedProject,
       scale: newScale
     };
-    console.log('🔍 Zoom In:', { oldScale: editedProject.scale, newScale });
+    console.log('🔍 Zoom In:', { oldScale: editedProject.scale, newScale, percentage: Math.round((newScale - 1) * 100) });
     setEditedProject(updated);
     // Skip refetch for minor zoom updates to prevent card refresh
     onUpdate(updated, true);
   };
+
+  // Calculate fit-to-width scale (image fills container width)
+  // The container is the div with imageRef, which has aspect-[3/4] (portrait card)
+  // At scale 1.0 with objectFit: contain, the image fits within the container
+  const handleFitWidth = useCallback(() => {
+    const containerElement = imageRef.current;
+    if (!containerElement) return;
+    
+    const containerRect = containerElement.getBoundingClientRect();
+    const containerWidth = containerRect.width;
+    const containerHeight = containerRect.height;
+    
+    // Get the actual img element (might be nested in picture or OptimizedImage wrapper)
+    const imgElement = containerElement.querySelector('img') as HTMLImageElement;
+    if (!imgElement) return;
+    
+    // Use a one-time load handler
+    const handleImageLoad = () => {
+      const naturalWidth = imgElement.naturalWidth;
+      const naturalHeight = imgElement.naturalHeight;
+      
+      if (naturalWidth === 0 || naturalHeight === 0) return;
+      
+      // Image aspect ratio
+      const imageAspect = naturalWidth / naturalHeight;
+      // Container aspect ratio (3:4 = 0.75)
+      const containerAspect = containerWidth / containerHeight;
+      
+      let scale = 1.0;
+      
+      // When objectFit is 'contain' at scale 1.0:
+      // - If imageAspect > containerAspect: image fills width, leaves empty space top/bottom
+      // - If imageAspect < containerAspect: image fills height, leaves empty space left/right
+      
+      if (imageAspect > containerAspect) {
+        // Image is wider (landscape) - at scale 1.0 it already fills container width
+        scale = 1.0;
+      } else {
+        // Image is taller (portrait) - at scale 1.0 it fills height but not width
+        // At scale 1.0: renderedWidth = containerHeight * imageAspect
+        // To make renderedWidth = containerWidth: scale = containerWidth / (containerHeight * imageAspect)
+        const renderedWidthAtScale1 = containerHeight * imageAspect;
+        scale = renderedWidthAtScale1 > 0 ? containerWidth / renderedWidthAtScale1 : 1.0;
+      }
+      
+      // Clamp to reasonable range
+      scale = Math.max(0.5, Math.min(3.0, scale));
+      
+      setEditedProject((prev) => {
+        const updated = {
+          ...prev,
+          scale: scale,
+          position: { x: 50, y: 50 } // Center when fitting
+        };
+        console.log('📏 Fit Width:', { 
+          scale, 
+          imageAspect: imageAspect.toFixed(3), 
+          containerAspect: containerAspect.toFixed(3),
+          containerWidth, 
+          containerHeight, 
+          naturalWidth, 
+          naturalHeight 
+        });
+        onUpdate(updated, true);
+        return updated;
+      });
+    };
+    
+    if (imgElement.complete && imgElement.naturalWidth > 0) {
+      handleImageLoad();
+    } else {
+      imgElement.addEventListener('load', handleImageLoad, { once: true });
+    }
+  }, [onUpdate]);
+
+  // Calculate fit-to-height scale (image fills container height)
+  const handleFitHeight = useCallback(() => {
+    const containerElement = imageRef.current;
+    if (!containerElement) return;
+    
+    const containerRect = containerElement.getBoundingClientRect();
+    const containerWidth = containerRect.width;
+    const containerHeight = containerRect.height;
+    
+    // Get the actual img element
+    const imgElement = containerElement.querySelector('img') as HTMLImageElement;
+    if (!imgElement) return;
+    
+    // Use a one-time load handler
+    const handleImageLoad = () => {
+      const naturalWidth = imgElement.naturalWidth;
+      const naturalHeight = imgElement.naturalHeight;
+      
+      if (naturalWidth === 0 || naturalHeight === 0) return;
+      
+      // Image aspect ratio
+      const imageAspect = naturalWidth / naturalHeight;
+      // Container aspect ratio (3:4 = 0.75)
+      const containerAspect = containerWidth / containerHeight;
+      
+      let scale = 1.0;
+      
+      if (imageAspect < containerAspect) {
+        // Image is taller (portrait) - at scale 1.0 it already fills container height
+        scale = 1.0;
+      } else {
+        // Image is wider (landscape) - at scale 1.0 it fills width but not height
+        // At scale 1.0: renderedHeight = containerWidth / imageAspect
+        // To make renderedHeight = containerHeight: scale = containerHeight / (containerWidth / imageAspect)
+        const renderedHeightAtScale1 = containerWidth / imageAspect;
+        scale = renderedHeightAtScale1 > 0 ? containerHeight / renderedHeightAtScale1 : 1.0;
+      }
+      
+      // Clamp to reasonable range
+      scale = Math.max(0.5, Math.min(3.0, scale));
+      
+      setEditedProject((prev) => {
+        const updated = {
+          ...prev,
+          scale: scale,
+          position: { x: 50, y: 50 } // Center when fitting
+        };
+        console.log('📏 Fit Height:', { 
+          scale, 
+          imageAspect: imageAspect.toFixed(3), 
+          containerAspect: containerAspect.toFixed(3),
+          containerWidth, 
+          containerHeight, 
+          naturalWidth, 
+          naturalHeight 
+        });
+        onUpdate(updated, true);
+        return updated;
+      });
+    };
+    
+    if (imgElement.complete && imgElement.naturalWidth > 0) {
+      handleImageLoad();
+    } else {
+      imgElement.addEventListener('load', handleImageLoad, { once: true });
+    }
+  }, [onUpdate]);
 
   const handleResetImage = () => {
     const updated = {
@@ -437,14 +582,14 @@ export function ProjectImage({
                 alt={editedProject.title}
                 className="w-full h-full"
                 style={{
-                  objectFit: editedProject.scale > 1.0 ? 'cover' : 'contain',
+                  objectFit: 'contain', // Always use contain to mask, never crop
                   transform: `scale(${editedProject.scale})`,
                   transformOrigin: `${editedProject.position.x}% ${editedProject.position.y}%`,
                   cursor: isPositioning ? 'crosshair' : 'default',
-                  padding: editedProject.scale > 1.0 ? '10px' : '0px'
+                  transition: 'transform 0.2s ease-out', // Smooth zoom transitions
                 }}
                 quality={85}
-                fit={editedProject.scale > 1.0 ? "cover" : "contain"}
+                fit="contain" // Always contain - frame masks the image, never crops
                 onLoad={() => setImageLoadError(false)}
                 onError={handleImageError}
                 priority={false}
@@ -454,7 +599,7 @@ export function ProjectImage({
               {/* Drag crosshair indicator */}
               {isPositioning && (
                 <div 
-                  className="drag-crosshair absolute pointer-events-none z-10"
+                  className="drag-crosshair absolute pointer-events-none z-30"
                   style={{
                     left: `${editedProject.position.x}%`,
                     top: `${editedProject.position.y}%`,
@@ -568,7 +713,7 @@ export function ProjectImage({
         {isEditMode && (
           <>
             {/* Top Bar - Primary Actions */}
-            <div className="absolute top-3 left-3 right-3 flex justify-between items-center z-20">
+            <div className="absolute top-3 left-3 right-3 flex justify-between items-center z-30">
               {/* Status Badge */}
             <Button
               size="sm"
@@ -622,6 +767,14 @@ export function ProjectImage({
                       <ZoomIn className="w-4 h-4 mr-2" />
                       Fit to Frame
                     </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleFitWidth}>
+                      <Maximize2 className="w-4 h-4 mr-2" />
+                      Fit Width
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleFitHeight}>
+                      <Minimize2 className="w-4 h-4 mr-2" />
+                      Fit Height
+                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={handleResetImage}>
                       <RotateCcw className="w-4 h-4 mr-2" />
                       Reset Image
@@ -631,63 +784,117 @@ export function ProjectImage({
               </div>
             </div>
 
-            {/* Bottom Bar - Image Controls - Inside Card Frame */}
-            <div className="absolute bottom-2 left-2 right-2 flex justify-between items-center z-20" style={{
-              padding: '0.5rem 0.75rem'
-            }}>
-              {/* Image Controls */}
-              <div className="flex gap-2">
-            {isPositioning && (
-              <Button
-                size="sm"
-                variant="default"
-                className="shadow-lg"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsPositioning(false);
-                }}
-                title="Done positioning"
-              >
-                <Check className="w-4 h-4 mr-1" />
-                Done
-              </Button>
-            )}
-            <Button
-              size="sm"
-              variant={isPositioning ? "default" : "secondary"}
+            {/* Bottom Bar - Image Controls - Essential controls only, progressive disclosure */}
+            <div className="absolute bottom-2 left-2 right-2 z-30 bg-black/80 backdrop-blur-md rounded-lg p-2.5">
+              {/* Primary Controls Row - Always visible */}
+              <div className="flex items-center gap-2 flex-wrap">
+                {/* Position Button */}
+                <Button
+                  size="sm"
+                  variant={isPositioning ? "default" : "secondary"}
                   onClick={(e) => {
                     e.stopPropagation();
                     setIsPositioning(!isPositioning);
                   }}
-              className="shadow-lg"
+                  className="shadow-lg min-w-[44px] min-h-[44px]"
                   title="Drag to position image"
-            >
-              <Move className="w-4 h-4" />
-            </Button>
-            <Button
-              size="sm"
-              variant="secondary"
-                  onClick={handleZoomIn}
-                  className="shadow-lg"
-                  title="Zoom in"
+                  aria-label={isPositioning ? "Stop positioning" : "Start positioning image"}
                 >
-                  <ZoomIn className="w-4 h-4" />
+                  <Move className="w-4 h-4" />
                 </Button>
+                
+                {/* Zoom Out */}
                 <Button
                   size="sm"
                   variant="secondary"
                   onClick={handleZoomOut}
-              className="shadow-lg"
-                  title="Zoom out"
-            >
+                  className="shadow-lg min-w-[44px] min-h-[44px]"
+                  title="Zoom out (3%)"
+                  aria-label="Zoom out 3 percent"
+                >
                   <ZoomOut className="w-4 h-4" />
-            </Button>
-          </div>
-              
-              {/* Scale Indicator */}
-              <div className="bg-black/90 text-white px-3 py-1 rounded-full text-xs font-medium backdrop-blur-sm">
-                {(editedProject.scale * 100).toFixed(0)}%
+                </Button>
+                
+                {/* Zoom Slider - Compact */}
+                <div className="flex items-center gap-1.5 bg-black/60 rounded-lg px-2 py-1.5 flex-1" style={{ minWidth: '100px', maxWidth: '200px' }}>
+                  <ZoomOut className="w-3 h-3 text-white flex-shrink-0" aria-hidden="true" />
+                  <Slider
+                    value={[editedProject.scale * 100]}
+                    min={30}
+                    max={200}
+                    step={0.5}
+                    onValueChange={(values) => {
+                      const newScale = values[0] / 100;
+                      setEditedProject((prev) => {
+                        const updated = {
+                          ...prev,
+                          scale: newScale
+                        };
+                        onUpdate(updated, true);
+                        return updated;
+                      });
+                    }}
+                    className="flex-1"
+                    aria-label="Zoom level"
+                    aria-valuemin={30}
+                    aria-valuemax={200}
+                    aria-valuenow={editedProject.scale * 100}
+                  />
+                  <ZoomIn className="w-3 h-3 text-white flex-shrink-0" aria-hidden="true" />
+                </div>
+                
+                {/* Zoom In */}
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={handleZoomIn}
+                  className="shadow-lg min-w-[44px] min-h-[44px]"
+                  title="Zoom in (3%)"
+                  aria-label="Zoom in 3 percent"
+                >
+                  <ZoomIn className="w-4 h-4" />
+                </Button>
+                
+                {/* Zoom Percentage - Compact inline */}
+                <div className="bg-black/90 text-white px-2 py-1 rounded text-xs font-medium backdrop-blur-sm tabular-nums min-w-[50px] text-center" role="status" aria-live="polite">
+                  {(editedProject.scale * 100).toFixed(0)}%
+                </div>
+                
+                {/* Reset Button - Quick access */}
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={handleResetImage}
+                  className="shadow-lg min-w-[44px] min-h-[44px]"
+                  title="Reset zoom and position"
+                  aria-label="Reset image zoom and position to default"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                </Button>
               </div>
+              
+              {/* Position Status - Shown when positioning is active */}
+              {isPositioning && (
+                <div className="mt-2 flex items-center gap-2 flex-wrap">
+                  <span className="text-white text-xs bg-black/60 px-2 py-1 rounded" role="status">
+                    Click image to set origin point
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="default"
+                    className="shadow-lg"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsPositioning(false);
+                    }}
+                    title="Done positioning"
+                    aria-label="Done positioning"
+                  >
+                    <Check className="w-4 h-4 mr-1" />
+                    Done
+                  </Button>
+                </div>
+              )}
             </div>
           </>
         )}

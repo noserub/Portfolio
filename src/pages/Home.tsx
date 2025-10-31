@@ -147,8 +147,13 @@ function DraggableProjectItem({
       {isEditMode && (
         <div
           ref={dragHandleRef}
-          className="absolute -left-12 top-1/2 -translate-y-1/2 z-40 bg-purple-500 hover:bg-purple-600 text-white rounded-lg px-3 py-2 shadow-lg cursor-grab active:cursor-grabbing transition-colors flex items-center justify-center gap-1.5 min-w-[48px] min-h-[48px]"
+          className="absolute -left-12 top-1/2 -translate-y-1/2 z-10 bg-purple-500 hover:bg-purple-600 text-white rounded-lg px-3 py-2 shadow-lg cursor-grab active:cursor-grabbing transition-colors flex items-center justify-center gap-1.5 min-w-[48px] min-h-[48px]"
           title="Drag to reorder"
+          style={{ 
+            // Lower z-index to not interfere with ProjectImage controls (z-20)
+            // Only visible when not actively interacting with image positioning
+            pointerEvents: 'auto'
+          }}
         >
           <GripVertical className="w-5 h-5" />
           <span className="text-sm font-medium hidden sm:inline">Drag</span>
@@ -156,7 +161,7 @@ function DraggableProjectItem({
       )}
       {/* Drop indicator */}
       {isOver && !isDragging && (
-        <div className="absolute inset-0 border-2 border-purple-500 rounded-2xl z-20 pointer-events-none" />
+        <div className="absolute inset-0 border-2 border-purple-500 rounded-2xl z-10 pointer-events-none" />
       )}
       <MemoizedProjectImage
         project={project}
