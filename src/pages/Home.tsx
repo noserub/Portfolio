@@ -3909,6 +3909,10 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
             align-items: center;
           }
         }
+        /* Hide tooltip arrows */
+        [data-slot="tooltip-content"] svg {
+          display: none !important;
+        }
       `}</style>
 
       {/* Delete Confirmation Dialog */}
