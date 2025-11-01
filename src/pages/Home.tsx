@@ -13,7 +13,7 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Textarea } from "../components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
-import { Plus, ChevronLeft, ChevronRight, Edit2, Save, GripVertical, Linkedin, Github, FileText, Trash2, Eye, Wand2 } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, ChevronDown, Edit2, Save, GripVertical, Linkedin, Github, FileText, Trash2, Eye, Wand2 } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "../components/ui/tooltip";
 // import { createCaseStudyFromTemplate } from "../utils/caseStudyTemplate"; // REMOVED - using unified project creator
 import { loadMigratedProjects } from "../utils/migrateVideoFields";
@@ -2470,6 +2470,18 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
   const [lightboxProject, setLightboxProject] = useState(null);
   const caseStudiesScrollRef = useRef(null);
   const designProjectsScrollRef = useRef(null);
+  const caseStudiesSectionRef = useRef(null);
+
+  // Scroll to case studies section
+  const scrollToCaseStudies = useCallback(() => {
+    if (caseStudiesSectionRef.current) {
+      caseStudiesSectionRef.current.scrollIntoView({ 
+        behavior: 'smooth',
+        block: 'start'
+      });
+    }
+  }, []);
+
   
   // Track window width for conditional arrow rendering
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
@@ -3930,8 +3942,58 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
           </div>
         </section>
 
+        {/* Scroll Indicator Arrow */}
+        {!isEditMode && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1, duration: 0.6 }}
+            className="flex justify-center py-8 relative z-10"
+          >
+            <motion.button
+              onClick={scrollToCaseStudies}
+              className="group flex flex-col items-center gap-2 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded-full p-3 transition-all"
+              aria-label="Scroll to case studies"
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <motion.div
+                animate={{
+                  y: [0, 8, 0],
+                }}
+                transition={{
+                  duration: 2,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+                className="relative"
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-purple-500 via-pink-500 to-blue-500 rounded-full blur-md opacity-50 group-hover:opacity-75 transition-opacity" />
+                <div className="relative w-14 h-14 rounded-full bg-gradient-to-br from-purple-500 via-pink-500 to-blue-500 flex items-center justify-center shadow-lg border-2 border-background">
+                  <ChevronDown className="w-7 h-7 text-white" />
+                </div>
+              </motion.div>
+              <motion.span
+                className="text-xs font-medium text-muted-foreground group-hover:text-foreground transition-colors"
+                animate={{
+                  opacity: [0.7, 1, 0.7],
+                }}
+                transition={{
+                  duration: 2,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+              >
+                View work
+              </motion.span>
+            </motion.button>
+          </motion.div>
+        )}
+
         {/* Case Studies Carousel */}
-        <div className="w-full max-w-[1400px] mx-auto mb-16 mt-16 md:mt-32 relative z-10">
+        <div 
+          ref={caseStudiesSectionRef}
+          className="w-full max-w-[1400px] mx-auto mb-16 mt-16 md:mt-32 relative z-10">
           <motion.h2
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
