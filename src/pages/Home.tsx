@@ -3964,11 +3964,19 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                   "linear-gradient(315deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
                   "linear-gradient(360deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
                 ],
+                y: [0, 8, 0],
               }}
               transition={{
-                duration: 8,
-                repeat: Infinity,
-                ease: "easeInOut",
+                background: {
+                  duration: 8,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                },
+                y: {
+                  duration: 2,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                },
               }}
             >
               <motion.button
@@ -3977,18 +3985,8 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                 aria-label="Scroll to case studies"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                animate={{
-                  y: [0, 8, 0],
-                }}
-                transition={{
-                  y: {
-                    duration: 2,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  },
-                }}
               >
-                <ChevronDown className="w-6 h-6 text-foreground" />
+                <ChevronDown className="w-6 h-6 text-foreground stroke-[3]" />
               </motion.button>
             </motion.div>
           </motion.div>
