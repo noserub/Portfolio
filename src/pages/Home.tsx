@@ -2546,12 +2546,17 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         shouldShowUp = scrollDirectionRef.current === 'up';
       }
       
-      // Only update state if it changed to avoid unnecessary re-renders
-      setShouldShowUpChevron(prev => {
-        if (prev !== shouldShowUp) {
-          return shouldShowUp;
-        }
-        return prev;
+      // Always update state (React will handle optimization)
+      setShouldShowUpChevron(shouldShowUp);
+      
+      // Debug logging
+      console.log('📊 Scroll State:', {
+        scrollTop: Math.round(scrollTop),
+        isNearTop,
+        isNearBottom,
+        direction: scrollDirectionRef.current,
+        shouldShowUp,
+        distanceFromBottom: Math.round(distanceFromBottom)
       });
     };
     
@@ -4080,9 +4085,15 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                 aria-label={shouldShowUpChevron ? "Scroll to top" : "Scroll to case studies"}
               >
                 {shouldShowUpChevron ? (
-                  <ChevronUp className="w-6 h-6 text-foreground stroke-[3]" />
+                  <>
+                    <ChevronUp className="w-6 h-6 text-foreground stroke-[3]" />
+                    {/* Debug: showing up chevron */}
+                  </>
                 ) : (
-                  <ChevronDown className="w-6 h-6 text-foreground stroke-[3]" />
+                  <>
+                    <ChevronDown className="w-6 h-6 text-foreground stroke-[3]" />
+                    {/* Debug: showing down chevron */}
+                  </>
                 )}
               </button>
             </motion.div>
