@@ -2489,7 +2489,6 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
   
   // Scroll to top of page
   const scrollToTop = useCallback(() => {
-    console.log('🚀 Scrolling to top...');
     // Try multiple methods to ensure it works
     window.scrollTo({
       top: 0,
@@ -2514,10 +2513,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
   
   // Detect scroll direction and position to determine chevron state
   useEffect(() => {
-    console.log('🎯 Setting up scroll listener...');
-    
     const handleScroll = () => {
-      console.log('🔄 Scroll event fired!');
       const scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
       const windowHeight = window.innerHeight;
       const documentHeight = Math.max(
@@ -2535,7 +2531,6 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
       // Update direction if position changed
       if (prevScrollTop !== scrollTop) {
         scrollDirectionRef.current = scrollTop > prevScrollTop ? 'down' : 'up';
-        console.log('📐 Direction changed to:', scrollDirectionRef.current);
       }
       
       // Initialize direction if not set
@@ -2564,15 +2559,6 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         shouldShowUp = scrollDirectionRef.current === 'up';
       }
       
-      console.log('📊 Scroll State:', {
-        scrollTop: Math.round(scrollTop),
-        isNearTop,
-        isNearBottom,
-        direction: scrollDirectionRef.current,
-        shouldShowUp,
-        distanceFromBottom: Math.round(distanceFromBottom)
-      });
-      
       setShouldShowUpChevron(shouldShowUp);
     };
     
@@ -2581,14 +2567,12 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     document.addEventListener('scroll', handleScroll, { passive: true, capture: true });
     document.documentElement.addEventListener('scroll', handleScroll, { passive: true, capture: true });
     
-    console.log('✅ Scroll listeners attached');
     handleScroll(); // Check initial position
     
     return () => {
       window.removeEventListener('scroll', handleScroll, { capture: true } as EventListenerOptions);
       document.removeEventListener('scroll', handleScroll, { capture: true } as EventListenerOptions);
       document.documentElement.removeEventListener('scroll', handleScroll, { capture: true } as EventListenerOptions);
-      console.log('🧹 Scroll listeners removed');
     };
   }, []);
 
@@ -4111,15 +4095,9 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                 aria-label={shouldShowUpChevron ? "Scroll to top" : "Scroll to case studies"}
               >
                 {shouldShowUpChevron ? (
-                  <>
-                    <ChevronUp className="w-6 h-6 text-foreground stroke-[3]" />
-                    {/* Debug: showing up chevron */}
-                  </>
+                  <ChevronUp className="w-6 h-6 text-foreground stroke-[3]" />
                 ) : (
-                  <>
-                    <ChevronDown className="w-6 h-6 text-foreground stroke-[3]" />
-                    {/* Debug: showing down chevron */}
-                  </>
+                  <ChevronDown className="w-6 h-6 text-foreground stroke-[3]" />
                 )}
               </button>
             </motion.div>
