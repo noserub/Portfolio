@@ -2574,7 +2574,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
       document.removeEventListener('scroll', handleScroll, { capture: true } as EventListenerOptions);
       document.documentElement.removeEventListener('scroll', handleScroll, { capture: true } as EventListenerOptions);
     };
-  }, []);
+  }, []); // Empty deps - setup once on mount
 
   
   // Track window width for conditional arrow rendering
