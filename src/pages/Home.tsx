@@ -2503,12 +2503,16 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
       const documentHeight = document.documentElement.scrollHeight;
       
       // Track scroll direction
-      if (scrollPositionRef.current > 0) { // Only track direction after initial scroll
-        if (scrollTop > scrollPositionRef.current) {
+      const prevScrollTop = scrollPositionRef.current;
+      if (prevScrollTop > 0) { // Only track direction after initial scroll
+        if (scrollTop > prevScrollTop) {
           scrollDirectionRef.current = 'down';
-        } else if (scrollTop < scrollPositionRef.current) {
+        } else if (scrollTop < prevScrollTop) {
           scrollDirectionRef.current = 'up';
         }
+      } else {
+        // On first scroll, assume we're scrolling down from top
+        scrollDirectionRef.current = 'down';
       }
       scrollPositionRef.current = scrollTop;
       
@@ -4012,7 +4016,8 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
             className="flex justify-center py-8 mt-2 relative z-10"
           >
             <motion.div
-              className="rounded-full p-[2px] inline-block flex-shrink-0"
+              className="rounded-full p-[2px] inline-block flex-shrink-0 pointer-events-none"
+              style={{ pointerEvents: 'none' }}
               animate={{
                 background: [
                   "linear-gradient(0deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
@@ -4039,22 +4044,29 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                   ease: "easeInOut",
                 },
               }}
+              style={{ pointerEvents: 'none' }}
             >
               <button
+                type="button"
                 onClick={(e) => {
+                  e.preventDefault();
                   e.stopPropagation();
+                  console.log('Button clicked, shouldShowUpChevron:', shouldShowUpChevron);
                   if (shouldShowUpChevron) {
+                    console.log('Scrolling to top');
                     scrollToTop();
                   } else {
+                    console.log('Scrolling to case studies');
                     scrollToCaseStudies();
                   }
                 }}
                 onMouseDown={(e) => {
                   // Prevent default to stop focus on mouse click
-                  // onClick will still fire normally
-                  e.preventDefault();
+                  // Don't prevent default on the button itself, let onClick handle it
+                  e.stopPropagation();
                 }}
-                className="relative rounded-full w-14 h-14 flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-300 bg-background/80 backdrop-blur-sm hover:bg-background/60 cursor-pointer focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                className="relative rounded-full w-14 h-14 flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-300 bg-background/80 backdrop-blur-sm hover:bg-background/60 cursor-pointer focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary z-20 pointer-events-auto"
+                style={{ pointerEvents: 'auto' }}
                 aria-label={shouldShowUpChevron ? "Scroll to top" : "Scroll to case studies"}
               >
                 {shouldShowUpChevron ? (
