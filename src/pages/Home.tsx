@@ -3981,7 +3981,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
             >
               <motion.button
                 onClick={scrollToCaseStudies}
-                className="relative rounded-full w-14 h-14 shadow-lg hover:shadow-xl transition-all duration-300 bg-background/80 backdrop-blur-sm hover:bg-background/60 cursor-pointer"
+                className="relative block rounded-full w-14 h-14 shadow-lg hover:shadow-xl transition-all duration-300 bg-background/80 backdrop-blur-sm hover:bg-background/60 cursor-pointer"
                 aria-label="Scroll to case studies"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
