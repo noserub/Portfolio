@@ -83,8 +83,8 @@ export function Footer() {
                     {/* Inverted background on hover - matches home page exactly */}
                     <div className="absolute inset-0 rounded-full bg-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-300 shadow-lg" />
                     
-                    {/* Icon */}
-                    <Linkedin className="relative z-10 w-5 h-5 text-foreground group-hover:text-background transition-colors duration-300" />
+                    {/* Icon - solid/filled style to match hero */}
+                    <Linkedin className="relative z-10 w-5 h-5 text-foreground group-hover:text-background transition-colors duration-300 fill-current" />
                   </motion.a>
                 </TooltipTrigger>
                 <FooterTooltipContent 
