@@ -2515,10 +2515,22 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
       const isNearTop = scrollTop < threshold;
       const isNearBottom = (documentHeight - scrollTop - windowHeight) < threshold;
       
-      // Show up chevron if: at bottom OR (scrolling up AND not at top)
-      // Show down chevron if: at top OR (scrolling down AND not at bottom)
+      // Logic:
+      // - At top OR scrolling down → down chevron → scroll to case studies
+      // - At bottom OR scrolling up → up chevron → scroll to top
       const showUp = isNearBottom || (scrollDirectionRef.current === 'up' && !isNearTop);
-      setShouldShowUpChevron(showUp);
+      const showDown = isNearTop || (scrollDirectionRef.current === 'down' && !isNearBottom);
+      
+      // Prioritize: if at top, always show down. If at bottom, always show up.
+      // Otherwise, follow scroll direction
+      if (isNearTop) {
+        setShouldShowUpChevron(false);
+      } else if (isNearBottom) {
+        setShouldShowUpChevron(true);
+      } else {
+        // Follow scroll direction when in the middle
+        setShouldShowUpChevron(scrollDirectionRef.current === 'up');
+      }
     };
     
     window.addEventListener('scroll', handleScroll, { passive: true });
