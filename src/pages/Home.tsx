@@ -13,7 +13,7 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Textarea } from "../components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
-import { Plus, ChevronLeft, ChevronRight, ChevronDown, Edit2, Save, GripVertical, Linkedin, Github, FileText, Trash2, Eye, Wand2 } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Edit2, Save, GripVertical, Linkedin, Github, FileText, Trash2, Eye, Wand2 } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "../components/ui/tooltip";
 // import { createCaseStudyFromTemplate } from "../utils/caseStudyTemplate"; // REMOVED - using unified project creator
 import { loadMigratedProjects } from "../utils/migrateVideoFields";
@@ -3980,16 +3980,20 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
               }}
             >
               <button
-                onClick={scrollToCaseStudies}
+                onClick={isNearBottom ? scrollToTop : scrollToCaseStudies}
                 onMouseDown={(e) => {
                   // Prevent default to stop focus on mouse click
                   // onClick will still fire normally
                   e.preventDefault();
                 }}
                 className="relative rounded-full w-14 h-14 flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-300 bg-background/80 backdrop-blur-sm hover:bg-background/60 cursor-pointer focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                aria-label="Scroll to case studies"
+                aria-label={isNearBottom ? "Scroll to top" : "Scroll to case studies"}
               >
-                <ChevronDown className="w-6 h-6 text-foreground stroke-[3]" />
+                {isNearBottom ? (
+                  <ChevronUp className="w-6 h-6 text-foreground stroke-[3]" />
+                ) : (
+                  <ChevronDown className="w-6 h-6 text-foreground stroke-[3]" />
+                )}
               </button>
             </motion.div>
           </motion.div>
