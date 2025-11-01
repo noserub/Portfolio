@@ -3948,7 +3948,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 1, duration: 0.6 }}
-            className="flex justify-center py-8 relative z-10"
+            className="flex justify-center py-8 mt-2 relative z-10"
           >
             <motion.div
               className="rounded-full p-[2px] inline-block flex-shrink-0"
