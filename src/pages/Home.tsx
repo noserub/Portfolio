@@ -2497,84 +2497,81 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
   
   // Detect scroll direction and position to determine chevron state
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    
-    let ticking = false;
+    console.log('🎯 Setting up scroll listener...');
     
     const handleScroll = () => {
-      if (!ticking) {
-        window.requestAnimationFrame(() => {
-          const scrollTop = window.scrollY || document.documentElement.scrollTop;
-          const windowHeight = window.innerHeight;
-          const documentHeight = document.documentElement.scrollHeight;
-          
-          // Track scroll direction - update only when position actually changes
-          const prevScrollTop = scrollPositionRef.current;
-          
-          // Update direction if position changed
-          if (prevScrollTop !== scrollTop) {
-            if (scrollTop > prevScrollTop) {
-              scrollDirectionRef.current = 'down';
-            } else {
-              scrollDirectionRef.current = 'up';
-            }
-          }
-          
-          // Initialize direction if not set
-          if (scrollDirectionRef.current === null) {
-            scrollDirectionRef.current = scrollTop > 0 ? 'down' : 'down';
-          }
-          
-          scrollPositionRef.current = scrollTop;
-          
-          // Determine if near top or bottom
-          const threshold = 100; // Distance from top/bottom to consider "at" that position
-          const isNearTop = scrollTop < threshold;
-          const distanceFromBottom = documentHeight - scrollTop - windowHeight;
-          const isNearBottom = distanceFromBottom < threshold;
-          
-          // Logic per user requirements:
-          // - At top OR scrolling down → down chevron → scroll to case studies
-          // - At bottom OR scrolling up → up chevron → scroll to top
-          let shouldShowUp = false;
-          
-          if (isNearTop) {
-            // At top → always show down
-            shouldShowUp = false;
-          } else if (isNearBottom) {
-            // At bottom → always show up
-            shouldShowUp = true;
-          } else {
-            // In middle: follow scroll direction
-            // Scrolling down → show down, Scrolling up → show up
-            shouldShowUp = scrollDirectionRef.current === 'up';
-          }
-          
-          // Always update state
-          setShouldShowUpChevron(shouldShowUp);
-          
-          // Debug logging
-          console.log('📊 Scroll State:', {
-            scrollTop: Math.round(scrollTop),
-            isNearTop,
-            isNearBottom,
-            direction: scrollDirectionRef.current,
-            shouldShowUp,
-            distanceFromBottom: Math.round(distanceFromBottom)
-          });
-          
-          ticking = false;
-        });
-        ticking = true;
+      console.log('🔄 Scroll event fired!');
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
+      const windowHeight = window.innerHeight;
+      const documentHeight = Math.max(
+        document.body.scrollHeight,
+        document.documentElement.scrollHeight,
+        document.body.offsetHeight,
+        document.documentElement.offsetHeight,
+        document.body.clientHeight,
+        document.documentElement.clientHeight
+      );
+      
+      // Track scroll direction
+      const prevScrollTop = scrollPositionRef.current;
+      
+      // Update direction if position changed
+      if (prevScrollTop !== scrollTop) {
+        scrollDirectionRef.current = scrollTop > prevScrollTop ? 'down' : 'up';
+        console.log('📐 Direction changed to:', scrollDirectionRef.current);
       }
+      
+      // Initialize direction if not set
+      if (scrollDirectionRef.current === null) {
+        scrollDirectionRef.current = scrollTop > 0 ? 'down' : 'down';
+      }
+      
+      scrollPositionRef.current = scrollTop;
+      
+      // Determine if near top or bottom
+      const threshold = 100;
+      const isNearTop = scrollTop < threshold;
+      const distanceFromBottom = documentHeight - scrollTop - windowHeight;
+      const isNearBottom = distanceFromBottom < threshold;
+      
+      // Logic per user requirements:
+      // - At top OR scrolling down → down chevron → scroll to case studies
+      // - At bottom OR scrolling up → up chevron → scroll to top
+      let shouldShowUp = false;
+      
+      if (isNearTop) {
+        shouldShowUp = false;
+      } else if (isNearBottom) {
+        shouldShowUp = true;
+      } else {
+        shouldShowUp = scrollDirectionRef.current === 'up';
+      }
+      
+      console.log('📊 Scroll State:', {
+        scrollTop: Math.round(scrollTop),
+        isNearTop,
+        isNearBottom,
+        direction: scrollDirectionRef.current,
+        shouldShowUp,
+        distanceFromBottom: Math.round(distanceFromBottom)
+      });
+      
+      setShouldShowUpChevron(shouldShowUp);
     };
     
-    // Attach scroll listener
-    window.addEventListener('scroll', handleScroll, { passive: true });
+    // Try multiple ways to attach the listener
+    window.addEventListener('scroll', handleScroll, { passive: true, capture: true });
+    document.addEventListener('scroll', handleScroll, { passive: true, capture: true });
+    document.documentElement.addEventListener('scroll', handleScroll, { passive: true, capture: true });
+    
+    console.log('✅ Scroll listeners attached');
     handleScroll(); // Check initial position
     
     return () => {
-      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('scroll', handleScroll, { capture: true } as EventListenerOptions);
+      document.removeEventListener('scroll', handleScroll, { capture: true } as EventListenerOptions);
+      document.documentElement.removeEventListener('scroll', handleScroll, { capture: true } as EventListenerOptions);
+      console.log('🧹 Scroll listeners removed');
     };
   }, []);
 
