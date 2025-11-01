@@ -2484,7 +2484,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
   
   // State to track scroll direction and position
   const [shouldShowUpChevron, setShouldShowUpChevron] = useState(false);
-  const scrollPositionRef = useRef(0);
+  const scrollPositionRef = useRef(typeof window !== 'undefined' ? window.scrollY : 0);
   const scrollDirectionRef = useRef<'up' | 'down' | null>(null);
   
   // Scroll to top of page
@@ -2502,19 +2502,23 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
       const windowHeight = window.innerHeight;
       const documentHeight = document.documentElement.scrollHeight;
       
-      // Track scroll direction
+      // Track scroll direction - update only when position actually changes
       const prevScrollTop = scrollPositionRef.current;
-      if (prevScrollTop >= 0 && prevScrollTop !== scrollTop) {
+      
+      // Update direction if position changed
+      if (prevScrollTop !== scrollTop) {
         if (scrollTop > prevScrollTop) {
           scrollDirectionRef.current = 'down';
-        } else if (scrollTop < prevScrollTop) {
+        } else {
           scrollDirectionRef.current = 'up';
         }
       }
       
-      // Initialize direction if not set yet
-      if (!scrollDirectionRef.current) {
-        scrollDirectionRef.current = scrollTop > 0 ? 'down' : 'down';
+      // Initialize direction on first scroll
+      if (scrollDirectionRef.current === null && scrollTop > 0) {
+        scrollDirectionRef.current = 'down';
+      } else if (scrollDirectionRef.current === null && scrollTop === 0) {
+        scrollDirectionRef.current = 'down'; // Default to down when at top
       }
       
       scrollPositionRef.current = scrollTop;
@@ -2522,7 +2526,8 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
       // Determine if near top or bottom
       const threshold = 100; // Distance from top/bottom to consider "at" that position
       const isNearTop = scrollTop < threshold;
-      const isNearBottom = (documentHeight - scrollTop - windowHeight) < threshold;
+      const distanceFromBottom = documentHeight - scrollTop - windowHeight;
+      const isNearBottom = distanceFromBottom < threshold;
       
       // Logic per user requirements:
       // - At top OR scrolling down → down chevron → scroll to case studies
@@ -2537,20 +2542,17 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         shouldShowUp = true;
       } else {
         // In middle: follow scroll direction
-        // If scrolling up → show up, if scrolling down → show down
-        // Default to down if direction not determined yet
+        // Scrolling down → show down, Scrolling up → show up
         shouldShowUp = scrollDirectionRef.current === 'up';
       }
       
-      console.log('Scroll detection:', {
-        scrollTop,
-        isNearTop,
-        isNearBottom,
-        direction: scrollDirectionRef.current,
-        shouldShowUp
+      // Only update state if it changed to avoid unnecessary re-renders
+      setShouldShowUpChevron(prev => {
+        if (prev !== shouldShowUp) {
+          return shouldShowUp;
+        }
+        return prev;
       });
-      
-      setShouldShowUpChevron(shouldShowUp);
     };
     
     window.addEventListener('scroll', handleScroll, { passive: true });
@@ -4061,20 +4063,16 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
               <button
                 type="button"
                 onClick={(e) => {
-                  e.preventDefault();
                   e.stopPropagation();
-                  console.log('Button clicked, shouldShowUpChevron:', shouldShowUpChevron);
                   if (shouldShowUpChevron) {
-                    console.log('Scrolling to top');
                     scrollToTop();
                   } else {
-                    console.log('Scrolling to case studies');
                     scrollToCaseStudies();
                   }
                 }}
                 onMouseDown={(e) => {
                   // Prevent default to stop focus on mouse click
-                  // Don't prevent default on the button itself, let onClick handle it
+                  e.preventDefault();
                   e.stopPropagation();
                 }}
                 className="relative rounded-full w-14 h-14 flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-300 bg-background/80 backdrop-blur-sm hover:bg-background/60 cursor-pointer focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary z-20 pointer-events-auto"
