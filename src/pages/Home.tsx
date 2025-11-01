@@ -2511,7 +2511,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     }
   }, []);
   
-  // Detect scroll direction and position to determine chevron state
+  // Detect scroll direction and position to determine chevron state - v2.0
   useEffect(() => {
     const handleScroll = () => {
       const scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
@@ -4036,7 +4036,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
           </div>
         </section>
 
-        {/* Scroll Indicator Arrow - Dynamic up/down chevron based on scroll position */}
+        {/* Scroll Indicator Arrow - Dynamic up/down chevron based on scroll position - v2.0 */}
         {!isEditMode && (
           <motion.div
             initial={{ opacity: 0, y: -20 }}
