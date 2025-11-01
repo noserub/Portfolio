@@ -3981,7 +3981,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
             >
               <button
                 onClick={scrollToCaseStudies}
-                className="relative rounded-full w-14 h-14 flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-300 bg-background/80 backdrop-blur-sm hover:bg-background/60 cursor-pointer"
+                className="relative rounded-full w-14 h-14 flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-300 bg-background/80 backdrop-blur-sm hover:bg-background/60 cursor-pointer focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                 aria-label="Scroll to case studies"
               >
                 <ChevronDown className="w-6 h-6 text-foreground stroke-[3]" />
