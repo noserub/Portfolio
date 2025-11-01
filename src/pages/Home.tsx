@@ -3847,9 +3847,9 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         </motion.div>
 
         {/* Quick Stats Section */}
-        <section className="w-full mx-auto pt-8 pb-12 relative z-10">
+        <section className="w-full pt-8 pb-12 relative z-10 px-6">
           <div 
-            className="flex gap-6 overflow-x-auto scrollbar-hide py-4 px-6 snap-x snap-mandatory scroll-smooth"
+            className="flex gap-6 overflow-x-auto scrollbar-hide py-4 snap-x snap-mandatory scroll-smooth"
             style={{
               scrollbarWidth: "none",
               msOverflowStyle: "none",
@@ -3905,8 +3905,8 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                 </motion.span>
                 
                 {/* Content */}
-                <div className="flex-1 flex flex-col justify-center">
-                  <h3 className="text-base md:text-lg font-semibold text-foreground mb-1">
+                <div className="flex-1 flex flex-col justify-center min-w-0">
+                  <h3 className="text-base md:text-lg font-semibold text-foreground mb-1 whitespace-nowrap">
                     {stat.label}
                   </h3>
                   <p className="text-sm md:text-base text-muted-foreground">
