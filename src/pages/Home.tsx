@@ -3951,12 +3951,17 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
             className="flex justify-center py-8 relative z-10"
           >
             <motion.div
+              className="rounded-full p-[2px] inline-block flex-shrink-0"
               animate={{
-                backgroundImage: [
+                background: [
                   "linear-gradient(0deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
-                  "linear-gradient(90deg, #8b5cf6, #3b82f6, #fbbf24, #ec4899)",
-                  "linear-gradient(180deg, #3b82f6, #fbbf24, #ec4899, #8b5cf6)",
-                  "linear-gradient(270deg, #fbbf24, #ec4899, #8b5cf6, #3b82f6)",
+                  "linear-gradient(45deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
+                  "linear-gradient(90deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
+                  "linear-gradient(135deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
+                  "linear-gradient(180deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
+                  "linear-gradient(225deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
+                  "linear-gradient(270deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
+                  "linear-gradient(315deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
                   "linear-gradient(360deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
                 ],
               }}
