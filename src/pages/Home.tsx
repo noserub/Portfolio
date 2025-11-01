@@ -3998,7 +3998,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         {/* Case Studies Carousel */}
         <div 
           ref={caseStudiesSectionRef}
-          className="w-full max-w-[1400px] mx-auto mb-16 mt-16 md:mt-32 relative z-10">
+          className="w-full max-w-[1400px] mx-auto mb-16 mt-12 md:mt-24 relative z-10">
           <motion.h2
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
