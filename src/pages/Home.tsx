@@ -3105,7 +3105,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     <div className="min-h-screen relative">
 
       {/* Hero Section */}
-      <section className="min-h-screen flex flex-col items-center justify-center px-6 pt-20 md:pt-32 pb-20">
+      <section className="min-h-screen flex flex-col items-center justify-center px-6 pt-20 md:pt-32 pb-28 md:pb-36">
         
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -3200,7 +3200,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2, duration: 0.5 }}
-          className="relative p-8 bg-gradient-to-br from-slate-50/80 via-blue-50/60 to-purple-50/40 dark:from-slate-900/20 dark:via-blue-900/10 dark:to-purple-900/10 backdrop-blur-sm rounded-3xl border border-border shadow-2xl overflow-hidden transition-all duration-500 max-w-4xl mx-auto mb-6 md:mb-12"
+          className="relative p-8 bg-gradient-to-br from-slate-50/80 via-blue-50/60 to-purple-50/40 dark:from-slate-900/20 dark:via-blue-900/10 dark:to-purple-900/10 backdrop-blur-sm rounded-3xl border border-border shadow-2xl overflow-hidden transition-all duration-500 max-w-4xl mx-auto mb-4 md:mb-6"
         >
           {/* Decorative Curved Brushstrokes - Far right near dots, bleeding off edges */}
           <svg
@@ -3845,6 +3845,90 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
             </motion.div>
           </div>
         </motion.div>
+
+        {/* Quick Stats Section */}
+        <section className="w-full pt-4 pb-12 relative z-10 px-6">
+          <div className="max-w-4xl mx-auto">
+            <div 
+              className="flex gap-6 overflow-x-auto scrollbar-hide py-4 pl-8 snap-x snap-mandatory scroll-smooth"
+              style={{
+                scrollbarWidth: "none",
+                msOverflowStyle: "none",
+              }}
+            >
+            {[
+              { 
+                number: "4", 
+                label: "AI native apps designed",
+                description: "Responsive apps with RAG, MCP"
+              },
+              { 
+                number: "5+", 
+                label: "0-1 product launches",
+                description: "From ambiguity to product"
+              },
+              { 
+                number: "9", 
+                label: "US patents",
+                description: "Innovation and IP contribution"
+              },
+              { 
+                number: "100+", 
+                label: "Enterprise sites unified",
+                description: "Systems thinking at scale"
+              },
+              { 
+                number: "100M+", 
+                label: "Happy People",
+                description: "Design at scale"
+              }
+            ].map((stat, index) => (
+              <div
+                key={index}
+                className="bg-gradient-to-br from-slate-50/80 via-white/60 to-gray-50/40 dark:from-slate-800/30 dark:via-slate-900/25 dark:to-slate-800/20 backdrop-blur-md rounded-3xl border border-border/20 shadow-lg hover:shadow-xl transition-shadow duration-300 px-4 py-4 flex flex-row items-center justify-center gap-4 text-left snap-center flex-shrink-0 w-[calc(100vw-144px)] sm:w-[280px] md:w-[336px]"
+              >
+                {/* Number - Left */}
+                <motion.span
+                  className="flex-shrink-0 block font-extrabold tracking-tight leading-none"
+                  style={{
+                    fontSize: '44px',
+                    backgroundClip: "text",
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                  }}
+                  animate={{
+                    backgroundImage: [
+                      "linear-gradient(45deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)",
+                      "linear-gradient(90deg, #8b5cf6 0%, #3b82f6 50%, #fbbf24 100%)",
+                      "linear-gradient(135deg, #3b82f6 0%, #fbbf24 50%, #ec4899 100%)",
+                      "linear-gradient(180deg, #fbbf24 0%, #ec4899 50%, #8b5cf6 100%)",
+                      "linear-gradient(225deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)",
+                      "linear-gradient(45deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)",
+                    ],
+                  }}
+                  transition={{
+                    duration: 8,
+                    repeat: Infinity,
+                    ease: "linear",
+                  }}
+                >
+                  {stat.number}
+                </motion.span>
+                
+                {/* Content */}
+                <div className="flex-1 flex flex-col justify-center min-w-0">
+                  <h3 className="text-base md:text-lg font-semibold text-foreground mb-1 whitespace-nowrap">
+                    {stat.label}
+                  </h3>
+                  <p className="text-sm md:text-base text-muted-foreground">
+                    {stat.description}
+                  </p>
+                </div>
+              </div>
+            ))}
+            </div>
+          </div>
+        </section>
 
         {/* Case Studies Carousel */}
         <div className="w-full max-w-[1400px] mx-auto mb-16 mt-16 md:mt-32 relative z-10">
