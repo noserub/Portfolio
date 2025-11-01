@@ -2481,6 +2481,36 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
       });
     }
   }, []);
+  
+  // State to track if user is near bottom of page
+  const [isNearBottom, setIsNearBottom] = useState(false);
+  
+  // Scroll to top of page
+  const scrollToTop = useCallback(() => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  }, []);
+  
+  // Detect if user is near bottom of page
+  useEffect(() => {
+    const handleScroll = () => {
+      const windowHeight = window.innerHeight;
+      const documentHeight = document.documentElement.scrollHeight;
+      const scrollTop = window.scrollY || document.documentElement.scrollTop;
+      const scrollBottom = scrollTop + windowHeight;
+      
+      // Consider "near bottom" if within 200px of the bottom
+      const threshold = 200;
+      setIsNearBottom(documentHeight - scrollBottom < threshold);
+    };
+    
+    window.addEventListener('scroll', handleScroll);
+    handleScroll(); // Check initial position
+    
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   
   // Track window width for conditional arrow rendering
