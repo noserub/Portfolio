@@ -3850,7 +3850,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         <section className="w-full pt-4 pb-12 relative z-10 px-6">
           <div className="max-w-4xl mx-auto">
             <div 
-              className="flex gap-6 overflow-x-auto scrollbar-hide py-4 md:pl-8 snap-x snap-mandatory scroll-smooth"
+              className="flex gap-6 overflow-x-auto scrollbar-hide py-4 pl-8 snap-x snap-mandatory scroll-smooth"
               style={{
                 scrollbarWidth: "none",
                 msOverflowStyle: "none",
@@ -3858,14 +3858,14 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
             >
             {[
               { 
+                number: "5+", 
+                label: "0-1 product launches",
+                description: "From ambiguity to product"
+              },
+              { 
                 number: "9", 
                 label: "US patents",
                 description: "Innovation and IP contribution"
-              },
-              { 
-                number: "5+", 
-                label: "0-1 product launches",
-                description: "From ambiguity to product-market fit"
               },
               { 
                 number: "20+", 
@@ -3875,17 +3875,17 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
               { 
                 number: "100+", 
                 label: "Enterprise sites unified",
-                description: "Platform and systems thinking at scale"
+                description: "Systems thinking at scale"
               },
               { 
                 number: "100M+", 
                 label: "People delighted",
-                description: "Design at scale in consumer mobile platforms"
+                description: "Mobile design at scale"
               }
             ].map((stat, index) => (
               <div
                 key={index}
-                className="bg-gradient-to-br from-slate-50/80 via-white/60 to-gray-50/40 dark:from-slate-800/30 dark:via-slate-900/25 dark:to-slate-800/20 backdrop-blur-md rounded-3xl border border-border/20 shadow-lg hover:shadow-xl transition-shadow duration-300 px-4 py-4 flex flex-row items-center justify-center gap-4 text-left snap-center flex-shrink-0 w-[calc(100vw-96px)] sm:w-[280px] md:w-[336px]"
+                className="bg-gradient-to-br from-slate-50/80 via-white/60 to-gray-50/40 dark:from-slate-800/30 dark:via-slate-900/25 dark:to-slate-800/20 backdrop-blur-md rounded-3xl border border-border/20 shadow-lg hover:shadow-xl transition-shadow duration-300 px-4 py-4 flex flex-row items-center justify-center gap-4 text-left snap-center flex-shrink-0 w-[calc(100vw-144px)] sm:w-[280px] md:w-[336px]"
               >
                 {/* Number - Left */}
                 <motion.span
