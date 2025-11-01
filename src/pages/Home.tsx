@@ -2504,16 +2504,19 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
       
       // Track scroll direction
       const prevScrollTop = scrollPositionRef.current;
-      if (prevScrollTop > 0) { // Only track direction after initial scroll
+      if (prevScrollTop >= 0 && prevScrollTop !== scrollTop) {
         if (scrollTop > prevScrollTop) {
           scrollDirectionRef.current = 'down';
         } else if (scrollTop < prevScrollTop) {
           scrollDirectionRef.current = 'up';
         }
-      } else {
-        // On first scroll, assume we're scrolling down from top
-        scrollDirectionRef.current = 'down';
       }
+      
+      // Initialize direction if not set yet
+      if (!scrollDirectionRef.current) {
+        scrollDirectionRef.current = scrollTop > 0 ? 'down' : 'down';
+      }
+      
       scrollPositionRef.current = scrollTop;
       
       // Determine if near top or bottom
@@ -2534,9 +2537,18 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         shouldShowUp = true;
       } else {
         // In middle: follow scroll direction
-        // Scrolling down → show down, Scrolling up → show up
+        // If scrolling up → show up, if scrolling down → show down
+        // Default to down if direction not determined yet
         shouldShowUp = scrollDirectionRef.current === 'up';
       }
+      
+      console.log('Scroll detection:', {
+        scrollTop,
+        isNearTop,
+        isNearBottom,
+        direction: scrollDirectionRef.current,
+        shouldShowUp
+      });
       
       setShouldShowUpChevron(shouldShowUp);
     };
