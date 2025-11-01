@@ -3848,13 +3848,14 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
 
         {/* Quick Stats Section */}
         <section className="w-full pt-8 pb-12 relative z-10 px-6">
-          <div 
-            className="flex gap-6 overflow-x-auto scrollbar-hide py-4 snap-x snap-mandatory scroll-smooth"
-            style={{
-              scrollbarWidth: "none",
-              msOverflowStyle: "none",
-            }}
-          >
+          <div className="max-w-4xl mx-auto">
+            <div 
+              className="flex gap-6 overflow-x-auto scrollbar-hide py-4 snap-x snap-mandatory scroll-smooth"
+              style={{
+                scrollbarWidth: "none",
+                msOverflowStyle: "none",
+              }}
+            >
             {[
               { 
                 number: "9", 
@@ -3915,6 +3916,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                 </div>
               </div>
             ))}
+            </div>
           </div>
         </section>
 
