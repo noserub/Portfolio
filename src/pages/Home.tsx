@@ -3847,8 +3847,14 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         </motion.div>
 
         {/* Quick Stats Section */}
-        <section className="w-full max-w-[1400px] mx-auto pt-20 md:pt-28 lg:pt-36 pb-24 md:pb-32 lg:pb-40 relative z-10">
-          <div className="px-4 grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-10">
+        <section className="w-full mx-auto pt-8 pb-12 relative z-10">
+          <div 
+            className="flex gap-6 overflow-x-auto scrollbar-hide py-4 px-6 snap-x snap-mandatory scroll-smooth"
+            style={{
+              scrollbarWidth: "none",
+              msOverflowStyle: "none",
+            }}
+          >
             {[
               { 
                 number: "9", 
@@ -3868,9 +3874,9 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
             ].map((stat, index) => (
               <div
                 key={index}
-                className="bg-gradient-to-br from-slate-50/80 via-white/60 to-gray-50/40 dark:from-slate-800/30 dark:via-slate-900/25 dark:to-slate-800/20 backdrop-blur-md rounded-3xl border border-border/20 shadow-lg hover:shadow-xl transition-shadow duration-300 p-4 md:p-5 flex flex-row md:flex-col items-center justify-center gap-4 md:gap-3 text-left md:text-center w-full md:max-w-[calc((100%-4rem)/3-0.5rem)]"
+                className="bg-gradient-to-br from-slate-50/80 via-white/60 to-gray-50/40 dark:from-slate-800/30 dark:via-slate-900/25 dark:to-slate-800/20 backdrop-blur-md rounded-3xl border border-border/20 shadow-lg hover:shadow-xl transition-shadow duration-300 p-4 md:p-5 flex flex-row items-center justify-center gap-4 text-left snap-center flex-shrink-0 w-[280px] md:w-[320px]"
               >
-                {/* Number - Left on mobile, Top on desktop */}
+                {/* Number - Left */}
                 <motion.span
                   className="flex-shrink-0 block font-extrabold tracking-tight leading-none"
                   style={{
@@ -3899,8 +3905,8 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                 </motion.span>
                 
                 {/* Content */}
-                <div className="flex-1 flex flex-col md:items-center justify-center">
-                  <h3 className="text-base md:text-lg lg:text-xl font-semibold text-foreground mb-1">
+                <div className="flex-1 flex flex-col justify-center">
+                  <h3 className="text-base md:text-lg font-semibold text-foreground mb-1">
                     {stat.label}
                   </h3>
                   <p className="text-sm md:text-base text-muted-foreground">
