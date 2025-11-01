@@ -3950,43 +3950,42 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
             transition={{ delay: 1, duration: 0.6 }}
             className="flex justify-center py-8 relative z-10"
           >
-            <motion.button
-              onClick={scrollToCaseStudies}
-              className="group flex flex-col items-center gap-2 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded-full p-3 transition-all"
-              aria-label="Scroll to case studies"
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.95 }}
+            <motion.div
+              animate={{
+                backgroundImage: [
+                  "linear-gradient(0deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
+                  "linear-gradient(90deg, #8b5cf6, #3b82f6, #fbbf24, #ec4899)",
+                  "linear-gradient(180deg, #3b82f6, #fbbf24, #ec4899, #8b5cf6)",
+                  "linear-gradient(270deg, #fbbf24, #ec4899, #8b5cf6, #3b82f6)",
+                  "linear-gradient(360deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
+                ],
+              }}
+              transition={{
+                duration: 8,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
             >
-              <motion.div
+              <motion.button
+                onClick={scrollToCaseStudies}
+                className="relative rounded-full w-14 h-14 flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-300 bg-background/80 backdrop-blur-sm hover:bg-background/60 cursor-pointer"
+                aria-label="Scroll to case studies"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
                 animate={{
                   y: [0, 8, 0],
                 }}
                 transition={{
-                  duration: 2,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                }}
-                className="relative"
-              >
-                <div className="absolute inset-0 bg-gradient-to-br from-purple-500 via-pink-500 to-blue-500 rounded-full blur-md opacity-50 group-hover:opacity-75 transition-opacity" />
-                <div className="relative w-14 h-14 rounded-full bg-gradient-to-br from-purple-500 via-pink-500 to-blue-500 flex items-center justify-center shadow-lg border-2 border-background">
-                  <ChevronDown className="w-7 h-7 text-white" />
-                </div>
-              </motion.div>
-              <motion.span
-                className="text-xs font-medium text-muted-foreground group-hover:text-foreground transition-colors"
-                animate={{
-                  opacity: [0.7, 1, 0.7],
-                }}
-                transition={{
-                  duration: 2,
-                  repeat: Infinity,
-                  ease: "easeInOut",
+                  y: {
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  },
                 }}
               >
-                View work
-              </motion.span>
-            </motion.button>
+                <ChevronDown className="w-6 h-6 text-foreground" />
+              </motion.button>
+            </motion.div>
           </motion.div>
         )}
 
