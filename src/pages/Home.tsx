@@ -4041,7 +4041,14 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
               }}
             >
               <button
-                onClick={shouldShowUpChevron ? scrollToTop : scrollToCaseStudies}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (shouldShowUpChevron) {
+                    scrollToTop();
+                  } else {
+                    scrollToCaseStudies();
+                  }
+                }}
                 onMouseDown={(e) => {
                   // Prevent default to stop focus on mouse click
                   // onClick will still fire normally
