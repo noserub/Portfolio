@@ -2489,10 +2489,27 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
   
   // Scroll to top of page
   const scrollToTop = useCallback(() => {
+    console.log('🚀 Scrolling to top...');
+    // Try multiple methods to ensure it works
     window.scrollTo({
       top: 0,
+      left: 0,
       behavior: 'smooth'
     });
+    // Also try document.documentElement as fallback
+    document.documentElement.scrollTo({
+      top: 0,
+      left: 0,
+      behavior: 'smooth'
+    });
+    // And document.body as another fallback
+    if (document.body) {
+      document.body.scrollTo({
+        top: 0,
+        left: 0,
+        behavior: 'smooth'
+      });
+    }
   }, []);
   
   // Detect scroll direction and position to determine chevron state
