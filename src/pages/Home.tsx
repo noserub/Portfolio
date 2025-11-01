@@ -3850,7 +3850,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         <section className="w-full pt-8 pb-12 relative z-10 px-6">
           <div className="max-w-4xl mx-auto">
             <div 
-              className="flex gap-6 overflow-x-auto scrollbar-hide py-4 pl-8 snap-x snap-mandatory scroll-smooth"
+              className="flex gap-6 overflow-x-auto scrollbar-hide py-4 snap-x snap-mandatory scroll-smooth"
               style={{
                 scrollbarWidth: "none",
                 msOverflowStyle: "none",
