@@ -3847,7 +3847,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         </motion.div>
 
         {/* Quick Stats Section */}
-        <section className="w-full pt-6 pb-12 relative z-10 px-6">
+        <section className="w-full pt-4 pb-12 relative z-10 px-6">
           <div className="max-w-4xl mx-auto">
             <div 
               className="flex gap-6 overflow-x-auto scrollbar-hide py-4 pl-8 snap-x snap-mandatory scroll-smooth"
