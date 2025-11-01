@@ -4036,7 +4036,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
           </div>
         </section>
 
-        {/* Scroll Indicator Arrow */}
+        {/* Scroll Indicator Arrow - Dynamic up/down chevron based on scroll position */}
         {!isEditMode && (
           <motion.div
             initial={{ opacity: 0, y: -20 }}
