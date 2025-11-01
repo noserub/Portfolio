@@ -2511,7 +2511,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     }
   }, []);
   
-  // Detect scroll direction and position to determine chevron state - v2.0
+  // Detect scroll direction and position to determine chevron state - v2.1
   useEffect(() => {
     const handleScroll = () => {
       const scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
