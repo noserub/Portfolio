@@ -2482,8 +2482,10 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     }
   }, []);
   
-  // State to track if user is near bottom of page
-  const [isNearBottom, setIsNearBottom] = useState(false);
+  // State to track scroll direction and position
+  const [shouldShowUpChevron, setShouldShowUpChevron] = useState(false);
+  const scrollPositionRef = useRef(0);
+  const scrollDirectionRef = useRef<'up' | 'down' | null>(null);
   
   // Scroll to top of page
   const scrollToTop = useCallback(() => {
@@ -2493,20 +2495,33 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     });
   }, []);
   
-  // Detect if user is near bottom of page
+  // Detect scroll direction and position to determine chevron state
   useEffect(() => {
     const handleScroll = () => {
+      const scrollTop = window.scrollY || document.documentElement.scrollTop;
       const windowHeight = window.innerHeight;
       const documentHeight = document.documentElement.scrollHeight;
-      const scrollTop = window.scrollY || document.documentElement.scrollTop;
-      const scrollBottom = scrollTop + windowHeight;
       
-      // Consider "near bottom" if within 200px of the bottom
-      const threshold = 200;
-      setIsNearBottom(documentHeight - scrollBottom < threshold);
+      // Track scroll direction
+      if (scrollTop > scrollPositionRef.current) {
+        scrollDirectionRef.current = 'down';
+      } else if (scrollTop < scrollPositionRef.current) {
+        scrollDirectionRef.current = 'up';
+      }
+      scrollPositionRef.current = scrollTop;
+      
+      // Determine if near top or bottom
+      const threshold = 100; // Distance from top/bottom to consider "at" that position
+      const isNearTop = scrollTop < threshold;
+      const isNearBottom = (documentHeight - scrollTop - windowHeight) < threshold;
+      
+      // Show up chevron if: at bottom OR (scrolling up AND not at top)
+      // Show down chevron if: at top OR (scrolling down AND not at bottom)
+      const showUp = isNearBottom || (scrollDirectionRef.current === 'up' && !isNearTop);
+      setShouldShowUpChevron(showUp);
     };
     
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
     handleScroll(); // Check initial position
     
     return () => window.removeEventListener('scroll', handleScroll);
@@ -4010,16 +4025,16 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
               }}
             >
               <button
-                onClick={isNearBottom ? scrollToTop : scrollToCaseStudies}
+                onClick={shouldShowUpChevron ? scrollToTop : scrollToCaseStudies}
                 onMouseDown={(e) => {
                   // Prevent default to stop focus on mouse click
                   // onClick will still fire normally
                   e.preventDefault();
                 }}
                 className="relative rounded-full w-14 h-14 flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-300 bg-background/80 backdrop-blur-sm hover:bg-background/60 cursor-pointer focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                aria-label={isNearBottom ? "Scroll to top" : "Scroll to case studies"}
+                aria-label={shouldShowUpChevron ? "Scroll to top" : "Scroll to case studies"}
               >
-                {isNearBottom ? (
+                {shouldShowUpChevron ? (
                   <ChevronUp className="w-6 h-6 text-foreground stroke-[3]" />
                 ) : (
                   <ChevronDown className="w-6 h-6 text-foreground stroke-[3]" />
