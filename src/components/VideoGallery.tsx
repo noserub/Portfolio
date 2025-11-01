@@ -323,7 +323,27 @@ export function VideoGallery({
     
     for (const file of files) {
       try {
-        // Use placeholder URL for videos (videos are typically larger, so we store them as placeholders)
+        // Check file type before attempting upload
+        const isVideo = file.type.startsWith('video/');
+        if (!isVideo) {
+          alert(`Please select a video file. "${file.name}" is not a video file.`);
+          continue;
+        }
+        
+        // Check for unsupported formats
+        const unsupportedFormats = ['video/quicktime', 'video/x-msvideo', 'video/x-matroska'];
+        if (unsupportedFormats.includes(file.type.toLowerCase())) {
+          alert(
+            `Video format "${file.name.split('.').pop()?.toUpperCase()}" is not supported.\n\n` +
+            `Please convert your video to MP4 format and try again.\n\n` +
+            `You can convert videos using:\n` +
+            `- Online: CloudConvert, Convertio, or similar services\n` +
+            `- Desktop: HandBrake (free), or QuickTime (macOS)`
+          );
+          continue;
+        }
+        
+        // Upload video file
         const url = await uploadImage(file, 'video');
         
         const newVideo: VideoItem = {
@@ -333,9 +353,12 @@ export function VideoGallery({
         };
         
         onVideosChange([...videos, newVideo]);
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error adding video:', error);
-        alert(`Failed to add video: ${file.name}`);
+        // Only show alert if it's not already shown by uploadImage
+        if (!error.message || !error.message.includes('not supported')) {
+          alert(`Failed to add video: ${file.name}\n\n${error.message || 'Unknown error occurred'}`);
+        }
       }
     }
   };

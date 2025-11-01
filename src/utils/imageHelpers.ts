@@ -117,7 +117,7 @@ export function convertBase64ToPlaceholder(base64Url: string, category: 'portrai
  */
 export async function uploadImage(
   file: File, 
-  category: 'portrait' | 'landscape' | 'hero' | 'diagram' = 'landscape'
+  category: 'portrait' | 'landscape' | 'hero' | 'diagram' | 'video' = 'landscape'
 ): Promise<string> {
   try {
     console.log('🚀 Starting optimized image upload:', { 
@@ -126,6 +126,26 @@ export async function uploadImage(
       type: file.type,
       category 
     });
+    
+    // Check if this is a video file
+    const isVideo = category === 'video' || file.type.startsWith('video/');
+    
+    // For video files, check if format is supported
+    const supportedVideoTypes = ['video/mp4', 'video/webm', 'video/ogg'];
+    const supportedVideoExtensions = ['.mp4', '.webm', '.ogg', '.ogv'];
+    
+    if (isVideo) {
+      const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
+      const isSupportedType = supportedVideoTypes.includes(file.type) || 
+                              supportedVideoExtensions.includes(fileExtension);
+      
+      if (!isSupportedType) {
+        const errorMsg = `Video format "${file.type || fileExtension}" is not supported. Please use MP4, WebM, or OGG format.`;
+        console.error('❌ Unsupported video format:', errorMsg);
+        alert(errorMsg);
+        throw new Error(errorMsg);
+      }
+    }
     
     // Import Supabase client and image optimizer
     const { supabase } = await import('../lib/supabaseClient');
@@ -137,12 +157,19 @@ export async function uploadImage(
       .replace(/[^a-zA-Z0-9.-]/g, '_') // Replace spaces and special chars with underscores
       .replace(/_+/g, '_') // Replace multiple underscores with single underscore
       .replace(/^_|_$/g, ''); // Remove leading/trailing underscores
-    const filename = `${timestamp}_${sanitizedName}`;
+    
+    // For video files, ensure proper extension
+    let filename = `${timestamp}_${sanitizedName}`;
+    if (isVideo && !filename.match(/\.(mp4|webm|ogg|ogv)$/i)) {
+      // Add .mp4 extension if missing (default for videos)
+      filename = `${filename}.mp4`;
+    }
     
     console.log('📤 Uploading to Supabase Storage with optimization:', { 
       filename, 
       bucket: 'portfolio-images',
-      category 
+      category,
+      isVideo
     });
     
     // Upload to Supabase Storage
@@ -150,15 +177,28 @@ export async function uploadImage(
       .from('portfolio-images')
       .upload(filename, file, {
         cacheControl: '3600',
-        upsert: false
+        upsert: false,
+        contentType: file.type || (isVideo ? 'video/mp4' : undefined)
       });
     
     if (error) {
       console.error('❌ Supabase upload error:', error);
       console.error('❌ Error details:', { message: error.message, statusCode: error.statusCode });
-      // Fallback to placeholder if upload fails
-      console.log('🔄 Falling back to placeholder URL');
-      return generatePlaceholderUrl(file, category);
+      
+      // For video files, provide more specific error
+      if (isVideo && error.message.includes('mime type') && error.message.includes('not supported')) {
+        const errorMsg = `Video format not supported by storage. Please convert your video to MP4 format and try again.`;
+        alert(errorMsg);
+        throw new Error(errorMsg);
+      }
+      
+      // Fallback to placeholder if upload fails (for images only)
+      if (!isVideo) {
+        console.log('🔄 Falling back to placeholder URL');
+        return generatePlaceholderUrl(file, category);
+      } else {
+        throw error;
+      }
     }
     
     console.log('✅ Upload successful:', data);
@@ -168,7 +208,13 @@ export async function uploadImage(
       .from('portfolio-images')
       .getPublicUrl(filename);
     
-    // Generate optimized URL with transformation parameters
+    // For video files, return the public URL directly (no optimization)
+    if (isVideo) {
+      console.log('✅ Video uploaded to Supabase:', publicUrl);
+      return publicUrl;
+    }
+    
+    // Generate optimized URL with transformation parameters for images
     const optimizedUrl = generateOptimizedImageUrl(publicUrl, {
       quality: category === 'hero' ? 85 : 80,
       format: 'auto',
@@ -181,7 +227,13 @@ export async function uploadImage(
     
   } catch (error) {
     console.error('❌ Upload failed:', error);
-    // Fallback to placeholder if upload fails
+    
+    // Re-throw if it's a video error (we already showed alert)
+    if (category === 'video' || file.type.startsWith('video/')) {
+      throw error;
+    }
+    
+    // Fallback to placeholder if upload fails (images only)
     console.log('🔄 Falling back to placeholder URL');
     return generatePlaceholderUrl(file, category);
   }
