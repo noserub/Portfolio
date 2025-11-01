@@ -3105,13 +3105,13 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     <div className="min-h-screen relative">
 
       {/* Hero Section */}
-      <section className="min-h-screen flex flex-col items-center justify-center px-6 pt-[84px] md:pt-[132px] pb-28 md:pb-36">
+      <section className="min-h-screen flex flex-col items-center justify-center px-6 pt-[88px] md:pt-[136px] pb-28 md:pb-36">
         
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="text-center space-y-6 mb-16 relative z-10 mt-10 md:mt-20"
+          className="text-center space-y-6 mb-16 relative z-10 mt-14 md:mt-24"
         >
           <motion.h1
             className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl tracking-tight font-extrabold text-center break-words md:whitespace-nowrap px-4"
