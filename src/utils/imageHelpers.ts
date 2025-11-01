@@ -187,7 +187,10 @@ export async function uploadImage(
       
       // For video files, provide more specific error
       if (isVideo && error.message.includes('mime type') && error.message.includes('not supported')) {
-        const errorMsg = `Video format not supported by storage. Please convert your video to MP4 format and try again.`;
+        const errorMsg = `Video upload failed: The storage bucket needs to be configured to allow video files.\n\n` +
+          `Your file (${file.name}) is the correct format (${file.type || 'MP4'}), but Supabase Storage needs to be updated.\n\n` +
+          `Please run the migration SQL in supabase/migrations/0004_allow_video_uploads.sql on your Supabase database, or update the bucket settings in the Supabase Dashboard.`;
+        console.error(errorMsg);
         alert(errorMsg);
         throw new Error(errorMsg);
       }
