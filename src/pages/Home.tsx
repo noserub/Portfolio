@@ -2503,10 +2503,12 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
       const documentHeight = document.documentElement.scrollHeight;
       
       // Track scroll direction
-      if (scrollTop > scrollPositionRef.current) {
-        scrollDirectionRef.current = 'down';
-      } else if (scrollTop < scrollPositionRef.current) {
-        scrollDirectionRef.current = 'up';
+      if (scrollPositionRef.current > 0) { // Only track direction after initial scroll
+        if (scrollTop > scrollPositionRef.current) {
+          scrollDirectionRef.current = 'down';
+        } else if (scrollTop < scrollPositionRef.current) {
+          scrollDirectionRef.current = 'up';
+        }
       }
       scrollPositionRef.current = scrollTop;
       
@@ -2515,22 +2517,24 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
       const isNearTop = scrollTop < threshold;
       const isNearBottom = (documentHeight - scrollTop - windowHeight) < threshold;
       
-      // Logic:
+      // Logic per user requirements:
       // - At top OR scrolling down → down chevron → scroll to case studies
       // - At bottom OR scrolling up → up chevron → scroll to top
-      const showUp = isNearBottom || (scrollDirectionRef.current === 'up' && !isNearTop);
-      const showDown = isNearTop || (scrollDirectionRef.current === 'down' && !isNearBottom);
+      let shouldShowUp = false;
       
-      // Prioritize: if at top, always show down. If at bottom, always show up.
-      // Otherwise, follow scroll direction
       if (isNearTop) {
-        setShouldShowUpChevron(false);
+        // At top → always show down
+        shouldShowUp = false;
       } else if (isNearBottom) {
-        setShouldShowUpChevron(true);
+        // At bottom → always show up
+        shouldShowUp = true;
       } else {
-        // Follow scroll direction when in the middle
-        setShouldShowUpChevron(scrollDirectionRef.current === 'up');
+        // In middle: follow scroll direction
+        // Scrolling down → show down, Scrolling up → show up
+        shouldShowUp = scrollDirectionRef.current === 'up';
       }
+      
+      setShouldShowUpChevron(shouldShowUp);
     };
     
     window.addEventListener('scroll', handleScroll, { passive: true });
