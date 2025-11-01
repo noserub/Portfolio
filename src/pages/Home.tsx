@@ -3875,7 +3875,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
             ].map((stat, index) => (
               <div
                 key={index}
-                className="bg-gradient-to-br from-slate-50/80 via-white/60 to-gray-50/40 dark:from-slate-800/30 dark:via-slate-900/25 dark:to-slate-800/20 backdrop-blur-md rounded-3xl border border-border/20 shadow-lg hover:shadow-xl transition-shadow duration-300 p-4 md:p-5 flex flex-row items-center justify-center gap-4 text-left snap-center flex-shrink-0 w-[280px] md:w-[320px]"
+                className="bg-gradient-to-br from-slate-50/80 via-white/60 to-gray-50/40 dark:from-slate-800/30 dark:via-slate-900/25 dark:to-slate-800/20 backdrop-blur-md rounded-3xl border border-border/20 shadow-lg hover:shadow-xl transition-shadow duration-300 px-4 py-4 flex flex-row items-center justify-center gap-4 text-left snap-center flex-shrink-0 w-[280px] md:w-[320px]"
               >
                 {/* Number - Left */}
                 <motion.span
