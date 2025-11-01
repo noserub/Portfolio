@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { motion } from "motion/react";
 import { Upload, X, Edit2, Link as LinkIcon, Play, ArrowUp, ArrowDown, Video as VideoIcon } from "lucide-react";
 import { Button } from "./ui/button";
@@ -267,6 +267,7 @@ export function VideoGallery({
   const [dragOver, setDragOver] = useState(false);
   const [isAddingVideo, setIsAddingVideo] = useState(false);
   const [videoUrl, setVideoUrl] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Get readable label for aspect ratio
   const getAspectRatioLabel = (ratio: AspectRatio): string => {
@@ -491,7 +492,13 @@ export function VideoGallery({
               }}
               onDragLeave={() => setDragOver(false)}
               onDrop={handleDrop}
-              className={`border-2 border-dashed rounded-lg p-12 text-center transition-colors ${
+              onClick={(e) => {
+                // If clicking on the container (not the button), trigger file input
+                if (e.target === e.currentTarget || (e.target as HTMLElement).closest('p')) {
+                  fileInputRef.current?.click();
+                }
+              }}
+              className={`border-2 border-dashed rounded-lg p-12 text-center transition-colors cursor-pointer ${
                 dragOver ? "border-primary bg-primary/5" : "border-border"
               }`}
             >
@@ -502,18 +509,25 @@ export function VideoGallery({
               <p className="text-sm text-muted-foreground mb-4">
                 Videos will display in {getAspectRatioLabel(aspectRatio)}
               </p>
-              <label className="inline-block">
-                <input
-                  type="file"
-                  accept="video/*"
-                  multiple
-                  onChange={handleFileChange}
-                  className="hidden"
-                />
-                <Button type="button" variant="outline" className="cursor-pointer">
-                  Choose Video Files
-                </Button>
-              </label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="video/*"
+                multiple
+                onChange={handleFileChange}
+                className="hidden"
+              />
+              <Button 
+                type="button" 
+                variant="outline" 
+                className="cursor-pointer"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  fileInputRef.current?.click();
+                }}
+              >
+                Choose Video Files
+              </Button>
             </div>
           </div>
         </div>

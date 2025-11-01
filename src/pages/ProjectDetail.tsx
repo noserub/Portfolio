@@ -1898,11 +1898,34 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
   };
 
   const handleMoveVideos = (direction: 'up' | 'down') => {
-    const currentPos = videosPosition;
+    // Get current actual position from calculated positions
+    // If actualPositions.videos is -1, it means videos aren't in the items array yet
+    // In that case, use videosPosition if set, or calculate a default
+    let currentActualPos = actualPositions?.videos;
+    if (currentActualPos === -1 || currentActualPos === undefined) {
+      currentActualPos = videosPosition;
+    }
+    
+    // If position is still undefined/null, determine a safe default based on other sections
+    let currentPos: number;
+    if (currentActualPos === undefined || currentActualPos === null || isNaN(currentActualPos) || currentActualPos < 0) {
+      // Default: place after project images if they exist, otherwise after Overview
+      if (projectImagesPosition !== undefined && projectImagesPosition !== null && projectImagesPosition >= 0) {
+        currentPos = projectImagesPosition + 1;
+      } else {
+        currentPos = 1; // After Overview (position 0)
+      }
+    } else {
+      currentPos = currentActualPos;
+    }
+    
     const targetPos = direction === 'up' ? currentPos - 1 : currentPos + 1;
     
-    // Don't move if at boundary
-    if (direction === 'up' && currentPos === 0) return;
+    // Don't move if at boundary (can't go above position 0)
+    if (direction === 'up' && currentPos <= 0) return;
+    
+    // Don't move if target position would be negative
+    if (targetPos < 0) return;
     
     // Find what section is at the target position and swap with it
     let newProjectImagesPos = projectImagesPosition;
@@ -1911,15 +1934,15 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     let newSolutionCardsPos = solutionCardsPosition;
     
     // Check if another gallery section is at the target position
-    if (projectImagesPosition === targetPos) {
+    if (projectImagesPosition !== undefined && projectImagesPosition === targetPos) {
       // Swap with Project Images
       newProjectImagesPos = currentPos;
       newVideosPos = targetPos;
-    } else if (flowDiagramsPosition === targetPos) {
+    } else if (flowDiagramsPosition !== undefined && flowDiagramsPosition === targetPos) {
       // Swap with Flow Diagrams
       newFlowDiagramsPos = currentPos;
       newVideosPos = targetPos;
-    } else if (solutionCardsPosition === targetPos) {
+    } else if (solutionCardsPosition !== undefined && solutionCardsPosition === targetPos) {
       // Swap with Solution Cards
       newSolutionCardsPos = currentPos;
       newVideosPos = targetPos;
@@ -3218,49 +3241,49 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
               </div>
             ) : (
               <>
-                <HeroImage
-                  src={project.url}
-                  alt={project.title}
-                  className="w-full h-full"
-                  style={{
-                    transform: `scale(${heroScale})`,
-                    transformOrigin: `${heroPosition.x}% ${heroPosition.y}%`,
+            <HeroImage
+              src={project.url}
+              alt={project.title}
+              className="w-full h-full"
+              style={{
+                transform: `scale(${heroScale})`,
+                transformOrigin: `${heroPosition.x}% ${heroPosition.y}%`,
+              }}
+              quality={90}
+              fit="cover"
+              priority={true}
+            />
+            {/* Edit Buttons - Only visible in Edit Mode when not editing */}
+            {isEditMode && !isEditingHeroImage && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="absolute inset-0 bg-black/50 flex items-center justify-center gap-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+              >
+                <Button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleChangeHeroImage();
                   }}
-                  quality={90}
-                  fit="cover"
-                  priority={true}
-                />
-                {/* Edit Buttons - Only visible in Edit Mode when not editing */}
-                {isEditMode && !isEditingHeroImage && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="absolute inset-0 bg-black/50 flex items-center justify-center gap-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                  >
-                    <Button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleChangeHeroImage();
-                      }}
-                      size="lg"
-                      className="rounded-full shadow-xl"
-                    >
-                      <ImageIcon className="w-5 h-5 mr-2" />
-                      Change Image
-                    </Button>
-                    <Button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setIsEditingHeroImage(true);
-                      }}
-                      size="lg"
-                      variant="secondary"
-                      className="rounded-full shadow-xl"
-                    >
-                      <Edit2 className="w-5 h-5 mr-2" />
-                      Adjust Image
-                    </Button>
-                  </motion.div>
+                  size="lg"
+                  className="rounded-full shadow-xl"
+                >
+                  <ImageIcon className="w-5 h-5 mr-2" />
+                  Change Image
+                </Button>
+                <Button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsEditingHeroImage(true);
+                  }}
+                  size="lg"
+                  variant="secondary"
+                  className="rounded-full shadow-xl"
+                >
+                  <Edit2 className="w-5 h-5 mr-2" />
+                  Adjust Image
+                </Button>
+              </motion.div>
                 )}
               </>
             )}
@@ -3719,6 +3742,18 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                         videoItemsRef.current = newVideos;
                         setVideoItems(newVideos);
                         
+                        // If videos are added and no position is set, initialize it
+                        let updatedVideosPosition = videosPosition;
+                        if (newVideos.length > 0 && (videosPosition === undefined || videosPosition === null || isNaN(videosPosition))) {
+                          // Default: place after project images if they exist, otherwise after Overview
+                          if (projectImagesPosition !== undefined && projectImagesPosition !== null) {
+                            updatedVideosPosition = projectImagesPosition + 1;
+                          } else {
+                            updatedVideosPosition = 1; // After Overview (position 0)
+                          }
+                          setVideosPosition(updatedVideosPosition);
+                        }
+                        
                         // Auto-save when videos change
                         const updatedProject: ProjectData = {
                           ...project,
@@ -3735,7 +3770,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                           flowDiagramColumns,
                           videoColumns,
                           projectImagesPosition,
-                          videosPosition,
+                          videosPosition: updatedVideosPosition,
                           flowDiagramsPosition,
                           solutionCardsPosition,
                         };
