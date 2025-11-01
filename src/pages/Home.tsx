@@ -3986,7 +3986,9 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
-                <ChevronDown className="w-6 h-6 text-foreground stroke-[3]" />
+                <div className="flex items-center justify-center w-full h-full">
+                  <ChevronDown className="w-6 h-6 text-foreground stroke-[3]" />
+                </div>
               </motion.button>
             </motion.div>
           </motion.div>
