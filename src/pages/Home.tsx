@@ -3858,6 +3858,11 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
             >
             {[
               { 
+                number: "4", 
+                label: "AI native apps designed",
+                description: "Responsive apps with RAG, MCP"
+              },
+              { 
                 number: "5+", 
                 label: "0-1 product launches",
                 description: "From ambiguity to product"
@@ -3868,19 +3873,14 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                 description: "Innovation and IP contribution"
               },
               { 
-                number: "20+", 
-                label: "Years Experience",
-                description: "Leading and doing design"
-              },
-              { 
                 number: "100+", 
                 label: "Enterprise sites unified",
                 description: "Systems thinking at scale"
               },
               { 
                 number: "100M+", 
-                label: "People delighted",
-                description: "Mobile design at scale"
+                label: "Happy People",
+                description: "Design at scale"
               }
             ].map((stat, index) => (
               <div
@@ -3891,7 +3891,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                 <motion.span
                   className="flex-shrink-0 block font-extrabold tracking-tight leading-none"
                   style={{
-                    fontSize: '46px',
+                    fontSize: '44px',
                     backgroundClip: "text",
                     WebkitBackgroundClip: "text",
                     WebkitTextFillColor: "transparent",
