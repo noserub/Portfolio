@@ -127,8 +127,8 @@ function VideoItemComponent({
           <video
             src={video.url}
             controls
-            className="w-full h-full object-cover"
-            style={{ objectFit: 'cover' }}
+            className="w-full h-full object-contain"
+            style={{ objectFit: 'contain' }}
           >
             Your browser does not support the video tag.
           </video>
