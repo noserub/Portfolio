@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { motion } from "motion/react";
 import { Upload, X, Edit2, Link as LinkIcon, Play, ArrowUp, ArrowDown, Video as VideoIcon } from "lucide-react";
 import { Button } from "./ui/button";
@@ -127,8 +127,8 @@ function VideoItemComponent({
           <video
             src={video.url}
             controls
-            className="w-full h-full object-cover"
-            style={{ objectFit: 'cover' }}
+            className="w-full h-full object-contain"
+            style={{ objectFit: 'contain' }}
           >
             Your browser does not support the video tag.
           </video>
@@ -267,6 +267,7 @@ export function VideoGallery({
   const [dragOver, setDragOver] = useState(false);
   const [isAddingVideo, setIsAddingVideo] = useState(false);
   const [videoUrl, setVideoUrl] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Get readable label for aspect ratio
   const getAspectRatioLabel = (ratio: AspectRatio): string => {
@@ -322,7 +323,27 @@ export function VideoGallery({
     
     for (const file of files) {
       try {
-        // Use placeholder URL for videos (videos are typically larger, so we store them as placeholders)
+        // Check file type before attempting upload
+        const isVideo = file.type.startsWith('video/');
+        if (!isVideo) {
+          alert(`Please select a video file. "${file.name}" is not a video file.`);
+          continue;
+        }
+        
+        // Check for unsupported formats
+        const unsupportedFormats = ['video/quicktime', 'video/x-msvideo', 'video/x-matroska'];
+        if (unsupportedFormats.includes(file.type.toLowerCase())) {
+          alert(
+            `Video format "${file.name.split('.').pop()?.toUpperCase()}" is not supported.\n\n` +
+            `Please convert your video to MP4 format and try again.\n\n` +
+            `You can convert videos using:\n` +
+            `- Online: CloudConvert, Convertio, or similar services\n` +
+            `- Desktop: HandBrake (free), or QuickTime (macOS)`
+          );
+          continue;
+        }
+        
+        // Upload video file
         const url = await uploadImage(file, 'video');
         
         const newVideo: VideoItem = {
@@ -332,9 +353,12 @@ export function VideoGallery({
         };
         
         onVideosChange([...videos, newVideo]);
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error adding video:', error);
-        alert(`Failed to add video: ${file.name}`);
+        // Only show alert if it's not already shown by uploadImage
+        if (!error.message || !error.message.includes('not supported')) {
+          alert(`Failed to add video: ${file.name}\n\n${error.message || 'Unknown error occurred'}`);
+        }
       }
     }
   };
@@ -491,7 +515,13 @@ export function VideoGallery({
               }}
               onDragLeave={() => setDragOver(false)}
               onDrop={handleDrop}
-              className={`border-2 border-dashed rounded-lg p-12 text-center transition-colors ${
+              onClick={(e) => {
+                // If clicking on the container (not the button), trigger file input
+                if (e.target === e.currentTarget || (e.target as HTMLElement).closest('p')) {
+                  fileInputRef.current?.click();
+                }
+              }}
+              className={`border-2 border-dashed rounded-lg p-12 text-center transition-colors cursor-pointer ${
                 dragOver ? "border-primary bg-primary/5" : "border-border"
               }`}
             >
@@ -502,18 +532,25 @@ export function VideoGallery({
               <p className="text-sm text-muted-foreground mb-4">
                 Videos will display in {getAspectRatioLabel(aspectRatio)}
               </p>
-              <label className="inline-block">
-                <input
-                  type="file"
-                  accept="video/*"
-                  multiple
-                  onChange={handleFileChange}
-                  className="hidden"
-                />
-                <Button type="button" variant="outline" className="cursor-pointer">
-                  Choose Video Files
-                </Button>
-              </label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="video/*"
+                multiple
+                onChange={handleFileChange}
+                className="hidden"
+              />
+              <Button 
+                type="button" 
+                variant="outline" 
+                className="cursor-pointer"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  fileInputRef.current?.click();
+                }}
+              >
+                Choose Video Files
+              </Button>
             </div>
           </div>
         </div>
