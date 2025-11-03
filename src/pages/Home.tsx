@@ -2200,8 +2200,8 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
       ],
       greetingFont: "Inter, sans-serif",
       lastGreetingPauseDuration: 30000,
-      subtitle: "Brian Bureson is a (super rad) product design leader",
-      description: "building high quality products and teams through",
+      subtitle: "Brian Bureson is a (super rad) product design leader and builder,",
+      description: "crafting high quality products and teams through",
       word1: "planning",
       word2: "collaboration",
       word3: "empathy",
@@ -3956,10 +3956,12 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         <section className="w-full pt-4 pb-12 relative z-10 px-6">
           <div className="max-w-4xl mx-auto">
             <div 
-              className="flex gap-6 overflow-x-auto scrollbar-hide py-4 pl-8 snap-x snap-mandatory scroll-smooth"
+              className="flex gap-6 overflow-x-auto scrollbar-hide py-4 pl-8 snap-x snap-mandatory scroll-smooth quick-stats-scroll"
               style={{
                 scrollbarWidth: "none",
                 msOverflowStyle: "none",
+                WebkitOverflowScrolling: "touch",
+                touchAction: "pan-x pan-y",
               }}
             >
             {[
@@ -4153,6 +4155,8 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                 style={{
                   scrollbarWidth: "none",
                   msOverflowStyle: "none",
+                WebkitOverflowScrolling: "touch",
+                touchAction: "pan-x pan-y",
                 }}
                 onTouchStart={handleTouchStart}
                 onTouchMove={handleTouchMove}
@@ -4242,9 +4246,13 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
             align-items: center;
           }
         }
-        /* Hide tooltip arrows */
         [data-slot="tooltip-content"] svg {
           display: none !important;
+        }
+        /* Enable horizontal scrolling on mobile for quick stats */
+        .quick-stats-scroll {
+          -webkit-overflow-scrolling: touch !important;
+          touch-action: pan-x pan-y !important;
         }
       `}</style>
 
