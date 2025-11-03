@@ -2470,6 +2470,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
   const [lightboxProject, setLightboxProject] = useState(null);
   const caseStudiesScrollRef = useRef(null);
   const designProjectsScrollRef = useRef(null);
+  const quickStatsScrollRef = useRef<HTMLDivElement>(null);
   const caseStudiesSectionRef = useRef(null);
 
   // Scroll to case studies section
@@ -2608,6 +2609,30 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
       scroll("right", scrollRef);
     } else if (isRightSwipe) {
       scroll("left", scrollRef);
+    }
+
+  // Quick stats swipe handlers
+  const [quickStatsTouchStart, setQuickStatsTouchStart] = useState<number | null>(null);
+  const [quickStatsTouchEnd, setQuickStatsTouchEnd] = useState<number | null>(null);
+
+  const handleQuickStatsTouchStart = (e: React.TouchEvent) => {
+    setQuickStatsTouchEnd(null);
+    setQuickStatsTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const handleQuickStatsTouchMove = (e: React.TouchEvent) => {
+    setQuickStatsTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const handleQuickStatsTouchEnd = () => {
+    if (!quickStatsTouchStart || !quickStatsTouchEnd) return;
+    const distance = quickStatsTouchStart - quickStatsTouchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+    if (isLeftSwipe) {
+      scroll("right", quickStatsScrollRef);
+    } else if (isRightSwipe) {
+      scroll("left", quickStatsScrollRef);
     }
   };
   
@@ -3954,15 +3979,22 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
 
         {/* Quick Stats Section */}
         <section className="w-full pt-4 pb-12 relative z-10 px-6">
-          <div className="max-w-4xl mx-auto">
+          <div className="max-w-4xl mx-auto relative">
+            {/* Fade gradient to indicate more content on the right */}
+            <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-background to-transparent pointer-events-none z-10" />
             <div 
-              className="flex gap-6 overflow-x-auto scrollbar-hide py-4 pl-8 snap-x snap-mandatory scroll-smooth quick-stats-scroll"
+              ref={quickStatsScrollRef}
+              className="flex gap-6 overflow-x-auto scrollbar-hide py-4 pl-8 pr-12 snap-x snap-mandatory scroll-smooth quick-stats-scroll"
               style={{
                 scrollbarWidth: "none",
                 msOverflowStyle: "none",
                 WebkitOverflowScrolling: "touch",
                 touchAction: "pan-x pan-y",
+                gap: 24,
               }}
+              onTouchStart={handleQuickStatsTouchStart}
+              onTouchMove={handleQuickStatsTouchMove}
+              onTouchEnd={handleQuickStatsTouchEnd}
             >
             {[
               { 
@@ -4157,6 +4189,13 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                   msOverflowStyle: "none",
                 WebkitOverflowScrolling: "touch",
                 touchAction: "pan-x pan-y",
+                gap: 24,
+              }
+              }
+              onTouchStart={handleQuickStatsTouchStart}
+              onTouchMove={handleQuickStatsTouchMove}
+              onTouchEnd={handleQuickStatsTouchEnd}
+            >
                 }}
                 onTouchStart={handleTouchStart}
                 onTouchMove={handleTouchMove}
