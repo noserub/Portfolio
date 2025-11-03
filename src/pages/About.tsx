@@ -34,7 +34,7 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
     "Brian Bureson is a Colorado-based product designer and strategic design leader with 20+ years of experience delivering 0–1, research-backed digital products across enterprise, mid-size, and startup environments."
   );
   const [bioParagraph2, setBioParagraph2] = useState(
-    "Currently at Oracle (formerly at Skype, Microsoft, Motorola, NBCUniversal), leading design and research initiatives across complex enterprise systems and AI-powered products. Brian brings deep craft, collaborative leadership, and a proven track record of product innovation."
+    "As an AI native designer and product builder, Brian brings deep craft, collaborative leadership, and a proven track record of innovation."
   );
   const [superPowersTitle, setSuperPowersTitle] = useState("Super powers");
   const [superPowers, setSuperPowers] = useState([
@@ -1338,11 +1338,11 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
           <SectionControls sectionId="highlights" label="Highlights" />
           
           <style>{`
-            /* Hide list items beyond the 4th when collapsed */
-            .highlight-content.highlight-collapsed ul li:nth-child(n+5) {
-              display: none !important;
-            }
-          `}</style>
+          /* Hide list items beyond the 3rd when collapsed */
+          .highlight-content.highlight-collapsed ul li:nth-child(n+4) {
+           display: none !important;
+          }
+        `}</style>
           
           <motion.div 
             whileHover={{ 
@@ -1456,8 +1456,8 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
               {highlights?.map((item, idx) => {
                 // Count bullet points in markdown content (lines starting with -, *, or •)
                 const bulletCount = (item.text?.match(/^[\s]*[-•*] .+$/gm) || []).length;
-                // Trigger "show more" after 4 bullets
-                const needsExpansion = bulletCount > 4;
+                // Trigger "show more" after 3 bullets
+                const needsExpansion = bulletCount > 3;
                 // Check if this card is expanded
                 const isExpanded = expandedHighlights.has(idx);
                 

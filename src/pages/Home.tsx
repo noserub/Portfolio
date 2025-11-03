@@ -767,6 +767,11 @@ export function Home({ onStartClick, isEditMode, onProjectClick, currentPage }: 
   // Supabase projects hook
   const { projects, loading, createProject, updateProject, deleteProject, reorderProjects, refetch } = useProjects();
   
+  // Debug: Log projects loading state (in useEffect to avoid infinite loops)
+  useEffect(() => {
+    console.log('🔍 DEBUG: useProjects hook result - loading:', loading, 'projects.length:', projects.length);
+  }, [loading, projects.length]);
+  
   // State to trigger re-rendering when localStorage changes
   const [localStorageVersion, setLocalStorageVersion] = useState(0);
   
@@ -2139,6 +2144,12 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     return filtered;
   }, [deduplicatedProjects]);
   
+  // Debug: Log when caseStudies changes
+  useEffect(() => {
+    console.log('🔍 DEBUG: caseStudies changed:', caseStudies.length, 'items');
+    console.log('🔍 DEBUG: caseStudies details:', caseStudies.map(p => ({ title: p.title, published: p.published })));
+  }, [caseStudies]);
+  
   // Memoize design projects filtering to prevent recalculation
   const designProjects = useMemo(() => {
     return deduplicatedProjects
@@ -2610,7 +2621,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     } else if (isRightSwipe) {
       scroll("left", scrollRef);
     }
-
+  };
   // Quick stats swipe handlers
   const [quickStatsTouchStart, setQuickStatsTouchStart] = useState<number | null>(null);
   const [quickStatsTouchEnd, setQuickStatsTouchEnd] = useState<number | null>(null);
@@ -3110,26 +3121,64 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
 
   // Local state for drag order - updates immediately for visual feedback
   const [localCaseStudiesOrder, setLocalCaseStudiesOrder] = useState<ProjectData[] | null>(null);
-
+  
+  
   // Sort case studies: published first (by sortOrder), then drafts (by sortOrder)
   const sortedCaseStudies = useMemo(() => {
-    const sorted = [...caseStudies].sort((a, b) => {
-      // Published projects always come before drafts
-      if (a.published && !b.published) return -1;
-      if (!a.published && b.published) return 1;
-      
-      // Within each group (published or drafts), sort by sortOrder
-      const aOrder = a.sortOrder || 0;
-      const bOrder = b.sortOrder || 0;
-      return aOrder - bOrder;
-    });
-    return sorted;
+    console.log('🔍 DEBUG: sortedCaseStudies calculation - caseStudies:', caseStudies?.length || 0);
+    if (!caseStudies || !Array.isArray(caseStudies)) {
+      console.error("🏠 Home: caseStudies is invalid:", caseStudies);
+      return [];
+    }
+    try {
+      const sorted = [...caseStudies].sort((a, b) => {
+        if (a.published && !b.published) return -1;
+        if (!a.published && b.published) return 1;
+        const aOrder = a.sortOrder || 0;
+        const bOrder = b.sortOrder || 0;
+        return aOrder - bOrder;
+      });
+      console.log('🔍 DEBUG: sortedCaseStudies result:', sorted.length, 'projects');
+      return sorted;
+    } catch (error) {
+      console.error("🏠 Home: Error sorting caseStudies:", error);
+      return [];
+    }
   }, [caseStudies]);
-
-  // Use local order if set (during drag), otherwise use sorted order
   const displayCaseStudies = useMemo(() => {
     const source = localCaseStudiesOrder || sortedCaseStudies;
-    return isEditMode ? source : source.filter((p) => p.published);
+    console.log('🔍 DEBUG: displayCaseStudies source:', source.length, 'projects from', isEditMode ? 'edit mode' : 'preview mode');
+    if (isEditMode) {
+      console.log('🔍 DEBUG: displayCaseStudies (edit mode):', source.length, 'projects');
+      return source;
+    }
+    // In preview mode, show published projects OR projects with meaningful content
+    // Match the same logic as the initial case study filter
+    const filtered = source.filter((p) => {
+      const title = (p.title || '').toLowerCase();
+      const description = (p.description || '').toLowerCase();
+      const hasImages = (p.caseStudyImages?.length || p.case_study_images?.length || 0) > 0;
+      const hasContent = ((p.caseStudyContent || p.case_study_content || '') + '').trim().length > 0;
+      const isPublished = Boolean(p.published);
+      
+      // Same criteria as initial filter: published OR has content/images OR has keywords
+      const hasKeywords = title.includes('case study') ||
+                         title.includes('tandem diabetes care') ||
+                         title.includes('skype qik') ||
+                         title.includes('research') ||
+                         title.includes('study') ||
+                         description.includes('case study');
+      
+      const shouldShow = isPublished || hasImages || hasContent || hasKeywords;
+      
+      if (!shouldShow) {
+        console.log('🔍 DEBUG: Filtering out project:', p.title, { published: isPublished, hasImages, hasContent, hasKeywords });
+      }
+      return shouldShow;
+    });
+    console.log('🔍 DEBUG: displayCaseStudies (preview mode):', filtered.length, 'of', source.length, 'projects');
+    console.log('🔍 DEBUG: displayCaseStudies projects:', filtered.map(p => ({ title: p.title, published: p.published, hasImages: (p.caseStudyImages?.length || p.case_study_images?.length || 0) > 0, hasContent: ((p.caseStudyContent || p.case_study_content || '') + '').trim().length > 0 })));
+    return filtered;
   }, [localCaseStudiesOrder, sortedCaseStudies, isEditMode]);
 
   // Reset local order when caseStudies change from Supabase
@@ -3228,13 +3277,10 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     }
   };
 
-  console.log("🏠 Home: Before displayDesignProjects calculation");
   const displayDesignProjects = isEditMode
     ? designProjects
     : designProjects.filter((p) => p.published);
-  console.log("🏠 Home: After displayDesignProjects calculation");
 
-  console.log("🏠 Home: About to return JSX");
   return (
     <div className="min-h-screen relative">
 
@@ -4199,7 +4245,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                 {loading ? (
                   <ProjectCardSkeleton count={3} />
                 ) : (
-                  displayCaseStudies.map((project, index) => (
+                  (Array.isArray(displayCaseStudies) ? displayCaseStudies : []).map((project, index) => (
                   <DraggableProjectItem
                     key={project.id}
                     project={project}
@@ -4318,7 +4364,6 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
 
     </div>
   );
-}
 }
 
 export default Home;
