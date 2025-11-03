@@ -3228,8 +3228,10 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     }
   };
 
+  console.log("🏠 Home: Before displayDesignProjects calculation");
   const displayDesignProjects = isEditMode
     ? designProjects
+  console.log("🏠 Home: After displayDesignProjects calculation");
     : designProjects.filter((p) => p.published);
 
   console.log("🏠 Home: About to return JSX");
