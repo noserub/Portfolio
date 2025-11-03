@@ -3990,7 +3990,11 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                 msOverflowStyle: "none",
                 WebkitOverflowScrolling: "touch",
                 touchAction: "pan-x pan-y",
-                gap: 24,
+                }}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={() => handleTouchEnd(caseStudiesScrollRef)}
+              >                gap: 24,
               }}
               onTouchStart={handleQuickStatsTouchStart}
               onTouchMove={handleQuickStatsTouchMove}
@@ -4189,13 +4193,6 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                   msOverflowStyle: "none",
                 WebkitOverflowScrolling: "touch",
                 touchAction: "pan-x pan-y",
-                gap: 24,
-              }
-              }
-              onTouchStart={handleQuickStatsTouchStart}
-              onTouchMove={handleQuickStatsTouchMove}
-              onTouchEnd={handleQuickStatsTouchEnd}
-            >
                 }}
                 onTouchStart={handleTouchStart}
                 onTouchMove={handleTouchMove}
