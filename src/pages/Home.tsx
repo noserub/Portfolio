@@ -3232,6 +3232,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     ? designProjects
     : designProjects.filter((p) => p.published);
 
+  console.log("🏠 Home: About to return JSX");
   return (
     <div className="min-h-screen relative">
 
