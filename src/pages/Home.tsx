@@ -2593,59 +2593,86 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
   const [caseStudiesHasOverflow, setCaseStudiesHasOverflow] = useState(false);
   
-  // Swipe gesture state
-  const [touchStart, setTouchStart] = useState(null);
-  const [touchEnd, setTouchEnd] = useState(null);
-  
-  // Minimum swipe distance (in px) to trigger navigation
-  const minSwipeDistance = 50;
-  
-  const handleTouchStart = (e: any) => {
-    setTouchEnd(null);
-    setTouchStart(e.targetTouches[0].clientX);
-  };
-  
-  const handleTouchMove = (e: any) => {
-    setTouchEnd(e.targetTouches[0].clientX);
-  };
-  
-  const handleTouchEnd = (scrollRef: any) => {
-    if (!touchStart || !touchEnd) return;
-    
-    const distance = touchStart - touchEnd;
-    const isLeftSwipe = distance > minSwipeDistance;
-    const isRightSwipe = distance < -minSwipeDistance;
-    
-    if (isLeftSwipe) {
-      scroll("right", scrollRef);
-    } else if (isRightSwipe) {
-      scroll("left", scrollRef);
-    }
-  };
-  // Quick stats swipe handlers
-  const [quickStatsTouchStart, setQuickStatsTouchStart] = useState<number | null>(null);
-  const [quickStatsTouchEnd, setQuickStatsTouchEnd] = useState<number | null>(null);
+  // Real-time swipe gesture state for case studies - using refs for immediate updates
+  const caseStudiesTouchState = useRef<{
+    startX: number;
+    startScroll: number;
+    isDragging: boolean;
+  } | null>(null);
 
-  const handleQuickStatsTouchStart = (e: React.TouchEvent) => {
-    setQuickStatsTouchEnd(null);
-    setQuickStatsTouchStart(e.targetTouches[0].clientX);
-  };
+  // Real-time drag handler for case studies - cards follow finger
+  // Use useEffect to add non-passive event listeners for proper drag handling
+  useEffect(() => {
+    const scrollElement = caseStudiesScrollRef.current;
+    if (!scrollElement) return;
 
-  const handleQuickStatsTouchMove = (e: React.TouchEvent) => {
-    setQuickStatsTouchEnd(e.targetTouches[0].clientX);
-  };
+    const handleTouchStart = (e: TouchEvent) => {
+      // Only prevent default if we can actually cancel it
+      if (e.cancelable) {
+        e.preventDefault();
+      }
+      const touch = e.touches[0];
+      console.log('🔍 Touch start - clientX:', touch.clientX, 'scrollLeft:', scrollElement.scrollLeft);
+      caseStudiesTouchState.current = {
+        startX: touch.clientX,
+        startScroll: scrollElement.scrollLeft,
+        isDragging: true,
+      };
+      scrollElement.style.scrollBehavior = 'auto';
+      // Disable native scroll snapping during drag
+      scrollElement.style.scrollSnapType = 'none';
+    };
 
-  const handleQuickStatsTouchEnd = () => {
-    if (!quickStatsTouchStart || !quickStatsTouchEnd) return;
-    const distance = quickStatsTouchStart - quickStatsTouchEnd;
-    const isLeftSwipe = distance > minSwipeDistance;
-    const isRightSwipe = distance < -minSwipeDistance;
-    if (isLeftSwipe) {
-      scroll("right", quickStatsScrollRef);
-    } else if (isRightSwipe) {
-      scroll("left", quickStatsScrollRef);
-    }
-  };
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!caseStudiesTouchState.current) return;
+      // Always prevent default on move to stop native scrolling
+      if (e.cancelable) {
+        e.preventDefault();
+      }
+      e.stopPropagation();
+      const touch = e.touches[0];
+      const deltaX = caseStudiesTouchState.current.startX - touch.clientX;
+      const newScrollLeft = caseStudiesTouchState.current.startScroll + deltaX;
+      
+      // Force immediate update
+      scrollElement.scrollLeft = newScrollLeft;
+    };
+
+    const handleTouchEnd = () => {
+      if (!caseStudiesTouchState.current) return;
+      console.log('🔍 Touch end - final scrollLeft:', scrollElement.scrollLeft);
+      caseStudiesTouchState.current.isDragging = false;
+      scrollElement.style.scrollBehavior = 'smooth';
+      scrollElement.style.scrollSnapType = 'x mandatory';
+      
+      // Snap to nearest card
+      const cardWidth = 320;
+      const paddingOffset = 80;
+      const currentScroll = scrollElement.scrollLeft - paddingOffset;
+      const snappedScroll = Math.round(currentScroll / cardWidth) * cardWidth + paddingOffset;
+      const maxScroll = scrollElement.scrollWidth - scrollElement.clientWidth;
+      const finalScroll = Math.max(0, Math.min(snappedScroll, maxScroll));
+      
+      scrollElement.scrollTo({
+        left: finalScroll,
+        behavior: 'smooth',
+      });
+      
+      caseStudiesTouchState.current = null;
+    };
+
+    // Add non-passive listeners
+    scrollElement.addEventListener('touchstart', handleTouchStart, { passive: false });
+    scrollElement.addEventListener('touchmove', handleTouchMove, { passive: false });
+    scrollElement.addEventListener('touchend', handleTouchEnd, { passive: false });
+
+    return () => {
+      scrollElement.removeEventListener('touchstart', handleTouchStart);
+      scrollElement.removeEventListener('touchmove', handleTouchMove);
+      scrollElement.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [caseStudiesScrollRef.current]);
+
   
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
@@ -3380,7 +3407,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2, duration: 0.5 }}
-          className="relative p-8 bg-gradient-to-br from-slate-50/80 via-blue-50/60 to-purple-50/40 dark:from-slate-900/20 dark:via-blue-900/10 dark:to-purple-900/10 backdrop-blur-sm rounded-3xl border border-border shadow-2xl overflow-hidden transition-all duration-500 max-w-4xl mx-auto mb-4 md:mb-6"
+          className="relative p-8 bg-gradient-to-br from-slate-50/80 via-blue-50/60 to-purple-50/40 dark:from-slate-900/20 dark:via-blue-900/10 dark:to-purple-900/10 backdrop-blur-sm rounded-3xl border border-border shadow-2xl overflow-hidden transition-all duration-500 max-w-4xl mx-auto mb-2 md:mb-3"
         >
           {/* Decorative Curved Brushstrokes - Far right near dots, bleeding off edges */}
           <svg
@@ -4027,31 +4054,17 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         </motion.div>
 
         {/* Quick Stats Section */}
-        <section className="w-full pt-4 pb-12 relative z-10 px-6">
-          <div className="max-w-4xl mx-auto relative">
-            {/* Fade gradient to indicate more content on the right */}
-            <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-background to-transparent pointer-events-none z-10" />
-            <div 
-              ref={quickStatsScrollRef}
-              className="flex gap-6 overflow-x-auto scrollbar-hide py-4 pl-8 pr-12 snap-x snap-mandatory scroll-smooth quick-stats-scroll"
-              style={{
-                scrollbarWidth: "none",
-                msOverflowStyle: "none",
-                WebkitOverflowScrolling: "touch",
-                touchAction: "pan-x pan-y",
-                }}
-              onTouchStart={handleQuickStatsTouchStart}
-              onTouchMove={handleQuickStatsTouchMove}
-              onTouchEnd={handleQuickStatsTouchEnd}
-            >
+        <section className="w-full pt-2 md:pt-3 pb-12 relative z-10 px-0 md:px-6">
+          {/* Grid layout matching hero container width */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-4xl mx-auto p-8 px-0 md:px-8">
             {[
               { 
                 number: "4", 
                 label: "AI native apps designed",
-                description: "Responsive apps with RAG, MCP"
+                description: "with RAG & MCP hooks"
               },
               { 
-                number: "5+", 
+                number: "6", 
                 label: "0-1 product launches",
                 description: "From ambiguity to product"
               },
@@ -4061,19 +4074,24 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                 description: "Innovation and IP contribution"
               },
               { 
-                number: "100+", 
-                label: "Enterprise sites unified",
-                description: "Systems thinking at scale"
-              },
-              { 
-                number: "100M+", 
-                label: "Happy People",
-                description: "Design at scale"
+                number: "20", 
+                label: "Years of experience",
+                description: "Leading design"
               }
-            ].map((stat, index) => (
+            ].map((stat, index) => {
+              // Calculate if this card is alone in its row
+              const totalCards = 4;
+              const isLastCard = index === totalCards - 1;
+              
+              // With 2-column grid on sm+: if last card is alone (5 % 2 = 1), span 2 cols
+              const gridSpanClass = isLastCard && totalCards % 2 === 1
+                ? 'sm:col-span-2' // Last card spans 2 cols when alone on sm+ screens
+                : '';
+              
+              return (
               <div
                 key={index}
-                className="bg-gradient-to-br from-slate-50/80 via-white/60 to-gray-50/40 dark:from-slate-800/30 dark:via-slate-900/25 dark:to-slate-800/20 backdrop-blur-md rounded-3xl border border-border/20 shadow-lg hover:shadow-xl transition-shadow duration-300 px-4 py-4 flex flex-row items-center justify-center gap-4 text-left snap-center flex-shrink-0 w-[calc(100vw-200px)] sm:w-[280px] md:w-[336px]"
+                className={`bg-gradient-to-br from-slate-50/80 via-white/60 to-gray-50/40 dark:from-slate-800/30 dark:via-slate-900/25 dark:to-slate-800/20 backdrop-blur-md rounded-3xl border border-border/20 shadow-lg hover:shadow-xl transition-shadow duration-300 px-4 py-4 flex flex-row items-center justify-center gap-4 text-left w-full ${gridSpanClass}`}
               >
                 {/* Number - Left */}
                 <motion.span
@@ -4105,16 +4123,16 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                 
                 {/* Content */}
                 <div className="flex-1 flex flex-col justify-center min-w-0">
-                  <h3 className="text-base md:text-lg font-semibold text-foreground mb-1 whitespace-nowrap">
+                  <h3 className="text-base md:text-lg font-semibold text-foreground mb-1 whitespace-nowrap overflow-hidden text-ellipsis">
                     {stat.label}
                   </h3>
-                  <p className="text-sm md:text-base text-muted-foreground">
+                  <p className="text-sm md:text-base text-muted-foreground whitespace-nowrap overflow-hidden text-ellipsis">
                     {stat.description}
                   </p>
                 </div>
               </div>
-            ))}
-            </div>
+            );
+            })}
           </div>
         </section>
 
@@ -4189,12 +4207,12 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         {/* Case Studies Carousel */}
         <div 
           ref={caseStudiesSectionRef}
-          className="w-full max-w-[1400px] mx-auto mb-16 mt-16 md:mt-[116px] relative z-10">
+          className="w-full max-w-[1400px] mx-auto mb-16 mt-16 md:mt-[116px] relative z-10 md:text-center">
           <motion.h2
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.5, duration: 0.5 }}
-            className={`mb-6 ${!isEditMode && !caseStudiesHasOverflow ? 'text-center' : 'px-4'}`}
+            className="mb-6 px-4 text-center md:px-0"
           >
             Case studies
           </motion.h2>
@@ -4229,18 +4247,18 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
             {/* Scrollable Container */}
               <div
                 ref={caseStudiesScrollRef}
-                className={`flex gap-6 overflow-x-auto scrollbar-hide py-8 px-4 snap-x snap-mandatory scroll-smooth ${
+                className={`flex gap-6 overflow-x-auto scrollbar-hide py-8 snap-x snap-mandatory scroll-smooth ${
                   !isEditMode && !caseStudiesHasOverflow ? 'justify-center' : ''
                 }`}
                 style={{
                   scrollbarWidth: "none",
                   msOverflowStyle: "none",
                 WebkitOverflowScrolling: "touch",
-                touchAction: "pan-x pan-y",
+                touchAction: "pan-x" as any,
+                  paddingLeft: "80px",
+                  paddingRight: "80px",
                 }}
-                onTouchStart={handleTouchStart}
-                onTouchMove={handleTouchMove}
-                onTouchEnd={() => handleTouchEnd(caseStudiesScrollRef)}
+                
               >
                 {loading ? (
                   <ProjectCardSkeleton count={3} />
