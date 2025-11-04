@@ -38,6 +38,7 @@ import {
 
 interface CaseStudySectionsProps {
   content: string;
+  latestProjectContent?: string; // Latest saved project content for accurate card counting
   imageGallerySlot?: React.ReactNode;
   videoSlot?: React.ReactNode;
   flowDiagramSlot?: React.ReactNode;
@@ -187,6 +188,7 @@ const getSectionConfig = (title: string) => {
 
 export function CaseStudySections({ 
   content, 
+  latestProjectContent,
   imageGallerySlot,
   videoSlot,
   flowDiagramSlot,
@@ -254,8 +256,12 @@ export function CaseStudySections({
       return;
     }
 
+    // CRITICAL: Use latestProjectContent as the base, not content
+    // content is cleaned/filtered and may be missing cards, but latestProjectContent has all saved cards
+    const contentToEdit = latestProjectContent || content;
+
     // Replace the section title and content in the full content
-    const lines = content.split('\n');
+    const lines = contentToEdit.split('\n');
     const newLines: string[] = [];
     let inTargetSection = false;
 
@@ -293,18 +299,901 @@ export function CaseStudySections({
   };
 
   const addNewCard = () => {
+    console.log('🚀 addNewCard called!', { hasOnContentUpdate: !!onContentUpdate, contentLength: content?.length, latestProjectContentLength: latestProjectContent?.length });
+    
     if (!onContentUpdate) {
       console.error('No onContentUpdate callback provided');
       return;
     }
 
+    // CRITICAL: Use latestProjectContent as the BASE for all operations, not content
+    // content is cleaned/filtered and may be missing cards, but latestProjectContent has all saved cards
+    const contentForCounting = latestProjectContent || content;
+    const linesForCounting = contentForCounting.split('\n');
+    console.log('📄 Content for counting lines:', linesForCounting.length, '| Using:', latestProjectContent ? 'latestProjectContent' : 'content');
+    
+    // Find "The solution" section and insert the new card right after it
+    // Use latestProjectContent as the base, not content (which may be missing cards)
+    const lines = (latestProjectContent || content).split('\n');
+    console.log('📄 Initial content lines:', lines.length, '| Using:', latestProjectContent ? 'latestProjectContent (has all cards)' : 'content (may be missing cards)');
+    
+    // FIRST: Count existing "New Card" sections from LATEST PROJECT CONTENT (before any cleanup)
+    // This is critical - we need to know what cards exist in the saved data before we modify anything
+    const newCardPattern = /^#\s+New Card (\d+)/i;
+    let maxCardNumber = 0;
+    const foundCards: number[] = [];
+    const matchingLines: string[] = [];
+    for (let i = 0; i < linesForCounting.length; i++) {
+      const line = linesForCounting[i];
+      const trimmed = line.trim();
+      const match = trimmed.match(newCardPattern);
+      if (match) {
+        const cardNumber = parseInt(match[1], 10);
+        foundCards.push(cardNumber);
+        matchingLines.push(`Line ${i}: "${trimmed}" -> Card ${cardNumber}`);
+        if (cardNumber > maxCardNumber) {
+          maxCardNumber = cardNumber;
+        }
+      }
+    }
+    
+    // Also check for any header that contains "New Card" (case insensitive) to see if we're missing something
+    const anyNewCardHeaders = linesForCounting
+      .map((line, i) => {
+        const trimmed = line.trim();
+        const headerMatch = trimmed.match(/^#\s+(.+)$/);
+        if (headerMatch) {
+          const title = headerMatch[1];
+          if (title.toLowerCase().includes('new card')) {
+            return `Line ${i}: "${trimmed}"`;
+          }
+        }
+        return null;
+      })
+      .filter(Boolean);
+    
+    console.log('🔢 Found existing cards in original content:', { 
+      foundCards, 
+      maxCardNumber, 
+      nextCardNumber: maxCardNumber + 1,
+      matchingLines,
+      anyNewCardHeaders: anyNewCardHeaders.length > 0 ? anyNewCardHeaders : 'none'
+    });
+    
+    const newLines: string[] = [];
+    let foundSolutionSection = false;
+    let cardInserted = false;
+    let solutionSectionEndIndex = -1;
+    let solutionSectionStartIndex = -1;
+    
+    // First pass: find "The solution" section (exact match or "The solution: ...") and where it ends
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const headerMatch = line.trim().match(/^#\s+(.+)$/);
+      
+      if (headerMatch) {
+        const title = headerMatch[1].trim();
+        const titleLower = title.toLowerCase();
+        
+        // Check if this is "The solution" section (exact match or starts with "The solution")
+        // But not "Solution cards" or "New Card"
+        if (titleLower === 'the solution' || (titleLower.startsWith('the solution') && !titleLower.includes('cards') && !titleLower.includes('new card'))) {
+          if (!foundSolutionSection) {
+            foundSolutionSection = true;
+            solutionSectionStartIndex = i;
+          }
+        } else if (foundSolutionSection && solutionSectionStartIndex >= 0) {
+          // Found the next section after "The solution" - mark where to insert
+          solutionSectionEndIndex = i;
+          break;
+        }
+      }
+    }
+    
+    // If we didn't find another section, the solution section goes to the end
+    if (foundSolutionSection && solutionSectionEndIndex === -1) {
+      solutionSectionEndIndex = lines.length;
+    }
+    
+    // Cleanup pass: Remove any orphaned "New Card" content inside the solution section
+    // AND remove duplicate consecutive "The solution: A new direction" headers
+    // This content appears without a proper header and should be removed
+    const cleanedLines: string[] = [];
+    let inSolutionSection = false;
+    let skipOrphanedContent = false;
+    // Match lines that look like default "New Card" content (with or without "- " prefix)
+    let orphanedContentPattern = /^(\s*-\s*)?(Add content for|You can use Markdown formatting|Bullet points|\*\*Bold text\*\*|\*Italic text\*)/i;
+    let foundSolutionInCleanup = false;
+    let solutionStartInCleanup = -1;
+    let lastSolutionHeader = ''; // Track the last solution header to detect duplicates
+    let lastSolutionHeaderIndex = -1; // Track where we saw it
+    let duplicateSolutionHeaderSkipped = false; // Track if we're skipping a duplicate
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const headerMatch = line.trim().match(/^#\s+(.+)$/);
+      
+      if (headerMatch) {
+        const title = headerMatch[1].trim();
+        const titleLower = title.toLowerCase();
+        
+        // Check if this is a duplicate solution header (consecutive duplicate)
+        const isSolutionHeader = titleLower === 'the solution' || (titleLower.startsWith('the solution') && !titleLower.includes('cards') && !titleLower.includes('new card'));
+        if (isSolutionHeader && lastSolutionHeader === title && lastSolutionHeaderIndex >= 0) {
+          // Check if this is a duplicate by looking at the gap between headers
+          // If there are only blank lines between them, it's a duplicate
+          let onlyBlankLines = true;
+          for (let j = lastSolutionHeaderIndex + 1; j < i; j++) {
+            if (lines[j].trim() !== '') {
+              onlyBlankLines = false;
+              break;
+            }
+          }
+          if (onlyBlankLines) {
+            // This is a duplicate consecutive solution header - skip it
+            console.log('🚫 Skipping duplicate solution header at line', i, ':', title);
+            duplicateSolutionHeaderSkipped = true;
+            inSolutionSection = true; // Stay in solution section
+            // IMPORTANT: Don't update lastSolutionHeaderIndex - the original is still the last one we saw
+            // But we do need to reset duplicateSolutionHeaderSkipped flag after processing
+            continue; // Skip this duplicate header
+          }
+        }
+        
+        // Reset duplicate tracking if we see a different header
+        if (!isSolutionHeader) {
+          duplicateSolutionHeaderSkipped = false;
+        }
+        
+        // Check if we're entering the solution section
+        if (isSolutionHeader) {
+          inSolutionSection = true;
+          skipOrphanedContent = false;
+          foundSolutionInCleanup = true;
+          solutionStartInCleanup = i;
+          lastSolutionHeader = title; // Track this solution header
+          lastSolutionHeaderIndex = i;
+          cleanedLines.push(line);
+        } 
+        // If we see a proper "New Card" header, it's valid - always preserve it
+        else if (titleLower.startsWith('new card')) {
+          inSolutionSection = false; // New Card headers are outside solution section
+          skipOrphanedContent = false;
+          lastSolutionHeader = ''; // Reset solution header tracking
+          lastSolutionHeaderIndex = -1;
+          cleanedLines.push(line);
+        }
+        // Check if we're leaving the solution section (any header after solution)
+        else if (inSolutionSection && foundSolutionInCleanup && solutionStartInCleanup >= 0 && i > solutionStartInCleanup) {
+          inSolutionSection = false;
+          skipOrphanedContent = false;
+          lastSolutionHeader = ''; // Reset solution header tracking
+          lastSolutionHeaderIndex = -1;
+          cleanedLines.push(line);
+        }
+        else {
+          lastSolutionHeader = ''; // Reset solution header tracking
+          lastSolutionHeaderIndex = -1;
+          cleanedLines.push(line);
+        }
+      } else {
+        // Non-header line
+        const trimmedLine = line.trim();
+        const isOrphanedContent = orphanedContentPattern.test(trimmedLine);
+        
+        if (inSolutionSection && isOrphanedContent) {
+          // This is orphaned "New Card" content inside solution section - skip it
+          skipOrphanedContent = true;
+          continue;
+        } else if (skipOrphanedContent) {
+          // We're in a sequence of orphaned content - skip blank lines and more orphaned content
+          if (trimmedLine === '' || isOrphanedContent) {
+            continue;
+          } else {
+            // We've hit legitimate content - stop skipping
+            skipOrphanedContent = false;
+            cleanedLines.push(line);
+          }
+        } else {
+          // Not orphaned content - check if the next lines might be orphaned
+          // Look ahead to see if this blank line is followed by orphaned content
+          if (inSolutionSection && trimmedLine === '' && i + 1 < lines.length) {
+            const nextLine = lines[i + 1]?.trim() || '';
+            if (orphanedContentPattern.test(nextLine)) {
+              // This blank line is followed by orphaned content - skip it
+              skipOrphanedContent = true;
+              continue;
+            }
+          }
+          cleanedLines.push(line);
+        }
+      }
+    }
+    
+    // Use cleaned lines for the rest of the logic
+    const cleanedContent = cleanedLines.join('\n');
+    const cleanedLinesArray = cleanedContent.split('\n');
+    
+    // Debug: Log cleanup results
+    const orphanedBefore = content.match(orphanedContentPattern)?.length || 0;
+    const orphanedAfter = cleanedContent.match(orphanedContentPattern)?.length || 0;
+    
+    // Find all headers in cleaned content to see what was preserved
+    const cleanedHeaders = cleanedLinesArray
+      .map((line, i) => {
+        const match = line.trim().match(/^#\s+(.+)$/);
+        return match ? { line: i, title: match[1].trim() } : null;
+      })
+      .filter(Boolean);
+    
+    const allHeaderTitles = cleanedHeaders.map(h => h?.title).filter(Boolean);
+    const hasNewCard1 = cleanedHeaders.some(h => h?.title?.toLowerCase().includes('new card 1'));
+    const newCardHeaderTitles = cleanedHeaders.filter(h => h?.title?.toLowerCase().includes('new card')).map(h => h?.title);
+    
+    console.log('🧹 Cleanup:', { 
+      orphanedBefore, 
+      orphanedAfter, 
+      linesRemoved: lines.length - cleanedLinesArray.length,
+      totalHeaders: cleanedHeaders.length,
+      allHeaders: allHeaderTitles,
+      hasNewCard1,
+      newCardHeaders: newCardHeaderTitles
+    });
+    
+    // Re-check for existing cards in CLEANED content (in case cleanup preserved cards we missed)
+    for (let i = 0; i < cleanedLinesArray.length; i++) {
+      const line = cleanedLinesArray[i];
+      const trimmed = line.trim();
+      const match = trimmed.match(newCardPattern);
+      if (match) {
+        const cardNumber = parseInt(match[1], 10);
+        if (!foundCards.includes(cardNumber)) {
+          foundCards.push(cardNumber);
+          console.log('🔍 Found additional card in cleaned content:', { line: i, cardNumber, lineText: trimmed });
+        }
+        if (cardNumber > maxCardNumber) {
+          maxCardNumber = cardNumber;
+        }
+      }
+    }
+    
+    console.log('🔢 Updated card count after cleanup:', { foundCards, maxCardNumber, nextCardNumber: maxCardNumber + 1 });
+    
+    // Recalculate solution section indices after cleanup
+    foundSolutionSection = false;
+    solutionSectionEndIndex = -1;
+    solutionSectionStartIndex = -1;
+    
+    for (let i = 0; i < cleanedLinesArray.length; i++) {
+      const line = cleanedLinesArray[i];
+      const headerMatch = line.trim().match(/^#\s+(.+)$/);
+      
+      if (headerMatch) {
+        const title = headerMatch[1].trim();
+        const titleLower = title.toLowerCase();
+        
+        if (titleLower === 'the solution' || (titleLower.startsWith('the solution') && !titleLower.includes('cards') && !titleLower.includes('new card'))) {
+          if (!foundSolutionSection) {
+            foundSolutionSection = true;
+            solutionSectionStartIndex = i;
+          }
+        } else if (foundSolutionSection && solutionSectionStartIndex >= 0) {
+          solutionSectionEndIndex = i;
+          break;
+        }
+      }
+    }
+    
+    if (foundSolutionSection && solutionSectionEndIndex === -1) {
+      solutionSectionEndIndex = cleanedLinesArray.length;
+    }
+    
+    // Use maxCardNumber we already calculated from original content
+    // No need to recount - we already know what cards exist
+
     // Create a new card section with default content
-    const newCardTitle = `New Card ${afterSolution.length + 1}`;
+    const newCardNumber = maxCardNumber + 1;
+    const newCardTitle = `New Card ${newCardNumber}`;
     const newCardContent = `Add content for ${newCardTitle} here.\n\nYou can use Markdown formatting:\n- Bullet points\n- **Bold text**\n- *Italic text*`;
     
-    // Add the new section to the end of the content
-    const newSection = `\n\n# ${newCardTitle}\n${newCardContent}`;
-    const newContent = content + newSection;
+    console.log('📝 Creating card:', { newCardTitle, newCardNumber });
+    
+    // Safety check: if this card number already exists, something went wrong
+    if (foundCards.includes(newCardNumber)) {
+      console.error('❌ ERROR: Card number already exists!', { newCardNumber, foundCards });
+      // Still update content with cleaned version (removes orphaned content)
+      onContentUpdate(cleanedContent);
+      return;
+    }
+    
+    // Find the last existing solution card (if any) to insert after it
+    // Solution cards are sections that start with "New Card" or similar patterns
+    let lastSolutionCardEndIndex = solutionSectionEndIndex;
+    let needsSolutionSection = false;
+    
+    // If solution section doesn't exist, we need to create it
+    // Find "Competitive analysis" or "Research insights" to insert "The solution" section after it
+    if (!foundSolutionSection || solutionSectionEndIndex < 0) {
+      needsSolutionSection = true;
+      // Find "Competitive analysis" section or the last section
+      for (let i = cleanedLinesArray.length - 1; i >= 0; i--) {
+        const line = cleanedLinesArray[i];
+        if (!line) continue;
+        const headerMatch = line.trim().match(/^#\s+(.+)$/);
+        if (headerMatch) {
+          const title = headerMatch[1].trim().toLowerCase();
+          // Find "Competitive analysis" or "Research insights" as insertion point for "The solution" section
+          if (title === 'competitive analysis' || title === 'research insights') {
+            // Find where this section ends (next header or end of file)
+            lastSolutionCardEndIndex = i + 1;
+            for (let j = i + 1; j < cleanedLinesArray.length; j++) {
+              const nextLine = cleanedLinesArray[j];
+              if (!nextLine) continue;
+              if (nextLine.trim().match(/^#\s+/)) {
+                lastSolutionCardEndIndex = j;
+                break;
+              }
+              lastSolutionCardEndIndex = j + 1; // End of file
+            }
+            break;
+          }
+        }
+      }
+      // If still not found, insert at end of file
+      if (lastSolutionCardEndIndex < 0) {
+        lastSolutionCardEndIndex = cleanedLinesArray.length;
+      }
+    } else if (solutionSectionEndIndex >= 0) {
+      // Solution section exists - find existing solution cards
+      // First, find all solution card headers in cleaned content AFTER the solution section
+      const solutionCardHeaders: Array<{ index: number; title: string }> = [];
+      
+      // If solutionSectionEndIndex equals array length, cards might be in original content but removed during cleanup
+      // In that case, we need to find the last card in the ORIGINAL content and append after it
+      if (solutionSectionEndIndex >= cleanedLinesArray.length && maxCardNumber > 0) {
+        // Cards exist in original content but might have been removed during cleanup
+        // Find the last card in ORIGINAL content (lines array) and insert after it
+        console.log('🔍 Solution section at end, but cards exist in original content. Finding last card in original content.');
+        
+        // Search for solution cards in ORIGINAL content (lines array)
+        // Start from solutionSectionStartIndex (where "The solution" starts) or solutionSectionEndIndex
+        // If solutionSectionEndIndex === lines.length, search backwards from the end
+        const originalSolutionCardHeaders: Array<{ index: number; title: string }> = [];
+        const searchStartIndex = solutionSectionEndIndex < lines.length ? solutionSectionEndIndex : solutionSectionStartIndex;
+        
+        for (let i = searchStartIndex; i < lines.length; i++) {
+          const line = lines[i];
+          if (!line) continue;
+          const headerMatch = line.trim().match(/^#\s+(.+)$/);
+          if (headerMatch) {
+            const title = headerMatch[1].trim();
+            if (newCardPattern.test(line.trim())) {
+              originalSolutionCardHeaders.push({ index: i, title });
+              console.log('🔍 Found card in original content at index', i, ':', title);
+            } else {
+              // Found a non-solution-card section - stop searching
+              break;
+            }
+          }
+        }
+        
+        // Also search backwards from the end if we didn't find any cards
+        if (originalSolutionCardHeaders.length === 0 && solutionSectionEndIndex >= lines.length) {
+          console.log('🔍 Searching backwards from end of file for cards...');
+          for (let i = lines.length - 1; i >= solutionSectionStartIndex; i--) {
+            const line = lines[i];
+            if (!line) continue;
+            const headerMatch = line.trim().match(/^#\s+(.+)$/);
+            if (headerMatch) {
+              const title = headerMatch[1].trim();
+              if (newCardPattern.test(line.trim())) {
+                originalSolutionCardHeaders.push({ index: i, title });
+                console.log('🔍 Found card in original content (backwards search) at index', i, ':', title);
+                break; // Found the last card, stop searching
+              } else if (title.toLowerCase().includes('solution')) {
+                // We've reached "The solution" section, stop searching backwards
+                break;
+              }
+            }
+          }
+        }
+        
+        if (originalSolutionCardHeaders.length > 0) {
+          // Found cards in original content - find where the LAST one ends
+          const lastCardHeader = originalSolutionCardHeaders[originalSolutionCardHeaders.length - 1];
+          let originalCardEndIndex = lastCardHeader.index + 1;
+          
+          // Find where this card ends (next header or end of file) in ORIGINAL content
+          for (let j = lastCardHeader.index + 1; j < lines.length; j++) {
+            const nextLine = lines[j];
+            if (!nextLine) continue;
+            if (nextLine.trim().match(/^#\s+/)) {
+              originalCardEndIndex = j;
+              break;
+            }
+            originalCardEndIndex = j + 1;
+          }
+          
+          // Now we need to insert the new card content at the end of cleaned content
+          // The cleaned content doesn't have "New Card 9", so we append at the end
+          // This will add "New Card 10" after whatever is in the cleaned content
+          lastSolutionCardEndIndex = cleanedLinesArray.length;
+          console.log('🔍 Last card in original content ends at:', {
+            lastCardTitle: lastCardHeader.title,
+            originalCardEndIndex,
+            cleanedContentLength: cleanedLinesArray.length,
+            action: 'Appending new card at end of cleaned content'
+          });
+        } else {
+          // No cards found even in original - append at end
+          lastSolutionCardEndIndex = cleanedLinesArray.length;
+          console.log('🔍 No cards found in original content either - appending at end');
+        }
+      } else if (solutionSectionEndIndex < cleanedLinesArray.length) {
+        // Search for cards in cleaned content
+        console.log('🔍 Searching for solution cards:', {
+          solutionSectionEndIndex,
+          cleanedLinesLength: cleanedLinesArray.length,
+          previewAtSolutionEnd: cleanedLinesArray.slice(Math.max(0, solutionSectionEndIndex - 2), Math.min(cleanedLinesArray.length, solutionSectionEndIndex + 5)),
+          lineAtSolutionEnd: cleanedLinesArray[solutionSectionEndIndex]?.substring(0, 100)
+        });
+        
+        for (let i = solutionSectionEndIndex; i < cleanedLinesArray.length; i++) {
+          const line = cleanedLinesArray[i];
+          if (!line) continue;
+          const headerMatch = line.trim().match(/^#\s+(.+)$/);
+          if (headerMatch) {
+            const title = headerMatch[1].trim();
+            const isNewCard = newCardPattern.test(line.trim());
+            console.log('🔍 Checking line', i, ':', title, '| isNewCard:', isNewCard);
+            if (isNewCard) {
+              solutionCardHeaders.push({ index: i, title });
+            } else {
+              // Found a non-solution-card section - stop searching
+              console.log('🔍 Stopping search - found non-solution-card section:', title);
+              break;
+            }
+          }
+        }
+        
+        console.log('🔍 Found solution card headers:', solutionCardHeaders);
+        
+        if (solutionCardHeaders.length > 0) {
+          // Found solution cards - find where the LAST one ends
+          const lastCardHeader = solutionCardHeaders[solutionCardHeaders.length - 1];
+          let cardEndIndex = lastCardHeader.index + 1;
+          
+          // Find where this card ends (next header or end of file)
+          for (let j = lastCardHeader.index + 1; j < cleanedLinesArray.length; j++) {
+            const nextLine = cleanedLinesArray[j];
+            if (!nextLine) continue;
+            if (nextLine.trim().match(/^#\s+/)) {
+              // Found next section header - this is the end of the last card
+              cardEndIndex = j;
+              break;
+            }
+            cardEndIndex = j + 1; // End of file
+          }
+          
+          lastSolutionCardEndIndex = cardEndIndex;
+          console.log('🔍 Last solution card ends at:', {
+            lastCardTitle: lastCardHeader.title,
+            lastCardStartIndex: lastCardHeader.index,
+            lastCardEndIndex: cardEndIndex,
+            nextLinePreview: cleanedLinesArray[cardEndIndex]?.substring(0, 50)
+          });
+        } else {
+          // No solution cards found in cleaned content - check if there's a card at solutionSectionEndIndex
+          // that wasn't matched by the pattern
+          const lineAtEnd = cleanedLinesArray[solutionSectionEndIndex];
+          if (lineAtEnd) {
+            const trimmed = lineAtEnd.trim();
+            const headerMatch = trimmed.match(/^#\s+(.+)$/);
+            if (headerMatch) {
+              const title = headerMatch[1].trim();
+              // Check if this looks like a solution card (even if pattern didn't match)
+              if (title.toLowerCase().includes('new card')) {
+                // This IS a solution card - find where it ends
+                console.log('🔍 Found solution card at solutionSectionEndIndex that pattern missed:', title);
+                let cardEndIndex = solutionSectionEndIndex + 1;
+                for (let j = solutionSectionEndIndex + 1; j < cleanedLinesArray.length; j++) {
+                  const nextLine = cleanedLinesArray[j];
+                  if (!nextLine) continue;
+                  if (nextLine.trim().match(/^#\s+/)) {
+                    cardEndIndex = j;
+                    break;
+                  }
+                  cardEndIndex = j + 1;
+                }
+                lastSolutionCardEndIndex = cardEndIndex;
+                console.log('🔍 Found solution card ends at:', cardEndIndex);
+              } else {
+                // Not a solution card, but cards exist in original - append at end
+                if (maxCardNumber > 0) {
+                  console.log('🔍 Cards exist in original but not in cleaned - appending at end');
+                  lastSolutionCardEndIndex = cleanedLinesArray.length;
+                } else {
+                  lastSolutionCardEndIndex = solutionSectionEndIndex;
+                  console.log('🔍 No solution cards found, inserting before next section at:', solutionSectionEndIndex);
+                }
+              }
+            } else {
+              // Not a header - if cards exist in original, append at end
+              if (maxCardNumber > 0) {
+                console.log('🔍 Cards exist in original but not in cleaned - appending at end');
+                lastSolutionCardEndIndex = cleanedLinesArray.length;
+              } else {
+                lastSolutionCardEndIndex = solutionSectionEndIndex;
+                console.log('🔍 No solution cards found, inserting at solution section end:', solutionSectionEndIndex);
+              }
+            }
+          } else {
+            // No line at end - if cards exist in original, append at end
+            if (maxCardNumber > 0) {
+              console.log('🔍 Cards exist in original but not in cleaned - appending at end');
+              lastSolutionCardEndIndex = cleanedLinesArray.length;
+            } else {
+              lastSolutionCardEndIndex = solutionSectionEndIndex;
+              console.log('🔍 No solution cards found, inserting at solution section end:', solutionSectionEndIndex);
+            }
+          }
+        }
+      } else {
+        // solutionSectionEndIndex >= cleanedLinesArray.length and no cards in original
+        lastSolutionCardEndIndex = cleanedLinesArray.length;
+        console.log('🔍 Solution section at end, no cards - inserting at end of file:', lastSolutionCardEndIndex);
+      }
+    }
+    
+    // Log all headers found in cleaned content for debugging
+    const allHeadersInCleaned = cleanedLinesArray
+      .map((line, idx) => {
+        const match = line.trim().match(/^#\s+(.+)$/);
+        return match ? { index: idx, title: match[1].trim() } : null;
+      })
+      .filter(Boolean);
+    
+    console.log('📍 Insertion calculation:', {
+      solutionSectionEndIndex,
+      lastSolutionCardEndIndex,
+      newCardTitle,
+      newCardNumber,
+      cleanedLinesLength: cleanedLinesArray.length,
+      previewBeforeInsertion: cleanedLinesArray.slice(Math.max(0, lastSolutionCardEndIndex - 5), lastSolutionCardEndIndex),
+      previewAfterInsertion: cleanedLinesArray.slice(lastSolutionCardEndIndex, Math.min(cleanedLinesArray.length, lastSolutionCardEndIndex + 5)),
+      lineAtInsertionPoint: cleanedLinesArray[lastSolutionCardEndIndex]?.substring(0, 100),
+      allHeadersInCleanedContent: allHeadersInCleaned,
+      headersAfterSolution: allHeadersInCleaned.filter(h => h && h.index >= solutionSectionEndIndex)
+    });
+    
+    // Before insertion, restore any missing cards from original content
+    // If cards exist in original but not in cleaned, we need to restore them
+    if (solutionSectionEndIndex >= 0 && solutionSectionEndIndex >= cleanedLinesArray.length && maxCardNumber > 0) {
+      // Cards exist in original content but are missing from cleaned content
+      // Find all solution cards in original content and restore them to cleaned content
+      const missingCards: Array<{ startIndex: number; endIndex: number; lines: string[] }> = [];
+      
+      // Find solution cards in original content
+      // Start from solutionSectionStartIndex (where "The solution" starts) or solutionSectionEndIndex
+      // If solutionSectionEndIndex === lines.length, search from solutionSectionStartIndex
+      const searchStartIndex = solutionSectionEndIndex < lines.length ? solutionSectionEndIndex : solutionSectionStartIndex;
+      
+      for (let i = searchStartIndex; i < lines.length; i++) {
+        const line = lines[i];
+        if (!line) continue;
+        const headerMatch = line.trim().match(/^#\s+(.+)$/);
+        if (headerMatch) {
+          const title = headerMatch[1].trim();
+          if (newCardPattern.test(line.trim())) {
+            // Found a solution card - extract its full content
+            const cardStartIndex = i;
+            let cardEndIndex = i + 1;
+            
+            // Find where this card ends (next header or end of file)
+            for (let j = i + 1; j < lines.length; j++) {
+              const nextLine = lines[j];
+              if (!nextLine) continue;
+              if (nextLine.trim().match(/^#\s+/)) {
+                cardEndIndex = j;
+                break;
+              }
+              cardEndIndex = j + 1;
+            }
+            
+            // Extract the card content (including the header)
+            const cardLines = lines.slice(cardStartIndex, cardEndIndex);
+            missingCards.push({ startIndex: cardStartIndex, endIndex: cardEndIndex, lines: cardLines });
+            console.log('🔧 Found missing card to restore:', title, 'at index', cardStartIndex);
+            
+            // Move to next iteration (will skip to next header)
+            i = cardEndIndex - 1;
+          } else {
+            // Found a non-solution-card section - stop searching
+            break;
+          }
+        }
+      }
+      
+      // If we didn't find any cards and solutionSectionEndIndex === lines.length, search backwards to find ALL cards
+      if (missingCards.length === 0 && solutionSectionEndIndex >= lines.length) {
+        console.log('🔧 Searching backwards from end of file for cards to restore...');
+        const backwardsCards: Array<{ startIndex: number; endIndex: number; lines: string[] }> = [];
+        for (let i = lines.length - 1; i >= solutionSectionStartIndex; i--) {
+          const line = lines[i];
+          if (!line) continue;
+          const headerMatch = line.trim().match(/^#\s+(.+)$/);
+          if (headerMatch) {
+            const title = headerMatch[1].trim();
+            if (newCardPattern.test(line.trim())) {
+              // Found a solution card - extract its full content
+              const cardStartIndex = i;
+              let cardEndIndex = i + 1;
+              
+              // Find where this card ends (next header or end of file)
+              for (let j = i + 1; j < lines.length; j++) {
+                const nextLine = lines[j];
+                if (!nextLine) continue;
+                if (nextLine.trim().match(/^#\s+/)) {
+                  cardEndIndex = j;
+                  break;
+                }
+                cardEndIndex = j + 1;
+              }
+              
+              // Extract the card content (including the header)
+              const cardLines = lines.slice(cardStartIndex, cardEndIndex);
+              backwardsCards.unshift({ startIndex: cardStartIndex, endIndex: cardEndIndex, lines: cardLines }); // unshift to maintain order
+              console.log('🔧 Found missing card to restore (backwards search):', title, 'at index', cardStartIndex);
+            } else if (title.toLowerCase().includes('solution') && !title.toLowerCase().includes('new card')) {
+              // We've reached "The solution" section, stop searching backwards
+              break;
+            }
+          }
+        }
+        // Add backwards cards to missingCards (they're already in correct order)
+        missingCards.push(...backwardsCards);
+      }
+      
+      // Restore missing cards to cleaned content
+      if (missingCards.length > 0) {
+        console.log('🔧 Restoring missing cards from original content:', missingCards.map(c => c.lines[0]?.trim()));
+        
+        // Find where "The solution" section ends in cleaned content
+        let solutionEndInCleaned = -1;
+        for (let i = 0; i < cleanedLinesArray.length; i++) {
+          const line = cleanedLinesArray[i];
+          const headerMatch = line.trim().match(/^#\s+(.+)$/);
+          if (headerMatch) {
+            const title = headerMatch[1].trim().toLowerCase();
+            if (title === 'the solution' || (title.startsWith('the solution') && !title.includes('cards') && !title.includes('new card'))) {
+              // Find where this section ends
+              for (let j = i + 1; j < cleanedLinesArray.length; j++) {
+                const nextLine = cleanedLinesArray[j];
+                if (!nextLine) continue;
+                if (nextLine.trim().match(/^#\s+/)) {
+                  solutionEndInCleaned = j;
+                  break;
+                }
+                solutionEndInCleaned = j + 1;
+              }
+              if (solutionEndInCleaned === -1) {
+                solutionEndInCleaned = cleanedLinesArray.length;
+              }
+              break;
+            }
+          }
+        }
+        
+        // If solution section ends at the end of cleaned content, append missing cards
+        if (solutionEndInCleaned >= 0 && solutionEndInCleaned >= cleanedLinesArray.length - 1) {
+          // Append missing cards to cleaned content
+          missingCards.forEach(card => {
+            cleanedLinesArray.push('');
+            card.lines.forEach(line => {
+              cleanedLinesArray.push(line);
+            });
+          });
+          console.log('✅ Restored missing cards to cleaned content. New length:', cleanedLinesArray.length);
+          
+          // Update lastSolutionCardEndIndex to point after the last restored card
+          lastSolutionCardEndIndex = cleanedLinesArray.length;
+        }
+      }
+    }
+    
+    // Second pass: build the new content with the card inserted
+    // CRITICAL: Use ORIGINAL lines array (from latestProjectContent) as base, not cleanedLinesArray
+    // cleanedLinesArray may be missing cards that were in latestProjectContent
+    
+    // Find where to insert the new card in the ORIGINAL lines array
+    // If we found cards, insert after the last one. Otherwise, insert after solution section.
+    let actualCardInsertionPoint = lines.length; // Default: end of file
+    if (!needsSolutionSection && maxCardNumber > 0) {
+      // Find the last "New Card" section in original lines and insert after it
+      let lastCardEndIndex = -1;
+      for (let i = solutionSectionStartIndex >= 0 ? solutionSectionStartIndex : 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (!line) continue;
+        const headerMatch = line.trim().match(/^#\s+(.+)$/);
+        if (headerMatch) {
+          const title = headerMatch[1].trim();
+          if (newCardPattern.test(line.trim())) {
+            // Found a card - find where it ends
+            let cardEndIndex = i + 1;
+            for (let j = i + 1; j < lines.length; j++) {
+              const nextLine = lines[j];
+              if (!nextLine) continue;
+              if (nextLine.trim().match(/^#\s+/)) {
+                cardEndIndex = j;
+                break;
+              }
+              cardEndIndex = j + 1;
+            }
+            lastCardEndIndex = cardEndIndex; // Update to the last card found
+          } else if (title.toLowerCase().includes('solution') && !title.toLowerCase().includes('new card')) {
+            // Still in solution section, keep searching
+            continue;
+          } else {
+            // Found a non-card, non-solution section - stop searching
+            if (lastCardEndIndex >= 0) {
+              break; // Use the last card we found
+            }
+          }
+        }
+      }
+      if (lastCardEndIndex >= 0) {
+        actualCardInsertionPoint = lastCardEndIndex;
+        console.log('📍 Found last card in original lines, inserting new card at:', actualCardInsertionPoint);
+      } else if (solutionSectionEndIndex >= 0 && solutionSectionEndIndex < lines.length) {
+        actualCardInsertionPoint = solutionSectionEndIndex;
+        console.log('📍 No cards found, inserting after solution section at:', actualCardInsertionPoint);
+      }
+    } else if (!needsSolutionSection && solutionSectionEndIndex >= 0 && solutionSectionEndIndex < lines.length) {
+      actualCardInsertionPoint = solutionSectionEndIndex;
+    }
+    
+    const solutionSectionInsertionPoint = needsSolutionSection ? actualCardInsertionPoint : -1;
+    const cardInsertionPoint = needsSolutionSection ? -1 : actualCardInsertionPoint;
+    
+    // Build new content from ORIGINAL lines array (which has all cards from latestProjectContent)
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      
+      // Check if we should insert "The solution" section BEFORE this line
+      // If we're creating the solution section, also insert the card immediately after it
+      if (needsSolutionSection && !cardInserted && i === solutionSectionInsertionPoint) {
+        // Insert "The solution" section
+        if (newLines.length > 0 && newLines[newLines.length - 1].trim() !== '') {
+          newLines.push('');
+        }
+        newLines.push('');
+        newLines.push('# The solution: A new direction');
+        newLines.push('');
+        newLines.push('Armed with these insights, we rallied around a new vision: to become the go-to cannabis discovery engine. This meant a complete overhaul of the app\'s core functionality.');
+        newLines.push('');
+        console.log('✅ Created "The solution" section at line', i);
+        
+        // Immediately insert the card after the solution section
+        newLines.push('');
+        newLines.push('');
+        const cardHeader = `# ${newCardTitle}`;
+        console.log('📝 About to insert card header:', cardHeader, '| newCardTitle:', newCardTitle, '| newCardNumber:', newCardNumber);
+        newLines.push(cardHeader);
+        const contentLines = newCardContent.split('\n');
+        contentLines.forEach(contentLine => {
+          newLines.push(contentLine);
+        });
+        cardInserted = true;
+        console.log('📌 Inserted card immediately after solution section at line', i, '| Card header:', cardHeader);
+      }
+      // Check if we should insert the card BEFORE this line (when solution section already exists)
+      else if (!needsSolutionSection && !cardInserted && i === cardInsertionPoint) {
+        // Insert the new card BEFORE this line (which is the next section or end of file)
+        // Ensure we have proper spacing
+        if (newLines.length > 0 && newLines[newLines.length - 1].trim() !== '') {
+          newLines.push(''); // Add blank line separator
+        }
+        newLines.push(''); // Add second blank line
+        // CRITICAL: Add the new card header FIRST - this creates a new markdown section
+        const cardHeader = `# ${newCardTitle}`;
+        console.log('📝 About to insert card header:', cardHeader, '| newCardTitle:', newCardTitle, '| newCardNumber:', newCardNumber);
+        newLines.push(cardHeader);
+        // Add the new card content lines AFTER the header
+        const contentLines = newCardContent.split('\n');
+        contentLines.forEach(contentLine => {
+          newLines.push(contentLine);
+        });
+        cardInserted = true;
+        console.log('📌 Inserted card at line', i, '| Insertion point:', cardInsertionPoint, '| Solution section ends at:', solutionSectionEndIndex, '| Card header:', cardHeader);
+      }
+      
+      // Add the current line
+      newLines.push(line);
+    }
+    
+    // If we need to insert solution section at end of file
+    if (needsSolutionSection && solutionSectionInsertionPoint >= lines.length && !cardInserted) {
+      if (newLines.length > 0 && newLines[newLines.length - 1].trim() !== '') {
+        newLines.push('');
+      }
+      newLines.push('');
+      newLines.push('# The solution: A new direction');
+      newLines.push('');
+      newLines.push('Armed with these insights, we rallied around a new vision: to become the go-to cannabis discovery engine. This meant a complete overhaul of the app\'s core functionality.');
+      newLines.push('');
+      console.log('✅ Created "The solution" section at end of file');
+      
+      // Immediately insert the card after the solution section
+      newLines.push('');
+      newLines.push('');
+      newLines.push(`# ${newCardTitle}`);
+      const contentLines = newCardContent.split('\n');
+      contentLines.forEach(contentLine => {
+        newLines.push(contentLine);
+      });
+      cardInserted = true;
+      console.log('✅ Card inserted immediately after solution section at end of file:', newCardTitle);
+    }
+    // If we haven't inserted the card yet and insertion point is at end of file (solution section already exists)
+    else if (!needsSolutionSection && !cardInserted && cardInsertionPoint >= lines.length) {
+      // Insert at the end
+      if (newLines.length > 0 && newLines[newLines.length - 1].trim() !== '') {
+        newLines.push('');
+      }
+      newLines.push('');
+      newLines.push(`# ${newCardTitle}`);
+      const contentLines = newCardContent.split('\n');
+      contentLines.forEach(contentLine => {
+        newLines.push(contentLine);
+      });
+      cardInserted = true;
+      console.log('✅ Card inserted at end of file:', newCardTitle);
+    }
+    
+    // Final fallback: If we still haven't inserted (shouldn't happen, but safety check)
+    if (!cardInserted) {
+      // Ensure we have proper spacing
+      if (newLines.length > 0 && newLines[newLines.length - 1].trim() !== '') {
+        newLines.push(''); // Add blank line separator
+      }
+      newLines.push(''); // Add second blank line
+      // Add the new card header FIRST
+      newLines.push(`# ${newCardTitle}`);
+      // Add the new card content lines AFTER the header
+      const contentLines = newCardContent.split('\n');
+      contentLines.forEach(contentLine => {
+        newLines.push(contentLine);
+      });
+      console.log('⚠️ Fallback: Card inserted at end (should not happen)', newCardTitle);
+    }
+    
+    const newContent = newLines.join('\n');
+    console.log('✅ Adding new card after solution section:', newCardTitle);
+    console.log('📝 Solution section ends at line:', solutionSectionEndIndex, '| Total lines:', cleanedLinesArray.length);
+    console.log('📝 Card inserted:', cardInserted);
+    console.log('📝 newCardTitle:', newCardTitle, '| newCardNumber:', newCardNumber);
+    // Log a preview of the content around the insertion point
+    const previewStart = Math.max(0, Math.min(solutionSectionEndIndex - 2, cleanedLinesArray.length));
+    const previewEnd = Math.min(cleanedLinesArray.length, solutionSectionEndIndex + 5);
+    console.log('📝 Content preview around insertion:', cleanedLinesArray.slice(previewStart, previewEnd).join('\n'));
+    
+    // Verify the new content contains the correct card header
+    const hasCorrectCardHeader = newContent.includes(`# ${newCardTitle}`);
+    const hasWrongHeader = newContent.match(/# The solution: A new direction/g)?.length || 0;
+    console.log('🔍 Content verification:', { 
+      hasCorrectCardHeader, 
+      hasWrongHeader, 
+      duplicateSolutionHeaders: hasWrongHeader > 1,
+      newContentPreview: newContent.split('\n').slice(Math.max(0, newContent.split('\n').length - 20)).join('\n')
+    });
+    
+    if (!hasCorrectCardHeader) {
+      console.error('❌ ERROR: New content does not contain the correct card header!', { newCardTitle, newContentPreview: newContent.slice(0, 500) });
+    }
+    
+    if (hasWrongHeader > 1) {
+      console.warn('⚠️ WARNING: Content has duplicate solution headers!', { count: hasWrongHeader });
+    }
     
     onContentUpdate(newContent);
   };
@@ -319,8 +1208,13 @@ export function CaseStudySections({
       return;
     }
 
+    // CRITICAL: Use latestProjectContent as the base, not content
+    // content is cleaned/filtered and may be missing cards, but latestProjectContent has all saved cards
+    const contentToEdit = latestProjectContent || content;
+    console.log('🗑️ Removing card:', sectionTitle, '| Using:', latestProjectContent ? 'latestProjectContent (has all cards)' : 'content (may be missing cards)');
+
     // Remove the section from the content
-    const lines = content.split('\n');
+    const lines = contentToEdit.split('\n');
     const newLines: string[] = [];
     let inTargetSection = false;
 
@@ -331,21 +1225,50 @@ export function CaseStudySections({
       const headerMatch = line.match(/^# (.+)$/);
       if (headerMatch && headerMatch[1].trim() === sectionTitle) {
         inTargetSection = true;
-        continue; // Skip the header line
+        console.log('🗑️ Found target section header at line', i, ':', sectionTitle);
+        continue; // Skip the header line - don't add it to newLines
       }
 
       // Check if we've hit another top-level section
-      if (inTargetSection && line.match(/^# (.+)$/)) {
+      if (inTargetSection && headerMatch) {
+        // Found next section header - stop skipping
         inTargetSection = false;
+        console.log('🗑️ Found next section header at line', i, '- stopping deletion, adding this header');
+        // Add this new header (it's the start of the next section)
+        newLines.push(line);
+        continue;
       }
 
       // Only keep lines that are not in the target section
       if (!inTargetSection) {
         newLines.push(line);
+      } else {
+        // We're skipping this line because it's part of the target section
+        // This includes both the header (already skipped above) and all content lines
       }
+    }
+    
+    // If we were still in the target section at the end, that's fine - it means it was the last section
+    if (inTargetSection) {
+      console.log('🗑️ Deleted section was the last section in the file');
     }
 
     const newContent = newLines.join('\n');
+    
+    // Verify the deletion
+    const remainingHeaders = newContent.split('\n').filter(l => l.trim().match(/^# (.+)$/)).map(l => l.trim());
+    const deletedHeaderExists = remainingHeaders.some(h => h.includes(sectionTitle));
+    console.log('🗑️ Deletion complete:', {
+      originalLines: lines.length,
+      newLines: newLines.length,
+      deletedHeaderExists,
+      remainingCardHeaders: remainingHeaders.filter(h => !h.includes('The solution') && !h.includes('Overview') && !h.includes('Research insights') && !h.includes('Competitive analysis') && !h.includes('The challenge') && !h.includes('My role'))
+    });
+    
+    if (deletedHeaderExists) {
+      console.warn('⚠️ WARNING: Deleted header still exists in content!');
+    }
+    
     onContentUpdate(newContent);
   };
 
@@ -368,8 +1291,10 @@ export function CaseStudySections({
   };
 
   // Parse content into sections based on top-level headers (# Header)
+  // Use latestProjectContent if available (for accurate solution cards parsing), otherwise fall back to content
   const parseSections = () => {
-    const lines = content.split('\n');
+    const contentToParse = latestProjectContent || content;
+    const lines = contentToParse.split('\n');
     const sections: Array<{ title: string; content: string }> = [];
     let currentSection: { title: string; content: string } | null = null;
     let skipImpactSubsection = false;
@@ -445,6 +1370,17 @@ export function CaseStudySections({
 
   const sections = parseSections();
 
+  console.log('📋 Parsed sections:', {
+    totalSections: sections.length,
+    sectionTitles: sections.map(s => s.title),
+    hasNewCard3: sections.some(s => s.title.includes('New Card 3')),
+    hasNewCard4: sections.some(s => s.title.includes('New Card 4')),
+    usingLatestProjectContent: !!latestProjectContent,
+    contentLength: content.length,
+    latestProjectContentLength: latestProjectContent?.length || 0,
+    contentPreview: (latestProjectContent || content).substring(0, 200)
+  });
+
   // Filter out sidebar sections - they will be rendered separately in the sidebar
   // Also filter out empty sections when not in edit mode
   const regularSections = sections.filter(s => {
@@ -479,7 +1415,9 @@ export function CaseStudySections({
     "Research insights",
     "Competitive analysis",
     "Solution highlights",
-    "Key contributions"
+    "Key contributions",
+    "The solution", // Include "The solution" to match "The solution: A new direction"
+    "The solution: A new direction" // Explicitly include this title
   ];
   
   // Split into sections before and after "The Solution"
@@ -492,32 +1430,66 @@ export function CaseStudySections({
       const decLower = dec.toLowerCase();
       return titleLower.includes(decLower) || decLower.includes(titleLower);
     });
-    const isSolution = titleLower.includes("solution");
+    const isSolution = titleLower.includes("solution") && !titleLower.includes("cards");
     const isKeyFeatures = titleLower === "key features";
-    // Include ALL sections that aren't explicitly excluded elsewhere
-    // This ensures "The challenge" and "My role & impact" are included
+    // Include decorative sections, solution sections, AND Key features
     return isDecorative || isSolution || isKeyFeatures;
   });
   
-  const afterSolutionRaw = regularSections.filter(s => {
-    const isDecorative = decorativeCardSections.some(dec => s.title.toLowerCase().includes(dec.toLowerCase()));
-    const isSolution = s.title.toLowerCase().includes("solution");
-    const isKeyFeatures = s.title.toLowerCase() === "key features";
-    // Exclude decorative sections, solution sections, AND Key features (it has special rendering)
-    return !isDecorative && !isSolution && !isKeyFeatures;
+  const afterSolutionRaw = regularSections.filter((s, index) => {
+    // Only include sections that come AFTER the solution section
+    if (solutionIndex === -1 || index <= solutionIndex) {
+      return false;
+    }
+    
+    const titleLower = s.title.toLowerCase();
+    const isDecorative = decorativeCardSections.some(dec => {
+      const decLower = dec.toLowerCase();
+      return titleLower.includes(decLower) || decLower.includes(titleLower);
+    });
+    // Exclude any section with "solution" in the title (but not "Solution cards" which is the grid itself)
+    const isSolution = titleLower.includes("solution") && !titleLower.includes("cards");
+    const isKeyFeatures = titleLower === "key features";
+    const isResearchInsights = titleLower.includes("research insights");
+    
+    // Debug logging
+    if (isDecorative || isSolution || isKeyFeatures || isResearchInsights) {
+      console.log('🚫 Excluding from solution cards grid:', s.title, {
+        isDecorative,
+        isSolution,
+        isKeyFeatures,
+        isResearchInsights
+      });
+    }
+    
+    // Exclude decorative sections, solution sections, research insights, AND Key features (it has special rendering)
+    return !isDecorative && !isSolution && !isKeyFeatures && !isResearchInsights;
   });
   
   // Filter out specific sections we don't want in the grid
   // "Key features" is already excluded above, but add it here too for safety
+  // Also exclude "Research insights" and "The solution" sections as they should be decorative cards, not solution cards
   const excludedSections = [
     "Key takeaway",
     "Design team",
     "Business and consumer impact",
-    "Key features"
+    "Key features",
+    "Research insights",
+    "The solution"
   ];
   const afterSolution = afterSolutionRaw.filter(section => 
     !excludedSections.some(excluded => section.title.toLowerCase().includes(excluded.toLowerCase()))
   );
+  
+  console.log('🔍 Solution Cards Filtering:', {
+    solutionIndex,
+    totalSections: regularSections.length,
+    afterSolutionRawCount: afterSolutionRaw.length,
+    afterSolutionCount: afterSolution.length,
+    afterSolutionRawTitles: afterSolutionRaw.map(s => s.title),
+    afterSolutionTitles: afterSolution.map(s => s.title),
+    allRegularSectionTitles: regularSections.map(s => s.title)
+  });
   
   // Build sections array with insertable items using configurable positions
   let sectionsWithInserts: Array<{ title: string; content: string; type?: 'section' | 'gallery' | 'sidebar' }> = [];
@@ -804,7 +1776,13 @@ export function CaseStudySections({
                       size="sm"
                       variant="ghost"
                       onClick={() => onMoveSolutionCards('down')}
-                      disabled={actualPositions ? actualPositions.solutionCards >= (actualPositions.total - 1) : solutionCardsPosition >= totalSections - 1}
+                      disabled={(() => {
+                        if (!actualPositions || actualPositions.total === 0) return false;
+                        if (actualPositions.solutionCards === -1) return false; // Not found, allow movement
+                        // Allow movement if there's at least one section after it
+                        // Only disable if it's truly at the absolute last position with no way to move
+                        return actualPositions.solutionCards >= actualPositions.total;
+                      })()}
                       className="rounded-full p-2"
                       title="Move cards section down"
                     >
@@ -838,7 +1816,7 @@ export function CaseStudySections({
               )}
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {afterSolution.map((cardSection, gridIndex) => {
+                {afterSolution.length > 0 ? afterSolution.map((cardSection, gridIndex) => {
                 const config = getSectionConfig(cardSection.title);
                 
                 const isExpanded = expandedCards.has(gridIndex);
@@ -1043,7 +2021,14 @@ export function CaseStudySections({
                     </div>
                   </motion.div>
                 );
-                })}
+                }) : (
+                  // Empty state - show message in edit mode
+                  isEditMode && (
+                    <div className="col-span-full text-center py-8 text-muted-foreground border border-dashed border-border/30 rounded-2xl">
+                      <p className="text-sm">No solution cards yet. Click "Add New Card" above to create one.</p>
+                    </div>
+                  )
+                )}
               </div>
             </div>
           );
@@ -2014,7 +2999,10 @@ export function CaseStudySections({
           );
         }
 
-        // Regular section rendering
+        // Regular section rendering - get config for decorative card styling
+        // Note: config may already be declared above for special sections
+        const regularSectionConfig = getSectionConfig(section.title);
+        
         return (
           <motion.div
             key={index}
@@ -2035,7 +3023,7 @@ export function CaseStudySections({
             <div 
               className="absolute top-0 left-0 right-0 h-1 rounded-t-2xl"
               style={{
-                background: config?.gradient || '#3b82f6'
+                background: regularSectionConfig?.gradient || '#3b82f6'
               }}
             />
 
@@ -2048,10 +3036,10 @@ export function CaseStudySections({
               <motion.path
                 d="M60,-20 Q70,30 75,80 Q80,130 85,180"
                 fill="none"
-                stroke={config?.gradient?.includes('#ec4899') ? '#ec4899' : 
-                       config?.gradient?.includes('#8b5cf6') ? '#8b5cf6' :
-                       config?.gradient?.includes('#fbbf24') ? '#fbbf24' :
-                       config?.gradient?.includes('#10b981') ? '#10b981' : '#3b82f6'}
+                stroke={(regularSectionConfig?.gradient?.includes('#ec4899') ? '#ec4899' : 
+                       regularSectionConfig?.gradient?.includes('#8b5cf6') ? '#8b5cf6' :
+                       regularSectionConfig?.gradient?.includes('#fbbf24') ? '#fbbf24' :
+                       regularSectionConfig?.gradient?.includes('#10b981') ? '#10b981' : '#3b82f6')}
                 strokeWidth="18"
                 strokeLinecap="round"
                 className="group-hover:animate-[drawLine_2s_ease-in-out_forwards]"
@@ -2077,14 +3065,14 @@ export function CaseStudySections({
                   top: dot.y,
                   width: `${dot.size}px`,
                   height: `${dot.size}px`,
-                  background: config.gradient.includes('#ec4899') ? '#ec4899' : 
-                             config.gradient.includes('#8b5cf6') ? '#8b5cf6' :
-                             config.gradient.includes('#fbbf24') ? '#fbbf24' :
-                             config.gradient.includes('#10b981') ? '#10b981' : '#3b82f6',
-                  boxShadow: `0 0 ${dot.size * 2}px ${config.gradient.includes('#ec4899') ? '#ec489940' : 
-                             config.gradient.includes('#8b5cf6') ? '#8b5cf640' :
-                             config.gradient.includes('#fbbf24') ? '#fbbf2440' :
-                             config.gradient.includes('#10b981') ? '#10b98140' : '#3b82f640'}`,
+                  background: (regularSectionConfig?.gradient?.includes('#ec4899') ? '#ec4899' : 
+                             regularSectionConfig?.gradient?.includes('#8b5cf6') ? '#8b5cf6' :
+                             regularSectionConfig?.gradient?.includes('#fbbf24') ? '#fbbf24' :
+                             regularSectionConfig?.gradient?.includes('#10b981') ? '#10b981' : '#3b82f6'),
+                  boxShadow: `0 0 ${dot.size * 2}px ${regularSectionConfig?.gradient?.includes('#ec4899') ? '#ec489940' : 
+                             regularSectionConfig?.gradient?.includes('#8b5cf6') ? '#8b5cf640' :
+                             regularSectionConfig?.gradient?.includes('#fbbf24') ? '#fbbf2440' :
+                             regularSectionConfig?.gradient?.includes('#10b981') ? '#10b98140' : '#3b82f640'}`,
                   animationDelay: `${dot.delay}s`,
                 }}
               />
@@ -2095,10 +3083,10 @@ export function CaseStudySections({
               className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
               style={{
                 background: `radial-gradient(circle at 50% 50%, ${
-                  config.gradient.includes('#ec4899') ? '#ec489920' : 
-                  config.gradient.includes('#8b5cf6') ? '#8b5cf620' :
-                  config.gradient.includes('#fbbf24') ? '#fbbf2420' :
-                  config.gradient.includes('#10b981') ? '#10b98120' : '#3b82f620'
+                  regularSectionConfig?.gradient?.includes('#ec4899') ? '#ec489920' : 
+                  regularSectionConfig?.gradient?.includes('#8b5cf6') ? '#8b5cf620' :
+                  regularSectionConfig?.gradient?.includes('#fbbf24') ? '#fbbf2420' :
+                  regularSectionConfig?.gradient?.includes('#10b981') ? '#10b98120' : '#3b82f620'
                 }, transparent 70%)`,
               }}
             />

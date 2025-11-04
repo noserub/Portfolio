@@ -1,6 +1,6 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion } from "motion/react";
-import { Upload, X, Edit2, Check, ZoomIn, ZoomOut, Move, RotateCcw, Maximize2, ArrowUp, ArrowDown, Image as ImageIcon, Camera } from "lucide-react";
+import { Upload, X, Edit2, Check, ZoomIn, ZoomOut, Move, RotateCcw, Maximize2, ArrowUp, ArrowDown, Image as ImageIcon, Camera, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
@@ -384,6 +384,31 @@ export function FlowDiagramGallery({
   onColumnsChange,
 }: FlowDiagramGalleryProps) {
   const [dragOver, setDragOver] = useState(false);
+  const [showAllImages, setShowAllImages] = useState(false);
+  
+  // Calculate the initial limit based on columns
+  // 13th image for 3 columns, 9th for 2 columns, 5th for 1 column
+  const getInitialLimit = (cols: 1 | 2 | 3): number => {
+    switch (cols) {
+      case 3:
+        return 12; // Show first 12, "Show more" appears at 13th
+      case 2:
+        return 8;  // Show first 8, "Show more" appears at 9th
+      case 1:
+        return 4;  // Show first 4, "Show more" appears at 5th
+      default:
+        return 4;
+    }
+  };
+  
+  const initialLimit = getInitialLimit(columns);
+  const hasMoreImages = images.length > initialLimit;
+  const displayedImages = showAllImages || !hasMoreImages ? images : images.slice(0, initialLimit);
+  
+  // Reset showAllImages when columns change
+  useEffect(() => {
+    setShowAllImages(false);
+  }, [columns]);
 
   // Get readable label for aspect ratio
   const getAspectRatioLabel = (ratio: AspectRatio): string => {
@@ -589,24 +614,112 @@ export function FlowDiagramGallery({
       )}
 
       {images.length > 0 && (
-        <div className={getGridColumnsClass(columns)}>
-          {images.map((image, index) => (
-            <FlowDiagramItem
-              key={image.id}
-              image={image}
-              index={index}
-              isEditMode={isEditMode}
-              onRemove={removeImage}
-              onImageClick={onImageClick}
-              onCaptionChange={updateCaption}
-              onImageUpdate={updateImage}
-              aspectRatio={aspectRatio}
-              totalImages={images.length}
-              onMoveUp={() => moveImageUp(index)}
-              onMoveDown={() => moveImageDown(index)}
-            />
-          ))}
-        </div>
+        <>
+          <div className={getGridColumnsClass(columns)}>
+            {displayedImages.map((image, index) => (
+              <FlowDiagramItem
+                key={image.id}
+                image={image}
+                index={index}
+                isEditMode={isEditMode}
+                onRemove={removeImage}
+                onImageClick={onImageClick}
+                onCaptionChange={updateCaption}
+                onImageUpdate={updateImage}
+                aspectRatio={aspectRatio}
+                totalImages={images.length}
+                onMoveUp={() => moveImageUp(index)}
+                onMoveDown={() => moveImageDown(index)}
+              />
+            ))}
+          </div>
+          
+          {/* Show More Button - Only show if there are more images and not in edit mode */}
+          {hasMoreImages && !isEditMode && !showAllImages && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="flex justify-center mt-8"
+            >
+              <button
+                onClick={() => setShowAllImages(true)}
+                className="flex items-center gap-1 text-sm font-medium transition-all relative cursor-pointer hover:translate-x-0.5"
+              >
+                <motion.span
+                  className="inline-block"
+                  animate={{
+                    backgroundImage: [
+                      "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%)",
+                      "linear-gradient(180deg, #8b5cf6 0%, #ec4899 50%, #3b82f6 100%)",
+                      "linear-gradient(225deg, #ec4899 0%, #3b82f6 50%, #8b5cf6 100%)",
+                      "linear-gradient(270deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%)",
+                      "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%)",
+                    ],
+                  }}
+                  transition={{
+                    duration: 8,
+                    repeat: Infinity,
+                    ease: "linear",
+                  }}
+                  style={{
+                    backgroundClip: "text",
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                  }}
+                >
+                  Show {images.length - initialLimit} more
+                </motion.span>
+                <ChevronDown className="w-4 h-4 text-blue-500" />
+              </button>
+            </motion.div>
+          )}
+          
+          {/* Show Less Button - Only show if all images are displayed */}
+          {showAllImages && hasMoreImages && !isEditMode && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="flex justify-center mt-8"
+            >
+              <button
+                onClick={() => {
+                  setShowAllImages(false);
+                  // Scroll to top of gallery when collapsing
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className="flex items-center gap-1 text-sm font-medium transition-all relative cursor-pointer hover:translate-x-0.5"
+              >
+                <motion.span
+                  className="inline-block"
+                  animate={{
+                    backgroundImage: [
+                      "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%)",
+                      "linear-gradient(180deg, #8b5cf6 0%, #ec4899 50%, #3b82f6 100%)",
+                      "linear-gradient(225deg, #ec4899 0%, #3b82f6 50%, #8b5cf6 100%)",
+                      "linear-gradient(270deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%)",
+                      "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%)",
+                    ],
+                  }}
+                  transition={{
+                    duration: 8,
+                    repeat: Infinity,
+                    ease: "linear",
+                  }}
+                  style={{
+                    backgroundClip: "text",
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                  }}
+                >
+                  Show less
+                </motion.span>
+                <ChevronUp className="w-4 h-4 text-blue-500" />
+              </button>
+            </motion.div>
+          )}
+        </>
       )}
 
       {images.length === 0 && !isEditMode && (

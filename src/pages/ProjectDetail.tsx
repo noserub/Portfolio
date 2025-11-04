@@ -461,6 +461,295 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     checkAuth();
   }, [project]);
   
+  // RECOVERY: Attempt to restore missing image/video references from database
+  useEffect(() => {
+    const attemptRestore = async () => {
+      // Only attempt restore if arrays are empty but we have a project ID
+      // Check project prop directly (not state) to avoid dependency issues
+      const projectImages = project.caseStudyImages || (project as any).case_study_images || [];
+      const projectFlowDiagrams = project.flowDiagramImages || (project as any).flow_diagram_images || [];
+      const projectVideos = project.videoItems || (project as any).video_items || [];
+      const hasImages = projectImages.length > 0 || projectFlowDiagrams.length > 0 || projectVideos.length > 0;
+      
+      if (hasImages || !project?.id) {
+        return; // Already has data or no project ID
+      }
+      
+      console.log('🔍 RECOVERY: Checking database for missing image/video references...');
+      
+      try {
+        // Query Supabase directly for the project with all image/video fields
+        const { data: dbProject, error } = await supabase
+          .from('projects')
+          .select('case_study_images, flow_diagram_images, video_items')
+          .eq('id', project.id)
+          .single();
+        
+        if (error) {
+          console.log('⚠️ RECOVERY: Could not query database:', error.message);
+          return;
+        }
+        
+        if (dbProject) {
+          // Type cast to handle JSONB fields that aren't in the generated types
+          const projectData = dbProject as any;
+          const dbImages = projectData.case_study_images || [];
+          const dbFlowDiagrams = projectData.flow_diagram_images || [];
+          const dbVideos = projectData.video_items || [];
+          
+          const hasDbData = dbImages.length > 0 || dbFlowDiagrams.length > 0 || dbVideos.length > 0;
+          
+          if (hasDbData) {
+            console.log('✅ RECOVERY: Found image/video data in database:', {
+              images: dbImages.length,
+              flowDiagrams: dbFlowDiagrams.length,
+              videos: dbVideos.length
+            });
+            
+            // Restore the arrays (check project prop, not state, to avoid stale closures)
+            const currentImages = project.caseStudyImages || (project as any).case_study_images || [];
+            const currentFlowDiagrams = project.flowDiagramImages || (project as any).flow_diagram_images || [];
+            const currentVideos = project.videoItems || (project as any).video_items || [];
+            
+            if (dbImages.length > 0 && currentImages.length === 0) {
+              setCaseStudyImages(dbImages);
+              console.log('✅ RECOVERY: Restored', dbImages.length, 'case study images');
+            }
+            if (dbFlowDiagrams.length > 0 && currentFlowDiagrams.length === 0) {
+              setFlowDiagramImages(dbFlowDiagrams);
+              console.log('✅ RECOVERY: Restored', dbFlowDiagrams.length, 'flow diagram images');
+            }
+            if (dbVideos.length > 0 && currentVideos.length === 0) {
+              setVideoItems(dbVideos);
+              console.log('✅ RECOVERY: Restored', dbVideos.length, 'videos');
+            }
+            
+            // Persist the restored data
+            const updatedProject: ProjectData = {
+              ...project,
+              caseStudyImages: dbImages.length > 0 ? dbImages : (project.caseStudyImages || []),
+              case_study_images: dbImages.length > 0 ? dbImages : ((project as any).case_study_images || []),
+              flowDiagramImages: dbFlowDiagrams.length > 0 ? dbFlowDiagrams : (project.flowDiagramImages || []),
+              flow_diagram_images: dbFlowDiagrams.length > 0 ? dbFlowDiagrams : ((project as any).flow_diagram_images || []),
+              videoItems: dbVideos.length > 0 ? dbVideos : (project.videoItems || []),
+              video_items: dbVideos.length > 0 ? dbVideos : ((project as any).video_items || []),
+            } as any;
+            
+            onUpdate(updatedProject);
+            console.log('✅ RECOVERY: Persisted restored image/video references to database');
+          } else {
+            console.log('ℹ️ RECOVERY: No image/video data found in database for this project');
+            
+            // STEP 2: Try to find files in Supabase Storage that might belong to this project
+            // Files are stored with timestamps, so we can try to match by project creation/update time
+            console.log('🔍 RECOVERY: Checking Supabase Storage for orphaned files...');
+            
+            try {
+              const { data: storageFiles, error: storageError } = await supabase.storage
+                .from('portfolio-images')
+                .list('', {
+                  limit: 1000,
+                  sortBy: { column: 'created_at', order: 'desc' }
+                });
+              
+              if (storageError) {
+                console.log('⚠️ RECOVERY: Could not list storage files:', storageError.message);
+                return;
+              }
+              
+              if (storageFiles && storageFiles.length > 0) {
+                console.log('🔍 RECOVERY: Found', storageFiles.length, 'files in storage');
+                
+                // Try to match files to this project by checking if URLs contain the project ID
+                // or by checking file timestamps relative to project creation
+                const projectCreatedAt = (project as any).created_at;
+                const projectUpdatedAt = (project as any).updated_at;
+                
+                // Get public URLs for all files and check if any might belong to this project
+                const potentialFiles: Array<{ name: string; url: string; isVideo: boolean }> = [];
+                
+                for (const file of storageFiles) {
+                  // Skip favicon files
+                  if (file.name.includes('favicon')) continue;
+                  
+                  // Get public URL
+                  const { data: { publicUrl } } = supabase.storage
+                    .from('portfolio-images')
+                    .getPublicUrl(file.name);
+                  
+                  // Check if this might be a project file (images/videos)
+                  const isImage = /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(file.name);
+                  const isVideo = /\.(mp4|webm|ogg|ogv)$/i.test(file.name);
+                  
+                  if (isImage || isVideo) {
+                    potentialFiles.push({
+                      name: file.name,
+                      url: publicUrl,
+                      isVideo: isVideo
+                    });
+                  }
+                }
+                
+                if (potentialFiles.length > 0) {
+                  console.log('🔍 RECOVERY: Found', potentialFiles.length, 'potential image/video files in storage');
+                  console.log('💡 RECOVERY: To restore these files, you can:');
+                  console.log('   1. Manually add them back using the "Add Image" or "Add Video" buttons');
+                  console.log('   2. Or use the browser console to run: window.autoRestoreFiles()');
+                  console.log('   Potential files:', potentialFiles.map(f => f.name).slice(0, 10));
+                  
+                  // Create a restoration helper function that captures state setters
+                  (window as any).__potentialFiles = potentialFiles;
+                  (window as any).__currentProject = project;
+                  
+                  // Capture state setters and onUpdate in closure
+                  const restoreImages = setCaseStudyImages;
+                  const restoreFlowDiagrams = setFlowDiagramImages;
+                  const restoreVideos = setVideoItems;
+                  const updateProject = onUpdate;
+                  const currentProject = project;
+                  
+                  (window as any).autoRestoreFiles = async () => {
+                    console.log('🔄 Starting automatic file restoration...');
+                    const files = potentialFiles;
+                    
+                    // Group files by type and guess which gallery they belong to
+                    const images: Array<{ name: string; url: string; alt: string }> = [];
+                    const flowDiagrams: Array<{ name: string; url: string; alt: string }> = [];
+                    const videos: Array<{ name: string; url: string; type: 'upload' }> = [];
+                    
+                    for (const file of files) {
+                      const fileName = file.name.toLowerCase();
+                      const altText = file.name
+                        .replace(/^\d+_/, '') // Remove timestamp prefix
+                        .replace(/\.(png|jpg|jpeg|gif|webp|svg|mp4|webm|ogg)$/i, '') // Remove extension
+                        .replace(/_/g, ' ') // Replace underscores with spaces
+                        .replace(/([A-Z])/g, ' $1') // Add space before capital letters
+                        .trim();
+                      
+                      if (file.isVideo) {
+                        videos.push({
+                          name: file.name,
+                          url: file.url,
+                          type: 'upload' as const
+                        });
+                      } else if (fileName.includes('flow') || fileName.includes('diagram') || fileName.includes('ia')) {
+                        flowDiagrams.push({
+                          name: file.name,
+                          url: file.url,
+                          alt: altText
+                        });
+                      } else {
+                        images.push({
+                          name: file.name,
+                          url: file.url,
+                          alt: altText
+                        });
+                      }
+                    }
+                    
+                    console.log('📊 Grouped files:', {
+                      images: images.length,
+                      flowDiagrams: flowDiagrams.length,
+                      videos: videos.length
+                    });
+                    
+                    // Restore images
+                    if (images.length > 0) {
+                      const restoredImages = images.map((img, idx) => ({
+                        id: `restored-${Date.now()}-${idx}`,
+                        url: img.url,
+                        alt: img.alt
+                      }));
+                      
+                      restoreImages(restoredImages);
+                      console.log('✅ Restored', restoredImages.length, 'case study images');
+                    }
+                    
+                    // Restore flow diagrams
+                    if (flowDiagrams.length > 0) {
+                      const restoredFlowDiagrams = flowDiagrams.map((img, idx) => ({
+                        id: `restored-flow-${Date.now()}-${idx}`,
+                        url: img.url,
+                        alt: img.alt
+                      }));
+                      
+                      restoreFlowDiagrams(restoredFlowDiagrams);
+                      console.log('✅ Restored', restoredFlowDiagrams.length, 'flow diagram images');
+                    }
+                    
+                    // Restore videos
+                    if (videos.length > 0) {
+                      const restoredVideos = videos.map((vid, idx) => ({
+                        id: `restored-video-${Date.now()}-${idx}`,
+                        url: vid.url,
+                        type: vid.type as 'upload'
+                      }));
+                      
+                      restoreVideos(restoredVideos);
+                      console.log('✅ Restored', restoredVideos.length, 'videos');
+                    }
+                    
+                    // Persist the restored data
+                    const updatedProject: ProjectData = {
+                      ...currentProject,
+                      caseStudyImages: images.length > 0 ? images.map((img, idx) => ({
+                        id: `restored-${Date.now()}-${idx}`,
+                        url: img.url,
+                        alt: img.alt
+                      })) : (currentProject.caseStudyImages || []),
+                      case_study_images: images.length > 0 ? images.map((img, idx) => ({
+                        id: `restored-${Date.now()}-${idx}`,
+                        url: img.url,
+                        alt: img.alt
+                      })) : ((currentProject as any).case_study_images || []),
+                      flowDiagramImages: flowDiagrams.length > 0 ? flowDiagrams.map((img, idx) => ({
+                        id: `restored-flow-${Date.now()}-${idx}`,
+                        url: img.url,
+                        alt: img.alt
+                      })) : (currentProject.flowDiagramImages || []),
+                      flow_diagram_images: flowDiagrams.length > 0 ? flowDiagrams.map((img, idx) => ({
+                        id: `restored-flow-${Date.now()}-${idx}`,
+                        url: img.url,
+                        alt: img.alt
+                      })) : ((currentProject as any).flow_diagram_images || []),
+                      videoItems: videos.length > 0 ? videos.map((vid, idx) => ({
+                        id: `restored-video-${Date.now()}-${idx}`,
+                        url: vid.url,
+                        type: vid.type as 'upload'
+                      })) : (currentProject.videoItems || []),
+                      video_items: videos.length > 0 ? videos.map((vid, idx) => ({
+                        id: `restored-video-${Date.now()}-${idx}`,
+                        url: vid.url,
+                        type: vid.type as 'upload'
+                      })) : ((currentProject as any).video_items || []),
+                    } as any;
+                    
+                    updateProject(updatedProject);
+                    console.log('✅ RECOVERY: Persisted restored files to database');
+                    console.log('💡 You may need to refresh the page to see the restored images/videos');
+                  };
+                  
+                  console.log('✅ RECOVERY: Restoration helper ready! Run window.autoRestoreFiles() in the console to restore all files.');
+                } else {
+                  console.log('ℹ️ RECOVERY: No potential image/video files found in storage');
+                }
+              } else {
+                console.log('ℹ️ RECOVERY: No files found in storage');
+              }
+            } catch (storageError) {
+              console.error('❌ RECOVERY: Error checking storage:', storageError);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('❌ RECOVERY: Error attempting to restore:', error);
+      }
+    };
+    
+    // Only attempt restore once per project load
+    attemptRestore();
+  }, [project.id, project.caseStudyImages, project.flowDiagramImages, project.videoItems, onUpdate]); // Run when project ID or image arrays change
+  
   const [editedTitle, setEditedTitle] = useState(project.title);
   const [editedDescription, setEditedDescription] = useState(project.description);
   const [caseStudyContent, setCaseStudyContent] = useState(
@@ -544,6 +833,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
   const caseStudyImagesRef = useRef(caseStudyImages);
   const flowDiagramImagesRef = useRef(flowDiagramImages);
   const videoItemsRef = useRef(videoItems);
+  const isUpdatingSolutionCardsPositionRef = useRef(false);
   
   // Keep refs in sync with state
   useEffect(() => {
@@ -702,8 +992,44 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
   }, [getNextPosition, project, editedTitle, editedDescription, caseStudyContent, galleryAspectRatio, flowDiagramAspectRatio, videoAspectRatio, galleryColumns, flowDiagramColumns, videoColumns, projectImagesPosition, videosPosition, solutionCardsPosition, sectionPositions, onUpdate]);
 
   const handleAddSolutionCardsSection = useCallback(() => {
-    const next = getNextPosition();
-    setSolutionCardsPosition(next);
+    // Find "The solution" section and position solution cards right after it
+    const lines = (caseStudyContent || '').split('\n');
+    const excludedSidebarTitles = [
+      'Sidebar 1', 'Sidebar 2', 'At a glance', 'Impact', 'Tech stack', 'Tools'
+    ];
+    
+    // Parse all sections to find "The solution" section
+    const sections: Array<{ title: string; index: number }> = [];
+    lines.forEach((line, index) => {
+      const match = line.trim().match(/^# (.+)$/);
+      if (match) {
+        const title = match[1].trim();
+        if (!excludedSidebarTitles.includes(title)) {
+          sections.push({ title, index });
+        }
+      }
+    });
+    
+    // Find "The solution" section (case-insensitive, flexible matching)
+    const solutionSectionIndex = sections.findIndex(s => {
+      const titleLower = s.title.toLowerCase();
+      return titleLower.includes('the solution') && 
+             (titleLower.includes('new direction') || titleLower === 'the solution');
+    });
+    
+    let position: number;
+    if (solutionSectionIndex >= 0) {
+      // Position right after "The solution" section
+      position = solutionSectionIndex + 1;
+      console.log('📍 Found "The solution" section at index', solutionSectionIndex, '- positioning solution cards at', position);
+    } else {
+      // Fallback: use next available position
+      const next = getNextPosition();
+      position = next;
+      console.log('⚠️ "The solution" section not found - using fallback position', position);
+    }
+    
+    setSolutionCardsPosition(position);
     const updatedProject: ProjectData = {
       ...project,
       title: editedTitle,
@@ -721,7 +1047,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       projectImagesPosition,
       videosPosition,
       flowDiagramsPosition,
-      solutionCardsPosition: next,
+      solutionCardsPosition: position,
       sectionPositions,
     };
     onUpdate(updatedProject);
@@ -1029,43 +1355,131 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     }
     
     // Also strip non-whitelisted sections when JSON sidebars exist
+    // BUT: Allow any section that appears after "The solution" section (for solution cards grid)
     const whitelistedSections = [
       'Overview', 'The challenge', 'My role', 'My role & impact', 'Research insights', 
-      'Competitive analysis', 'The solution', 'Solution cards', 'Key features'
+      'Competitive analysis', 'The solution', 'The solution: A new direction', 'Solution cards', 'Key features', 'New Card'
     ];
     const excludedSidebarTitles = ['Sidebar 1', 'Sidebar 2', 'At a glance', 'Impact', 'Tech stack', 'Tools'];
+    
+    // Decorative sections that should be in beforeSolution (not solution cards grid)
+    const decorativeCardSections = [
+      'Overview', 'The challenge', 'My role', 'My role & impact', 'Research insights',
+      'Competitive analysis', 'Solution highlights', 'Key contributions'
+    ];
     
     const lines = cleaned.split('\n');
     const filteredLines: string[] = [];
     let skipSection = false;
     let currentSectionTitle = '';
+    let foundSolutionSection = false;
     
     for (const line of lines) {
       const headerMatch = line.trim().match(/^#\s+(.+)$/);
       if (headerMatch) {
+        // We've hit a new section header - reset skipSection
+        const previousSkipState = skipSection;
         currentSectionTitle = headerMatch[1].trim();
         const t = currentSectionTitle.toLowerCase();
+        
+        // Debug: Log ALL section headers found
+        console.log('🔍 Found section header:', currentSectionTitle);
+        
+        // Check if we've passed "The solution" section (but not if this IS the solution section)
+        // Only set foundSolutionSection after we've processed "The solution" section itself
+        const isSolutionSection = t.includes('solution') && !t.includes('cards');
+        if (isSolutionSection && !foundSolutionSection) {
+          // This IS "The solution" section - process it first, then mark that we've found it
+          // We'll set foundSolutionSection after processing this section
+        } else if (foundSolutionSection && !isSolutionSection) {
+          // We've already processed "The solution" section, and this is a different section
+          // Keep foundSolutionSection = true
+        } else if (isSolutionSection && foundSolutionSection) {
+          // This is a second solution section (shouldn't happen, but handle it)
+        }
         
         // Always skip sidebar titles
         if (excludedSidebarTitles.includes(currentSectionTitle) || t === 'at a glance' || t === 'impact' || t === 'sidebar 1' || t === 'sidebar 2' || t === 'tech stack' || t === 'tools') {
           skipSection = true;
+          // Skip the header line itself
           continue;
         }
         
-        // Only allow whitelisted sections
-        const isWhitelisted = whitelistedSections.some(w => {
-          const wLower = w.toLowerCase();
-          return t === wLower || t.startsWith(wLower + ' ') || t.includes(wLower);
-        });
-        if (!isWhitelisted) {
-          console.log('🧹 Stripping non-whitelisted section on LOAD:', currentSectionTitle);
-          skipSection = true;
-          continue;
+        // If this IS "The solution" section, process it normally (use whitelist check below)
+        // Only apply the "after solution" logic to sections that come AFTER "The solution"
+        if (foundSolutionSection && !isSolutionSection) {
+          // We're AFTER "The solution" section - allow ANY section that's not explicitly excluded
+          // (these will appear in the solution cards grid, including custom card titles)
+          
+          // Explicitly exclude these sections from being solution cards:
+          const isResearchInsights = t.includes('research insights');
+          const isAnotherSolution = t.includes('solution') && !t.includes('cards');
+          const isKeyFeatures = t === 'key features';
+          
+          // Check if it's a decorative section (these should be before solution, not after)
+          const isDecorative = decorativeCardSections.some(dec => {
+            const decLower = dec.toLowerCase();
+            // Use strict matching - only exclude if it's an exact match or clearly matches a decorative section
+            return t === decLower || (t.startsWith(decLower + ' ') || t.startsWith(decLower + ':'));
+          });
+          
+          // If it's not explicitly excluded, allow it as a solution card
+          if (!isDecorative && !isKeyFeatures && !isResearchInsights && !isAnotherSolution) {
+            // Allow this section - it's part of solution cards grid (including ALL custom card titles)
+            skipSection = false;
+            console.log('✅ Allowing solution card section (after solution):', currentSectionTitle);
+          } else {
+            // This is an excluded section - only include if it's in the whitelist (for backward compatibility)
+            const isWhitelisted = whitelistedSections.some(w => {
+              const wLower = w.toLowerCase();
+              const matches = t === wLower || t.startsWith(wLower + ' ') || t.includes(wLower);
+              return matches;
+            });
+            if (isWhitelisted) {
+              skipSection = false;
+              console.log('✅ Allowing whitelisted section after solution:', currentSectionTitle);
+            } else {
+              console.log('🧹 Stripping excluded section after solution:', currentSectionTitle, '| isDecorative:', isDecorative, '| isKeyFeatures:', isKeyFeatures, '| isResearchInsights:', isResearchInsights, '| isAnotherSolution:', isAnotherSolution);
+              skipSection = true;
+              // Skip the header line itself
+              continue;
+            }
+          }
+        } else {
+          // Before "The solution" OR this IS "The solution" section - use strict whitelist
+          const isWhitelisted = whitelistedSections.some(w => {
+            const wLower = w.toLowerCase();
+            // Match exact, starts with, or contains (for flexible matching)
+            // Also check if title starts with the whitelist item (e.g., "The solution: A new direction" matches "The solution")
+            const matches = t === wLower || 
+                           t.startsWith(wLower + ' ') || 
+                           t.startsWith(wLower + ':') ||
+                           wLower.startsWith(t) ||
+                           t.includes(wLower) ||
+                           wLower.includes(t);
+            if (matches) {
+              console.log('✅ Whitelist match:', currentSectionTitle, 'matches', w, '| t:', t, '| wLower:', wLower);
+            }
+            return matches;
+          });
+          if (!isWhitelisted) {
+            console.log('🧹 Stripping non-whitelisted section on LOAD:', currentSectionTitle, '| Whitelist:', whitelistedSections, '| t:', t);
+            skipSection = true;
+            // Skip the header line itself - IMPORTANT: This prevents content from merging with previous section
+            continue;
+          }
+          // Section is whitelisted - include it
+          skipSection = false;
+          console.log('✅ Including whitelisted section:', currentSectionTitle);
+          
+          // After processing "The solution" section, mark that we've found it
+          if (isSolutionSection) {
+            foundSolutionSection = true;
+          }
         }
-        
-        skipSection = false;
       }
       
+      // Only add lines if we're not skipping the current section
       if (!skipSection) {
         filteredLines.push(line);
       }
@@ -1076,6 +1490,298 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     // Also clean corrupted content if needed
     if (isContentCorrupted(cleaned)) {
       cleaned = cleanMarkdownContent(cleaned);
+    }
+    
+    // RECOVERY: Detect and restore orphaned card content after "The solution" section
+    // This happens when card headers were stripped but content remained
+    // IMPORTANT: We must preserve the solution section's own content and only recover clearly orphaned cards
+    const linesForRecovery = cleaned.split('\n');
+    let solutionSectionIndex = -1;
+    let solutionSectionEndIndex = -1;
+    const orphanedContentBlocks: Array<{ startIndex: number; endIndex: number; content: string }> = [];
+    
+    // Find "The solution" section
+    for (let i = 0; i < linesForRecovery.length; i++) {
+      const line = linesForRecovery[i];
+      const headerMatch = line.trim().match(/^#\s+(.+)$/);
+      if (headerMatch) {
+        const title = headerMatch[1].trim().toLowerCase();
+        if (title === 'the solution' || (title.startsWith('the solution') && !title.includes('cards') && !title.includes('new card'))) {
+          solutionSectionIndex = i;
+          // Find where this section ends (next header or end of file)
+          for (let j = i + 1; j < linesForRecovery.length; j++) {
+            const nextLine = linesForRecovery[j];
+            if (nextLine.trim().match(/^#\s+/)) {
+              solutionSectionEndIndex = j;
+              break;
+            }
+          }
+          if (solutionSectionEndIndex === -1) {
+            solutionSectionEndIndex = linesForRecovery.length;
+          }
+          break;
+        }
+      }
+    }
+    
+    // If we found the solution section, check for orphaned cards AFTER the solution's own content
+    if (solutionSectionIndex >= 0 && solutionSectionEndIndex > solutionSectionIndex + 1) {
+      // Collect all content lines after solution header
+      const solutionContentLines: string[] = [];
+      for (let i = solutionSectionIndex + 1; i < solutionSectionEndIndex; i++) {
+        const line = linesForRecovery[i];
+        if (line.trim().match(/^#\s+/)) {
+          break;
+        }
+        solutionContentLines.push(line);
+      }
+      
+      const solutionContent = solutionContentLines.join('\n').trim();
+      const defaultSolutionText = "Armed with these insights, we rallied around a new vision: to become the go-to cannabis discovery engine. This meant a complete overhaul of the app's core functionality.";
+      
+      // Find where the legitimate solution content ends
+      // The solution section should have its own content, then potentially orphaned card content after
+      let legitimateSolutionEndIndex = solutionSectionIndex + 1;
+      
+      // Look for the default solution text or similar intro text
+      const solutionContentLower = solutionContent.toLowerCase();
+      const defaultSolutionLower = defaultSolutionText.toLowerCase();
+      
+      // Try to find where the solution's own content ends
+      // Look for patterns like "We streamlined", "We redesigned", etc. that indicate card content
+      // These typically start a new paragraph after the solution intro
+      const cardStartPatterns = [
+        /^we\s+(streamlined|redesigned|built|created|developed|implemented|focused|prioritized)/i,
+        /^(our|the)\s+(key|main|primary|core|new)/i,
+        /^this\s+(included|meant|involved)/i
+      ];
+      
+      // Find the first line that looks like it starts a new card (not solution intro)
+      let foundLegitimateEnd = false;
+      let contentAfterSolution = '';
+      
+      for (let i = 0; i < solutionContentLines.length; i++) {
+        const line = solutionContentLines[i].trim();
+        if (line.length > 20) {
+          // Check if this line matches card start patterns
+          const looksLikeCardStart = cardStartPatterns.some(pattern => pattern.test(line));
+          
+          if (looksLikeCardStart && i > 2) {
+            // We found content that looks like it starts a card
+            // Everything before this is solution content, everything after is potentially orphaned
+            legitimateSolutionEndIndex = solutionSectionIndex + 1 + i;
+            foundLegitimateEnd = true;
+            contentAfterSolution = solutionContentLines.slice(i).join('\n').trim();
+            break;
+          }
+        }
+      }
+      
+      // Only recover if we found clear card content after the solution intro
+      if (foundLegitimateEnd && contentAfterSolution.length > 50) {
+        // Split the orphaned content into distinct blocks (cards)
+        // Look for patterns separated by 2+ blank lines or distinct paragraphs starting with "We"
+        const orphanedBlocks = contentAfterSolution.split(/\n\n\n+/);
+        
+        if (orphanedBlocks.length > 1) {
+          // Multiple distinct blocks - each is likely a card
+          let currentIndex = legitimateSolutionEndIndex;
+          orphanedBlocks.forEach((block, idx) => {
+            const blockContent = block.trim();
+            if (blockContent.length > 50) {
+              orphanedContentBlocks.push({
+                startIndex: currentIndex,
+                endIndex: currentIndex + block.split('\n').length,
+                content: blockContent
+              });
+              currentIndex += block.split('\n').length + 1;
+            }
+          });
+        } else {
+          // Single block - might be one card or multiple merged
+          // Only treat as orphaned if it's clearly separated from solution content
+          if (contentAfterSolution.length > 100) {
+            orphanedContentBlocks.push({
+              startIndex: legitimateSolutionEndIndex,
+              endIndex: solutionSectionEndIndex,
+              content: contentAfterSolution
+            });
+          }
+        }
+      }
+      
+      // If we found orphaned content blocks, restore them as cards
+      if (orphanedContentBlocks.length > 0) {
+        console.log('🔧 RECOVERY: Found orphaned card content blocks:', orphanedContentBlocks.length, orphanedContentBlocks.map(b => ({ start: b.startIndex, end: b.endIndex, preview: b.content.substring(0, 50) })));
+        
+        // Rebuild content: keep everything before and including solution section header,
+        // remove orphaned blocks from solution section, then add orphaned blocks as separate card sections after solution
+        const newLines: string[] = [];
+        let cardNumber = 1;
+        
+        // Build a set of line indices that are part of orphaned blocks (for quick lookup)
+        const orphanedLineIndices = new Set<number>();
+        orphanedContentBlocks.forEach(block => {
+          for (let idx = block.startIndex; idx < block.endIndex; idx++) {
+            orphanedLineIndices.add(idx);
+          }
+        });
+        
+        // Copy lines up to solution section, keeping solution header but excluding orphaned content
+        for (let i = 0; i <= solutionSectionIndex; i++) {
+          newLines.push(linesForRecovery[i]);
+        }
+        
+        // Copy solution section content (lines after header) but skip orphaned blocks
+        for (let i = solutionSectionIndex + 1; i < solutionSectionEndIndex; i++) {
+          if (!orphanedLineIndices.has(i)) {
+            newLines.push(linesForRecovery[i]);
+          }
+        }
+        
+        // If solution section had content (not just header), ensure proper spacing
+        if (newLines.length > 0 && newLines[newLines.length - 1].trim() !== '') {
+          newLines.push('');
+        }
+        
+        // Add orphaned blocks as card sections
+        orphanedContentBlocks.forEach((block) => {
+          newLines.push('');
+          newLines.push(`# New Card ${cardNumber}`);
+          newLines.push('');
+          const contentLines = block.content.split('\n');
+          contentLines.forEach(cl => {
+            if (cl.trim().length > 0 || newLines.length === 0 || newLines[newLines.length - 1].trim().length > 0) {
+              newLines.push(cl);
+            }
+          });
+          newLines.push('');
+          cardNumber++;
+        });
+        
+        // Copy remaining lines after solution section
+        for (let i = solutionSectionEndIndex; i < linesForRecovery.length; i++) {
+          newLines.push(linesForRecovery[i]);
+        }
+        
+        cleaned = newLines.join('\n').trim();
+        console.log('✅ RECOVERY: Restored', orphanedContentBlocks.length, 'orphaned content blocks as card sections after solution section');
+      }
+    }
+    
+    // RECOVERY STEP 2: Detect and split merged card content within existing "New Card" sections
+    // This handles the case where all card content was merged into a single "New Card 1" section
+    const linesForCardSplit = cleaned.split('\n');
+    const cardStartPatterns = [
+      /^we\s+(streamlined|redesigned|built|created|developed|implemented|focused|prioritized)/i,
+      /^(our|the)\s+(key|main|primary|core|new)/i,
+      /^this\s+(included|meant|involved)/i
+    ];
+    
+    // Find all "New Card" sections and check if they contain merged content
+    for (let i = 0; i < linesForCardSplit.length; i++) {
+      const line = linesForCardSplit[i];
+      const cardHeaderMatch = line.trim().match(/^#\s+New Card (\d+)/i);
+      
+      if (cardHeaderMatch) {
+        // Found a "New Card" section - find where it ends
+        let cardEndIndex = i + 1;
+        for (let j = i + 1; j < linesForCardSplit.length; j++) {
+          const nextLine = linesForCardSplit[j];
+          if (nextLine.trim().match(/^#\s+/)) {
+            cardEndIndex = j;
+            break;
+          }
+        }
+        if (cardEndIndex === i + 1) {
+          cardEndIndex = linesForCardSplit.length;
+        }
+        
+        // Get the card content
+        const cardContentLines = linesForCardSplit.slice(i + 1, cardEndIndex);
+        const cardContent = cardContentLines.join('\n').trim();
+        
+        // Check if this card content looks like it contains multiple merged cards
+        // Look for multiple paragraphs that start with card patterns, separated by blank lines
+        const contentBlocks: Array<{ startLine: number; endLine: number; content: string }> = [];
+        let currentBlockStart = -1;
+        let currentBlockLines: string[] = [];
+        
+        for (let j = 0; j < cardContentLines.length; j++) {
+          const contentLine = cardContentLines[j].trim();
+          const isEmptyLine = contentLine.length === 0;
+          const isCardStart = !isEmptyLine && cardStartPatterns.some(pattern => pattern.test(contentLine));
+          
+          if (isCardStart && currentBlockStart >= 0) {
+            // Found a new card start - save the previous block
+            if (currentBlockLines.length > 0) {
+              contentBlocks.push({
+                startLine: currentBlockStart,
+                endLine: j,
+                content: currentBlockLines.join('\n').trim()
+              });
+            }
+            // Start new block
+            currentBlockStart = j;
+            currentBlockLines = [cardContentLines[j]];
+          } else if (isCardStart && currentBlockStart === -1) {
+            // First card block found
+            currentBlockStart = j;
+            currentBlockLines = [cardContentLines[j]];
+          } else if (currentBlockStart >= 0) {
+            // Continue current block
+            currentBlockLines.push(cardContentLines[j]);
+          }
+        }
+        
+        // Save the last block if it exists
+        if (currentBlockStart >= 0 && currentBlockLines.length > 0) {
+          contentBlocks.push({
+            startLine: currentBlockStart,
+            endLine: cardContentLines.length,
+            content: currentBlockLines.join('\n').trim()
+          });
+        }
+        
+        // If we found multiple distinct blocks, split them into separate cards
+        if (contentBlocks.length > 1) {
+          console.log('🔧 CARD SPLIT: Found', contentBlocks.length, 'merged card blocks in "New Card", splitting...');
+          
+          // Rebuild content with split cards
+          const newLines: string[] = [];
+          let cardNumber = parseInt(cardHeaderMatch[1], 10);
+          
+          // Copy everything before this card
+          for (let j = 0; j < i; j++) {
+            newLines.push(linesForCardSplit[j]);
+          }
+          
+          // Add each block as a separate card
+          contentBlocks.forEach((block, blockIdx) => {
+            if (block.content.length > 20) {
+              newLines.push('');
+              newLines.push(`# New Card ${cardNumber}`);
+              newLines.push('');
+              const blockLines = block.content.split('\n');
+              blockLines.forEach(bl => newLines.push(bl));
+              newLines.push('');
+              cardNumber++;
+            }
+          });
+          
+          // Copy everything after this card
+          for (let j = cardEndIndex; j < linesForCardSplit.length; j++) {
+            newLines.push(linesForCardSplit[j]);
+          }
+          
+          cleaned = newLines.join('\n').trim();
+          console.log('✅ CARD SPLIT: Split merged card into', contentBlocks.length, 'separate cards');
+          
+          // Update linesForCardSplit for next iteration (if there are more cards to check)
+          // But break after first split to avoid index issues
+          break;
+        }
+      }
     }
     
     // Update local state if we restored sidebars
@@ -1098,12 +1804,25 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       
       // Only persist cleaned markdown if we actually cleaned something
       // AND preserve JSON sidebars (never overwrite them with stale project data)
+      // CRITICAL: Explicitly preserve images/videos arrays to prevent data loss
       if (cleaned !== src) {
-        console.log('💾 Persisting cleaned markdown, preserving JSON sidebars:', Object.keys(preservedSidebars));
+        console.log('💾 Persisting cleaned markdown, preserving JSON sidebars and images/videos:', {
+          sidebars: Object.keys(preservedSidebars),
+          imagesCount: (project.caseStudyImages || (project as any).case_study_images || []).length,
+          videosCount: (project.videoItems || (project as any).video_items || []).length,
+          flowDiagramsCount: (project.flowDiagramImages || (project as any).flow_diagram_images || []).length
+        });
         onUpdate({
           ...project,
           caseStudyContent: cleaned,
           case_study_content: cleaned,
+          // CRITICAL: Explicitly preserve images/videos arrays
+          caseStudyImages: project.caseStudyImages || (project as any).case_study_images || [],
+          case_study_images: project.caseStudyImages || (project as any).case_study_images || [],
+          flowDiagramImages: project.flowDiagramImages || (project as any).flow_diagram_images || [],
+          flow_diagram_images: project.flowDiagramImages || (project as any).flow_diagram_images || [],
+          videoItems: project.videoItems || (project as any).video_items || [],
+          video_items: project.videoItems || (project as any).video_items || [],
           caseStudySidebars: preservedSidebars,
           case_study_sidebars: preservedSidebars
         } as any);
@@ -1112,6 +1831,13 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
         console.log('💾 Persisting migrated sidebars only:', Object.keys(preservedSidebars));
         onUpdate({
           ...project,
+          // CRITICAL: Explicitly preserve images/videos arrays even during sidebar migration
+          caseStudyImages: project.caseStudyImages || (project as any).case_study_images || [],
+          case_study_images: project.caseStudyImages || (project as any).case_study_images || [],
+          flowDiagramImages: project.flowDiagramImages || (project as any).flow_diagram_images || [],
+          flow_diagram_images: project.flowDiagramImages || (project as any).flow_diagram_images || [],
+          videoItems: project.videoItems || (project as any).video_items || [],
+          video_items: project.videoItems || (project as any).video_items || [],
           caseStudySidebars: preservedSidebars,
           case_study_sidebars: preservedSidebars
         } as any);
@@ -1636,9 +2362,9 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
           // Upload to Supabase Storage instead of base64
           const newImageUrl = await uploadImage(file, 'hero');
           
-          // New images default to 100% zoom, centered (for both detail and home views)
-          // Use a smaller scale to prevent cropping issues
-          const newScale = 0.8;
+          // New images default to 100% zoom, centered (shows full image without cropping)
+          // With fit="contain", scale of 1.0 shows the full image; user can zoom in/out as needed
+          const newScale = 1.0;
           const newPosition = { x: 50, y: 50 };
           
           // Update local display state
@@ -2046,6 +2772,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
 
   const handleMoveSolutionCards = (direction: 'up' | 'down') => {
     const currentPos = solutionCardsPosition;
+    if (currentPos === undefined) return;
+    
     const targetPos = direction === 'up' ? currentPos - 1 : currentPos + 1;
     
     console.log(`🎴 Attempting to move Solution Cards ${direction}: ${currentPos} → ${targetPos}`);
@@ -2055,6 +2783,9 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       console.log(`⚠️ Can't move up - already at top`);
       return;
     }
+    
+    // Prevent auto-adjustment from interfering with manual movement
+    isUpdatingSolutionCardsPositionRef.current = true;
     
     // Find what section is at the target position and swap with it
     let newProjectImagesPos = projectImagesPosition;
@@ -2115,6 +2846,11 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       solutionCardsPosition: newSolutionCardsPos,
     };
     onUpdate(updatedProject);
+    
+    // Reset flag after a delay to allow state to update
+    setTimeout(() => {
+      isUpdatingSolutionCardsPositionRef.current = false;
+    }, 200);
   };
 
   // Simplified markdown section move handler
@@ -2227,133 +2963,81 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     console.log(`↔️ Swapping "${current.title}" (${current.type}) with "${target.title}" (${target.type})`);
     
     if (target.type === 'special') {
-      // Move the special section to make room for the markdown section
-      // Also need to actually move the markdown section in the content by swapping with next markdown section
-      console.log('🔄 Moving special section to make room for markdown section');
+      // When moving a markdown section past a special section (like solution cards),
+      // we should swap positions directly, not move the special section
+      console.log('🔄 Markdown section moving past special section - swapping positions directly');
       
-      // Find the next markdown section in the desired direction to swap with
-      let nextMarkdownIndex = -1;
-      if (direction === 'up') {
-        // Look backwards for next markdown section
-        for (let i = currentIndex - 1; i >= 0; i--) {
-          if (combined[i].type === 'markdown') {
-            nextMarkdownIndex = i;
-            break;
-          }
-        }
-      } else {
-        // Look forwards for next markdown section
-        for (let i = currentIndex + 1; i < combined.length; i++) {
-          if (combined[i].type === 'markdown') {
-            nextMarkdownIndex = i;
-            break;
-          }
-        }
-      }
+      // Directly swap the positions: markdown section takes special section's position,
+      // and special section takes markdown section's position
+      const markdownNewPosition = target.position;
+      const specialNewPosition = current.position;
       
-      // If we found a markdown section to swap with, do that instead
-      if (nextMarkdownIndex !== -1 && combined[nextMarkdownIndex].type === 'markdown') {
-        const nextMarkdown = combined[nextMarkdownIndex];
+      // Update the special section's position based on which one it is
+      if (target.title === '__SOLUTION_CARDS__') {
+        // When markdown section moves past solution cards, swap positions directly
+        // Solution cards takes markdown section's old position, markdown section takes solution cards' position
+        // DON'T move markdown content - just swap the position numbers
+        console.log(`↔️ Swapping "${sectionTitle}" with Solution Cards: ${current.position} <-> ${target.position}`);
+        isUpdatingSolutionCardsPositionRef.current = true;
+        setSolutionCardsPosition(specialNewPosition);
         
-        // Use flexible matching to handle variations like "My role & impact" vs "My role and impact"
-        const normalizeTitle = (title: string) => title.toLowerCase().replace(/&/g, 'and').replace(/\s+/g, ' ').trim();
+        // Get persisted sidebars
+        const persistedSidebars = buildPersistedSidebars();
         
-        let currentSection = markdownSections.find(s => s.title === sectionTitle);
-        if (!currentSection) {
-          currentSection = markdownSections.find(s => s.title.toLowerCase() === sectionTitle.toLowerCase());
-        }
-        if (!currentSection) {
-          const normalizedSectionTitle = normalizeTitle(sectionTitle);
-          currentSection = markdownSections.find(s => normalizeTitle(s.title) === normalizedSectionTitle);
-        }
-        
-        let targetSection = markdownSections.find(s => s.title === nextMarkdown.title);
-        if (!targetSection) {
-          targetSection = markdownSections.find(s => s.title.toLowerCase() === nextMarkdown.title.toLowerCase());
-        }
-        if (!targetSection) {
-          const normalizedTargetTitle = normalizeTitle(nextMarkdown.title);
-          targetSection = markdownSections.find(s => normalizeTitle(s.title) === normalizedTargetTitle);
+        // Ensure sectionPositions is serializable
+        let cleanSectionPositions: any = {};
+        try {
+          cleanSectionPositions = sectionPositions ? JSON.parse(JSON.stringify(sectionPositions)) : {};
+        } catch (e) {
+          console.error('⚠️ Error serializing sectionPositions:', e);
+          cleanSectionPositions = {};
         }
         
-        if (currentSection && targetSection) {
-          console.log(`↔️ Swapping "${sectionTitle}" with "${nextMarkdown.title}" (past special section)`);
-          // Swap in markdown content
-          const currentLines = lines.slice(currentSection.startLine, currentSection.endLine + 1);
-          const targetLines = lines.slice(targetSection.startLine, targetSection.endLine + 1);
-          
-          const newLines = direction === 'up' ? [
-            ...lines.slice(0, targetSection.startLine),
-            ...currentLines,
-            ...targetLines,
-            ...lines.slice(currentSection.endLine + 1)
-          ] : [
-            ...lines.slice(0, currentSection.startLine),
-            ...targetLines,
-            ...currentLines,
-            ...lines.slice(targetSection.endLine + 1)
-          ];
-          
-          const newContent = newLines.join('\n');
-          console.log('✅ Markdown content updated (past special section)');
-          setCaseStudyContent(newContent);
-          
-          // Get persisted sidebars
-          const persistedSidebars = buildPersistedSidebars();
-          
-          // Ensure sectionPositions is serializable
-          let cleanSectionPositions: any = {};
-          try {
-            cleanSectionPositions = sectionPositions ? JSON.parse(JSON.stringify(sectionPositions)) : {};
-          } catch (e) {
-            console.error('⚠️ Error serializing sectionPositions:', e);
-            cleanSectionPositions = {};
-          }
-          
-          // Ensure sidebars are serializable
-          let cleanSidebars: any = {};
-          try {
-            if (persistedSidebars) {
-              cleanSidebars = JSON.parse(JSON.stringify(persistedSidebars));
-              if (typeof cleanSidebars !== 'object' || Array.isArray(cleanSidebars)) {
-                cleanSidebars = {};
-              }
+        // Ensure sidebars are serializable
+        let cleanSidebars: any = {};
+        try {
+          if (persistedSidebars) {
+            cleanSidebars = JSON.parse(JSON.stringify(persistedSidebars));
+            if (typeof cleanSidebars !== 'object' || Array.isArray(cleanSidebars)) {
+              cleanSidebars = {};
             }
-          } catch (e) {
-            cleanSidebars = {};
           }
-          
-          const updatedProject: ProjectData = {
-            ...project,
-            title: editedTitle,
-            description: editedDescription,
-            caseStudyContent: newContent,
-            caseStudyImages: caseStudyImagesRef.current,
-            flowDiagramImages: flowDiagramImagesRef.current,
-            videoItems: videoItemsRef.current,
-            galleryAspectRatio,
-            flowDiagramAspectRatio,
-            videoAspectRatio,
-            galleryColumns,
-            flowDiagramColumns,
-            videoColumns,
-            keyFeaturesColumns,
-            key_features_columns: keyFeaturesColumns,
-            projectImagesPosition,
-            videosPosition,
-            flowDiagramsPosition,
-            solutionCardsPosition,
-            sectionPositions: cleanSectionPositions,
-            caseStudySidebars: cleanSidebars,
-            case_study_sidebars: cleanSidebars,
-          } as any;
-          onUpdate(updatedProject);
-          return;
+        } catch (e) {
+          cleanSidebars = {};
         }
-      }
-      
-      // If no markdown section to swap with, just move the special section
-      if (target.title === '__PROJECT_IMAGES__') {
+        
+        const updatedProject: ProjectData = {
+          ...project,
+          title: editedTitle,
+          description: editedDescription,
+          caseStudyContent,
+          caseStudyImages: caseStudyImagesRef.current,
+          flowDiagramImages: flowDiagramImagesRef.current,
+          videoItems: videoItemsRef.current,
+          galleryAspectRatio,
+          flowDiagramAspectRatio,
+          videoAspectRatio,
+          galleryColumns,
+          flowDiagramColumns,
+          videoColumns,
+          keyFeaturesColumns,
+          key_features_columns: keyFeaturesColumns,
+          projectImagesPosition,
+          videosPosition,
+          flowDiagramsPosition,
+          solutionCardsPosition: specialNewPosition,
+          sectionPositions: cleanSectionPositions,
+          caseStudySidebars: cleanSidebars,
+          case_study_sidebars: cleanSidebars,
+        } as any;
+        onUpdate(updatedProject);
+        
+        // Reset flag after a delay
+        setTimeout(() => {
+          isUpdatingSolutionCardsPositionRef.current = false;
+        }, 200);
+        return;
+      } else if (target.title === '__PROJECT_IMAGES__') {
         // Move project images to the next available position
         const newProjectImagesPos = direction === 'up' ? projectImagesPosition - 1 : projectImagesPosition + 1;
         setProjectImagesPosition(newProjectImagesPos);
@@ -2381,9 +3065,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
         };
         onUpdate(updatedProject);
         return;
-      }
-      
-      if (target.title === '__FLOW_DIAGRAMS__') {
+      } else if (target.title === '__FLOW_DIAGRAMS__') {
         // Move flow diagrams to the next available position
         const newFlowDiagramsPos = direction === 'up' ? flowDiagramsPosition - 1 : flowDiagramsPosition + 1;
         setFlowDiagramsPosition(newFlowDiagramsPos);
@@ -2439,9 +3121,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
         } as any;
         onUpdate(updatedProject);
         return;
-      }
-      
-      if (target.title === '__VIDEOS__') {
+      } else if (target.title === '__VIDEOS__') {
         // Move videos to the next available position
         const newVideosPos = direction === 'up' ? videosPosition - 1 : videosPosition + 1;
         setVideosPosition(newVideosPos);
@@ -2927,23 +3607,50 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     ];
     
     // Strict whitelist of legitimate section titles (only these are allowed when JSON sidebars exist)
+    // Include "New Card" patterns for solution cards grid
     const whitelistedSections = [
       'Overview', 'The challenge', 'My role', 'My role & impact', 'Research insights', 
-      'Competitive analysis', 'The solution', 'Solution cards', 'Key features'
+      'Competitive analysis', 'The solution', 'The solution: A new direction', 'Solution cards', 'Key features', 'New Card'
     ];
     
     let sections: string[] = [];
     
     // If JSON sidebars exist, ONLY parse whitelisted sections - ignore everything else
+    // BUT: Allow any section after "The solution" that isn't decorative (for solution cards grid)
     if (hasJsonSidebars) {
+      let foundSolutionSection = false;
+      const decorativeCardSections = [
+        'Overview', 'The challenge', 'My role', 'My role & impact', 'Research insights',
+        'Competitive analysis', 'Solution highlights', 'Key contributions'
+      ];
+      
       sections = lines
         .filter(line => (line || '').trim().match(/^# (.+)$/))
         .map(line => (line || '').trim().substring(2).trim())
         .filter(title => {
           // Exclude sidebar titles
           if (excludedSidebarTitles.includes(title)) return false;
-          // ONLY include if it's in the whitelist (case-insensitive, exact or contains match)
+          
           const t = title.toLowerCase();
+          
+          // Check if we've passed "The solution" section
+          if (t.includes('solution') && !t.includes('cards')) {
+            foundSolutionSection = true;
+          }
+          
+          // If we're after "The solution", allow any non-decorative section
+          if (foundSolutionSection) {
+            const isDecorative = decorativeCardSections.some(dec => {
+              const decLower = dec.toLowerCase();
+              return t === decLower || t.includes(decLower) || decLower.includes(t);
+            });
+            if (!isDecorative && t !== 'key features') {
+              // Allow this section - it's part of solution cards grid
+              return true;
+            }
+          }
+          
+          // Before "The solution" or for decorative sections - use strict whitelist
           const isWhitelisted = whitelistedSections.some(w => {
             const wLower = w.toLowerCase();
             return t === wLower || t.startsWith(wLower + ' ') || t.includes(wLower);
@@ -3004,20 +3711,38 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       return t === 'solution cards' || t.startsWith('solution cards:');
     });
     
+    // Auto-calculate solution cards position: always right after "The solution" section if it exists
+    let calculatedSolutionCardsPosition = solutionCardsPosition;
+    if (solutionCardsPosition !== undefined) {
+      // Find "The solution" section in the sections array
+      const solutionSectionIndex = sections.findIndex(title => {
+        const t = title.toLowerCase();
+        return t.includes('the solution') && 
+               (t.includes('new direction') || t === 'the solution');
+      });
+      
+      if (solutionSectionIndex >= 0) {
+        // Position right after "The solution" section
+        calculatedSolutionCardsPosition = solutionSectionIndex + 1;
+        console.log('📍 Auto-calculated solution cards position:', calculatedSolutionCardsPosition, '(after "The solution" section at index', solutionSectionIndex, ')');
+      }
+    }
+    
     console.log('🔍 Solution Cards Debug:', {
       hasExplicitSolutionCards,
       isEditMode,
       solutionCardsPosition,
+      calculatedSolutionCardsPosition,
       sections: sections,
       hasJsonSidebars,
-      shouldInsert: (hasExplicitSolutionCards || (isEditMode && solutionCardsPosition !== undefined)) && solutionCardsPosition !== undefined
+      shouldInsert: (hasExplicitSolutionCards || (isEditMode && calculatedSolutionCardsPosition !== undefined)) && calculatedSolutionCardsPosition !== undefined
     });
     
     // Only insert if explicitly added via UI OR if there's an explicit "Solution cards" section
-    if ((hasExplicitSolutionCards || (isEditMode && solutionCardsPosition !== undefined)) && solutionCardsPosition !== undefined) {
-      console.log('🎴 Inserting Solution Cards at position:', solutionCardsPosition);
+    if ((hasExplicitSolutionCards || (isEditMode && calculatedSolutionCardsPosition !== undefined)) && calculatedSolutionCardsPosition !== undefined) {
+      console.log('🎴 Inserting Solution Cards at position:', calculatedSolutionCardsPosition);
       insertions.push({ 
-        pos: solutionCardsPosition, 
+        pos: calculatedSolutionCardsPosition, 
         item: { title: '__SOLUTION_CARDS__', type: 'gallery' }
       });
     }
@@ -3075,6 +3800,102 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     solutionCardsPosition,
     isEditMode
   ]);
+
+  // Track previous "The solution" section position to detect when it moves
+  const prevSolutionSectionPositionRef = useRef<number | null>(null);
+  
+  // Auto-update solution cards position ONLY when "The solution" section moves, not when solution cards are manually moved
+  useEffect(() => {
+    if (solutionCardsPosition === undefined || !isEditMode || isUpdatingSolutionCardsPositionRef.current) return;
+    
+    const lines = (caseStudyContent || '').split('\n');
+    const excludedSidebarTitles = [
+      'Sidebar 1', 'Sidebar 2', 'At a glance', 'Impact', 'Tech stack', 'Tools'
+    ];
+    
+    // Parse all sections to find "The solution" section
+    const sections: string[] = [];
+    lines.forEach((line) => {
+      const match = line.trim().match(/^# (.+)$/);
+      if (match) {
+        const title = match[1].trim();
+        if (!excludedSidebarTitles.includes(title)) {
+          sections.push(title);
+        }
+      }
+    });
+    
+    // Find "The solution" section
+    const solutionSectionIndex = sections.findIndex(title => {
+      const t = title.toLowerCase();
+      return t.includes('the solution') && 
+             (t.includes('new direction') || t === 'the solution');
+    });
+    
+    const currentSolutionSectionPosition = solutionSectionIndex >= 0 ? solutionSectionIndex : null;
+    
+    // Auto-adjust if:
+    // 1. "The solution" section exists AND
+    // 2. Solution cards position is set AND
+    // 3. Solution cards is not positioned right after "The solution" section
+    // This will position it correctly on initial load and when "The solution" section moves
+    if (currentSolutionSectionPosition !== null && solutionCardsPosition !== undefined) {
+      const correctPosition = currentSolutionSectionPosition + 1;
+      
+      // Only auto-adjust if:
+      // - Initial load (prevSolutionSectionPositionRef.current === null), OR
+      // - The solution section position changed (reposition)
+      // But NOT if the user has manually positioned it (solution section hasn't moved and position is set)
+      // And ONLY if we're not currently updating (to prevent loops)
+      const solutionSectionMoved = prevSolutionSectionPositionRef.current !== null && 
+                                   currentSolutionSectionPosition !== prevSolutionSectionPositionRef.current;
+      const isInitialLoad = prevSolutionSectionPositionRef.current === null;
+      const needsReposition = solutionCardsPosition !== correctPosition;
+      
+      // Only auto-position on initial load or when solution section moves
+      // Don't auto-position just because content changed (e.g., adding a card) if solution section hasn't moved
+      const shouldAutoPosition = (isInitialLoad || solutionSectionMoved) && needsReposition && !isUpdatingSolutionCardsPositionRef.current;
+      
+      if (shouldAutoPosition) {
+        // Auto-adjust to position solution cards after "The solution" section
+        // This ensures it's always in the correct position relative to "The solution"
+        console.log('📍 Auto-positioning solution cards after "The solution" section:', solutionCardsPosition, '->', correctPosition, isInitialLoad ? '(initial load)' : '(solution section moved)');
+        isUpdatingSolutionCardsPositionRef.current = true;
+        setSolutionCardsPosition(correctPosition);
+          
+          // Persist the change
+          const updatedProject: ProjectData = {
+            ...project,
+            title: editedTitle,
+            description: editedDescription,
+            caseStudyContent,
+            caseStudyImages: caseStudyImagesRef.current,
+            flowDiagramImages: flowDiagramImagesRef.current,
+            videoItems: videoItemsRef.current,
+            galleryAspectRatio,
+            flowDiagramAspectRatio,
+            videoAspectRatio,
+            galleryColumns,
+            flowDiagramColumns,
+            videoColumns,
+            projectImagesPosition,
+            videosPosition,
+            flowDiagramsPosition,
+            solutionCardsPosition: correctPosition,
+            sectionPositions,
+          };
+          onUpdate(updatedProject);
+          
+          // Reset flag after a delay to allow state to update
+          setTimeout(() => {
+            isUpdatingSolutionCardsPositionRef.current = false;
+          }, 100);
+      }
+    }
+    
+    // Update the ref for next comparison
+    prevSolutionSectionPositionRef.current = currentSolutionSectionPosition;
+  }, [caseStudyContent, solutionCardsPosition, isEditMode]);
 
   return (
     // @ts-expect-error - False positive: JSX children are implicitly passed between tags
@@ -3246,11 +4067,12 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
               alt={project.title}
               className="w-full h-full"
               style={{
+                objectFit: 'contain', // Use contain to show full image without cropping
                 transform: `scale(${heroScale})`,
                 transformOrigin: `${heroPosition.x}% ${heroPosition.y}%`,
               }}
               quality={90}
-              fit="cover"
+              fit="contain" // Changed from "cover" to "contain" to prevent cropping
               priority={true}
             />
             {/* Edit Buttons - Only visible in Edit Mode when not editing */}
@@ -3424,7 +4246,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                                   Boolean((project as any).caseStudySidebars?.atGlance) || Boolean((project as any).caseStudySidebars?.impact);
           const whitelistedSections = [
             'Overview', 'The challenge', 'My role', 'My role & impact', 'Research insights', 
-            'Competitive analysis', 'The solution', 'Solution cards', 'Key features'
+            'Competitive analysis', 'The solution', 'The solution: A new direction', 'Solution cards', 'Key features', 'New Card'
           ];
           const excludedSidebarTitles = ['Sidebar 1', 'Sidebar 2', 'At a glance', 'Impact', 'Tech stack', 'Tools'];
           
@@ -3432,6 +4254,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
           const filteredLines: string[] = [];
           let skipSection = false;
           let currentSectionTitle = '';
+          let foundSolutionSection = false;
           
           for (const line of lines) {
             // Check if this is a section header
@@ -3447,15 +4270,50 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
             }
             
               // When JSON sidebars exist, ONLY allow whitelisted sections
+              // BUT: Allow any section after "The solution" that isn't decorative (for solution cards grid)
               if (hasJsonSidebars) {
+                // Check if this IS "The solution" section (don't set foundSolutionSection until after processing it)
+                const isSolutionSection = t.includes('solution') && !t.includes('cards');
+                
+                // If we're after "The solution" (and this is NOT the solution section itself), allow any non-decorative section
+                if (foundSolutionSection && !isSolutionSection) {
+                  const decorativeCardSections = [
+                    'Overview', 'The challenge', 'My role', 'My role & impact', 'Research insights',
+                    'Competitive analysis', 'Solution highlights', 'Key contributions'
+                  ];
+                  const isDecorative = decorativeCardSections.some(dec => {
+                    const decLower = dec.toLowerCase();
+                    return t === decLower || t.includes(decLower) || decLower.includes(t);
+                  });
+                  if (!isDecorative && t !== 'key features') {
+                    // Allow this section - it's part of solution cards grid
+                    skipSection = false;
+                    continue;
+                  }
+                }
+                
+                // Before "The solution" OR this IS "The solution" section - use strict whitelist
                 const isWhitelisted = whitelistedSections.some(w => {
                   const wLower = w.toLowerCase();
-                  return t === wLower || t.startsWith(wLower + ' ') || t.includes(wLower);
+                  // Match exact, starts with, or contains (for flexible matching like "The solution: A new direction" matching "The solution")
+                  const matches = t === wLower || 
+                                 t.startsWith(wLower + ' ') || 
+                                 t.startsWith(wLower + ':') ||
+                                 wLower.startsWith(t) ||
+                                 t.includes(wLower) ||
+                                 wLower.includes(t);
+                  return matches;
                 });
                 if (!isWhitelisted) {
                   console.log('🚫 Filtering out non-whitelisted section from rendered content:', currentSectionTitle);
                   skipSection = true;
                   continue;
+                }
+                skipSection = false;
+                
+                // After processing "The solution" section, mark that we've found it
+                if (isSolutionSection) {
+                  foundSolutionSection = true;
                 }
               }
               
@@ -3471,6 +4329,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
           
           return filteredLines.join('\n');
         })()}
+            latestProjectContent={caseStudyContent}
             isEditMode={isEditMode}
             onEditClick={() => {
               setOriginalContent(caseStudyContent); // Save current content before editing
