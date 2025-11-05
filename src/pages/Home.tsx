@@ -132,17 +132,26 @@ function DraggableProjectItem({
   return (
     <motion.div
       ref={ref}
-      initial={{ opacity: 0, x: 50 }}
+      initial={{ opacity: 0, y: 30 }}
       animate={{ 
         opacity: isDragging ? 0.5 : isOver ? 0.8 : 1,
         scale: isDragging ? 0.95 : isOver ? 1.02 : 1,
-        x: 0 
+        y: 0 
       }}
       transition={{ 
         delay: isDragging ? 0 : index * 0.1,
-        duration: 0.2,
+        duration: 0.4,
+        ease: "easeOut"
       }}
-      className="snap-center flex-shrink-0 relative"
+      whileHover={!isEditMode ? {
+        y: -8,
+        transition: {
+          type: "spring",
+          stiffness: 400,
+          damping: 25
+        }
+      } : {}}
+      className="relative w-full"
     >
       {isEditMode && (
         <div
@@ -2479,7 +2488,6 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
   }, [heroText.lastGreetingPauseDuration]);
   
   const [lightboxProject, setLightboxProject] = useState(null);
-  const caseStudiesScrollRef = useRef(null);
   const designProjectsScrollRef = useRef(null);
   const quickStatsScrollRef = useRef<HTMLDivElement>(null);
   const caseStudiesSectionRef = useRef(null);
@@ -2589,139 +2597,6 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
   }, []); // Empty deps - setup once on mount
 
   
-  // Track window width for conditional arrow rendering
-  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
-  const [caseStudiesHasOverflow, setCaseStudiesHasOverflow] = useState(false);
-  
-  // Real-time swipe gesture state for case studies - using refs for immediate updates
-  const caseStudiesTouchState = useRef<{
-    startX: number;
-    startY: number;
-    startScroll: number;
-    isDragging: boolean;
-    hasMoved: boolean;
-  } | null>(null);
-
-  // Threshold to distinguish between tap and swipe (in pixels)
-  const SWIPE_THRESHOLD = 10;
-  // Real-time drag handler for case studies - cards follow finger
-  useEffect(() => {
-    const scrollElement = caseStudiesScrollRef.current;
-    if (!scrollElement) return;
-    const handleTouchStart = (e: TouchEvent) => {
-      // Don't prevent default on touchstart - allow taps to work
-      const touch = e.touches[0];
-      console.log('🔍 Touch start - clientX:', touch.clientX, 'scrollLeft:', scrollElement.scrollLeft);
-      caseStudiesTouchState.current = {
-        startX: touch.clientX,
-        startY: touch.clientY,
-        startScroll: scrollElement.scrollLeft,
-        isDragging: false,
-        hasMoved: false,
-      };
-    };
-    const handleTouchMove = (e: TouchEvent) => {
-      if (!caseStudiesTouchState.current) return;
-      
-      const touch = e.touches[0];
-      const deltaX = Math.abs(caseStudiesTouchState.current.startX - touch.clientX);
-      const deltaY = Math.abs(caseStudiesTouchState.current.startY - touch.clientY);
-      
-      // Only treat as swipe if horizontal movement exceeds threshold and is greater than vertical movement
-      const isHorizontalSwipe = deltaX > SWIPE_THRESHOLD && deltaX > deltaY;
-      
-      if (isHorizontalSwipe) {
-        // This is a swipe - prevent default and handle scrolling
-        if (e.cancelable) {
-          e.preventDefault();
-        }
-        e.stopPropagation();
-        
-        if (!caseStudiesTouchState.current.isDragging) {
-          // First time we detect a swipe - initialize dragging
-          caseStudiesTouchState.current.isDragging = true;
-          caseStudiesTouchState.current.hasMoved = true;
-          scrollElement.style.scrollBehavior = 'auto';
-          scrollElement.style.scrollSnapType = 'none';
-        }
-        
-        const scrollDeltaX = caseStudiesTouchState.current.startX - touch.clientX;
-        const newScrollLeft = caseStudiesTouchState.current.startScroll + scrollDeltaX;
-        
-        // Force immediate update
-        scrollElement.scrollLeft = newScrollLeft;
-      } else {
-        // Track that movement occurred, but don't prevent default
-        caseStudiesTouchState.current.hasMoved = true;
-      }
-      // If not a horizontal swipe, don't prevent default - allow vertical scrolling or taps
-    };
-
-    const handleTouchEnd = (e: TouchEvent) => {
-      if (!caseStudiesTouchState.current) return;
-      
-      const wasDragging = caseStudiesTouchState.current.isDragging;
-      const hadMoved = caseStudiesTouchState.current.hasMoved;
-      
-      console.log('🔍 Touch end - wasDragging:', wasDragging, 'hadMoved:', hadMoved, 'final scrollLeft:', scrollElement.scrollLeft);
-      
-      if (wasDragging) {
-        // We were dragging - snap to nearest card
-        scrollElement.style.scrollBehavior = 'smooth';
-        scrollElement.style.scrollSnapType = 'x mandatory';
-        
-        // Snap to nearest card
-        const cardWidth = 320;
-        const paddingOffset = 80;
-        const currentScroll = scrollElement.scrollLeft - paddingOffset;
-        const snappedScroll = Math.round(currentScroll / cardWidth) * cardWidth + paddingOffset;
-        const maxScroll = scrollElement.scrollWidth - scrollElement.clientWidth;
-        const finalScroll = Math.max(0, Math.min(snappedScroll, maxScroll));
-        
-        scrollElement.scrollTo({
-          left: finalScroll,
-          behavior: 'smooth',
-        });
-      } else if (!hadMoved) {
-        // This was a tap - don't interfere, let the click event fire
-        // The click handler on the card will handle navigation
-      }
-      
-      caseStudiesTouchState.current = null;
-    };
-    // Add listeners - touchstart and touchend can be passive since we don't always prevent default
-    // touchmove needs to be non-passive to allow preventDefault when swiping
-    scrollElement.addEventListener('touchstart', handleTouchStart, { passive: true });
-    scrollElement.addEventListener('touchmove', handleTouchMove, { passive: false });
-    scrollElement.addEventListener('touchend', handleTouchEnd, { passive: true });
-    return () => {
-      scrollElement.removeEventListener('touchstart', handleTouchStart);
-      scrollElement.removeEventListener('touchmove', handleTouchMove);
-      scrollElement.removeEventListener('touchend', handleTouchEnd);
-    };
-  }, []);
-
-  
-  useEffect(() => {
-    const handleResize = () => setWindowWidth(window.innerWidth);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-  
-  // Check for overflow whenever window resizes or case studies change
-  useEffect(() => {
-    const checkOverflow = () => {
-      if (caseStudiesScrollRef.current) {
-        const hasOverflow = caseStudiesScrollRef.current.scrollWidth > caseStudiesScrollRef.current.clientWidth;
-        setCaseStudiesHasOverflow(hasOverflow);
-      }
-    };
-    
-    checkOverflow();
-    // Small delay to let layout settle
-    const timer = setTimeout(checkOverflow, 100);
-    return () => clearTimeout(timer);
-  }, [windowWidth, caseStudies, isEditMode]);
   
   // REMOVED: Duplicate save effect - hero text is already saved by the debounced effect above
   // This was causing multiple simultaneous saves and potential data loss
@@ -4249,73 +4124,37 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6, duration: 0.5 }}
-            className="relative"
+            className="w-full"
           >
-            {/* Navigation Arrows - Only show when there's actual scrollable overflow */}
-            {caseStudiesHasOverflow && (
+            {/* Grid Container */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 max-w-4xl mx-auto px-4 md:px-8 py-8">
+              {loading ? (
+                <ProjectCardSkeleton count={3} />
+              ) : (
                 <>
-                  <button
-                    onClick={() => scroll("left", caseStudiesScrollRef)}
-                    className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-20 bg-background/80 backdrop-blur-sm hover:bg-background border border-border rounded-full p-3 shadow-lg transition-all hover:scale-110"
-                    aria-label="Scroll left"
-                  >
-                    <ChevronLeft className="w-6 h-6" />
-                  </button>
-                  
-                  <button
-                    onClick={() => scroll("right", caseStudiesScrollRef)}
-                    className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-20 bg-background/80 backdrop-blur-sm hover:bg-background border border-border rounded-full p-3 shadow-lg transition-all hover:scale-110"
-                    aria-label="Scroll right"
-                  >
-                    <ChevronRight className="w-6 h-6" />
-                  </button>
-                </>
-              )}
-
-            {/* Scrollable Container */}
-              <div
-                ref={caseStudiesScrollRef}
-                className={`flex gap-6 overflow-x-auto scrollbar-hide py-8 snap-x snap-mandatory scroll-smooth ${
-                  !isEditMode && !caseStudiesHasOverflow ? 'justify-center' : ''
-                }`}
-                style={{
-                  scrollbarWidth: "none",
-                  msOverflowStyle: "none",
-                WebkitOverflowScrolling: "touch",
-                touchAction: "pan-x" as any,
-                  paddingLeft: "80px",
-                  paddingRight: "80px",
-                }}
-                
-              >
-                {loading ? (
-                  <ProjectCardSkeleton count={3} />
-                ) : (
-                  (Array.isArray(displayCaseStudies) ? displayCaseStudies : []).map((project, index) => (
-                  <DraggableProjectItem
-                    key={project.id}
-                    project={project}
-                    index={index}
-                    totalItems={displayCaseStudies.length}
-                    isEditMode={isEditMode}
-                    onMove={moveCaseStudy}
-                    onClick={() => handleProjectClick(project, 'caseStudies')}
+                  {(Array.isArray(displayCaseStudies) ? displayCaseStudies : []).map((project, index) => (
+                    <DraggableProjectItem
+                      key={project.id}
+                      project={project}
+                      index={index}
+                      totalItems={displayCaseStudies.length}
+                      isEditMode={isEditMode}
+                      onMove={moveCaseStudy}
+                      onClick={() => handleProjectClick(project, 'caseStudies')}
                       onUpdate={(p: ProjectData, skipRefetch?: boolean) => handleUpdateProject(p, 'caseStudies', skipRefetch)}
-                    onReplace={(file: File) => handleReplaceImage(project.id, file, 'caseStudies')}
-                    onDelete={isEditMode ? () => handleDeleteProject(project.id, project.title, 'caseStudies') : undefined}
+                      onReplace={(file: File) => handleReplaceImage(project.id, file, 'caseStudies')}
+                      onDelete={isEditMode ? () => handleDeleteProject(project.id, project.title, 'caseStudies') : undefined}
                       onNavigate={() => handleNavigateToProject(project, 'caseStudies')}
-                  />
-                  ))
-                )}
-
-                {/* Add Project Buttons in Carousel (Edit Mode Only) */}
-                {isEditMode && (
-                  <>
+                    />
+                  ))}
+                  
+                  {/* Add Project Button in Grid (Edit Mode Only) */}
+                  {isEditMode && (
                     <motion.div
-                      initial={{ opacity: 0, x: 50 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: displayCaseStudies.length * 0.1 }}
-                      className="snap-center flex-shrink-0 flex items-center justify-center px-2"
+                      initial={{ opacity: 0, y: 30 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: displayCaseStudies.length * 0.1, duration: 0.4, ease: "easeOut" }}
+                      className="flex items-center justify-center"
                     >
                       <button
                         type="button"
@@ -4323,7 +4162,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                           console.log('🎯 New Project button clicked - opening unified project creator');
                           setShowUnifiedProjectCreator(true);
                         }}
-                        className="w-[280px] aspect-[3/4] rounded-2xl border-2 border-dashed border-primary/30 hover:border-primary hover:bg-primary/10 transition-all flex flex-col items-center justify-center gap-3 group cursor-pointer"
+                        className="w-full aspect-[3/4] rounded-2xl border-2 border-dashed border-primary/30 hover:border-primary hover:bg-primary/10 transition-all flex flex-col items-center justify-center gap-3 group cursor-pointer"
                         style={{ cursor: 'pointer', pointerEvents: 'auto' }}
                         disabled={false}
                       >
@@ -4341,9 +4180,10 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                         </div>
                       </button>
                     </motion.div>
-                  </>
-                )}
-              </div>
+                  )}
+                </>
+              )}
+            </div>
           </motion.div>
         </div>
       </section>
