@@ -2596,82 +2596,110 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
   // Real-time swipe gesture state for case studies - using refs for immediate updates
   const caseStudiesTouchState = useRef<{
     startX: number;
+    startY: number;
     startScroll: number;
     isDragging: boolean;
+    hasMoved: boolean;
   } | null>(null);
 
+  // Threshold to distinguish between tap and swipe (in pixels)
+  const SWIPE_THRESHOLD = 10;
   // Real-time drag handler for case studies - cards follow finger
-  // Use useEffect to add non-passive event listeners for proper drag handling
   useEffect(() => {
     const scrollElement = caseStudiesScrollRef.current;
     if (!scrollElement) return;
-
     const handleTouchStart = (e: TouchEvent) => {
-      // Only prevent default if we can actually cancel it
-      if (e.cancelable) {
-        e.preventDefault();
-      }
+      // Don't prevent default on touchstart - allow taps to work
       const touch = e.touches[0];
       console.log('🔍 Touch start - clientX:', touch.clientX, 'scrollLeft:', scrollElement.scrollLeft);
       caseStudiesTouchState.current = {
         startX: touch.clientX,
+        startY: touch.clientY,
         startScroll: scrollElement.scrollLeft,
-        isDragging: true,
+        isDragging: false,
+        hasMoved: false,
       };
-      scrollElement.style.scrollBehavior = 'auto';
-      // Disable native scroll snapping during drag
-      scrollElement.style.scrollSnapType = 'none';
     };
-
     const handleTouchMove = (e: TouchEvent) => {
       if (!caseStudiesTouchState.current) return;
-      // Always prevent default on move to stop native scrolling
-      if (e.cancelable) {
-        e.preventDefault();
-      }
-      e.stopPropagation();
-      const touch = e.touches[0];
-      const deltaX = caseStudiesTouchState.current.startX - touch.clientX;
-      const newScrollLeft = caseStudiesTouchState.current.startScroll + deltaX;
       
-      // Force immediate update
-      scrollElement.scrollLeft = newScrollLeft;
+      const touch = e.touches[0];
+      const deltaX = Math.abs(caseStudiesTouchState.current.startX - touch.clientX);
+      const deltaY = Math.abs(caseStudiesTouchState.current.startY - touch.clientY);
+      
+      // Only treat as swipe if horizontal movement exceeds threshold and is greater than vertical movement
+      const isHorizontalSwipe = deltaX > SWIPE_THRESHOLD && deltaX > deltaY;
+      
+      if (isHorizontalSwipe) {
+        // This is a swipe - prevent default and handle scrolling
+        if (e.cancelable) {
+          e.preventDefault();
+        }
+        e.stopPropagation();
+        
+        if (!caseStudiesTouchState.current.isDragging) {
+          // First time we detect a swipe - initialize dragging
+          caseStudiesTouchState.current.isDragging = true;
+          caseStudiesTouchState.current.hasMoved = true;
+          scrollElement.style.scrollBehavior = 'auto';
+          scrollElement.style.scrollSnapType = 'none';
+        }
+        
+        const scrollDeltaX = caseStudiesTouchState.current.startX - touch.clientX;
+        const newScrollLeft = caseStudiesTouchState.current.startScroll + scrollDeltaX;
+        
+        // Force immediate update
+        scrollElement.scrollLeft = newScrollLeft;
+      } else {
+        // Track that movement occurred, but don't prevent default
+        caseStudiesTouchState.current.hasMoved = true;
+      }
+      // If not a horizontal swipe, don't prevent default - allow vertical scrolling or taps
     };
 
-    const handleTouchEnd = () => {
+    const handleTouchEnd = (e: TouchEvent) => {
       if (!caseStudiesTouchState.current) return;
-      console.log('🔍 Touch end - final scrollLeft:', scrollElement.scrollLeft);
-      caseStudiesTouchState.current.isDragging = false;
-      scrollElement.style.scrollBehavior = 'smooth';
-      scrollElement.style.scrollSnapType = 'x mandatory';
       
-      // Snap to nearest card
-      const cardWidth = 320;
-      const paddingOffset = 80;
-      const currentScroll = scrollElement.scrollLeft - paddingOffset;
-      const snappedScroll = Math.round(currentScroll / cardWidth) * cardWidth + paddingOffset;
-      const maxScroll = scrollElement.scrollWidth - scrollElement.clientWidth;
-      const finalScroll = Math.max(0, Math.min(snappedScroll, maxScroll));
+      const wasDragging = caseStudiesTouchState.current.isDragging;
+      const hadMoved = caseStudiesTouchState.current.hasMoved;
       
-      scrollElement.scrollTo({
-        left: finalScroll,
-        behavior: 'smooth',
-      });
+      console.log('🔍 Touch end - wasDragging:', wasDragging, 'hadMoved:', hadMoved, 'final scrollLeft:', scrollElement.scrollLeft);
+      
+      if (wasDragging) {
+        // We were dragging - snap to nearest card
+        scrollElement.style.scrollBehavior = 'smooth';
+        scrollElement.style.scrollSnapType = 'x mandatory';
+        
+        // Snap to nearest card
+        const cardWidth = 320;
+        const paddingOffset = 80;
+        const currentScroll = scrollElement.scrollLeft - paddingOffset;
+        const snappedScroll = Math.round(currentScroll / cardWidth) * cardWidth + paddingOffset;
+        const maxScroll = scrollElement.scrollWidth - scrollElement.clientWidth;
+        const finalScroll = Math.max(0, Math.min(snappedScroll, maxScroll));
+        
+        scrollElement.scrollTo({
+          left: finalScroll,
+          behavior: 'smooth',
+        });
+      } else if (!hadMoved) {
+        // This was a tap - don't interfere, let the click event fire
+        // The click handler on the card will handle navigation
+      }
       
       caseStudiesTouchState.current = null;
     };
-
-    // Add non-passive listeners
-    scrollElement.addEventListener('touchstart', handleTouchStart, { passive: false });
+    // Add listeners - touchstart and touchend can be passive since we don't always prevent default
+    // touchmove needs to be non-passive to allow preventDefault when swiping
+    scrollElement.addEventListener('touchstart', handleTouchStart, { passive: true });
     scrollElement.addEventListener('touchmove', handleTouchMove, { passive: false });
-    scrollElement.addEventListener('touchend', handleTouchEnd, { passive: false });
-
+    scrollElement.addEventListener('touchend', handleTouchEnd, { passive: true });
     return () => {
       scrollElement.removeEventListener('touchstart', handleTouchStart);
       scrollElement.removeEventListener('touchmove', handleTouchMove);
       scrollElement.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [caseStudiesScrollRef.current]);
+  }, []);
 
   
   useEffect(() => {
