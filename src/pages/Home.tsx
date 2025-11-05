@@ -72,9 +72,17 @@ function DraggableProjectItem({
     collect: (monitor) => ({
       isDragging: monitor.isDragging(),
     }),
-    end: () => {
-      // Save final order when drag ends
-      console.log('🏁 Drag ended, order saved');
+    end: (item, monitor) => {
+      if (!isEditMode) {
+        return;
+      }
+      
+      // Always trigger save, even if drop didn't happen in a drop zone (the hover handler already moved items)
+      setTimeout(() => {
+        if ((window as any).__triggerSaveOnDragEnd) {
+          (window as any).__triggerSaveOnDragEnd();
+        }
+      }, 200);
     },
   });
 
@@ -117,7 +125,6 @@ function DraggableProjectItem({
 
       // Time to actually perform the action
       // Use IDs instead of indices to avoid stale index issues
-      console.log(`🔄 Moving item ${draggedItem.id} to position of ${project.id}`);
       onMove(draggedItem.id, project.id);
     },
     collect: (monitor) => ({
@@ -2115,7 +2122,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
       sectionPositions: project.sectionPositions ?? project.section_positions ?? {},
       // NEW: include JSON sidebars (camelCase)
       caseStudySidebars: (project as any).caseStudySidebars || (project as any).case_study_sidebars || {},
-      sortOrder: project.sortOrder || project.sort_order || 0,
+      sortOrder: project.sortOrder !== undefined ? project.sortOrder : (project.sort_order !== undefined ? project.sort_order : 0),
       // Convert requires_password from snake_case to camelCase
       requiresPassword: project.requiresPassword !== undefined ? project.requiresPassword : project.requires_password,
       // Map project_type from snake_case to camelCase (handle null explicitly)
@@ -3108,11 +3115,14 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
       return [];
     }
     try {
+
       const sorted = [...caseStudies].sort((a, b) => {
         if (a.published && !b.published) return -1;
         if (!a.published && b.published) return 1;
-        const aOrder = a.sortOrder || 0;
-        const bOrder = b.sortOrder || 0;
+        // Handle sortOrder correctly - 0 is a valid value, so check for undefined/null explicitly
+        const aOrder = a.sortOrder !== undefined && a.sortOrder !== null ? a.sortOrder : ((a as any).sort_order !== undefined && (a as any).sort_order !== null ? (a as any).sort_order : 0);
+        const bOrder = b.sortOrder !== undefined && b.sortOrder !== null ? b.sortOrder : ((b as any).sort_order !== undefined && (b as any).sort_order !== null ? (b as any).sort_order : 0);
+
         return aOrder - bOrder;
       });
       console.log('🔍 DEBUG: sortedCaseStudies result:', sorted.length, 'projects');
@@ -3216,7 +3226,9 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
   }, [sortedCaseStudies, localCaseStudiesOrder]);
 
   const moveCaseStudy = useCallback((dragId: string, hoverId: string) => {
-    console.log('🔄 moveCaseStudy called:', { dragId, hoverId });
+    if (!isEditMode) {
+      return;
+    }
     
     // Get current display order (local if set, otherwise sorted)
     setLocalCaseStudiesOrder((currentOrder) => {
@@ -3240,17 +3252,22 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
       
       console.log('📋 New case study order (visual):', newOrder.map(p => ({ id: p.id, title: p.title })));
       
+      // Store the new order in a ref so it's accessible for immediate save
+      (window as any).__latestCaseStudyOrder = newOrder;
+      
       // Update sort order in Supabase (async, in background)
-      // Use setTimeout to debounce rapid drag operations
+      // Use setTimeout to debounce rapid drag operations during dragging
       if ((window as any).__reorderTimeout) {
         clearTimeout((window as any).__reorderTimeout);
       }
       
-      (window as any).__reorderTimeout = setTimeout(() => {
-        const projectIds = newOrder.map(project => project.id);
+      const saveOrder = (orderToSave = newOrder) => {
+        const projectIds = orderToSave.map(project => project.id);
         reorderProjects(projectIds).then((success) => {
           if (success) {
             console.log('✅ Case studies reordered successfully in Supabase');
+            // Don't refetch here - it causes double refresh. The local order is already correct
+            // and the database is updated. Next page load will have the correct order.
             // After successful save, don't reset local order - it matches Supabase now
           } else {
             console.error('❌ Failed to reorder case studies in Supabase');
@@ -3259,11 +3276,26 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         }).catch((error) => {
           console.error('❌ Error reordering case studies:', error);
         });
-      }, 500); // 500ms debounce
+      };
+      
+      // Debounce during rapid drags, but save immediately on drag end
+      (window as any).__reorderTimeout = setTimeout(saveOrder, 300); // Reduced to 300ms debounce
+      
+      // Also expose a function to trigger immediate save on drag end (clears debounce and saves now)
+      // This function uses the latest order from the ref
+      (window as any).__triggerSaveOnDragEnd = () => {
+        if ((window as any).__reorderTimeout) {
+          clearTimeout((window as any).__reorderTimeout);
+          (window as any).__reorderTimeout = null;
+        }
+        const latestOrder = (window as any).__latestCaseStudyOrder || newOrder;
+        console.log('🏁 Triggering immediate save on drag end with order:', latestOrder.map((p: any) => ({ id: p.id, title: p.title })));
+        saveOrder(latestOrder);
+      };
       
       return newOrder;
     });
-  }, [sortedCaseStudies, reorderProjects]);
+  }, [sortedCaseStudies, reorderProjects, refetch, isEditMode, localCaseStudiesOrder]);
 
   const moveDesignProject = async (dragIndex: number, hoverIndex: number) => {
     console.log('🔄 moveDesignProject called:', { dragIndex, hoverIndex });
