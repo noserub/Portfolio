@@ -530,7 +530,7 @@ export function ProjectImage({
       >
         <div
           ref={imageRef}
-          className={`aspect-[3/4] w-[280px] overflow-hidden shadow-xl ${
+          className={`aspect-[3/4] w-full max-w-[280px] mx-auto overflow-hidden shadow-xl ${
             !isEditMode && !isDraggingRef.current ? "transition-all duration-200" : "no-transitions"
           } ${
             isDragging ? "ring-4 ring-primary" : ""

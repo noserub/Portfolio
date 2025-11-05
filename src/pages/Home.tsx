@@ -143,16 +143,14 @@ function DraggableProjectItem({
         duration: 0.4,
         ease: "easeOut"
       }}
-      whileHover={{
+      whileHover={!isEditMode ? {
         y: -8,
-        scale: 1.01,
         transition: {
           type: "spring",
           stiffness: 400,
           damping: 25
         }
-      }}
-      className="relative w-full overflow-hidden"
+      } : {}}      className="relative w-full"
     >
       {isEditMode && (
         <div
