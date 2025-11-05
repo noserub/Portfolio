@@ -150,7 +150,8 @@ function DraggableProjectItem({
           stiffness: 400,
           damping: 25
         }
-      } : {}}      className="relative w-full"
+      } : {}}
+      className="relative w-full"
     >
       {isEditMode && (
         <div
