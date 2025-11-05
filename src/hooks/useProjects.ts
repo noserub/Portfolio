@@ -116,11 +116,13 @@ export function useProjects() {
       console.log('🔍 DEBUG: useProjects loaded projects:', data?.map(p => ({ 
         id: p.id, 
         title: p.title, 
+        sort_order: p.sort_order,
         requires_password: p.requires_password, 
         project_type: (p as any).project_type,
         project_type_type: typeof (p as any).project_type,
         has_project_type: (p as any).project_type !== undefined && (p as any).project_type !== null
       })));
+
       setProjects(data || []);
     } catch (err: any) {
       setError(err.message);
@@ -500,7 +502,7 @@ export function useProjects() {
   // Reorder projects
   const reorderProjects = useCallback(async (projectIds: string[]): Promise<boolean> => {
     try {
-      console.log('🔄 Reordering projects:', projectIds);
+      console.log('🔄 Reordering projects:', projectIds.length, 'projects');
       
       // Update each project individually with its new sort order
       const updatePromises = projectIds.map(async (id, index) => {
@@ -513,8 +515,6 @@ export function useProjects() {
           console.error(`❌ Failed to update sort order for project ${id}:`, error);
           throw error;
         }
-        
-        console.log(`✅ Updated sort order for project ${id} to ${index}`);
       });
       
       await Promise.all(updatePromises);
