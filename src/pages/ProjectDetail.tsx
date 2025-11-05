@@ -752,9 +752,22 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
   
   const [editedTitle, setEditedTitle] = useState(project.title);
   const [editedDescription, setEditedDescription] = useState(project.description);
+  
+  // Track if title/description have unsaved changes
+  const hasUnsavedTitleDescription = editedTitle !== project.title || editedDescription !== project.description;
   const [editedProjectType, setEditedProjectType] = useState<'product-design' | 'development' | 'branding' | null>(
     project.projectType || (project as any).project_type || null
   );
+
+  // Sync editedTitle and editedDescription when project prop changes
+  useEffect(() => {
+    if (project.title !== editedTitle) {
+      setEditedTitle(project.title);
+    }
+    if (project.description !== editedDescription) {
+      setEditedDescription(project.description);
+    }
+  }, [project.title, project.description]);
 
   // Sync editedProjectType when project prop changes
   useEffect(() => {
@@ -3968,7 +3981,42 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
         <div className="mb-12 px-6 py-4" style={{ maxWidth: '1200px', margin: '0 auto' }}>
           <div className="grid gap-6">
             <div>
-              <label className="block text-sm font-medium mb-2">Project Title</label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-medium">Project Title</label>
+                {hasUnsavedTitleDescription && (
+                  <Button
+                    onClick={() => {
+                      onUpdate({
+                        ...project,
+                        title: editedTitle,
+                        description: editedDescription,
+                        projectType: editedProjectType,
+                        project_type: editedProjectType,
+                        caseStudyContent,
+                        caseStudyImages: caseStudyImagesRef.current,
+                        flowDiagramImages: flowDiagramImagesRef.current,
+                        videoItems: videoItemsRef.current,
+                        galleryAspectRatio,
+                        flowDiagramAspectRatio,
+                        videoAspectRatio,
+                        galleryColumns,
+                        flowDiagramColumns,
+                        videoColumns,
+                        projectImagesPosition,
+                        videosPosition,
+                        flowDiagramsPosition,
+                        solutionCardsPosition,
+                        sectionPositions,
+                      });
+                      console.log('💾 Saved title and description changes');
+                    }}
+                    size="sm"
+                    className="h-8"
+                  >
+                    Save
+                  </Button>
+                )}
+              </div>
               <Input
                 value={editedTitle}
                 onChange={(e) => setEditedTitle(e.target.value)}
