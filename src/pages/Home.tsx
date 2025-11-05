@@ -2488,6 +2488,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     }
   }, [heroText.lastGreetingPauseDuration]);
   
+  const [lightboxProject, setLightboxProject] = useState(null);
   const designProjectsScrollRef = useRef(null);
   const quickStatsScrollRef = useRef<HTMLDivElement>(null);
   const caseStudiesSectionRef = useRef(null);
