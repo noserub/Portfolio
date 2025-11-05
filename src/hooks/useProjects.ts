@@ -32,6 +32,7 @@ export interface Project {
   solution_cards_position?: number;
   section_positions?: any;
   sort_order: number;
+  project_type?: 'product-design' | 'development' | 'branding';
 }
 
 export interface ProjectInsert {
@@ -62,6 +63,7 @@ export interface ProjectInsert {
   solution_cards_position?: number;
   section_positions?: any;
   sort_order?: number;
+  project_type?: 'product-design' | 'development' | 'branding';
 }
 
 export interface ProjectUpdate {
@@ -91,6 +93,7 @@ export interface ProjectUpdate {
   solution_cards_position?: number;
   section_positions?: any;
   sort_order?: number;
+  project_type?: 'product-design' | 'development' | 'branding';
 }
 
 export function useProjects() {
@@ -110,7 +113,14 @@ export function useProjects() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      console.log('🔍 DEBUG: useProjects loaded projects:', data?.map(p => ({ id: p.id, title: p.title, requires_password: p.requires_password })));
+      console.log('🔍 DEBUG: useProjects loaded projects:', data?.map(p => ({ 
+        id: p.id, 
+        title: p.title, 
+        requires_password: p.requires_password, 
+        project_type: (p as any).project_type,
+        project_type_type: typeof (p as any).project_type,
+        has_project_type: (p as any).project_type !== undefined && (p as any).project_type !== null
+      })));
       setProjects(data || []);
     } catch (err: any) {
       setError(err.message);
@@ -266,12 +276,17 @@ export function useProjects() {
         'title','description','url','position_x','position_y','scale','published','requires_password','password',
         'case_study_content','case_study_images','flow_diagram_images','video_items','gallery_aspect_ratio',
         'flow_diagram_aspect_ratio','video_aspect_ratio','gallery_columns','flow_diagram_columns','video_columns','key_features_columns',
-        'project_images_position','videos_position','flow_diagrams_position','solution_cards_position','section_positions','sort_order'
+        'project_images_position','videos_position','flow_diagrams_position','solution_cards_position','section_positions','sort_order','project_type'
       ];
       const payload: Record<string, any> = {};
       for (const key of allowedKeys) {
         const value = (updates as any)[key];
+        // Include the value if it's not undefined (null is valid and should be included)
         if (value !== undefined) payload[key as string] = value;
+      }
+      // Explicitly handle project_type (allow null)
+      if ('project_type' in updates) {
+        payload['project_type'] = (updates as any).project_type;
       }
       // Pass JSON sidebars if present under snake_case key
       const sidebars = (updates as any).case_study_sidebars || (updates as any).caseStudySidebars;
@@ -279,6 +294,8 @@ export function useProjects() {
 
       console.log('🛰️ useProjects: filtered payload keys:', Object.keys(payload));
       console.log('🛰️ useProjects: filtered payload:', JSON.stringify(payload, null, 2));
+      console.log('🛰️ useProjects: project_type in payload?', 'project_type' in payload, 'value:', payload['project_type']);
+      console.log('🛰️ useProjects: updates.project_type:', (updates as any).project_type, 'type:', typeof (updates as any).project_type);
 
       let { data, error } = await Promise.race([
         supabase
@@ -292,7 +309,10 @@ export function useProjects() {
         )
       ]) as any;
       
-      console.log('🔄 useProjects: Supabase update result:', { data, error });
+      console.log('🔄 useProjects: Supabase update result:', { 
+        data: data ? { id: data.id, title: data.title, project_type: (data as any).project_type } : null, 
+        error 
+      });
       
       // Log detailed error information for debugging
       if (error) {

@@ -770,6 +770,25 @@ export function Home({ onStartClick, isEditMode, onProjectClick, currentPage }: 
   // Apply SEO for home page
   useSEO('home');
   
+  // Theme detection for filter buttons (inverse styling)
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    return document.documentElement.classList.contains('dark');
+  });
+
+  useEffect(() => {
+    const checkTheme = () => {
+      setIsDarkMode(document.documentElement.classList.contains('dark'));
+    };
+
+    // Watch for theme changes
+    const observer = new MutationObserver(checkTheme);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
+
+    return () => observer.disconnect();
+  }, []);
   
   // Deployment successful - debug indicators removed
   
@@ -2099,6 +2118,8 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
       sortOrder: project.sortOrder || project.sort_order || 0,
       // Convert requires_password from snake_case to camelCase
       requiresPassword: project.requiresPassword !== undefined ? project.requiresPassword : project.requires_password,
+      // Map project_type from snake_case to camelCase (handle null explicitly)
+      projectType: project.projectType !== undefined ? project.projectType : (project.project_type !== undefined ? project.project_type : null),
       // Ensure position is an object
       position: project.position || { x: project.position_x || 50, y: project.position_y || 50 }
     };
@@ -2141,12 +2162,22 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
 
         return result;
       })
-      .map(project => normalizeProjectData({
-        ...project,
-        position: { x: project.position_x, y: project.position_y },
-        url: cleanProjectUrl(String(project.url || ''), project.title),
-        // Map other fields as needed
-      }));
+      .map(project => {
+        const normalized = normalizeProjectData({
+          ...project,
+          position: { x: project.position_x, y: project.position_y },
+          url: cleanProjectUrl(String(project.url || ''), project.title),
+        });
+        console.log(`🔍 Normalized project "${project.title}":`, {
+          project_type_from_db: project.project_type,
+          project_type_type: typeof project.project_type,
+          projectType_from_db: project.projectType,
+          projectType_after_normalize: normalized.projectType,
+          hasProjectType: !!normalized.projectType,
+          project_keys: Object.keys(project).filter(k => k.includes('type') || k.includes('Type'))
+        });
+        return normalized;
+      });
     
     console.log('🔍 DEBUG: Filtered case studies:', filtered.map(p => ({ id: p.id, title: p.title, requiresPassword: p.requiresPassword, requires_password: p.requires_password })));
     console.log('🔍 DEBUG: Filtered case studies (expanded):', filtered);
@@ -2487,6 +2518,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     }
   }, [heroText.lastGreetingPauseDuration]);
   
+  const [selectedProjectType, setSelectedProjectType] = useState<'product-design' | 'development' | 'branding' | null>(null);
   const [lightboxProject, setLightboxProject] = useState(null);
   const designProjectsScrollRef = useRef(null);
   const quickStatsScrollRef = useRef<HTMLDivElement>(null);
@@ -2664,13 +2696,20 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         section_positions: updatedProject.sectionPositions || {},
         // NEW: persist JSON sidebars if present
         case_study_sidebars: (updatedProject as any).caseStudySidebars || (updatedProject as any).case_study_sidebars || undefined,
-        sort_order: (updatedProject as any).sortOrder || 0
+        sort_order: (updatedProject as any).sortOrder || 0,
+        project_type: updatedProject.projectType || (updatedProject as any).project_type || null,
       };
 
       console.log('🔄 Home: Calling updateProject with data:', {
         id: updatedProject.id,
         case_study_content_length: projectData.case_study_content?.length || 0,
-        requires_password: projectData.requires_password
+        requires_password: projectData.requires_password,
+        project_type: projectData.project_type,
+        project_type_type: typeof projectData.project_type,
+        'updatedProject.projectType': updatedProject.projectType,
+        'updatedProject.project_type': (updatedProject as any).project_type,
+        'projectData keys': Object.keys(projectData),
+        'has project_type in projectData': 'project_type' in projectData
       });
       
       // DEBUG: Detailed content comparison
@@ -2684,11 +2723,16 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
 
       const result = await updateProject(updatedProject.id, projectData);
       if (result) {
-        console.log('✅ Project updated in Supabase:', updatedProject.id);
+        console.log('✅ Project updated in Supabase:', updatedProject.id, {
+          result_project_type: (result as any).project_type,
+          result_projectType: (result as any).projectType
+        });
         
         // Only refetch if not skipping (for minor updates like zoom/position)
         if (!skipRefetch) {
+          console.log('🔄 Refetching projects after update...');
           await refetch();
+          console.log('✅ Projects refetched');
         }
         
         // CRITICAL: Also update localStorage to keep it in sync
@@ -2709,7 +2753,8 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
               ...(projects as any)[projectIndex],
               title: updatedProject.title,
               description: updatedProject.description,
-              caseStudyContent: updatedProject.caseStudyContent,
+              projectType: updatedProject.projectType,
+              project_type: updatedProject.projectType || (updatedProject as any).project_type,
               caseStudyImages: updatedProject.caseStudyImages,
               flowDiagramImages: updatedProject.flowDiagramImages,
               videoItems: updatedProject.videoItems,
@@ -2918,7 +2963,9 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         flow_diagrams_position: (projectData.flowDiagramsPosition ?? null),
         solution_cards_position: (projectData.solutionCardsPosition ?? null),
         section_positions: projectData.sectionPositions || {},
-        sort_order: 0
+        sort_order: 0,
+        project_type: projectData.project_type || projectData.projectType || null,
+        project_type: updatedProject.projectType || (updatedProject as any).project_type || null,
       };
 
       const createdProject = await createProject(supabaseProjectData);
@@ -3078,13 +3125,22 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
   const displayCaseStudies = useMemo(() => {
     const source = localCaseStudiesOrder || sortedCaseStudies;
     console.log('🔍 DEBUG: displayCaseStudies source:', source.length, 'projects from', isEditMode ? 'edit mode' : 'preview mode');
+    // Apply project type filter if selected
+    let filtered = source;
+    if (selectedProjectType) {
+      filtered = source.filter((p) => {
+        const projectType = p.projectType || (p as any).project_type;
+        return projectType === selectedProjectType;
+      });
+    }
+    
     if (isEditMode) {
-      console.log('🔍 DEBUG: displayCaseStudies (edit mode):', source.length, 'projects');
-      return source;
+      console.log('🔍 DEBUG: displayCaseStudies (edit mode):', filtered.length, 'projects');
+      return filtered;
     }
     // In preview mode, show published projects OR projects with meaningful content
     // Match the same logic as the initial case study filter
-    const filtered = source.filter((p) => {
+    const previewFiltered = filtered.filter((p) => {
       const title = (p.title || '').toLowerCase();
       const description = (p.description || '').toLowerCase();
       const hasImages = (p.caseStudyImages?.length || p.case_study_images?.length || 0) > 0;
@@ -3106,11 +3162,34 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
       }
       return shouldShow;
     });
-    console.log('🔍 DEBUG: displayCaseStudies (preview mode):', filtered.length, 'of', source.length, 'projects');
-    console.log('🔍 DEBUG: displayCaseStudies projects:', filtered.map(p => ({ title: p.title, published: p.published, hasImages: (p.caseStudyImages?.length || p.case_study_images?.length || 0) > 0, hasContent: ((p.caseStudyContent || p.case_study_content || '') + '').trim().length > 0 })));
-    return filtered;
-  }, [localCaseStudiesOrder, sortedCaseStudies, isEditMode]);
+    console.log('🔍 DEBUG: displayCaseStudies (preview mode):', previewFiltered.length, 'of', source.length, 'projects');
+    console.log('🔍 DEBUG: displayCaseStudies projects:', previewFiltered.map(p => ({ title: p.title, published: p.published, hasImages: (p.caseStudyImages?.length || p.case_study_images?.length || 0) > 0, hasContent: ((p.caseStudyContent || p.case_study_content || '') + '').trim().length > 0 })));
+    return previewFiltered;
+  }, [localCaseStudiesOrder, sortedCaseStudies, isEditMode, selectedProjectType]);
 
+  // Calculate which project types have projects
+  const availableProjectTypes = useMemo(() => {
+    const types = new Set<string>();
+    const source = localCaseStudiesOrder || sortedCaseStudies;
+    source.forEach((p) => {
+      const projectType = p.projectType || (p as any).project_type;
+      if (projectType) {
+        types.add(projectType);
+      }
+    });
+    const result = Array.from(types);
+    console.log('🔍 availableProjectTypes calculated:', {
+      sourceLength: source.length,
+      types: result,
+      projectsWithTypes: source.map(p => ({
+        title: p.title,
+        projectType: p.projectType,
+        project_type: (p as any).project_type,
+        resolved: p.projectType || (p as any).project_type
+      }))
+    });
+    return result;
+    }, [localCaseStudiesOrder, sortedCaseStudies]);
   // Reset local order when caseStudies change from Supabase
   // BUT: don't reset if it's just a reorder (same IDs, different order)
   // Only reset if IDs actually changed (new/deleted projects)
@@ -4049,7 +4128,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
           >
             <motion.div
               className="rounded-full p-[2px] inline-block flex-shrink-0 pointer-events-none"
-              style={{ pointerEvents: 'none' }}
+              style={{ pointerEvents: "none" }}
               animate={{
                 background: [
                   "linear-gradient(0deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
@@ -4079,30 +4158,30 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
               style={{ pointerEvents: 'none' }}
             >
               <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (shouldShowUpChevron) {
-                    scrollToTop();
-                  } else {
-                    scrollToCaseStudies();
-                  }
-                }}
-                onMouseDown={(e) => {
-                  // Prevent default to stop focus on mouse click
-                  e.preventDefault();
-                  e.stopPropagation();
-                }}
-                className="relative rounded-full w-14 h-14 flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-300 bg-background/80 backdrop-blur-sm hover:bg-background/60 cursor-pointer focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary z-20 pointer-events-auto"
-                style={{ pointerEvents: 'auto' }}
-                aria-label={shouldShowUpChevron ? "Scroll to top" : "Scroll to case studies"}
-              >
-                {shouldShowUpChevron ? (
-                  <ChevronUp className="w-6 h-6 text-foreground stroke-[3]" />
-                ) : (
-                  <ChevronDown className="w-6 h-6 text-foreground stroke-[3]" />
-                )}
-              </button>
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (shouldShowUpChevron) {
+                      scrollToTop();
+                    } else {
+                      scrollToCaseStudies();
+                    }
+                  }}
+                  onMouseDown={(e) => {
+                    // Prevent default to stop focus on mouse click
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
+                  className="relative rounded-full w-14 h-14 flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-300 bg-background/80 backdrop-blur-sm hover:bg-background/60 cursor-pointer focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary z-20 pointer-events-auto"
+                  style={{ pointerEvents: 'auto' }}
+                  aria-label={shouldShowUpChevron ? "Scroll to top" : "Scroll to case studies"}
+                >
+                  {shouldShowUpChevron ? (
+                    <ChevronUp className="w-6 h-6 text-foreground stroke-[3]" />
+                  ) : (
+                    <ChevronDown className="w-6 h-6 text-foreground stroke-[3]" />
+                  )}
+                </button>
             </motion.div>
           </motion.div>
         )}
@@ -4118,14 +4197,73 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
             className="mb-6 px-4 text-center md:px-0"
           >
             Case studies
-          </motion.h2>
-          
+          </motion.h2>          {/* Filter Buttons */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.55, duration: 0.4 }}
+            className="flex flex-wrap justify-center gap-3 mb-6 px-4 md:px-0"
+          >
+              {(() => {
+                // Helper function to get filter button classes matching overflow/theme toggle buttons
+                const getFilterButtonClasses = (isActive: boolean) => {
+                  // Match the overflow button styling: rounded-full shadow-lg backdrop-blur-sm
+                  const baseClasses = "rounded-full shadow-lg backdrop-blur-sm px-4 py-2.5 inline-flex items-center justify-center text-sm font-semibold transition-all duration-200 ease-in-out outline-none cursor-pointer";
+                  
+                  if (isActive) {
+                    // Active state: use primary variant like overflow button in edit mode
+                    return `${baseClasses} bg-primary text-primary-foreground hover:bg-primary/90 hover:shadow-2xl hover:scale-105 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2`;
+                  } else {
+                    // Inactive state: use secondary variant like overflow button in preview mode
+                    return `${baseClasses} bg-secondary text-secondary-foreground hover:bg-secondary/80 hover:shadow-2xl hover:scale-105 active:scale-100 focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-2`;
+                  }
+                };
+
+                return (
+                  <>
+                    <button
+                      onClick={() => setSelectedProjectType(null)}
+                      onMouseUp={(e) => e.currentTarget.blur()}
+                      className={getFilterButtonClasses(selectedProjectType === null)}
+                    >
+                      All
+                    </button>
+                    {availableProjectTypes.includes('product-design') && (
+                      <button
+                        onClick={() => setSelectedProjectType('product-design')}
+                        onMouseUp={(e) => e.currentTarget.blur()}
+                        className={getFilterButtonClasses(selectedProjectType === 'product-design')}
+                      >
+                        Product design
+                      </button>
+                    )}
+                    {availableProjectTypes.includes('development') && (
+                      <button
+                        onClick={() => setSelectedProjectType('development')}
+                        onMouseUp={(e) => e.currentTarget.blur()}
+                        className={getFilterButtonClasses(selectedProjectType === 'development')}
+                      >
+                        Development
+                      </button>
+                    )}
+                    {availableProjectTypes.includes('branding') && (
+                      <button
+                        onClick={() => setSelectedProjectType('branding')}
+                        onMouseUp={(e) => e.currentTarget.blur()}
+                        className={getFilterButtonClasses(selectedProjectType === 'branding')}
+                      >
+                        Branding
+                      </button>
+                    )}
+                  </>
+                );
+              })()}
+          </motion.div>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6, duration: 0.5 }}
-            className="w-full"
-          >
+            className="w-full">
             {/* Grid Container */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 max-w-4xl mx-auto px-4 md:px-8 py-8">
               {loading ? (

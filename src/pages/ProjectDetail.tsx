@@ -752,6 +752,29 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
   
   const [editedTitle, setEditedTitle] = useState(project.title);
   const [editedDescription, setEditedDescription] = useState(project.description);
+  const [editedProjectType, setEditedProjectType] = useState<'product-design' | 'development' | 'branding' | null>(
+    project.projectType || (project as any).project_type || null
+  );
+
+  // Sync editedProjectType when project prop changes
+  useEffect(() => {
+    const projectType = project.projectType || (project as any).project_type || null;
+    console.log('🔄 ProjectDetail: Syncing editedProjectType from project prop:', {
+      projectId: project.id,
+      projectTitle: project.title,
+      projectType: project.projectType,
+      project_type: (project as any).project_type,
+      resolved: projectType,
+      currentEditedProjectType: editedProjectType,
+      willUpdate: projectType !== editedProjectType
+    });
+    if (projectType !== editedProjectType) {
+      console.log('✅ ProjectDetail: Updating editedProjectType from', editedProjectType, 'to', projectType);
+      setEditedProjectType(projectType);
+    } else {
+      console.log('⏭️ ProjectDetail: editedProjectType unchanged, skipping update');
+    }
+  }, [project]);
   const [caseStudyContent, setCaseStudyContent] = useState(
     project.caseStudyContent || (project as any).case_study_content || "Add your detailed case study content here. Describe the challenge, process, solution, and results."
   );
@@ -893,6 +916,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       ...project,
       title: editedTitle,
       description: editedDescription,
+      projectType: editedProjectType,
       caseStudyContent: newContent,
       caseStudyImages: caseStudyImagesRef.current,
       flowDiagramImages: flowDiagramImagesRef.current,
@@ -911,7 +935,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     };
     onUpdate(updatedProject);
     console.log('✅ Overview section added');
-  }, [caseStudyContent, project, editedTitle, editedDescription, galleryAspectRatio, flowDiagramAspectRatio, videoAspectRatio, galleryColumns, flowDiagramColumns, videoColumns, projectImagesPosition, videosPosition, flowDiagramsPosition, solutionCardsPosition, sectionPositions, onUpdate]);
+  }, [caseStudyContent, project, editedTitle, editedDescription, editedProjectType, galleryAspectRatio, flowDiagramAspectRatio, videoAspectRatio, galleryColumns, flowDiagramColumns, videoColumns, projectImagesPosition, videosPosition, flowDiagramsPosition, solutionCardsPosition, sectionPositions, onUpdate]);
 
   const handleAddVideosSection = useCallback(() => {
     const next = getNextPosition();
@@ -920,6 +944,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       ...project,
       title: editedTitle,
       description: editedDescription,
+      projectType: editedProjectType,
       caseStudyContent,
       caseStudyImages: caseStudyImagesRef.current,
       flowDiagramImages: flowDiagramImagesRef.current,
@@ -937,7 +962,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       sectionPositions,
     };
     onUpdate(updatedProject);
-  }, [getNextPosition, project, editedTitle, editedDescription, caseStudyContent, galleryAspectRatio, flowDiagramAspectRatio, videoAspectRatio, galleryColumns, flowDiagramColumns, videoColumns, projectImagesPosition, flowDiagramsPosition, solutionCardsPosition, sectionPositions, onUpdate]);
+  }, [getNextPosition, project, editedTitle, editedDescription, editedProjectType, caseStudyContent, galleryAspectRatio, flowDiagramAspectRatio, videoAspectRatio, galleryColumns, flowDiagramColumns, videoColumns, projectImagesPosition, flowDiagramsPosition, solutionCardsPosition, sectionPositions, onUpdate]);
 
   const handleAddImagesSection = useCallback(() => {
     const next = getNextPosition();
@@ -946,6 +971,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       ...project,
       title: editedTitle,
       description: editedDescription,
+      projectType: editedProjectType,
       caseStudyContent,
       caseStudyImages: caseStudyImagesRef.current,
       flowDiagramImages: flowDiagramImagesRef.current,
@@ -963,7 +989,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       sectionPositions,
     };
     onUpdate(updatedProject);
-  }, [getNextPosition, project, editedTitle, editedDescription, caseStudyContent, galleryAspectRatio, flowDiagramAspectRatio, videoAspectRatio, galleryColumns, flowDiagramColumns, videoColumns, videosPosition, flowDiagramsPosition, solutionCardsPosition, sectionPositions, onUpdate]);
+  }, [getNextPosition, project, editedTitle, editedDescription, editedProjectType, caseStudyContent, galleryAspectRatio, flowDiagramAspectRatio, videoAspectRatio, galleryColumns, flowDiagramColumns, videoColumns, videosPosition, flowDiagramsPosition, solutionCardsPosition, sectionPositions, onUpdate]);
 
   const handleAddFlowsSection = useCallback(() => {
     const next = getNextPosition();
@@ -972,6 +998,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       ...project,
       title: editedTitle,
       description: editedDescription,
+      projectType: editedProjectType,
       caseStudyContent,
       caseStudyImages: caseStudyImagesRef.current,
       flowDiagramImages: flowDiagramImagesRef.current,
@@ -989,7 +1016,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       sectionPositions,
     };
     onUpdate(updatedProject);
-  }, [getNextPosition, project, editedTitle, editedDescription, caseStudyContent, galleryAspectRatio, flowDiagramAspectRatio, videoAspectRatio, galleryColumns, flowDiagramColumns, videoColumns, projectImagesPosition, videosPosition, solutionCardsPosition, sectionPositions, onUpdate]);
+  }, [getNextPosition, project, editedTitle, editedDescription, editedProjectType, caseStudyContent, galleryAspectRatio, flowDiagramAspectRatio, videoAspectRatio, galleryColumns, flowDiagramColumns, videoColumns, projectImagesPosition, videosPosition, solutionCardsPosition, sectionPositions, onUpdate]);
 
   const handleAddSolutionCardsSection = useCallback(() => {
     // Find "The solution" section and position solution cards right after it
@@ -1034,6 +1061,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       ...project,
       title: editedTitle,
       description: editedDescription,
+      projectType: editedProjectType,
       caseStudyContent,
       caseStudyImages: caseStudyImagesRef.current,
       flowDiagramImages: flowDiagramImagesRef.current,
@@ -1051,7 +1079,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       sectionPositions,
     };
     onUpdate(updatedProject);
-  }, [getNextPosition, project, editedTitle, editedDescription, caseStudyContent, galleryAspectRatio, flowDiagramAspectRatio, videoAspectRatio, galleryColumns, flowDiagramColumns, videoColumns, projectImagesPosition, videosPosition, flowDiagramsPosition, sectionPositions, onUpdate]);
+  }, [getNextPosition, project, editedTitle, editedDescription, editedProjectType, caseStudyContent, galleryAspectRatio, flowDiagramAspectRatio, videoAspectRatio, galleryColumns, flowDiagramColumns, videoColumns, projectImagesPosition, videosPosition, flowDiagramsPosition, sectionPositions, onUpdate]);
 
   // Helpers to detect presence of markdown sections
   const hasMarkdownTitle = useCallback((title: string) => {
@@ -1142,7 +1170,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       ...(lowerTitle === 'at a glance' ? { hideAtAGlance: false } : {})
     };
     setSectionPositions(updatedSectionPositions as any);
-  }, [caseStudyContent, project, editedTitle, editedDescription, galleryAspectRatio, flowDiagramAspectRatio, videoAspectRatio, galleryColumns, flowDiagramColumns, videoColumns, projectImagesPosition, videosPosition, flowDiagramsPosition, solutionCardsPosition, sectionPositions, onUpdate]);
+  }, [caseStudyContent, project, editedTitle, editedDescription, editedProjectType, galleryAspectRatio, flowDiagramAspectRatio, videoAspectRatio, galleryColumns, flowDiagramColumns, videoColumns, projectImagesPosition, videosPosition, flowDiagramsPosition, solutionCardsPosition, sectionPositions, onUpdate]);
 
   const removeMarkdownSection = useCallback((title: string) => {
     const lines = (caseStudyContent || '').split('\n');
@@ -1166,6 +1194,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       ...project,
       title: editedTitle,
       description: editedDescription,
+      projectType: editedProjectType,
       caseStudyContent: newContent,
       caseStudyImages: caseStudyImagesRef.current,
       flowDiagramImages: flowDiagramImagesRef.current,
@@ -1182,7 +1211,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       solutionCardsPosition,
       sectionPositions,
     });
-  }, [caseStudyContent, project, editedTitle, editedDescription, galleryAspectRatio, flowDiagramAspectRatio, videoAspectRatio, galleryColumns, flowDiagramColumns, videoColumns, projectImagesPosition, videosPosition, flowDiagramsPosition, solutionCardsPosition, sectionPositions, onUpdate]);
+  }, [caseStudyContent, project, editedTitle, editedDescription, editedProjectType, galleryAspectRatio, flowDiagramAspectRatio, videoAspectRatio, galleryColumns, flowDiagramColumns, videoColumns, projectImagesPosition, videosPosition, flowDiagramsPosition, solutionCardsPosition, sectionPositions, onUpdate]);
   // Hero image positioning - completely independent from home screen
   // Case study detail screen has its own positioning that doesn't affect home screen
   const [heroScale, setHeroScale] = useState(1);
@@ -2039,6 +2068,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
   const prevContentRef = useRef('');
   const prevTitleRef = useRef('');
   const prevDescriptionRef = useRef('');
+  const prevProjectTypeRef = useRef<'product-design' | 'development' | 'branding' | null>(null);
   const prevImagesRef = useRef('');
   const prevFlowDiagramsRef = useRef('');
   const prevVideosRef = useRef('');
@@ -2052,12 +2082,14 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     const currentContent = caseStudyContent || '';
     const currentTitle = editedTitle || '';
     const currentDescription = editedDescription || '';
+    const currentProjectType = editedProjectType;
     
     // Initialize refs on first render
     if (prevContentRef.current === '' && currentContent) {
       prevContentRef.current = currentContent;
       prevTitleRef.current = currentTitle;
       prevDescriptionRef.current = currentDescription;
+      prevProjectTypeRef.current = currentProjectType;
       prevImagesRef.current = JSON.stringify(caseStudyImages);
       prevFlowDiagramsRef.current = JSON.stringify(flowDiagramImagesRef.current);
       prevVideosRef.current = JSON.stringify(videoItemsRef.current);
@@ -2069,6 +2101,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     const contentChanged = currentContent !== prevContentRef.current;
     const titleChanged = currentTitle !== prevTitleRef.current;
     const descriptionChanged = currentDescription !== prevDescriptionRef.current;
+    const projectTypeChanged = currentProjectType !== prevProjectTypeRef.current;
     
     // Check for image changes by comparing with previous state
     const currentImagesStr = JSON.stringify(caseStudyImages);
@@ -2083,7 +2116,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     const hasUnsavedFlag = document.body.hasAttribute('data-unsaved');
 
     // Only proceed if something actually changed OR unsaved flag is set
-    if (!contentChanged && !titleChanged && !descriptionChanged && !imagesChanged && !flowDiagramsChanged && !videosChanged && !hasUnsavedFlag) {
+    if (!contentChanged && !titleChanged && !descriptionChanged && !projectTypeChanged && !imagesChanged && !flowDiagramsChanged && !videosChanged && !hasUnsavedFlag) {
       console.log('⏭️ Auto-save skipped - no changes detected', {
         contentChanged,
         titleChanged,
@@ -2113,6 +2146,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
         console.log('💾 Auto-saving content changes...', {
           title: editedTitle,
           description: editedDescription,
+      projectType: editedProjectType,
           contentLength: caseStudyContent.length,
           blobUrlsRemoved: blobUrlCount,
           originalContent: caseStudyContent.substring(0, 100) + '...',
@@ -2123,6 +2157,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
         prevContentRef.current = currentContent;
         prevTitleRef.current = currentTitle;
         prevDescriptionRef.current = currentDescription;
+        prevProjectTypeRef.current = currentProjectType;
         prevImagesRef.current = currentImagesStr;
         prevFlowDiagramsRef.current = currentFlowDiagramsStr;
         prevVideosRef.current = currentVideosStr;
@@ -2131,6 +2166,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
           id: project.id,
           title: editedTitle,
           description: editedDescription,
+          projectType: editedProjectType,
+          project_type: editedProjectType,
           contentLength: caseStudyContent?.length || 0
         });
         
@@ -2138,6 +2175,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
           ...project,
           title: editedTitle,
           description: editedDescription,
+          projectType: editedProjectType,
+          project_type: editedProjectType,
           caseStudyContent: cleanedContent,
           caseStudyImages,
           flowDiagramImages: flowDiagramImagesRef.current,
@@ -2170,7 +2209,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     }, 2000); // Save 2 seconds after last change
 
     return () => clearTimeout(timeoutId);
-  }, [caseStudyContent, editedTitle, editedDescription, isEditMode, project, onUpdate]);
+  }, [caseStudyContent, editedTitle, editedDescription, editedProjectType, isEditMode, project, onUpdate]);
 
   // Immediate save when user stops typing (onBlur)
   const handleContentBlur = () => {
@@ -2187,6 +2226,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
         id: project.id,
         title: editedTitle,
         description: editedDescription,
+      projectType: editedProjectType,
         contentLength: caseStudyContent?.length || 0
       });
       
@@ -2194,6 +2234,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
         ...project,
         title: editedTitle,
         description: editedDescription,
+      projectType: editedProjectType,
         caseStudyContent,
       });
       } else {
@@ -2224,6 +2265,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       ...project,
       title: editedTitle,
       description: editedDescription,
+      projectType: editedProjectType,
       caseStudyContent: cleanedForSave,
       caseStudyImages: caseStudyImagesRef.current,
       flowDiagramImages: flowDiagramImagesRef.current,
@@ -2278,6 +2320,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
             ...project,
             title: editedTitle,
             description: editedDescription,
+      projectType: editedProjectType,
             caseStudyContent: cleanedForSave,
             caseStudyImages: updatedImages,
             flowDiagramImages: flowDiagramImagesRef.current,
@@ -2336,6 +2379,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       ...project,
       title: editedTitle,
       description: editedDescription,
+      projectType: editedProjectType,
       caseStudyContent,
       caseStudyImages: updatedImages,
       flowDiagramImages: flowDiagramImagesRef.current,
@@ -2383,6 +2427,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
             position: newPosition, // This is for the home carousel
             title: editedTitle,
             description: editedDescription,
+      projectType: editedProjectType,
             caseStudyContent,
             caseStudyImages: caseStudyImagesRef.current,
             flowDiagramImages: flowDiagramImagesRef.current,
@@ -2446,6 +2491,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       ...project,
       title: editedTitle,
       description: editedDescription,
+      projectType: editedProjectType,
       caseStudyContent: cleanedForSave,
       caseStudyImages: caseStudyImagesRef.current,
       flowDiagramImages: flowDiagramImagesRef.current,
@@ -2605,6 +2651,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       ...project,
       title: editedTitle,
       description: editedDescription,
+      projectType: editedProjectType,
       caseStudyContent,
       caseStudyImages: caseStudyImagesRef.current,
       flowDiagramImages: flowDiagramImagesRef.current,
@@ -2690,6 +2737,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       ...project,
       title: editedTitle,
       description: editedDescription,
+      projectType: editedProjectType,
       caseStudyContent,
       caseStudyImages: caseStudyImagesRef.current,
       flowDiagramImages: flowDiagramImagesRef.current,
@@ -2752,6 +2800,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       ...project,
       title: editedTitle,
       description: editedDescription,
+      projectType: editedProjectType,
       caseStudyContent,
       caseStudyImages: caseStudyImagesRef.current,
       flowDiagramImages: flowDiagramImagesRef.current,
@@ -2830,6 +2879,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       ...project,
       title: editedTitle,
       description: editedDescription,
+      projectType: editedProjectType,
       caseStudyContent,
       caseStudyImages: caseStudyImagesRef.current,
       flowDiagramImages: flowDiagramImagesRef.current,
@@ -3010,6 +3060,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
           ...project,
           title: editedTitle,
           description: editedDescription,
+      projectType: editedProjectType,
           caseStudyContent,
           caseStudyImages: caseStudyImagesRef.current,
           flowDiagramImages: flowDiagramImagesRef.current,
@@ -3047,6 +3098,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
           ...project,
           title: editedTitle,
           description: editedDescription,
+      projectType: editedProjectType,
           caseStudyContent,
           caseStudyImages: caseStudyImagesRef.current,
           flowDiagramImages: flowDiagramImagesRef.current,
@@ -3099,6 +3151,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
           ...project,
           title: editedTitle,
           description: editedDescription,
+      projectType: editedProjectType,
           caseStudyContent,
           caseStudyImages: caseStudyImagesRef.current,
           flowDiagramImages: flowDiagramImagesRef.current,
@@ -3155,6 +3208,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
           ...project,
           title: editedTitle,
           description: editedDescription,
+      projectType: editedProjectType,
           caseStudyContent,
           caseStudyImages: caseStudyImagesRef.current,
           flowDiagramImages: flowDiagramImagesRef.current,
@@ -3215,6 +3269,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
           ...project,
           title: editedTitle,
           description: editedDescription,
+      projectType: editedProjectType,
           caseStudyContent,
           caseStudyImages: caseStudyImagesRef.current,
           flowDiagramImages: flowDiagramImagesRef.current,
@@ -3345,6 +3400,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
         ...project,
         title: editedTitle,
         description: editedDescription,
+      projectType: editedProjectType,
         caseStudyContent: newContent,
         caseStudyImages: caseStudyImagesRef.current,
         flowDiagramImages: flowDiagramImagesRef.current,
@@ -3416,6 +3472,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       ...project,
       title: editedTitle,
       description: editedDescription,
+      projectType: editedProjectType,
       caseStudyContent,
       caseStudyImages: caseStudyImagesRef.current,
       flowDiagramImages: flowDiagramImagesRef.current,
@@ -3868,6 +3925,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
             ...project,
             title: editedTitle,
             description: editedDescription,
+      projectType: editedProjectType,
             caseStudyContent,
             caseStudyImages: caseStudyImagesRef.current,
             flowDiagramImages: flowDiagramImagesRef.current,
@@ -3925,6 +3983,159 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                 className="w-full"
                 rows={3}
               />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">Project Category</label>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditedProjectType(null);
+                    // Immediately save the change
+                    onUpdate({
+                      ...project,
+                      title: editedTitle,
+                      description: editedDescription,
+                      projectType: null,
+                      project_type: null,
+                      caseStudyContent,
+                      caseStudyImages: caseStudyImagesRef.current,
+                      flowDiagramImages: flowDiagramImagesRef.current,
+                      videoItems: videoItemsRef.current,
+                      galleryAspectRatio,
+                      flowDiagramAspectRatio,
+                      videoAspectRatio,
+                      galleryColumns,
+                      flowDiagramColumns,
+                      videoColumns,
+                      projectImagesPosition,
+                      videosPosition,
+                      flowDiagramsPosition,
+                      solutionCardsPosition,
+                      sectionPositions,
+                    });
+                    console.log('💾 ProjectDetail: Category changed to None, saved immediately');
+                  }}
+                  className={`rounded-full shadow-lg backdrop-blur-sm px-4 py-2.5 inline-flex items-center justify-center text-sm font-medium transition-colors ${
+                    editedProjectType === null
+                      ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                      : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                  }`}
+                >
+                  None
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditedProjectType('product-design');
+                    // Immediately save the change
+                    onUpdate({
+                      ...project,
+                      title: editedTitle,
+                      description: editedDescription,
+                      projectType: 'product-design',
+                      project_type: 'product-design',
+                      caseStudyContent,
+                      caseStudyImages: caseStudyImagesRef.current,
+                      flowDiagramImages: flowDiagramImagesRef.current,
+                      videoItems: videoItemsRef.current,
+                      galleryAspectRatio,
+                      flowDiagramAspectRatio,
+                      videoAspectRatio,
+                      galleryColumns,
+                      flowDiagramColumns,
+                      videoColumns,
+                      projectImagesPosition,
+                      videosPosition,
+                      flowDiagramsPosition,
+                      solutionCardsPosition,
+                      sectionPositions,
+                    });
+                    console.log('💾 ProjectDetail: Category changed to product-design, saved immediately');
+                  }}
+                  className={`rounded-full shadow-lg backdrop-blur-sm px-4 py-2.5 inline-flex items-center justify-center text-sm font-medium transition-colors ${
+                    editedProjectType === 'product-design'
+                      ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                      : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                  }`}
+                >
+                  Product design
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditedProjectType('development');
+                    // Immediately save the change
+                    onUpdate({
+                      ...project,
+                      title: editedTitle,
+                      description: editedDescription,
+                      projectType: 'development',
+                      project_type: 'development',
+                      caseStudyContent,
+                      caseStudyImages: caseStudyImagesRef.current,
+                      flowDiagramImages: flowDiagramImagesRef.current,
+                      videoItems: videoItemsRef.current,
+                      galleryAspectRatio,
+                      flowDiagramAspectRatio,
+                      videoAspectRatio,
+                      galleryColumns,
+                      flowDiagramColumns,
+                      videoColumns,
+                      projectImagesPosition,
+                      videosPosition,
+                      flowDiagramsPosition,
+                      solutionCardsPosition,
+                      sectionPositions,
+                    });
+                    console.log('💾 ProjectDetail: Category changed to development, saved immediately');
+                  }}
+                  className={`rounded-full shadow-lg backdrop-blur-sm px-4 py-2.5 inline-flex items-center justify-center text-sm font-medium transition-colors ${
+                    editedProjectType === 'development'
+                      ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                      : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                  }`}
+                >
+                  Development
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditedProjectType('branding');
+                    // Immediately save the change
+                    onUpdate({
+                      ...project,
+                      title: editedTitle,
+                      description: editedDescription,
+                      projectType: 'branding',
+                      project_type: 'branding',
+                      caseStudyContent,
+                      caseStudyImages: caseStudyImagesRef.current,
+                      flowDiagramImages: flowDiagramImagesRef.current,
+                      videoItems: videoItemsRef.current,
+                      galleryAspectRatio,
+                      flowDiagramAspectRatio,
+                      videoAspectRatio,
+                      galleryColumns,
+                      flowDiagramColumns,
+                      videoColumns,
+                      projectImagesPosition,
+                      videosPosition,
+                      flowDiagramsPosition,
+                      solutionCardsPosition,
+                      sectionPositions,
+                    });
+                    console.log('💾 ProjectDetail: Category changed to branding, saved immediately');
+                  }}
+                  className={`rounded-full shadow-lg backdrop-blur-sm px-4 py-2.5 inline-flex items-center justify-center text-sm font-medium transition-colors ${
+                    editedProjectType === 'branding'
+                      ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                      : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                  }`}
+                >
+                  Branding
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -4174,6 +4385,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                       ...project,
                       title: editedTitle,
                       description: editedDescription,
+      projectType: editedProjectType,
                       caseStudyContent: caseStudyContent,
                       caseStudyImages: caseStudyImagesRef.current,
                       flowDiagramImages: flowDiagramImagesRef.current,
@@ -4347,6 +4559,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                 ...project,
                 title: editedTitle,
                 description: editedDescription,
+      projectType: editedProjectType,
                 caseStudyContent: mergedContent,
                 caseStudyImages: caseStudyImagesRef.current,
                 flowDiagramImages: flowDiagramImagesRef.current,
@@ -4378,6 +4591,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                 ...project,
                 title: editedTitle,
                 description: editedDescription,
+      projectType: editedProjectType,
                 caseStudyContent,
                 caseStudyImages: [],
                 flowDiagramImages: flowDiagramImagesRef.current,
@@ -4402,6 +4616,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                 ...project,
                 title: editedTitle,
                 description: editedDescription,
+      projectType: editedProjectType,
                 caseStudyContent,
                 caseStudyImages: caseStudyImagesRef.current,
                 flowDiagramImages: flowDiagramImagesRef.current,
@@ -4426,6 +4641,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                 ...project,
                 title: editedTitle,
                 description: editedDescription,
+      projectType: editedProjectType,
                 caseStudyContent,
                 caseStudyImages: caseStudyImagesRef.current,
                 flowDiagramImages: [],
@@ -4449,6 +4665,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                 ...project,
                 title: editedTitle,
                 description: editedDescription,
+      projectType: editedProjectType,
                 caseStudyContent,
                 caseStudyImages: caseStudyImagesRef.current,
                 flowDiagramImages: flowDiagramImagesRef.current,
@@ -4508,6 +4725,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                           ...project,
                           title: editedTitle,
                           description: editedDescription,
+      projectType: editedProjectType,
                           caseStudyContent,
                           caseStudyImages: newImages,
                           flowDiagramImages: flowDiagramImagesRef.current,
@@ -4534,6 +4752,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                           ...project,
                           title: editedTitle,
                           description: editedDescription,
+      projectType: editedProjectType,
                           caseStudyContent,
                           caseStudyImages: caseStudyImagesRef.current,
                           flowDiagramImages: flowDiagramImagesRef.current,
@@ -4556,6 +4775,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                           ...project,
                           title: editedTitle,
                           description: editedDescription,
+      projectType: editedProjectType,
                           caseStudyContent,
                           caseStudyImages: caseStudyImagesRef.current,
                           flowDiagramImages: flowDiagramImagesRef.current,
@@ -4618,6 +4838,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                           ...project,
                           title: editedTitle,
                           description: editedDescription,
+      projectType: editedProjectType,
                           caseStudyContent,
                           caseStudyImages: caseStudyImagesRef.current,
                           flowDiagramImages: flowDiagramImagesRef.current,
@@ -4644,6 +4865,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                           ...project,
                           title: editedTitle,
                           description: editedDescription,
+      projectType: editedProjectType,
                           caseStudyContent,
                           caseStudyImages: caseStudyImagesRef.current,
                           flowDiagramImages: flowDiagramImagesRef.current,
@@ -4669,6 +4891,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                           ...project,
                           title: editedTitle,
                           description: editedDescription,
+      projectType: editedProjectType,
                           caseStudyContent,
                           caseStudyImages: caseStudyImagesRef.current,
                           flowDiagramImages: flowDiagramImagesRef.current,
@@ -4725,6 +4948,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                           ...project,
                           title: editedTitle,
                           description: editedDescription,
+      projectType: editedProjectType,
                           caseStudyContent,
                           caseStudyImages: caseStudyImagesRef.current,
                           flowDiagramImages: newImages,
@@ -4750,6 +4974,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                           ...project,
                           title: editedTitle,
                           description: editedDescription,
+      projectType: editedProjectType,
                           caseStudyContent,
                           caseStudyImages: caseStudyImagesRef.current,
                           flowDiagramImages: flowDiagramImagesRef.current,
@@ -4776,6 +5001,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                           ...project,
                           title: editedTitle,
                           description: editedDescription,
+      projectType: editedProjectType,
                           caseStudyContent,
                           caseStudyImages: caseStudyImagesRef.current,
                           flowDiagramImages: flowDiagramImagesRef.current,
@@ -4806,6 +5032,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                 ...project,
                 title: editedTitle,
                 description: editedDescription,
+      projectType: editedProjectType,
                 caseStudyContent,
                 caseStudyImages: caseStudyImagesRef.current,
                 flowDiagramImages: flowDiagramImagesRef.current,
