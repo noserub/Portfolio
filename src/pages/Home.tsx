@@ -2619,7 +2619,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         isDragging: false,
         hasMoved: false,
       };
-
+    };
     const handleTouchMove = (e: TouchEvent) => {
       if (!caseStudiesTouchState.current) return;
       
