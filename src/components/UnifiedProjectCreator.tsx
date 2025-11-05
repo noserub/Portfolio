@@ -106,6 +106,7 @@ export const UnifiedProjectCreator = React.memo(function UnifiedProjectCreator({
   const [editedTitle, setEditedTitle] = useState('');
   const [editedContent, setEditedContent] = useState('');
   const [selectedProjectType, setSelectedProjectType] = useState<string | null>(null);
+  const [filterProjectType, setFilterProjectType] = useState<'product-design' | 'development' | 'branding' | null>(null);
   const [step, setStep] = useState<'type' | 'details' | 'sections'>('type');
 
   // Prevent background scrolling by adding a class to body
@@ -222,6 +223,11 @@ export const UnifiedProjectCreator = React.memo(function UnifiedProjectCreator({
     try {
       console.log('🎯 UnifiedProjectCreator: Converting to legacy format...');
       const projectData = convertToLegacyFormat(caseStudy);
+      // Add filter project type if selected
+      if (filterProjectType) {
+        projectData.project_type = filterProjectType;
+        projectData.projectType = filterProjectType;
+      }
       console.log('🎯 UnifiedProjectCreator: Converted project data:', projectData);
       
       console.log('🎯 UnifiedProjectCreator: Calling onCreateProject...');
@@ -231,6 +237,7 @@ export const UnifiedProjectCreator = React.memo(function UnifiedProjectCreator({
       // Reset form
       setCaseStudy(createBlankCaseStudy());
       setSelectedProjectType(null);
+      setFilterProjectType(null);
       setStep('type');
     } catch (error) {
       console.error('Error creating project:', error);
@@ -243,6 +250,7 @@ export const UnifiedProjectCreator = React.memo(function UnifiedProjectCreator({
   const handleCancel = () => {
     setCaseStudy(createBlankCaseStudy());
     setSelectedProjectType(null);
+    setFilterProjectType(null);
     setStep('type');
     onClose();
   };
@@ -356,6 +364,55 @@ export const UnifiedProjectCreator = React.memo(function UnifiedProjectCreator({
                     onChange={(e) => handleDescriptionChange(e.target.value)}
                     placeholder="Brief project description"
                   />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">Project Category (Optional)</label>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setFilterProjectType(null)}
+                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                      filterProjectType === null
+                        ? 'bg-primary text-primary-foreground shadow-md'
+                        : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                    }`}
+                  >
+                    None
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFilterProjectType('product-design')}
+                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                      filterProjectType === 'product-design'
+                        ? 'bg-primary text-primary-foreground shadow-md'
+                        : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                    }`}
+                  >
+                    Product design
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFilterProjectType('development')}
+                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                      filterProjectType === 'development'
+                        ? 'bg-primary text-primary-foreground shadow-md'
+                        : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                    }`}
+                  >
+                    Development
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFilterProjectType('branding')}
+                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                      filterProjectType === 'branding'
+                        ? 'bg-primary text-primary-foreground shadow-md'
+                        : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                    }`}
+                  >
+                    Branding
+                  </button>
                 </div>
               </div>
               <div className="flex justify-end">

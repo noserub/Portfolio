@@ -60,6 +60,7 @@ export interface ProjectData {
   flowDiagramsPosition?: number;  // Index position in sections array (default: after Videos)
   solutionCardsPosition?: number; // Index position in sections array (default: after Flow Diagrams)
   sectionPositions?: Record<string, number>; // Position tracking for ALL sections (markdown + special)
+  projectType?: 'product-design' | 'development' | 'branding'; // Project type for filtering
 }
 
 interface ProjectImageProps {

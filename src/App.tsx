@@ -1046,6 +1046,7 @@ export default function App() {
           // Convert other fields
           sectionPositions: data.section_positions || {},
           requiresPassword: data.requires_password,
+          projectType: data.project_type || null,
           // Remove snake_case fields to avoid confusion
           position_x: undefined,
           position_y: undefined,
@@ -1076,6 +1077,8 @@ export default function App() {
             hasImages: (freshProject.caseStudyImages?.length || 0) > 0,
             originalImages: data.case_study_images?.length || 0,
             convertedImages: freshProject.caseStudyImages?.length || 0,
+            project_type_from_db: data.project_type,
+            projectType_in_fresh: freshProject.projectType,
             imageData: freshProject.caseStudyImages
           });
         }
@@ -1258,7 +1261,8 @@ export default function App() {
           solution_cards_position: cleanProject.solutionCardsPosition,
           section_positions: cleanProject.sectionPositions || {},
           case_study_sidebars: (cleanProject as any).caseStudySidebars || (cleanProject as any).case_study_sidebars || undefined,
-          sort_order: (cleanProject as any).sortOrder || 0
+          sort_order: (cleanProject as any).sortOrder || 0,
+          project_type: cleanProject.projectType || (cleanProject as any).project_type || null
         };
         
         await updateProject(cleanProject.id, projectData);
