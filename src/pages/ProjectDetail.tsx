@@ -459,7 +459,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       console.log('📄 ProjectDetail: Current user:', user ? user.email : (isBypassAuth ? 'Bypass authenticated' : 'Not authenticated'));
     };
     checkAuth();
-  }, [project]);
+  }, [project.id, project.caseStudyImages, project.flowDiagramImages, project.videoItems]);
   
   // RECOVERY: Attempt to restore missing image/video references from database
   useEffect(() => {
@@ -776,7 +776,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     if (projectType !== editedProjectType) {
       setEditedProjectType(projectType);
     }
-  }, [project.projectType, (project as any).project_type, editedProjectType]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [project.projectType, editedProjectType]); // project_type is snake_case version, projectType is camelCase
   const [caseStudyContent, setCaseStudyContent] = useState(
     project.caseStudyContent || (project as any).case_study_content || "Add your detailed case study content here. Describe the challenge, process, solution, and results."
   );
@@ -1254,7 +1255,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
         project: { atGlance: projectAtHidden, impact: projectImpactHidden }
       });
     }
-  }, [project, caseStudySidebars]);
+  }, [(project as any).caseStudySidebars, (project as any).case_study_sidebars, caseStudySidebars]);
 
   // Clean up corrupted content on mount and use cleaned content for parsing
   // ALSO strip legacy sidebar blocks on LOAD if JSON sidebars exist
@@ -1876,7 +1877,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     } else {
       setCleanedContent(cleaned);
     }
-  }, [caseStudyContent, caseStudySidebars, project, onUpdate]); // Run when content or JSON sidebars change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [caseStudyContent, caseStudySidebars, project.id, project.caseStudyImages, project.flowDiagramImages, project.videoItems, onUpdate]); // Run when content or JSON sidebars change - project.id ensures we re-run on project change
 
   
 
@@ -1971,7 +1973,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
         ((!resolvedAt && !atIsHidden) && !hasAtAGlance && (!atJson || !atJson.hidden)) ||
         ((!resolvedImpact && !impactIsHidden) && !hasImpact && (!impactJson || !impactJson.hidden))
     };
-  }, [cleanedContent, sectionPositions, (project as any)?.sectionPositions, caseStudySidebars]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cleanedContent, sectionPositions, caseStudySidebars]); // sectionPositions from project is handled via sectionPositions state
 
   // Build the sidebars object to persist based on current LOCAL state (most up-to-date)
   // IMPORTANT: Use caseStudySidebars state directly, not atGlanceContent/impactContent which might be stale
@@ -2007,7 +2010,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     });
 
     return base;
-  }, [caseStudySidebars, sectionPositions, project]);
+  }, [caseStudySidebars, sectionPositions]); // sectionPositions state already tracks project.sectionPositions
 
   // Remove legacy sidebar blocks from markdown for keys that exist in JSON
   // Optionally accepts sidebars parameter to use updated sidebars immediately
