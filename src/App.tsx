@@ -800,27 +800,40 @@ export default function App() {
     // Manually track pageview for Vercel Analytics
     // The Analytics component doesn't automatically track hash-based routes
     if (typeof window !== 'undefined') {
+      // Build full URL for tracking
+      const fullUrl = window.location.origin + path;
+      
       // Use the va function if available, otherwise queue the event
       // The vaq queue is used before the analytics script loads
       if (window.va) {
         // Analytics script is loaded, track immediately
-        console.log('📊 Tracking pageview:', path);
-        window.va('pageview', { url: path });
+        console.log('📊 Tracking pageview:', path, '→', fullUrl);
+        // Try both path and full URL formats
+        try {
+          window.va('pageview', { url: fullUrl });
+        } catch (e) {
+          // Fallback to path if full URL fails
+          window.va('pageview', { url: path });
+        }
       } else if (window.vaq) {
         // Analytics script not loaded yet, queue the event
         console.log('📊 Queuing pageview (vaq):', path);
-        window.vaq.push(['pageview', { url: path }]);
+        window.vaq.push(['pageview', { url: fullUrl }]);
       } else {
         // Initialize the queue if it doesn't exist
         console.log('📊 Initializing vaq queue with pageview:', path);
-        (window as any).vaq = [['pageview', { url: path }]];
+        (window as any).vaq = [['pageview', { url: fullUrl }]];
       }
       
       // Also try to track after a short delay in case va becomes available
       setTimeout(() => {
         if (window.va && path) {
           console.log('📊 Retry tracking pageview:', path);
-          window.va('pageview', { url: path });
+          try {
+            window.va('pageview', { url: fullUrl });
+          } catch (e) {
+            window.va('pageview', { url: path });
+          }
         }
       }, 100);
     }
