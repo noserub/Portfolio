@@ -770,18 +770,16 @@ export default function App() {
     }
   }, [currentPage, selectedProject]);
 
-  // Track page views for Vercel Analytics (hash-based routing)
-  useEffect(() => {
+  // Calculate current route for Analytics component
+  const getCurrentRoute = (): string => {
     // Skip tracking on initial load for project-detail without project
     if (!selectedProject && currentPage === "project-detail") {
-      return;
+      return '/';
     }
     
     // Get the current path from hash or default to home
-    let path = '/';
-    
     if (currentPage === "home") {
-      path = '/';
+      return '/';
     } else if (currentPage === "project-detail" && selectedProject) {
       // Create friendly slug for project pages
       const friendlySlug = selectedProject.title
@@ -790,54 +788,52 @@ export default function App() {
         .replace(/\s+/g, '-')
         .replace(/-+/g, '-')
         .trim();
-      path = `/project/${friendlySlug}`;
+      return `/project/${friendlySlug}`;
     } else if (currentPage === "about") {
-      path = '/about';
+      return '/about';
     } else if (currentPage === "contact") {
-      path = '/contact';
+      return '/contact';
     }
+    
+    return '/';
+  };
+
+  const currentRoute = getCurrentRoute();
+
+  // Track page views for Vercel Analytics (hash-based routing)
+  useEffect(() => {
+    // Skip tracking on initial load for project-detail without project
+    if (!selectedProject && currentPage === "project-detail") {
+      return;
+    }
+    
+    const path = currentRoute;
     
     // Manually track pageview for Vercel Analytics
     // The Analytics component doesn't automatically track hash-based routes
     if (typeof window !== 'undefined') {
-      // Build full URL for tracking
-      const fullUrl = window.location.origin + path;
-      
       // Use the va function if available, otherwise queue the event
       // The vaq queue is used before the analytics script loads
       if (window.va) {
         // Analytics script is loaded, track immediately
-        console.log('📊 Tracking pageview:', path, '→', fullUrl);
-        // Try both path and full URL formats
+        console.log('📊 Tracking pageview:', path);
         try {
-          window.va('pageview', { url: fullUrl });
-        } catch (e) {
-          // Fallback to path if full URL fails
+          // Try using just the path (Vercel Analytics expects relative paths)
           window.va('pageview', { url: path });
+        } catch (e) {
+          console.error('📊 Error tracking pageview:', e);
         }
       } else if (window.vaq) {
         // Analytics script not loaded yet, queue the event
         console.log('📊 Queuing pageview (vaq):', path);
-        window.vaq.push(['pageview', { url: fullUrl }]);
+        window.vaq.push(['pageview', { url: path }]);
       } else {
         // Initialize the queue if it doesn't exist
         console.log('📊 Initializing vaq queue with pageview:', path);
-        (window as any).vaq = [['pageview', { url: fullUrl }]];
+        (window as any).vaq = [['pageview', { url: path }]];
       }
-      
-      // Also try to track after a short delay in case va becomes available
-      setTimeout(() => {
-        if (window.va && path) {
-          console.log('📊 Retry tracking pageview:', path);
-          try {
-            window.va('pageview', { url: fullUrl });
-          } catch (e) {
-            window.va('pageview', { url: path });
-          }
-        }
-      }, 100);
     }
-  }, [currentPage, selectedProject]);
+  }, [currentPage, selectedProject, currentRoute]);
 
   // Function to create friendly slug from title
   const createSlug = (title: string): string => {
@@ -2014,8 +2010,8 @@ export default function App() {
       {/* Toast notifications */}
       <Toaster position="bottom-right" />
       
-      {/* Vercel Analytics */}
-      <Analytics />
+      {/* Vercel Analytics - Pass route prop for hash-based routing */}
+      <Analytics route={currentRoute} />
     </ErrorBoundary>
   );
 }
