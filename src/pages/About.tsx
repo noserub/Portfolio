@@ -732,7 +732,7 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
   };
 
   const handleResumeClick = () => {
-    window.open('https://drive.google.com/file/d/1hg8kZdI88t0a3XP2sb-VhQCHy0KhzTfR/view?usp=drive_link', '_blank');
+    window.open('https://drive.google.com/file/d/1v6xDfL9LEO9o2kECo2qy9WZ6b_OTqo9d/view?usp=sharing', '_blank');
   };
 
   // Section Reorder Controls Component

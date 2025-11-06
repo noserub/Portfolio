@@ -4073,6 +4073,11 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-4xl mx-auto p-8 px-0 md:px-8">
             {[
               { 
+                number: "1", 
+                label: "Full stack web app",
+                description: "Solo developer"
+              },
+              { 
                 number: "4", 
                 label: "AI native apps designed",
                 description: "with RAG & MCP hooks"
@@ -4086,12 +4091,8 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                 number: "9", 
                 label: "US patents",
                 description: "Innovation and IP contribution"
-              },
-              { 
-                number: "20", 
-                label: "Years of experience",
-                description: "Leading design"
               }
+              
             ].map((stat, index) => {
               // Calculate if this card is alone in its row
               const totalCards = 4;
