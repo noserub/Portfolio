@@ -431,6 +431,7 @@ function mergeContentWithSidebars(editedContent: string, originalContent: string
 export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: ProjectDetailProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [showSaveIndicator, setShowSaveIndicator] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   
   // Debug logging for project data
   useEffect(() => {
@@ -2078,6 +2079,26 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
   const prevFlowDiagramsRef = useRef('');
   const prevVideosRef = useRef('');
 
+  // Watch for unsaved changes flag to update UI
+  useEffect(() => {
+    const checkUnsavedChanges = () => {
+      const hasFlag = document.body.hasAttribute('data-unsaved');
+      setHasUnsavedChanges(hasFlag);
+    };
+    
+    // Check initially
+    checkUnsavedChanges();
+    
+    // Watch for changes to the attribute using MutationObserver
+    const observer = new MutationObserver(checkUnsavedChanges);
+    observer.observe(document.body, {
+      attributes: true,
+      attributeFilter: ['data-unsaved']
+    });
+    
+    return () => observer.disconnect();
+  }, []);
+
   // Auto-save content changes with debouncing
   useEffect(() => {
     // Explicit-save mode: do not persist while user is editing. Save only via Save/Done.
@@ -2294,6 +2315,11 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     console.log('💾 [handleSave] Saving with', caseStudyImagesRef.current.length, 'project images,', videoItemsRef.current.length, 'videos and', flowDiagramImagesRef.current.length, 'flow diagrams');
     onUpdate(updatedProject);
     setIsEditing(false);
+    // Clear unsaved flag
+    try { 
+      document.body.removeAttribute('data-unsaved');
+      setHasUnsavedChanges(false);
+    } catch {}
   };
 
   const handleAddImage = async () => {
@@ -3123,9 +3149,16 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
         onUpdate(updatedProject);
         return;
       } else if (target.title === '__FLOW_DIAGRAMS__') {
-        // Move flow diagrams to the next available position
-        const newFlowDiagramsPos = direction === 'up' ? flowDiagramsPosition - 1 : flowDiagramsPosition + 1;
-        setFlowDiagramsPosition(newFlowDiagramsPos);
+        // When markdown section moves past Flow Diagrams, swap positions directly
+        // Flow Diagrams takes markdown section's old position, markdown section takes Flow Diagrams' position
+        // This prevents issues when Flow Diagrams is at the end (position 1000) and can't move down
+        console.log(`↔️ Swapping "${sectionTitle}" with Flow Diagrams: ${current.position} <-> ${target.position}`);
+        
+        // Swap positions directly (same approach as Solution Cards)
+        const markdownNewPosition = target.position;
+        const flowDiagramsNewPosition = current.position;
+        
+        setFlowDiagramsPosition(flowDiagramsNewPosition);
         
         // Get persisted sidebars
         const persistedSidebars = buildPersistedSidebars();
@@ -3171,7 +3204,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
           key_features_columns: keyFeaturesColumns,
           projectImagesPosition,
           videosPosition,
-          flowDiagramsPosition: newFlowDiagramsPos,
+          flowDiagramsPosition: flowDiagramsNewPosition,
           solutionCardsPosition,
           sectionPositions: cleanSectionPositions,
           caseStudySidebars: cleanSidebars,
@@ -3428,6 +3461,11 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
         case_study_sidebars: cleanSidebars,
       } as any;
       onUpdate(updatedProject);
+      // Clear unsaved flag after section movement is saved
+      try { 
+        document.body.removeAttribute('data-unsaved');
+        setHasUnsavedChanges(false);
+      } catch {}
   };
 
   // OLD: Universal section move handler - works for ANY section
@@ -5096,18 +5134,62 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
           </div>
         )}
 
-        {/* Save Button (Edit Mode) */}
-        {isEditMode && isEditing && (
+        {/* Save Button (Edit Mode) - Show when editing OR when there are unsaved changes */}
+        {isEditMode && (isEditing || hasUnsavedChanges) && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="flex gap-4 justify-end sticky bottom-6 z-50 order-5 lg:order-none"
           >
-            <Button variant="outline" onClick={() => setIsEditing(false)} size="lg">
-              Cancel
-            </Button>
-            <Button onClick={handleSave} size="lg">
-              Save Changes
+            {isEditing && (
+              <Button variant="outline" onClick={() => setIsEditing(false)} size="lg">
+                Cancel
+              </Button>
+            )}
+            <Button 
+              onClick={() => {
+                if (isEditing) {
+                  handleSave();
+                } else {
+                  // Save current state even if not in editing mode
+                  const persistedSidebars = buildPersistedSidebars();
+                  const cleanedForSave = stripLegacySidebarBlocks(caseStudyContent || '');
+                  const updatedProject: ProjectData = {
+                    ...project,
+                    title: editedTitle,
+                    description: editedDescription,
+                    projectType: editedProjectType,
+                    caseStudyContent: cleanedForSave,
+                    caseStudyImages: caseStudyImagesRef.current,
+                    flowDiagramImages: flowDiagramImagesRef.current,
+                    videoItems: videoItemsRef.current,
+                    galleryAspectRatio,
+                    flowDiagramAspectRatio,
+                    videoAspectRatio,
+                    galleryColumns,
+                    flowDiagramColumns,
+                    videoColumns,
+                    projectImagesPosition,
+                    videosPosition,
+                    flowDiagramsPosition,
+                    solutionCardsPosition,
+                    keyFeaturesColumns,
+                    key_features_columns: keyFeaturesColumns,
+                    sectionPositions,
+                    caseStudySidebars: persistedSidebars,
+                    case_study_sidebars: persistedSidebars,
+                  } as any;
+                  onUpdate(updatedProject);
+                  // Clear unsaved flag
+                  try { 
+                    document.body.removeAttribute('data-unsaved');
+                    setHasUnsavedChanges(false);
+                  } catch {}
+                }
+              }} 
+              size="lg"
+            >
+              {isEditing ? 'Save Changes' : 'Save'}
             </Button>
           </motion.div>
         )}
