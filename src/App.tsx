@@ -770,6 +770,42 @@ export default function App() {
     }
   }, [currentPage, selectedProject]);
 
+  // Track page views for Vercel Analytics (hash-based routing)
+  useEffect(() => {
+    // Skip tracking on initial load for project-detail without project
+    if (!selectedProject && currentPage === "project-detail") {
+      return;
+    }
+    
+    // Get the current path from hash or default to home
+    let path = '/';
+    
+    if (currentPage === "home") {
+      path = '/';
+    } else if (currentPage === "project-detail" && selectedProject) {
+      // Create friendly slug for project pages
+      const friendlySlug = selectedProject.title
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .trim();
+      path = `/project/${friendlySlug}`;
+    } else if (currentPage === "about") {
+      path = '/about';
+    } else if (currentPage === "contact") {
+      path = '/contact';
+    }
+    
+    // Manually track pageview for Vercel Analytics
+    // The Analytics component doesn't automatically track hash-based routes
+    if (typeof window !== 'undefined' && window.va) {
+      // Use the va function to manually track pageviews
+      // The va function is injected by the Analytics component
+      window.va('pageview', { url: path });
+    }
+  }, [currentPage, selectedProject]);
+
   // Function to create friendly slug from title
   const createSlug = (title: string): string => {
     return title
