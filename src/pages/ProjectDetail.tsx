@@ -748,7 +748,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     
     // Only attempt restore once per project load
     attemptRestore();
-  }, [project.id, project.caseStudyImages, project.flowDiagramImages, project.videoItems, onUpdate]); // Run when project ID or image arrays change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [project.id]); // Only run when project ID changes to avoid infinite loops with array dependencies
   
   const [editedTitle, setEditedTitle] = useState(project.title);
   const [editedDescription, setEditedDescription] = useState(project.description);
@@ -767,27 +768,15 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     if (project.description !== editedDescription) {
       setEditedDescription(project.description);
     }
-  }, [project.title, project.description]);
+  }, [project.title, project.description, editedTitle, editedDescription]);
 
   // Sync editedProjectType when project prop changes
   useEffect(() => {
     const projectType = project.projectType || (project as any).project_type || null;
-    console.log('🔄 ProjectDetail: Syncing editedProjectType from project prop:', {
-      projectId: project.id,
-      projectTitle: project.title,
-      projectType: project.projectType,
-      project_type: (project as any).project_type,
-      resolved: projectType,
-      currentEditedProjectType: editedProjectType,
-      willUpdate: projectType !== editedProjectType
-    });
     if (projectType !== editedProjectType) {
-      console.log('✅ ProjectDetail: Updating editedProjectType from', editedProjectType, 'to', projectType);
       setEditedProjectType(projectType);
-    } else {
-      console.log('⏭️ ProjectDetail: editedProjectType unchanged, skipping update');
     }
-  }, [project]);
+  }, [project.projectType, (project as any).project_type, editedProjectType]);
   const [caseStudyContent, setCaseStudyContent] = useState(
     project.caseStudyContent || (project as any).case_study_content || "Add your detailed case study content here. Describe the challenge, process, solution, and results."
   );
@@ -1064,7 +1053,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       console.log('📍 Found "The solution" section at index', solutionSectionIndex, '- positioning solution cards at', position);
     } else {
       // Fallback: use next available position
-      const next = getNextPosition();
+    const next = getNextPosition();
       position = next;
       console.log('⚠️ "The solution" section not found - using fallback position', position);
     }
@@ -1472,8 +1461,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
             console.log('✅ Allowing solution card section (after solution):', currentSectionTitle);
           } else {
             // This is an excluded section - only include if it's in the whitelist (for backward compatibility)
-            const isWhitelisted = whitelistedSections.some(w => {
-              const wLower = w.toLowerCase();
+        const isWhitelisted = whitelistedSections.some(w => {
+          const wLower = w.toLowerCase();
               const matches = t === wLower || t.startsWith(wLower + ' ') || t.includes(wLower);
               return matches;
             });
@@ -1503,15 +1492,15 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
               console.log('✅ Whitelist match:', currentSectionTitle, 'matches', w, '| t:', t, '| wLower:', wLower);
             }
             return matches;
-          });
-          if (!isWhitelisted) {
+        });
+        if (!isWhitelisted) {
             console.log('🧹 Stripping non-whitelisted section on LOAD:', currentSectionTitle, '| Whitelist:', whitelistedSections, '| t:', t);
-            skipSection = true;
+          skipSection = true;
             // Skip the header line itself - IMPORTANT: This prevents content from merging with previous section
-            continue;
-          }
+          continue;
+        }
           // Section is whitelisted - include it
-          skipSection = false;
+        skipSection = false;
           console.log('✅ Including whitelisted section:', currentSectionTitle);
           
           // After processing "The solution" section, mark that we've found it
@@ -3043,58 +3032,58 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
         console.log(`↔️ Swapping "${sectionTitle}" with Solution Cards: ${current.position} <-> ${target.position}`);
         isUpdatingSolutionCardsPositionRef.current = true;
         setSolutionCardsPosition(specialNewPosition);
-        
-        // Get persisted sidebars
-        const persistedSidebars = buildPersistedSidebars();
-        
-        // Ensure sectionPositions is serializable
-        let cleanSectionPositions: any = {};
-        try {
-          cleanSectionPositions = sectionPositions ? JSON.parse(JSON.stringify(sectionPositions)) : {};
-        } catch (e) {
-          console.error('⚠️ Error serializing sectionPositions:', e);
-          cleanSectionPositions = {};
-        }
-        
-        // Ensure sidebars are serializable
-        let cleanSidebars: any = {};
-        try {
-          if (persistedSidebars) {
-            cleanSidebars = JSON.parse(JSON.stringify(persistedSidebars));
-            if (typeof cleanSidebars !== 'object' || Array.isArray(cleanSidebars)) {
-              cleanSidebars = {};
-            }
+          
+          // Get persisted sidebars
+          const persistedSidebars = buildPersistedSidebars();
+          
+          // Ensure sectionPositions is serializable
+          let cleanSectionPositions: any = {};
+          try {
+            cleanSectionPositions = sectionPositions ? JSON.parse(JSON.stringify(sectionPositions)) : {};
+          } catch (e) {
+            console.error('⚠️ Error serializing sectionPositions:', e);
+            cleanSectionPositions = {};
           }
-        } catch (e) {
-          cleanSidebars = {};
-        }
-        
-        const updatedProject: ProjectData = {
-          ...project,
-          title: editedTitle,
-          description: editedDescription,
+          
+          // Ensure sidebars are serializable
+          let cleanSidebars: any = {};
+          try {
+            if (persistedSidebars) {
+              cleanSidebars = JSON.parse(JSON.stringify(persistedSidebars));
+              if (typeof cleanSidebars !== 'object' || Array.isArray(cleanSidebars)) {
+                cleanSidebars = {};
+              }
+            }
+          } catch (e) {
+            cleanSidebars = {};
+          }
+          
+          const updatedProject: ProjectData = {
+            ...project,
+            title: editedTitle,
+            description: editedDescription,
       projectType: editedProjectType,
           caseStudyContent,
-          caseStudyImages: caseStudyImagesRef.current,
-          flowDiagramImages: flowDiagramImagesRef.current,
-          videoItems: videoItemsRef.current,
-          galleryAspectRatio,
-          flowDiagramAspectRatio,
-          videoAspectRatio,
-          galleryColumns,
-          flowDiagramColumns,
-          videoColumns,
-          keyFeaturesColumns,
-          key_features_columns: keyFeaturesColumns,
-          projectImagesPosition,
-          videosPosition,
-          flowDiagramsPosition,
+            caseStudyImages: caseStudyImagesRef.current,
+            flowDiagramImages: flowDiagramImagesRef.current,
+            videoItems: videoItemsRef.current,
+            galleryAspectRatio,
+            flowDiagramAspectRatio,
+            videoAspectRatio,
+            galleryColumns,
+            flowDiagramColumns,
+            videoColumns,
+            keyFeaturesColumns,
+            key_features_columns: keyFeaturesColumns,
+            projectImagesPosition,
+            videosPosition,
+            flowDiagramsPosition,
           solutionCardsPosition: specialNewPosition,
-          sectionPositions: cleanSectionPositions,
-          caseStudySidebars: cleanSidebars,
-          case_study_sidebars: cleanSidebars,
-        } as any;
-        onUpdate(updatedProject);
+            sectionPositions: cleanSectionPositions,
+            caseStudySidebars: cleanSidebars,
+            case_study_sidebars: cleanSidebars,
+          } as any;
+          onUpdate(updatedProject);
         
         // Reset flag after a delay
         setTimeout(() => {
