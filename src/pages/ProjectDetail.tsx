@@ -431,6 +431,7 @@ function mergeContentWithSidebars(editedContent: string, originalContent: string
 export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: ProjectDetailProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [showSaveIndicator, setShowSaveIndicator] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   
   // Debug logging for project data
   useEffect(() => {
@@ -459,7 +460,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       console.log('📄 ProjectDetail: Current user:', user ? user.email : (isBypassAuth ? 'Bypass authenticated' : 'Not authenticated'));
     };
     checkAuth();
-  }, [project]);
+  }, [project.id, project.caseStudyImages, project.flowDiagramImages, project.videoItems]);
   
   // RECOVERY: Attempt to restore missing image/video references from database
   useEffect(() => {
@@ -748,7 +749,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     
     // Only attempt restore once per project load
     attemptRestore();
-  }, [project.id, project.caseStudyImages, project.flowDiagramImages, project.videoItems, onUpdate]); // Run when project ID or image arrays change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [project.id]); // Only run when project ID changes to avoid infinite loops with array dependencies
   
   const [editedTitle, setEditedTitle] = useState(project.title);
   const [editedDescription, setEditedDescription] = useState(project.description);
@@ -767,27 +769,16 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     if (project.description !== editedDescription) {
       setEditedDescription(project.description);
     }
-  }, [project.title, project.description]);
+  }, [project.title, project.description, editedTitle, editedDescription]);
 
   // Sync editedProjectType when project prop changes
   useEffect(() => {
     const projectType = project.projectType || (project as any).project_type || null;
-    console.log('🔄 ProjectDetail: Syncing editedProjectType from project prop:', {
-      projectId: project.id,
-      projectTitle: project.title,
-      projectType: project.projectType,
-      project_type: (project as any).project_type,
-      resolved: projectType,
-      currentEditedProjectType: editedProjectType,
-      willUpdate: projectType !== editedProjectType
-    });
     if (projectType !== editedProjectType) {
-      console.log('✅ ProjectDetail: Updating editedProjectType from', editedProjectType, 'to', projectType);
       setEditedProjectType(projectType);
-    } else {
-      console.log('⏭️ ProjectDetail: editedProjectType unchanged, skipping update');
     }
-  }, [project]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [project.projectType, editedProjectType]); // project_type is snake_case version, projectType is camelCase
   const [caseStudyContent, setCaseStudyContent] = useState(
     project.caseStudyContent || (project as any).case_study_content || "Add your detailed case study content here. Describe the challenge, process, solution, and results."
   );
@@ -1064,7 +1055,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       console.log('📍 Found "The solution" section at index', solutionSectionIndex, '- positioning solution cards at', position);
     } else {
       // Fallback: use next available position
-      const next = getNextPosition();
+    const next = getNextPosition();
       position = next;
       console.log('⚠️ "The solution" section not found - using fallback position', position);
     }
@@ -1265,7 +1256,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
         project: { atGlance: projectAtHidden, impact: projectImpactHidden }
       });
     }
-  }, [project, caseStudySidebars]);
+  }, [(project as any).caseStudySidebars, (project as any).case_study_sidebars, caseStudySidebars]);
 
   // Clean up corrupted content on mount and use cleaned content for parsing
   // ALSO strip legacy sidebar blocks on LOAD if JSON sidebars exist
@@ -1472,8 +1463,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
             console.log('✅ Allowing solution card section (after solution):', currentSectionTitle);
           } else {
             // This is an excluded section - only include if it's in the whitelist (for backward compatibility)
-            const isWhitelisted = whitelistedSections.some(w => {
-              const wLower = w.toLowerCase();
+        const isWhitelisted = whitelistedSections.some(w => {
+          const wLower = w.toLowerCase();
               const matches = t === wLower || t.startsWith(wLower + ' ') || t.includes(wLower);
               return matches;
             });
@@ -1503,15 +1494,15 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
               console.log('✅ Whitelist match:', currentSectionTitle, 'matches', w, '| t:', t, '| wLower:', wLower);
             }
             return matches;
-          });
-          if (!isWhitelisted) {
+        });
+        if (!isWhitelisted) {
             console.log('🧹 Stripping non-whitelisted section on LOAD:', currentSectionTitle, '| Whitelist:', whitelistedSections, '| t:', t);
-            skipSection = true;
+          skipSection = true;
             // Skip the header line itself - IMPORTANT: This prevents content from merging with previous section
-            continue;
-          }
+          continue;
+        }
           // Section is whitelisted - include it
-          skipSection = false;
+        skipSection = false;
           console.log('✅ Including whitelisted section:', currentSectionTitle);
           
           // After processing "The solution" section, mark that we've found it
@@ -1887,7 +1878,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     } else {
       setCleanedContent(cleaned);
     }
-  }, [caseStudyContent, caseStudySidebars, project, onUpdate]); // Run when content or JSON sidebars change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [caseStudyContent, caseStudySidebars, project.id, project.caseStudyImages, project.flowDiagramImages, project.videoItems, onUpdate]); // Run when content or JSON sidebars change - project.id ensures we re-run on project change
 
   
 
@@ -1982,7 +1974,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
         ((!resolvedAt && !atIsHidden) && !hasAtAGlance && (!atJson || !atJson.hidden)) ||
         ((!resolvedImpact && !impactIsHidden) && !hasImpact && (!impactJson || !impactJson.hidden))
     };
-  }, [cleanedContent, sectionPositions, (project as any)?.sectionPositions, caseStudySidebars]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cleanedContent, sectionPositions, caseStudySidebars]); // sectionPositions from project is handled via sectionPositions state
 
   // Build the sidebars object to persist based on current LOCAL state (most up-to-date)
   // IMPORTANT: Use caseStudySidebars state directly, not atGlanceContent/impactContent which might be stale
@@ -2018,7 +2011,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     });
 
     return base;
-  }, [caseStudySidebars, sectionPositions, project]);
+  }, [caseStudySidebars, sectionPositions]); // sectionPositions state already tracks project.sectionPositions
 
   // Remove legacy sidebar blocks from markdown for keys that exist in JSON
   // Optionally accepts sidebars parameter to use updated sidebars immediately
@@ -2085,6 +2078,26 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
   const prevImagesRef = useRef('');
   const prevFlowDiagramsRef = useRef('');
   const prevVideosRef = useRef('');
+
+  // Watch for unsaved changes flag to update UI
+  useEffect(() => {
+    const checkUnsavedChanges = () => {
+      const hasFlag = document.body.hasAttribute('data-unsaved');
+      setHasUnsavedChanges(hasFlag);
+    };
+    
+    // Check initially
+    checkUnsavedChanges();
+    
+    // Watch for changes to the attribute using MutationObserver
+    const observer = new MutationObserver(checkUnsavedChanges);
+    observer.observe(document.body, {
+      attributes: true,
+      attributeFilter: ['data-unsaved']
+    });
+    
+    return () => observer.disconnect();
+  }, []);
 
   // Auto-save content changes with debouncing
   useEffect(() => {
@@ -2302,6 +2315,11 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     console.log('💾 [handleSave] Saving with', caseStudyImagesRef.current.length, 'project images,', videoItemsRef.current.length, 'videos and', flowDiagramImagesRef.current.length, 'flow diagrams');
     onUpdate(updatedProject);
     setIsEditing(false);
+    // Clear unsaved flag
+    try { 
+      document.body.removeAttribute('data-unsaved');
+      setHasUnsavedChanges(false);
+    } catch {}
   };
 
   const handleAddImage = async () => {
@@ -3043,58 +3061,58 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
         console.log(`↔️ Swapping "${sectionTitle}" with Solution Cards: ${current.position} <-> ${target.position}`);
         isUpdatingSolutionCardsPositionRef.current = true;
         setSolutionCardsPosition(specialNewPosition);
-        
-        // Get persisted sidebars
-        const persistedSidebars = buildPersistedSidebars();
-        
-        // Ensure sectionPositions is serializable
-        let cleanSectionPositions: any = {};
-        try {
-          cleanSectionPositions = sectionPositions ? JSON.parse(JSON.stringify(sectionPositions)) : {};
-        } catch (e) {
-          console.error('⚠️ Error serializing sectionPositions:', e);
-          cleanSectionPositions = {};
-        }
-        
-        // Ensure sidebars are serializable
-        let cleanSidebars: any = {};
-        try {
-          if (persistedSidebars) {
-            cleanSidebars = JSON.parse(JSON.stringify(persistedSidebars));
-            if (typeof cleanSidebars !== 'object' || Array.isArray(cleanSidebars)) {
-              cleanSidebars = {};
-            }
+          
+          // Get persisted sidebars
+          const persistedSidebars = buildPersistedSidebars();
+          
+          // Ensure sectionPositions is serializable
+          let cleanSectionPositions: any = {};
+          try {
+            cleanSectionPositions = sectionPositions ? JSON.parse(JSON.stringify(sectionPositions)) : {};
+          } catch (e) {
+            console.error('⚠️ Error serializing sectionPositions:', e);
+            cleanSectionPositions = {};
           }
-        } catch (e) {
-          cleanSidebars = {};
-        }
-        
-        const updatedProject: ProjectData = {
-          ...project,
-          title: editedTitle,
-          description: editedDescription,
+          
+          // Ensure sidebars are serializable
+          let cleanSidebars: any = {};
+          try {
+            if (persistedSidebars) {
+              cleanSidebars = JSON.parse(JSON.stringify(persistedSidebars));
+              if (typeof cleanSidebars !== 'object' || Array.isArray(cleanSidebars)) {
+                cleanSidebars = {};
+              }
+            }
+          } catch (e) {
+            cleanSidebars = {};
+          }
+          
+          const updatedProject: ProjectData = {
+            ...project,
+            title: editedTitle,
+            description: editedDescription,
       projectType: editedProjectType,
           caseStudyContent,
-          caseStudyImages: caseStudyImagesRef.current,
-          flowDiagramImages: flowDiagramImagesRef.current,
-          videoItems: videoItemsRef.current,
-          galleryAspectRatio,
-          flowDiagramAspectRatio,
-          videoAspectRatio,
-          galleryColumns,
-          flowDiagramColumns,
-          videoColumns,
-          keyFeaturesColumns,
-          key_features_columns: keyFeaturesColumns,
-          projectImagesPosition,
-          videosPosition,
-          flowDiagramsPosition,
+            caseStudyImages: caseStudyImagesRef.current,
+            flowDiagramImages: flowDiagramImagesRef.current,
+            videoItems: videoItemsRef.current,
+            galleryAspectRatio,
+            flowDiagramAspectRatio,
+            videoAspectRatio,
+            galleryColumns,
+            flowDiagramColumns,
+            videoColumns,
+            keyFeaturesColumns,
+            key_features_columns: keyFeaturesColumns,
+            projectImagesPosition,
+            videosPosition,
+            flowDiagramsPosition,
           solutionCardsPosition: specialNewPosition,
-          sectionPositions: cleanSectionPositions,
-          caseStudySidebars: cleanSidebars,
-          case_study_sidebars: cleanSidebars,
-        } as any;
-        onUpdate(updatedProject);
+            sectionPositions: cleanSectionPositions,
+            caseStudySidebars: cleanSidebars,
+            case_study_sidebars: cleanSidebars,
+          } as any;
+          onUpdate(updatedProject);
         
         // Reset flag after a delay
         setTimeout(() => {
@@ -3131,9 +3149,16 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
         onUpdate(updatedProject);
         return;
       } else if (target.title === '__FLOW_DIAGRAMS__') {
-        // Move flow diagrams to the next available position
-        const newFlowDiagramsPos = direction === 'up' ? flowDiagramsPosition - 1 : flowDiagramsPosition + 1;
-        setFlowDiagramsPosition(newFlowDiagramsPos);
+        // When markdown section moves past Flow Diagrams, swap positions directly
+        // Flow Diagrams takes markdown section's old position, markdown section takes Flow Diagrams' position
+        // This prevents issues when Flow Diagrams is at the end (position 1000) and can't move down
+        console.log(`↔️ Swapping "${sectionTitle}" with Flow Diagrams: ${current.position} <-> ${target.position}`);
+        
+        // Swap positions directly (same approach as Solution Cards)
+        const markdownNewPosition = target.position;
+        const flowDiagramsNewPosition = current.position;
+        
+        setFlowDiagramsPosition(flowDiagramsNewPosition);
         
         // Get persisted sidebars
         const persistedSidebars = buildPersistedSidebars();
@@ -3179,7 +3204,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
           key_features_columns: keyFeaturesColumns,
           projectImagesPosition,
           videosPosition,
-          flowDiagramsPosition: newFlowDiagramsPos,
+          flowDiagramsPosition: flowDiagramsNewPosition,
           solutionCardsPosition,
           sectionPositions: cleanSectionPositions,
           caseStudySidebars: cleanSidebars,
@@ -3436,6 +3461,11 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
         case_study_sidebars: cleanSidebars,
       } as any;
       onUpdate(updatedProject);
+      // Clear unsaved flag after section movement is saved
+      try { 
+        document.body.removeAttribute('data-unsaved');
+        setHasUnsavedChanges(false);
+      } catch {}
   };
 
   // OLD: Universal section move handler - works for ANY section
@@ -5104,18 +5134,62 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
           </div>
         )}
 
-        {/* Save Button (Edit Mode) */}
-        {isEditMode && isEditing && (
+        {/* Save Button (Edit Mode) - Show when editing OR when there are unsaved changes */}
+        {isEditMode && (isEditing || hasUnsavedChanges) && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="flex gap-4 justify-end sticky bottom-6 z-50 order-5 lg:order-none"
           >
-            <Button variant="outline" onClick={() => setIsEditing(false)} size="lg">
-              Cancel
-            </Button>
-            <Button onClick={handleSave} size="lg">
-              Save Changes
+            {isEditing && (
+              <Button variant="outline" onClick={() => setIsEditing(false)} size="lg">
+                Cancel
+              </Button>
+            )}
+            <Button 
+              onClick={() => {
+                if (isEditing) {
+                  handleSave();
+                } else {
+                  // Save current state even if not in editing mode
+                  const persistedSidebars = buildPersistedSidebars();
+                  const cleanedForSave = stripLegacySidebarBlocks(caseStudyContent || '');
+                  const updatedProject: ProjectData = {
+                    ...project,
+                    title: editedTitle,
+                    description: editedDescription,
+                    projectType: editedProjectType,
+                    caseStudyContent: cleanedForSave,
+                    caseStudyImages: caseStudyImagesRef.current,
+                    flowDiagramImages: flowDiagramImagesRef.current,
+                    videoItems: videoItemsRef.current,
+                    galleryAspectRatio,
+                    flowDiagramAspectRatio,
+                    videoAspectRatio,
+                    galleryColumns,
+                    flowDiagramColumns,
+                    videoColumns,
+                    projectImagesPosition,
+                    videosPosition,
+                    flowDiagramsPosition,
+                    solutionCardsPosition,
+                    keyFeaturesColumns,
+                    key_features_columns: keyFeaturesColumns,
+                    sectionPositions,
+                    caseStudySidebars: persistedSidebars,
+                    case_study_sidebars: persistedSidebars,
+                  } as any;
+                  onUpdate(updatedProject);
+                  // Clear unsaved flag
+                  try { 
+                    document.body.removeAttribute('data-unsaved');
+                    setHasUnsavedChanges(false);
+                  } catch {}
+                }
+              }} 
+              size="lg"
+            >
+              {isEditing ? 'Save Changes' : 'Save'}
             </Button>
           </motion.div>
         )}
