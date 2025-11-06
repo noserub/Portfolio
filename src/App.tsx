@@ -799,10 +799,30 @@ export default function App() {
     
     // Manually track pageview for Vercel Analytics
     // The Analytics component doesn't automatically track hash-based routes
-    if (typeof window !== 'undefined' && window.va) {
-      // Use the va function to manually track pageviews
-      // The va function is injected by the Analytics component
-      window.va('pageview', { url: path });
+    if (typeof window !== 'undefined') {
+      // Use the va function if available, otherwise queue the event
+      // The vaq queue is used before the analytics script loads
+      if (window.va) {
+        // Analytics script is loaded, track immediately
+        console.log('📊 Tracking pageview:', path);
+        window.va('pageview', { url: path });
+      } else if (window.vaq) {
+        // Analytics script not loaded yet, queue the event
+        console.log('📊 Queuing pageview (vaq):', path);
+        window.vaq.push(['pageview', { url: path }]);
+      } else {
+        // Initialize the queue if it doesn't exist
+        console.log('📊 Initializing vaq queue with pageview:', path);
+        (window as any).vaq = [['pageview', { url: path }]];
+      }
+      
+      // Also try to track after a short delay in case va becomes available
+      setTimeout(() => {
+        if (window.va && path) {
+          console.log('📊 Retry tracking pageview:', path);
+          window.va('pageview', { url: path });
+        }
+      }, 100);
     }
   }, [currentPage, selectedProject]);
 
