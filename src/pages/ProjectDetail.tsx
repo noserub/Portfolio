@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { motion } from "motion/react";
 import { supabase } from '../lib/supabaseClient';
-import { ArrowLeft, Plus, X, Edit2, Image as ImageIcon, Video as VideoIcon, GripVertical, ZoomIn, ZoomOut, Move, RotateCcw, ChevronDown } from "lucide-react";
+import { ArrowLeft, Plus, X, Edit2, Image as ImageIcon, Video as VideoIcon, GripVertical, ZoomIn, ZoomOut, Move, RotateCcw, ChevronDown, ChevronUp } from "lucide-react";
 import { useDrag, useDrop } from "react-dnd";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -24,8 +24,11 @@ import { FlowDiagramGallery } from "../components/FlowDiagramGallery";
 import { VideoGallery } from "../components/VideoGallery";
 import HeroImage from "../components/HeroImage";
 import { useCaseStudySEO } from "../hooks/useSEO";
+import { getCaseStudySEO, saveCaseStudySEO, type SEOData } from "../utils/seoManager";
 import { cleanMarkdownContent, isContentCorrupted } from "../utils/cleanMarkdownContent";
 import { uploadImage } from "../utils/imageHelpers";
+import { Search } from "lucide-react";
+import { Label } from "../components/ui/label";
 
 interface ProjectDetailProps {
   project: ProjectData;
@@ -436,6 +439,12 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
   // Update SEO metadata for case study page
   useCaseStudySEO(project.id, project.title);
   
+  // Load case study SEO when project changes
+  useEffect(() => {
+    const seo = getCaseStudySEO(project.id, project.title);
+    setCaseStudySEO(seo);
+  }, [project.id, project.title]);
+  
   // Debug logging for project data
   useEffect(() => {
     // Removed excessive logging for performance
@@ -757,6 +766,10 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
   
   const [editedTitle, setEditedTitle] = useState(project.title);
   const [editedDescription, setEditedDescription] = useState(project.description);
+  
+  // SEO state for individual case study
+  const [showSEOEditor, setShowSEOEditor] = useState(false);
+  const [caseStudySEO, setCaseStudySEO] = useState<SEOData>(() => getCaseStudySEO(project.id, project.title));
   
   // Track if title/description have unsaved changes
   const hasUnsavedTitleDescription = editedTitle !== project.title || editedDescription !== project.description;
@@ -4217,6 +4230,92 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                   Branding
                 </button>
               </div>
+            </div>
+            
+            {/* SEO Settings Section */}
+            <div className="border-t border-border pt-6 mt-6">
+              <button
+                type="button"
+                onClick={() => setShowSEOEditor(!showSEOEditor)}
+                className="flex items-center justify-between w-full text-left"
+              >
+                <div className="flex items-center gap-2">
+                  <Search className="w-4 h-4 text-purple-400" />
+                  <label className="block text-sm font-medium">SEO Settings</label>
+                </div>
+                {showSEOEditor ? (
+                  <ChevronUp className="w-4 h-4" />
+                ) : (
+                  <ChevronDown className="w-4 h-4" />
+                )}
+              </button>
+              
+              {showSEOEditor && (
+                <div className="mt-4 space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="seo-title" className="text-muted-foreground">Page Title</Label>
+                    <Input
+                      id="seo-title"
+                      value={caseStudySEO.title}
+                      onChange={(e) => setCaseStudySEO({ ...caseStudySEO, title: e.target.value })}
+                      className="bg-background border-border text-foreground"
+                      placeholder="Page title (shown in browser tab)"
+                    />
+                    <p className="text-xs text-foreground/50">Recommended: 50-60 characters</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="seo-description" className="text-muted-foreground">Meta Description</Label>
+                    <Textarea
+                      id="seo-description"
+                      value={caseStudySEO.description}
+                      onChange={(e) => setCaseStudySEO({ ...caseStudySEO, description: e.target.value })}
+                      className="bg-background border-border text-foreground min-h-[80px]"
+                      placeholder="Brief description for search engines"
+                    />
+                    <p className="text-xs text-foreground/50">Recommended: 150-160 characters</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="seo-keywords" className="text-muted-foreground">Keywords</Label>
+                    <Input
+                      id="seo-keywords"
+                      value={caseStudySEO.keywords}
+                      onChange={(e) => setCaseStudySEO({ ...caseStudySEO, keywords: e.target.value })}
+                      className="bg-background border-border text-foreground"
+                      placeholder="keyword1, keyword2, keyword3"
+                    />
+                    <p className="text-xs text-foreground/50">Comma-separated list of relevant keywords</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="seo-canonical" className="text-muted-foreground">Canonical URL</Label>
+                    <Input
+                      id="seo-canonical"
+                      value={caseStudySEO.canonicalUrl || ''}
+                      onChange={(e) => setCaseStudySEO({ ...caseStudySEO, canonicalUrl: e.target.value })}
+                      className="bg-background border-border text-foreground"
+                      placeholder="https://yourdomain.com/project/project-slug"
+                    />
+                    <p className="text-xs text-foreground/50">
+                      Optional: Preferred URL for this case study (without # hash fragments)
+                      <br />
+                      Example: <code className="text-xs">https://yourdomain.com/project/skype-qik-case-study</code>
+                    </p>
+                  </div>
+                  
+                  <Button
+                    onClick={() => {
+                      saveCaseStudySEO(project.id, caseStudySEO);
+                      // Reload page to apply SEO changes
+                      window.location.reload();
+                    }}
+                    className="w-full"
+                  >
+                    Save SEO Settings
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         </div>
