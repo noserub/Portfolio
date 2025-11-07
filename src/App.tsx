@@ -807,24 +807,8 @@ export default function App() {
   }, [currentRoute]);
 
   // Track page views for Vercel Analytics (hash-based routing)
-  // We use beforeSend hook on Analytics component to modify URLs, but also manually trigger
-  // pageviews when route changes to ensure they're tracked
-  useEffect(() => {
-    // Skip tracking on initial load for project-detail without project
-    if (!selectedProject && currentPage === "project-detail") {
-      return;
-    }
-    
-    const path = currentRoute;
-    
-    // Manually trigger pageview when route changes
-    // The beforeSend hook will intercept and fix the URL
-    if (typeof window !== 'undefined' && window.va) {
-      console.log('📊 Manually triggering pageview for route:', path);
-      // Trigger pageview - beforeSend will modify the URL
-      window.va('pageview', { url: path });
-    }
-  }, [currentPage, selectedProject, currentRoute]);
+  // The Analytics component handles tracking automatically, and beforeSend modifies URLs
+  // We don't need manual tracking - it was causing 400 errors due to duplicate/invalid events
 
   // Function to create friendly slug from title
   const createSlug = (title: string): string => {
@@ -2001,22 +1985,8 @@ export default function App() {
       {/* Toast notifications */}
       <Toaster position="bottom-right" />
       
-      {/* Vercel Analytics - Use beforeSend to modify pageview URLs for hash-based routing */}
-      <Analytics 
-        beforeSend={(event) => {
-          // Intercept pageview events and update the URL to match our hash-based routing
-          if (event.type === 'pageview') {
-            // Use ref to get the latest route value
-            const newUrl = currentRouteRef.current;
-            console.log('📊 beforeSend: Modifying pageview URL from', event.url, 'to', newUrl);
-            return {
-              ...event,
-              url: newUrl
-            };
-          }
-          return event;
-        }}
-      />
+      {/* Vercel Analytics - Use path prop for hash-based routing */}
+      <Analytics path={currentRoute} />
     </ErrorBoundary>
   );
 }
