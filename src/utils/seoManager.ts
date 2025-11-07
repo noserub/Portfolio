@@ -228,14 +228,25 @@ export function applyPageSEO(pageSEO: SEOData, sitewide: SitewideSEO): void {
 
   // Canonical URL - only set if explicitly provided (non-empty)
   // Users can set this manually in SEO settings for each page
+  // IMPORTANT: Canonical URLs should NEVER include hash fragments (#)
   if (pageSEO.canonicalUrl && pageSEO.canonicalUrl.trim() !== '') {
-    let link = document.querySelector('link[rel="canonical"]') as HTMLLinkElement;
-    if (!link) {
-      link = document.createElement('link');
-      link.rel = 'canonical';
-      document.head.appendChild(link);
+    // Strip hash fragments from canonical URL (canonical URLs should never have #)
+    let cleanCanonicalUrl = pageSEO.canonicalUrl.trim();
+    const hashIndex = cleanCanonicalUrl.indexOf('#');
+    if (hashIndex !== -1) {
+      cleanCanonicalUrl = cleanCanonicalUrl.substring(0, hashIndex);
     }
-    link.href = pageSEO.canonicalUrl;
+    
+    // Ensure it's a valid URL (starts with http:// or https://)
+    if (cleanCanonicalUrl && (cleanCanonicalUrl.startsWith('http://') || cleanCanonicalUrl.startsWith('https://'))) {
+      let link = document.querySelector('link[rel="canonical"]') as HTMLLinkElement;
+      if (!link) {
+        link = document.createElement('link');
+        link.rel = 'canonical';
+        document.head.appendChild(link);
+      }
+      link.href = cleanCanonicalUrl;
+    }
   } else {
     // Remove canonical URL if it exists but shouldn't be set
     const existingLink = document.querySelector('link[rel="canonical"]');
