@@ -433,6 +433,9 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
   const [showSaveIndicator, setShowSaveIndicator] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   
+  // Update SEO metadata for case study page
+  useCaseStudySEO(project.id, project.title);
+  
   // Debug logging for project data
   useEffect(() => {
     // Removed excessive logging for performance

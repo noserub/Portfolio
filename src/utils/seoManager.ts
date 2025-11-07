@@ -226,15 +226,23 @@ export function applyPageSEO(pageSEO: SEOData, sitewide: SitewideSEO): void {
     updateMetaTag('meta[name="twitter:image"]', twitterImage);
   }
 
-  // Canonical URL
-  if (pageSEO.canonicalUrl) {
+  // Canonical URL - use manual URL if provided, otherwise auto-generate from siteUrl
+  let canonicalUrl = pageSEO.canonicalUrl;
+  if (!canonicalUrl && sitewide.siteUrl) {
+    // Auto-generate canonical URL based on current page path
+    // For hash-based routing, use the base domain (since hash fragments aren't sent to server)
+    // Individual pages can override this in SEO settings if needed
+    canonicalUrl = sitewide.siteUrl;
+  }
+  
+  if (canonicalUrl) {
     let link = document.querySelector('link[rel="canonical"]') as HTMLLinkElement;
     if (!link) {
       link = document.createElement('link');
       link.rel = 'canonical';
       document.head.appendChild(link);
     }
-    link.href = pageSEO.canonicalUrl;
+    link.href = canonicalUrl;
   }
 
   // Update favicon
