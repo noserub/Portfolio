@@ -812,26 +812,76 @@ export default function App() {
     // Manually track pageview for Vercel Analytics
     // The Analytics component doesn't automatically track hash-based routes
     if (typeof window !== 'undefined') {
-      // Use the va function if available, otherwise queue the event
-      // The vaq queue is used before the analytics script loads
-      if (window.va) {
-        // Analytics script is loaded, track immediately
-        console.log('📊 Tracking pageview:', path);
+      // Temporarily update the browser pathname so Vercel Analytics can see the correct path
+      // This is a workaround for hash-based routing
+      const originalPathname = window.location.pathname;
+      const originalHref = window.location.href;
+      
+      // Update pathname temporarily (this doesn't reload the page)
+      if (path !== originalPathname) {
         try {
-          // Try using just the path (Vercel Analytics expects relative paths)
-          window.va('pageview', { url: path });
+          window.history.replaceState({ ...window.history.state, path }, '', path + window.location.search + window.location.hash);
         } catch (e) {
-          console.error('📊 Error tracking pageview:', e);
+          console.warn('📊 Could not update pathname for analytics:', e);
         }
-      } else if (window.vaq) {
-        // Analytics script not loaded yet, queue the event
-        console.log('📊 Queuing pageview (vaq):', path);
-        window.vaq.push(['pageview', { url: path }]);
-      } else {
-        // Initialize the queue if it doesn't exist
-        console.log('📊 Initializing vaq queue with pageview:', path);
-        (window as any).vaq = [['pageview', { url: path }]];
       }
+      
+      // Use the va function if available, otherwise queue the event
+      const trackPageview = () => {
+        if (window.va) {
+          // Analytics script is loaded, track immediately
+          console.log('📊 Tracking pageview:', path);
+          try {
+            // Use the current pathname (which we just updated)
+            const currentPath = window.location.pathname;
+            window.va('pageview', { url: currentPath });
+          } catch (e) {
+            console.error('📊 Error tracking pageview:', e);
+            // Fallback to path
+            try {
+              window.va('pageview', { url: path });
+            } catch (e2) {
+              console.error('📊 Error with path fallback:', e2);
+            }
+          }
+        } else if (window.vaq) {
+          // Analytics script not loaded yet, queue the event
+          console.log('📊 Queuing pageview (vaq):', path);
+          window.vaq.push(['pageview', { url: path }]);
+        } else {
+          // Initialize the queue if it doesn't exist
+          console.log('📊 Initializing vaq queue with pageview:', path);
+          (window as any).vaq = [['pageview', { url: path }]];
+        }
+      };
+      
+      // Track immediately
+      trackPageview();
+      
+      // Also track after a delay to ensure analytics script is ready
+      const timeoutId = setTimeout(() => {
+        trackPageview();
+        // Restore original pathname after tracking
+        if (path !== originalPathname) {
+          try {
+            window.history.replaceState({ ...window.history.state, path: originalPathname }, '', originalHref);
+          } catch (e) {
+            // Ignore errors restoring
+          }
+        }
+      }, 100);
+      
+      return () => {
+        clearTimeout(timeoutId);
+        // Restore original pathname on cleanup
+        if (path !== originalPathname) {
+          try {
+            window.history.replaceState({ ...window.history.state, path: originalPathname }, '', originalHref);
+          } catch (e) {
+            // Ignore errors restoring
+          }
+        }
+      };
     }
   }, [currentPage, selectedProject, currentRoute]);
 
@@ -2010,8 +2060,8 @@ export default function App() {
       {/* Toast notifications */}
       <Toaster position="bottom-right" />
       
-      {/* Vercel Analytics - Pass route prop for hash-based routing */}
-      <Analytics route={currentRoute} />
+      {/* Vercel Analytics - Pass path prop for hash-based routing */}
+      <Analytics path={currentRoute} />
     </ErrorBoundary>
   );
 }
