@@ -460,10 +460,14 @@ export function FlowDiagramGallery({
     // Dynamic import to avoid blocking initial load
     const { uploadImage } = await import('../utils/imageHelpers');
     
+    const newImages: FlowDiagramImage[] = [];
+    
     for (const file of files) {
       try {
-        // Use placeholder URL instead of base64
+        console.log('📤 Uploading flow diagram image:', file.name);
+        // Upload image to Supabase - wait for completion
         const url = await uploadImage(file, 'diagram');
+        console.log('✅ Flow diagram image uploaded:', url);
         
         const newImage: FlowDiagramImage = {
           id: Math.random().toString(36).substr(2, 9),
@@ -471,11 +475,18 @@ export function FlowDiagramGallery({
           alt: file.name,
         };
         
-        onImagesChange([...images, newImage]);
+        newImages.push(newImage);
       } catch (error) {
-        console.error('Error adding image:', error);
-        alert(`Failed to add image: ${file.name}`);
+        console.error('❌ Error uploading flow diagram image:', error);
+        alert(`Failed to upload image: ${file.name}. Please try again.`);
+        // Don't add failed images to the array
       }
+    }
+    
+    // Only update images if we successfully uploaded at least one
+    if (newImages.length > 0) {
+      console.log('📊 Adding', newImages.length, 'new flow diagram images');
+      onImagesChange([...images, ...newImages]);
     }
   };
 
