@@ -232,9 +232,17 @@ export function applyPageSEO(pageSEO: SEOData, sitewide: SitewideSEO): void {
   if (pageSEO.canonicalUrl && pageSEO.canonicalUrl.trim() !== '') {
     // Strip hash fragments from canonical URL (canonical URLs should never have #)
     let cleanCanonicalUrl = pageSEO.canonicalUrl.trim();
+    const originalUrl = cleanCanonicalUrl;
     const hashIndex = cleanCanonicalUrl.indexOf('#');
     if (hashIndex !== -1) {
       cleanCanonicalUrl = cleanCanonicalUrl.substring(0, hashIndex);
+      console.warn('🔍 SEO: Stripped hash fragment from canonical URL:', originalUrl, '→', cleanCanonicalUrl);
+    }
+    
+    // Also strip any query parameters that might have been accidentally included
+    const queryIndex = cleanCanonicalUrl.indexOf('?');
+    if (queryIndex !== -1) {
+      cleanCanonicalUrl = cleanCanonicalUrl.substring(0, queryIndex);
     }
     
     // Ensure it's a valid URL (starts with http:// or https://)
@@ -246,12 +254,16 @@ export function applyPageSEO(pageSEO: SEOData, sitewide: SitewideSEO): void {
         document.head.appendChild(link);
       }
       link.href = cleanCanonicalUrl;
+      console.log('✅ SEO: Set canonical URL:', cleanCanonicalUrl);
+    } else {
+      console.warn('⚠️ SEO: Invalid canonical URL format (must start with http:// or https://):', cleanCanonicalUrl);
     }
   } else {
     // Remove canonical URL if it exists but shouldn't be set
     const existingLink = document.querySelector('link[rel="canonical"]');
     if (existingLink) {
       existingLink.remove();
+      console.log('🗑️ SEO: Removed canonical URL (not set in SEO settings)');
     }
   }
 
