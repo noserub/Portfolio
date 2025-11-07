@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
@@ -799,8 +799,16 @@ export default function App() {
   };
 
   const currentRoute = getCurrentRoute();
+  const currentRouteRef = useRef(currentRoute);
+  
+  // Keep ref updated with current route
+  useEffect(() => {
+    currentRouteRef.current = currentRoute;
+  }, [currentRoute]);
 
   // Track page views for Vercel Analytics (hash-based routing)
+  // We use beforeSend hook on Analytics component to modify URLs, but also manually trigger
+  // pageviews when route changes to ensure they're tracked
   useEffect(() => {
     // Skip tracking on initial load for project-detail without project
     if (!selectedProject && currentPage === "project-detail") {
@@ -809,79 +817,12 @@ export default function App() {
     
     const path = currentRoute;
     
-    // Manually track pageview for Vercel Analytics
-    // The Analytics component doesn't automatically track hash-based routes
-    if (typeof window !== 'undefined') {
-      // Temporarily update the browser pathname so Vercel Analytics can see the correct path
-      // This is a workaround for hash-based routing
-      const originalPathname = window.location.pathname;
-      const originalHref = window.location.href;
-      
-      // Update pathname temporarily (this doesn't reload the page)
-      if (path !== originalPathname) {
-        try {
-          window.history.replaceState({ ...window.history.state, path }, '', path + window.location.search + window.location.hash);
-        } catch (e) {
-          console.warn('📊 Could not update pathname for analytics:', e);
-        }
-      }
-      
-      // Use the va function if available, otherwise queue the event
-      const trackPageview = () => {
-        if (window.va) {
-          // Analytics script is loaded, track immediately
-          console.log('📊 Tracking pageview:', path);
-          try {
-            // Use the current pathname (which we just updated)
-            const currentPath = window.location.pathname;
-            window.va('pageview', { url: currentPath });
-          } catch (e) {
-            console.error('📊 Error tracking pageview:', e);
-            // Fallback to path
-            try {
-              window.va('pageview', { url: path });
-            } catch (e2) {
-              console.error('📊 Error with path fallback:', e2);
-            }
-          }
-        } else if (window.vaq) {
-          // Analytics script not loaded yet, queue the event
-          console.log('📊 Queuing pageview (vaq):', path);
-          window.vaq.push(['pageview', { url: path }]);
-        } else {
-          // Initialize the queue if it doesn't exist
-          console.log('📊 Initializing vaq queue with pageview:', path);
-          (window as any).vaq = [['pageview', { url: path }]];
-        }
-      };
-      
-      // Track immediately
-      trackPageview();
-      
-      // Also track after a delay to ensure analytics script is ready
-      const timeoutId = setTimeout(() => {
-        trackPageview();
-        // Restore original pathname after tracking
-        if (path !== originalPathname) {
-          try {
-            window.history.replaceState({ ...window.history.state, path: originalPathname }, '', originalHref);
-          } catch (e) {
-            // Ignore errors restoring
-          }
-        }
-      }, 100);
-      
-      return () => {
-        clearTimeout(timeoutId);
-        // Restore original pathname on cleanup
-        if (path !== originalPathname) {
-          try {
-            window.history.replaceState({ ...window.history.state, path: originalPathname }, '', originalHref);
-          } catch (e) {
-            // Ignore errors restoring
-          }
-        }
-      };
+    // Manually trigger pageview when route changes
+    // The beforeSend hook will intercept and fix the URL
+    if (typeof window !== 'undefined' && window.va) {
+      console.log('📊 Manually triggering pageview for route:', path);
+      // Trigger pageview - beforeSend will modify the URL
+      window.va('pageview', { url: path });
     }
   }, [currentPage, selectedProject, currentRoute]);
 
@@ -2060,8 +2001,22 @@ export default function App() {
       {/* Toast notifications */}
       <Toaster position="bottom-right" />
       
-      {/* Vercel Analytics - Pass path prop for hash-based routing */}
-      <Analytics path={currentRoute} />
+      {/* Vercel Analytics - Use beforeSend to modify pageview URLs for hash-based routing */}
+      <Analytics 
+        beforeSend={(event) => {
+          // Intercept pageview events and update the URL to match our hash-based routing
+          if (event.type === 'pageview') {
+            // Use ref to get the latest route value
+            const newUrl = currentRouteRef.current;
+            console.log('📊 beforeSend: Modifying pageview URL from', event.url, 'to', newUrl);
+            return {
+              ...event,
+              url: newUrl
+            };
+          }
+          return event;
+        }}
+      />
     </ErrorBoundary>
   );
 }
