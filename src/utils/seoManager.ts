@@ -226,15 +226,45 @@ export function applyPageSEO(pageSEO: SEOData, sitewide: SitewideSEO): void {
     updateMetaTag('meta[name="twitter:image"]', twitterImage);
   }
 
-  // Canonical URL
-  if (pageSEO.canonicalUrl) {
-    let link = document.querySelector('link[rel="canonical"]') as HTMLLinkElement;
-    if (!link) {
-      link = document.createElement('link');
-      link.rel = 'canonical';
-      document.head.appendChild(link);
+  // Canonical URL - only set if explicitly provided (non-empty)
+  // Users can set this manually in SEO settings for each page
+  // IMPORTANT: Canonical URLs should NEVER include hash fragments (#)
+  if (pageSEO.canonicalUrl && pageSEO.canonicalUrl.trim() !== '') {
+    // Strip hash fragments from canonical URL (canonical URLs should never have #)
+    let cleanCanonicalUrl = pageSEO.canonicalUrl.trim();
+    const originalUrl = cleanCanonicalUrl;
+    const hashIndex = cleanCanonicalUrl.indexOf('#');
+    if (hashIndex !== -1) {
+      cleanCanonicalUrl = cleanCanonicalUrl.substring(0, hashIndex);
+      console.warn('🔍 SEO: Stripped hash fragment from canonical URL:', originalUrl, '→', cleanCanonicalUrl);
     }
-    link.href = pageSEO.canonicalUrl;
+    
+    // Also strip any query parameters that might have been accidentally included
+    const queryIndex = cleanCanonicalUrl.indexOf('?');
+    if (queryIndex !== -1) {
+      cleanCanonicalUrl = cleanCanonicalUrl.substring(0, queryIndex);
+    }
+    
+    // Ensure it's a valid URL (starts with http:// or https://)
+    if (cleanCanonicalUrl && (cleanCanonicalUrl.startsWith('http://') || cleanCanonicalUrl.startsWith('https://'))) {
+      let link = document.querySelector('link[rel="canonical"]') as HTMLLinkElement;
+      if (!link) {
+        link = document.createElement('link');
+        link.rel = 'canonical';
+        document.head.appendChild(link);
+      }
+      link.href = cleanCanonicalUrl;
+      console.log('✅ SEO: Set canonical URL:', cleanCanonicalUrl);
+    } else {
+      console.warn('⚠️ SEO: Invalid canonical URL format (must start with http:// or https://):', cleanCanonicalUrl);
+    }
+  } else {
+    // Remove canonical URL if it exists but shouldn't be set
+    const existingLink = document.querySelector('link[rel="canonical"]');
+    if (existingLink) {
+      existingLink.remove();
+      console.log('🗑️ SEO: Removed canonical URL (not set in SEO settings)');
+    }
   }
 
   // Update favicon

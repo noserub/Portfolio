@@ -213,9 +213,13 @@ export function SEOEditor({ isOpen, onClose }: SEOEditorProps) {
             value={pageData.canonicalUrl || ''}
             onChange={(e) => updateFn('canonicalUrl', e.target.value)}
             className="bg-background border-border text-foreground"
-            placeholder="https://brianbureson.com/page-url"
+            placeholder="https://yourdomain.com/page-url"
           />
-          <p className="text-xs text-foreground/50">Optional: Preferred URL for this page</p>
+          <p className="text-xs text-foreground/50">
+            Optional: Preferred URL for this page (without # hash fragments)
+            <br />
+            Examples: <code className="text-xs">https://yourdomain.com/</code> for home, <code className="text-xs">https://yourdomain.com/about</code> for about page
+          </p>
         </div>
       </div>
 
