@@ -32,6 +32,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel,
 } from '../components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -68,6 +78,9 @@ export function Messages({ onBack, isEditMode = false }: MessagesProps) {
   const [isForwarding, setIsForwarding] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [emailCopied, setEmailCopied] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
   const messageViewRef = useRef<HTMLDivElement>(null);
 
   // Auto-mark as read when viewing a message
@@ -126,34 +139,51 @@ export function Messages({ onBack, isEditMode = false }: MessagesProps) {
     }
   };
 
-  // Handle delete
-  const handleDelete = async (id: string) => {
-    if (confirm('Are you sure you want to delete this message?')) {
-      const success = await deleteMessage(id);
-      if (success) {
-        toast.success('Message deleted', {
-          description: 'The message has been permanently deleted.',
-        });
-        if (selectedMessage?.id === id) {
-          setSelectedMessage(null);
-        }
-      } else {
-        toast.error('Failed to delete message');
-      }
-    }
+  // Handle delete confirmation
+  const handleDeleteClick = (id: string) => {
+    setDeleteTargetId(id);
+    setShowDeleteDialog(true);
   };
 
-  // Handle bulk delete
-  const handleBulkDelete = async () => {
-    if (selectedIds.size === 0) return;
-    if (confirm(`Are you sure you want to delete ${selectedIds.size} message(s)?`)) {
-      const promises = Array.from(selectedIds).map(id => deleteMessage(id));
-      await Promise.all(promises);
-      setSelectedIds(new Set());
-      toast.success('Messages deleted', {
-        description: `${selectedIds.size} message(s) have been permanently deleted.`,
+  // Handle delete after confirmation
+  const handleDeleteConfirm = async () => {
+    if (!deleteTargetId) return;
+    
+    const success = await deleteMessage(deleteTargetId);
+    if (success) {
+      toast.success('Message deleted', {
+        description: 'The message has been permanently deleted.',
       });
+      if (selectedMessage?.id === deleteTargetId) {
+        setSelectedMessage(null);
+      }
+    } else {
+      toast.error('Failed to delete message');
     }
+    
+    setShowDeleteDialog(false);
+    setDeleteTargetId(null);
+  };
+
+  // Handle bulk delete confirmation
+  const handleBulkDeleteClick = () => {
+    if (selectedIds.size === 0) return;
+    setShowBulkDeleteDialog(true);
+  };
+
+  // Handle bulk delete after confirmation
+  const handleBulkDeleteConfirm = async () => {
+    if (selectedIds.size === 0) return;
+    
+    const count = selectedIds.size;
+    const promises = Array.from(selectedIds).map(id => deleteMessage(id));
+    await Promise.all(promises);
+    setSelectedIds(new Set());
+    toast.success('Messages deleted', {
+      description: `${count} message(s) have been permanently deleted.`,
+    });
+    
+    setShowBulkDeleteDialog(false);
   };
 
   // Handle archive
@@ -320,7 +350,7 @@ export function Messages({ onBack, isEditMode = false }: MessagesProps) {
                   <Button
                     variant="destructive"
                     size="sm"
-                    onClick={handleBulkDelete}
+                    onClick={handleBulkDeleteClick}
                   >
                     <Trash2 className="w-4 h-4 mr-2" />
                     Delete
@@ -558,7 +588,7 @@ export function Messages({ onBack, isEditMode = false }: MessagesProps) {
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
-                              onClick={() => handleDelete(selectedMessage.id)}
+                              onClick={() => handleDeleteClick(selectedMessage.id)}
                               className="text-destructive"
                             >
                               <Trash2 className="w-4 h-4 mr-2" />
@@ -706,6 +736,60 @@ export function Messages({ onBack, isEditMode = false }: MessagesProps) {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Message</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to permanently delete this message? This action cannot be undone.
+                <br />
+                <br />
+                <strong>Note:</strong> If you want to hide this message temporarily, consider archiving it instead.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setDeleteTargetId(null)}>
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDeleteConfirm}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete Permanently
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Bulk Delete Confirmation Dialog */}
+        <AlertDialog open={showBulkDeleteDialog} onOpenChange={setShowBulkDeleteDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete {selectedIds.size} Message{selectedIds.size !== 1 ? 's' : ''}</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to permanently delete {selectedIds.size} selected message{selectedIds.size !== 1 ? 's' : ''}? This action cannot be undone.
+                <br />
+                <br />
+                <strong>Note:</strong> If you want to hide these messages temporarily, consider archiving them instead.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleBulkDeleteConfirm}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete {selectedIds.size} Message{selectedIds.size !== 1 ? 's' : ''}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </PageLayout>
   );
