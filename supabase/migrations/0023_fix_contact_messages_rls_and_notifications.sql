@@ -30,7 +30,8 @@ CREATE POLICY "Authenticated users can delete all messages" ON contact_messages
   USING (auth.uid() IS NOT NULL);
 
 -- Create function to send email notification when a new contact message is received
--- This uses pg_net extension to call an HTTP webhook (Supabase Edge Function or external service)
+-- This uses pg_net extension to call Supabase Edge Function
+-- The Edge Function URL is constructed from the current database's project reference
 CREATE OR REPLACE FUNCTION public.notify_contact_message()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -39,18 +40,24 @@ DECLARE
   email_body TEXT;
   webhook_url TEXT;
   payload JSONB;
+  supabase_url TEXT;
 BEGIN
-  -- Get webhook URL from Supabase secrets or environment
-  -- You'll set this up in Supabase Dashboard -> Project Settings -> Edge Functions
-  -- Or use Supabase Vault to store secrets
-  webhook_url := current_setting('app.email_webhook_url', true);
+  -- Get Supabase project URL from current database
+  -- This will be something like: https://YOUR_PROJECT_ID.supabase.co
+  -- We construct the Edge Function URL from it
+  supabase_url := current_setting('app.supabase_url', true);
   
-  -- If no webhook URL is configured, log the message and return
-  -- The message will still be saved, just no email notification
-  IF webhook_url IS NULL OR webhook_url = '' THEN
-    RAISE NOTICE '📧 Email webhook URL not configured. Message received from % (%). Configure app.email_webhook_url in Supabase settings.', NEW.name, NEW.email;
+  -- If Supabase URL is not set, try to construct from database name or use default pattern
+  -- For Supabase hosted projects, you can set this via: ALTER DATABASE postgres SET app.supabase_url = 'https://YOUR_PROJECT_ID.supabase.co';
+  IF supabase_url IS NULL OR supabase_url = '' THEN
+    -- Try to get from Supabase project settings or use a placeholder
+    -- User will need to set this manually
+    RAISE NOTICE '📧 Supabase URL not configured. Message received from % (%). Email notification skipped. See docs/CONTACT_MESSAGES_SETUP.md for setup instructions.', NEW.name, NEW.email;
     RETURN NEW;
   END IF;
+  
+  -- Construct Edge Function URL
+  webhook_url := supabase_url || '/functions/v1/send-contact-email';
   
   -- Prepare email content
   email_subject := 'New Contact Form Message from ' || NEW.name;
@@ -62,7 +69,7 @@ BEGIN
     'View in Supabase Dashboard: https://supabase.com/dashboard/project/_/editor/contact_messages' || E'\n' ||
     'Message ID: ' || NEW.id::text;
   
-  -- Build payload for webhook
+  -- Build payload for Edge Function
   payload := jsonb_build_object(
     'to', recipient_email,
     'subject', email_subject,
@@ -73,17 +80,18 @@ BEGIN
             '<p><strong>Message:</strong></p>' ||
             '<p>' || replace(NEW.message, E'\n', '<br>') || '</p>' ||
             '<p><a href="https://supabase.com/dashboard/project/_/editor/contact_messages">View in Supabase Dashboard</a></p>',
-    'from', 'noreply@brianbureson.com',
+    'from', 'Portfolio <noreply@brianbureson.com>',
     'reply_to', NEW.email
   );
   
-  -- Call webhook via pg_net (Supabase's HTTP extension)
-  -- This requires pg_net extension to be enabled
+  -- Call Edge Function via pg_net
+  -- Note: This requires the Edge Function to be deployed and the pg_net extension enabled
   PERFORM
     net.http_post(
       url := webhook_url,
       headers := jsonb_build_object(
-        'Content-Type', 'application/json'
+        'Content-Type', 'application/json',
+        'Authorization', 'Bearer ' || current_setting('app.supabase_anon_key', true)
       ),
       body := payload::text
     );
@@ -93,7 +101,7 @@ EXCEPTION
   WHEN OTHERS THEN
     -- Log error but don't fail the insert
     -- The message will still be saved to the database
-    RAISE WARNING 'Failed to send email notification: %. Message was still saved.', SQLERRM;
+    RAISE WARNING 'Failed to send email notification: %. Message was still saved. Error: %', SQLERRM, SQLSTATE;
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -122,7 +130,11 @@ CREATE TRIGGER on_contact_message_created
 
 -- Add comment explaining the setup
 COMMENT ON FUNCTION public.notify_contact_message() IS 
-'Sends email notification when a new contact message is received. 
-Requires email_webhook_url and email_api_key to be set in Supabase settings.
-You can use services like Resend, SendGrid, or Supabase Edge Functions.';
+'Sends email notification when a new contact message is received via Supabase Edge Function.
+Setup required:
+1. Deploy the Edge Function: supabase/functions/send-contact-email
+2. Set RESEND_API_KEY secret in Supabase Dashboard -> Edge Functions -> Secrets
+3. Set app.supabase_url: ALTER DATABASE postgres SET app.supabase_url = ''https://YOUR_PROJECT_ID.supabase.co'';
+4. Set app.supabase_anon_key: ALTER DATABASE postgres SET app.supabase_anon_key = ''YOUR_ANON_KEY'';
+See docs/CONTACT_MESSAGES_SETUP.md for detailed instructions.';
 

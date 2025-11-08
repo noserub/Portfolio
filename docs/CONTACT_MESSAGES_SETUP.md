@@ -51,12 +51,18 @@ The database trigger automatically sends email notifications when new messages a
    - Use the code from `supabase/functions/send-contact-email/index.ts` (see below)
    - Set the `RESEND_API_KEY` secret in Supabase Dashboard → Settings → Edge Functions → Secrets
 
-4. **Configure the webhook URL**
-   - In Supabase Dashboard, go to **Database** → **Functions**
-   - Run this SQL to set the webhook URL:
+4. **Configure database settings**
+   - In Supabase Dashboard, go to **SQL Editor**
+   - Run these SQL commands (replace with your actual values):
    ```sql
-   ALTER DATABASE postgres SET app.email_webhook_url = 'https://YOUR_PROJECT_ID.supabase.co/functions/v1/send-contact-email';
+   -- Set your Supabase project URL
+   ALTER DATABASE postgres SET app.supabase_url = 'https://YOUR_PROJECT_ID.supabase.co';
+   
+   -- Set your anon key (found in Settings -> API)
+   ALTER DATABASE postgres SET app.supabase_anon_key = 'YOUR_ANON_KEY_HERE';
    ```
+   - Replace `YOUR_PROJECT_ID` with your actual Supabase project ID
+   - Replace `YOUR_ANON_KEY_HERE` with your Supabase anon key (found in Settings → API)
 
 ### Option B: Using Supabase Edge Functions with Resend
 
