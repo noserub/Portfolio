@@ -432,8 +432,16 @@ export function Contact({ onBack, isEditMode = false }: ContactProps) {
     setOriginalText("");
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    // Prevent default form submission immediately - critical for mobile
     e.preventDefault();
+    e.stopPropagation();
+    
+    // Prevent double submission
+    if (isSubmitting) {
+      return;
+    }
+    
     console.log('📧 Contact form submit triggered:', formData);
     setIsSubmitting(true);
     
@@ -453,18 +461,25 @@ export function Contact({ onBack, isEditMode = false }: ContactProps) {
         setIsSubmitted(true);
         setFormData({ name: '', email: '', message: '' });
         
-        // Reset form after 3 seconds
+        // Reset form after 5 seconds (longer on mobile for better UX)
         setTimeout(() => {
           setIsSubmitted(false);
-        }, 3000);
+        }, 5000);
       } else {
         console.log('❌ Message submission failed - no result returned');
+        // Show error to user
+        alert('Failed to send message. Please try again.');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Error submitting contact form:', error);
+      // Show error to user
+      alert(`Error sending message: ${error?.message || 'Unknown error'}. Please try again.`);
     } finally {
       setIsSubmitting(false);
     }
+    
+    // Return false to prevent any default behavior
+    return false;
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -611,7 +626,13 @@ export function Contact({ onBack, isEditMode = false }: ContactProps) {
 
               <div className="relative z-10">
                 {!isSubmitted ? (
-                  <form onSubmit={handleSubmit} className="space-y-6">
+                  <form 
+                    onSubmit={handleSubmit} 
+                    className="space-y-6"
+                    noValidate
+                    action="#"
+                    method="post"
+                  >
                     {/* Name Field */}
                     <div className="space-y-2">
                       <label htmlFor="name" className="flex items-center gap-2 text-sm font-medium">
@@ -695,7 +716,15 @@ export function Contact({ onBack, isEditMode = false }: ContactProps) {
                       >
                         <button
                           type="submit"
-                          disabled={isSubmitting}
+                          disabled={isSubmitting || !formData.name || !formData.email || !formData.message}
+                          onClick={(e) => {
+                            // Additional safety check on mobile - prevent default if already submitting
+                            if (isSubmitting) {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              return false;
+                            }
+                          }}
                           className="relative rounded-full px-6 py-3 shadow-lg hover:shadow-xl transition-all duration-300 bg-background/80 backdrop-blur-sm hover:bg-background/60 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed w-full"
                         >
                           {isSubmitting ? (
