@@ -67,6 +67,7 @@ export function Messages({ onBack, isEditMode = false }: MessagesProps) {
   const [forwardingIds, setForwardingIds] = useState<string[]>([]);
   const [isForwarding, setIsForwarding] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [emailCopied, setEmailCopied] = useState(false);
   const messageViewRef = useRef<HTMLDivElement>(null);
 
   // Auto-mark as read when viewing a message
@@ -209,19 +210,46 @@ export function Messages({ onBack, isEditMode = false }: MessagesProps) {
       const mailtoLink = `mailto:${forwardEmail}?subject=${encodeURIComponent(forwardSubject)}&body=${encodeURIComponent(forwardMessage)}`;
       window.location.href = mailtoLink;
       
-      toast.success('Forward initiated', {
-        description: 'Your email client should open with the message ready to send.',
-      });
+      // Wait a moment to see if mailto worked, then show copy option
+      setTimeout(() => {
+        toast.success('Email ready', {
+          description: 'If your email client didn\'t open, use "Copy Email Content" below.',
+          duration: 5000,
+        });
+      }, 1000);
       
       setShowForwardDialog(false);
       setForwardEmail('');
       setForwardSubject('');
       setForwardMessage('');
       setForwardingIds([]);
+      setEmailCopied(false);
     } catch (error) {
-      toast.error('Failed to open email client');
+      toast.error('Failed to open email client. Use "Copy Email Content" instead.');
     } finally {
       setIsForwarding(false);
+    }
+  };
+
+  // Copy formatted email content for webmail
+  const handleCopyEmailContent = async () => {
+    if (!forwardEmail || !forwardSubject || !forwardMessage) {
+      toast.error('Please fill in all fields');
+      return;
+    }
+
+    // Format email content for easy pasting into webmail
+    const emailContent = `To: ${forwardEmail}\nSubject: ${forwardSubject}\n\n${forwardMessage}`;
+    
+    try {
+      await navigator.clipboard.writeText(emailContent);
+      setEmailCopied(true);
+      toast.success('Email content copied!', {
+        description: 'Paste into your webmail compose window.',
+      });
+      setTimeout(() => setEmailCopied(false), 3000);
+    } catch (error) {
+      toast.error('Failed to copy. Please select and copy manually.');
     }
   };
 
@@ -576,10 +604,19 @@ export function Messages({ onBack, isEditMode = false }: MessagesProps) {
                 className="bg-card border border-border rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto"
                 onClick={(e) => e.stopPropagation()}
               >
-                <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+                <h2 className="text-2xl font-bold mb-2 flex items-center gap-2">
                   <Forward className="w-6 h-6" />
                   Forward Message{forwardingIds.length > 1 ? 's' : ''}
                 </h2>
+                <p className="text-sm text-muted-foreground mb-4">
+                  {forwardingIds.length > 1 
+                    ? `Forwarding ${forwardingIds.length} messages`
+                    : 'Forward this message to another email address'
+                  }
+                </p>
+                <p className="text-xs text-muted-foreground mb-6 bg-muted/50 p-3 rounded-lg">
+                  💡 <strong>Using webmail?</strong> Click "Copy Email Content" to copy the formatted email, then paste it into your webmail compose window.
+                </p>
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium mb-2">
@@ -613,35 +650,57 @@ export function Messages({ onBack, isEditMode = false }: MessagesProps) {
                     />
                   </div>
                 </div>
-                <div className="flex justify-end gap-2 mt-6">
+                <div className="flex justify-between items-center mt-6">
                   <Button
                     variant="outline"
-                    onClick={() => {
-                      setShowForwardDialog(false);
-                      setForwardEmail('');
-                      setForwardSubject('');
-                      setForwardMessage('');
-                      setForwardingIds([]);
-                    }}
+                    onClick={handleCopyEmailContent}
+                    disabled={!forwardEmail || !forwardSubject || !forwardMessage}
+                    className="flex items-center gap-2"
                   >
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={handleForwardSubmit}
-                    disabled={isForwarding || !forwardEmail || !forwardSubject}
-                  >
-                    {isForwarding ? (
+                    {emailCopied ? (
                       <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                        Opening email...
+                        <Check className="w-4 h-4" />
+                        Copied!
                       </>
                     ) : (
                       <>
-                        <Send className="w-4 h-4 mr-2" />
-                        Open Email Client
+                        <Copy className="w-4 h-4" />
+                        Copy Email Content
                       </>
                     )}
                   </Button>
+                  
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setShowForwardDialog(false);
+                        setForwardEmail('');
+                        setForwardSubject('');
+                        setForwardMessage('');
+                        setForwardingIds([]);
+                        setEmailCopied(false);
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={handleForwardSubmit}
+                      disabled={isForwarding || !forwardEmail || !forwardSubject}
+                    >
+                      {isForwarding ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          Opening email...
+                        </>
+                      ) : (
+                        <>
+                          <Send className="w-4 h-4 mr-2" />
+                          Open Email Client
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </div>
               </motion.div>
             </motion.div>
