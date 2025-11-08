@@ -834,6 +834,7 @@ export default function App() {
     let retryTimeoutId: NodeJS.Timeout | null = null;
     
     const checkAndTrack = () => {
+      console.log('🔍 Analytics checkAndTrack called for path:', path);
       if (window.va && typeof window.va === 'function') {
         console.log('📊 Tracking pageview for route:', path);
         console.log('📊 window.va available:', typeof window.va);
