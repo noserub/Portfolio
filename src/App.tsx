@@ -826,13 +826,13 @@ export default function App() {
     const path = currentRoute;
     
     // Only track if we have a valid path and Analytics is available
-    if (path && typeof window !== 'undefined' && window.va) {
+    if (path && typeof window !== 'undefined' && window.va && typeof window.va === 'function') {
       // Use a small delay to ensure the page has fully rendered
       const timeoutId = setTimeout(() => {
         console.log('📊 Tracking pageview for route:', path);
         try {
           // Use pageview method with URL parameter
-          window.va('pageview', { url: path });
+          (window.va as any)('pageview', { url: path });
         } catch (error) {
           console.error('📊 Error tracking pageview:', error);
         }
