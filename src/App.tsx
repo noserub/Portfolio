@@ -825,21 +825,51 @@ export default function App() {
     
     const path = currentRoute;
     
-    // Only track if we have a valid path and Analytics is available
-    if (path && typeof window !== 'undefined' && window.va && typeof window.va === 'function') {
-      // Use a small delay to ensure the page has fully rendered
-      const timeoutId = setTimeout(() => {
-        console.log('📊 Tracking pageview for route:', path);
-        try {
-          // Use pageview method with URL parameter
-          (window.va as any)('pageview', { url: path });
-        } catch (error) {
-          console.error('📊 Error tracking pageview:', error);
-        }
-      }, 100);
-      
-      return () => clearTimeout(timeoutId);
+    if (!path || typeof window === 'undefined') {
+      return;
     }
+    
+    // Check if Analytics is available
+    let retryTimeoutId: NodeJS.Timeout | null = null;
+    
+    const checkAndTrack = () => {
+      if (window.va && typeof window.va === 'function') {
+        console.log('📊 Tracking pageview for route:', path);
+        console.log('📊 window.va available:', typeof window.va);
+        try {
+          (window.va as any)('pageview', { url: path });
+          console.log('✅ Pageview tracked successfully');
+        } catch (error) {
+          console.error('❌ Error tracking pageview:', error);
+        }
+      } else {
+        console.warn('⚠️ Analytics not available yet. window.va:', typeof window.va);
+        // Retry after a delay if Analytics isn't loaded yet
+        retryTimeoutId = setTimeout(() => {
+          if (window.va && typeof window.va === 'function') {
+            console.log('📊 Tracking pageview for route (retry):', path);
+            try {
+              (window.va as any)('pageview', { url: path });
+              console.log('✅ Pageview tracked successfully (retry)');
+            } catch (error) {
+              console.error('❌ Error tracking pageview (retry):', error);
+            }
+          } else {
+            console.error('❌ Analytics still not available after retry');
+          }
+        }, 1000);
+      }
+    };
+    
+    // Use a small delay to ensure the page has fully rendered
+    const timeoutId = setTimeout(checkAndTrack, 100);
+    
+    return () => {
+      clearTimeout(timeoutId);
+      if (retryTimeoutId) {
+        clearTimeout(retryTimeoutId);
+      }
+    };
   }, [currentRoute, currentPage, selectedProject]);
 
   // Function to create friendly slug from title
