@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { supabase } from "./lib/supabaseClient";
-import { Edit3, Eye, LogOut, Save, AlertTriangle, Moon, Sun, MoreHorizontal, Search, BookOpen, ArrowLeft, Settings, Key, RefreshCw } from "lucide-react";
+import { Edit3, Eye, LogOut, Save, AlertTriangle, Moon, Sun, MoreHorizontal, Search, BookOpen, ArrowLeft, Settings, Key, RefreshCw, Mail } from "lucide-react";
 import { Analytics } from "@vercel/analytics/react";
 import { 
   Header, 
@@ -22,7 +22,8 @@ import {
   Contact, 
   ProjectDetail, 
   DiagnosticPage, 
-  EmergencyRecovery 
+  EmergencyRecovery,
+  Messages
 } from "./pages";
 import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
@@ -43,6 +44,7 @@ import { Toaster } from "./components/ui/sonner";
 import { migrateResearchInsights, migrateProjectsArray, runSafetyChecks } from "./utils";
 import { useAppSettings } from "./hooks/useAppSettings";
 import { useProjects } from "./hooks/useProjects";
+import { useContactMessages } from "./hooks/useContactMessages";
 
 // Lazy load diagnostics to avoid blocking React mount
 if (typeof window !== 'undefined') {
@@ -59,7 +61,7 @@ try {
   // Continue anyway - don't block React
 }
 
-type Page = "home" | "about" | "contact" | "project-detail" | "supabase-test";
+type Page = "home" | "about" | "contact" | "project-detail" | "supabase-test" | "messages";
 
 // Error Boundary Component
 interface ErrorBoundaryState {
@@ -208,7 +210,7 @@ export default function App() {
       return "project-detail";
     } else if (hash.startsWith('#/')) {
       const page = hash.substring(2) as Page;
-      if (['about', 'contact'].includes(page)) {
+      if (['about', 'contact', 'messages'].includes(page)) {
         return page;
       }
     }
@@ -241,6 +243,10 @@ export default function App() {
   
   // Use projects hook for direct persistence when callback isn't available
   const { updateProject } = useProjects();
+  
+  // Get contact messages for unread count
+  const { getUnreadCount } = useContactMessages();
+  const unreadMessageCount = getUnreadCount();
   
   // Load settings on mount
   useEffect(() => {
@@ -793,6 +799,8 @@ export default function App() {
       return '/about';
     } else if (currentPage === "contact") {
       return '/contact';
+    } else if (currentPage === "messages") {
+      return '/messages';
     }
     
     return '/';
@@ -1636,9 +1644,32 @@ export default function App() {
         transition={{ delay: 0.5 }}
         className="fixed top-6 right-6 z-50 flex flex-col items-end gap-3"
       >
-        {/* Overflow menu with three dots (both desktop and mobile) */}
-        <DropdownMenu>
-          <DropdownMenuTrigger
+        <div className="flex items-center gap-2">
+          {/* Email icon with badge - only show when authenticated */}
+          {isAuthenticated && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setCurrentPage("messages")}
+              className={`rounded-full shadow-lg backdrop-blur-sm p-2.5 relative ${
+                isEditMode 
+                  ? "bg-primary/10 text-primary hover:bg-primary/20" 
+                  : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+              } transition-colors`}
+              aria-label="Messages"
+            >
+              <Mail className="w-5 h-5" />
+              {unreadMessageCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center min-w-[20px]">
+                  {unreadMessageCount > 99 ? '99+' : unreadMessageCount}
+                </span>
+              )}
+            </Button>
+          )}
+          
+          {/* Overflow menu with three dots (both desktop and mobile) */}
+          <DropdownMenu>
+            <DropdownMenuTrigger
             className={`rounded-full shadow-lg backdrop-blur-sm p-2.5 inline-flex items-center justify-center ${
               isEditMode 
                 ? "bg-primary text-primary-foreground hover:bg-primary/90" 
@@ -1790,6 +1821,7 @@ export default function App() {
             )}
           </DropdownMenuContent>
         </DropdownMenu>
+        </div>
         {isEditMode && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -1912,6 +1944,9 @@ export default function App() {
         )}
         {currentPage === "contact" && (isEditMode || pageVisibility.contact) && (
           <Contact onBack={navigateHome} isEditMode={isEditMode} />
+        )}
+        {currentPage === "messages" && isAuthenticated && (
+          <Messages onBack={navigateHome} isEditMode={isEditMode} />
         )}
         {currentPage === "project-detail" && selectedProject && (
           <div key={(selectedProject as any)._navTimestamp || selectedProject.id}>

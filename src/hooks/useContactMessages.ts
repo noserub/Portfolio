@@ -8,6 +8,7 @@ export interface ContactMessage {
   email: string;
   message: string;
   is_read: boolean;
+  is_archived?: boolean;
   user_id?: string;
 }
 
@@ -20,6 +21,7 @@ export interface ContactMessageInsert {
 
 export interface ContactMessageUpdate {
   is_read?: boolean;
+  is_archived?: boolean;
 }
 
 export function useContactMessages() {
