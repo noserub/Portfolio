@@ -817,6 +817,7 @@ export default function App() {
   // Track page views for Vercel Analytics (hash-based routing)
   // Manual tracking is needed for hash-based routing since the Analytics component
   // doesn't automatically detect hash changes
+  // Enhanced with retry logic and better debugging
   useEffect(() => {
     // Skip tracking on initial load for project-detail without project
     if (!selectedProject && currentPage === "project-detail") {
