@@ -831,10 +831,8 @@ export default function App() {
       const timeoutId = setTimeout(() => {
         console.log('📊 Tracking pageview for route:', path);
         try {
-          window.va('track', {
-            name: 'pageview',
-            url: path
-          });
+          // Use pageview method with URL parameter
+          window.va('pageview', { url: path });
         } catch (error) {
           console.error('📊 Error tracking pageview:', error);
         }
