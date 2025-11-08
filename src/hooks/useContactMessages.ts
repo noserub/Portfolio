@@ -27,11 +27,22 @@ export function useContactMessages() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch all messages
+  // Fetch all messages (now works for authenticated users to see all messages)
   const fetchMessages = async () => {
     try {
       setLoading(true);
       setError(null);
+      
+      // Check if user is authenticated (required to view messages)
+      const { data: { user } } = await supabase.auth.getUser();
+      const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
+      
+      if (!user && !isBypassAuth) {
+        setError('Authentication required to view messages');
+        setMessages([]);
+        return;
+      }
+      
       const { data, error } = await supabase
         .from('contact_messages')
         .select('*')
