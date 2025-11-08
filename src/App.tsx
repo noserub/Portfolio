@@ -815,8 +815,34 @@ export default function App() {
   }, [currentRoute]);
 
   // Track page views for Vercel Analytics (hash-based routing)
-  // The Analytics component handles tracking automatically, and beforeSend modifies URLs
-  // We don't need manual tracking - it was causing 400 errors due to duplicate/invalid events
+  // Manual tracking is needed for hash-based routing since the Analytics component
+  // doesn't automatically detect hash changes
+  useEffect(() => {
+    // Skip tracking on initial load for project-detail without project
+    if (!selectedProject && currentPage === "project-detail") {
+      return;
+    }
+    
+    const path = currentRoute;
+    
+    // Only track if we have a valid path and Analytics is available
+    if (path && typeof window !== 'undefined' && window.va) {
+      // Use a small delay to ensure the page has fully rendered
+      const timeoutId = setTimeout(() => {
+        console.log('📊 Tracking pageview for route:', path);
+        try {
+          window.va('track', {
+            name: 'pageview',
+            url: path
+          });
+        } catch (error) {
+          console.error('📊 Error tracking pageview:', error);
+        }
+      }, 100);
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [currentRoute, currentPage, selectedProject]);
 
   // Function to create friendly slug from title
   const createSlug = (title: string): string => {
@@ -2020,8 +2046,8 @@ export default function App() {
       {/* Toast notifications */}
       <Toaster position="bottom-right" />
       
-      {/* Vercel Analytics - Use path prop for hash-based routing */}
-      <Analytics path={currentRoute} />
+      {/* Vercel Analytics - Manual tracking via useEffect for hash-based routing */}
+      <Analytics />
     </ErrorBoundary>
   );
 }
