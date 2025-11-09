@@ -198,18 +198,18 @@ export default function App() {
   
   // Move early returns to after all hooks are declared
 
-  // Function to determine initial page from URL hash
+  // Function to determine initial page from URL pathname
   const getInitialPage = (): Page => {
-    const hash = window.location.hash;
+    const pathname = window.location.pathname;
     
-    if (hash === '' || hash === '#') {
+    if (pathname === '/' || pathname === '') {
       return "home";
-    } else if (hash.startsWith('#/project/')) {
+    } else if (pathname.startsWith('/project/')) {
       // Set to project-detail immediately for project URLs
       // The URL parsing will load the project data
       return "project-detail";
-    } else if (hash.startsWith('#/')) {
-      const page = hash.substring(2) as Page;
+    } else if (pathname.startsWith('/')) {
+      const page = pathname.substring(1) as Page;
       if (['about', 'contact', 'messages'].includes(page)) {
         return page;
       }
@@ -731,11 +731,10 @@ export default function App() {
   useEffect(() => {
     // Update URL when currentPage changes
     const updateURL = () => {
-      const baseUrl = window.location.origin + window.location.pathname;
-      let newUrl = baseUrl;
+      let newPath = '/';
       
       if (currentPage === "home") {
-        newUrl = baseUrl;
+        newPath = '/';
       } else if (currentPage === "project-detail") {
         if (selectedProject) {
           // Create friendly URL from project title
@@ -745,11 +744,11 @@ export default function App() {
             .replace(/\s+/g, '-') // Replace spaces with hyphens
             .replace(/-+/g, '-') // Replace multiple hyphens with single
             .trim();
-          newUrl = `${baseUrl}#/project/${friendlySlug}`;
+          newPath = `/project/${friendlySlug}`;
         } else {
           // If we're on project-detail but no project is selected, check if we're already on a project URL
-          const currentHash = window.location.hash;
-          if (currentHash.startsWith('#/project/')) {
+          const currentPath = window.location.pathname;
+          if (currentPath.startsWith('/project/')) {
             // We're already on a project URL, don't change it
             return;
           } else {
@@ -759,12 +758,12 @@ export default function App() {
           }
         }
       } else {
-        newUrl = `${baseUrl}#/${currentPage}`;
+        newPath = `/${currentPage}`;
       }
       
       // Only update URL if it's different to avoid infinite loops
-      if (window.location.href !== newUrl) {
-        window.history.pushState({ page: currentPage, project: selectedProject?.id }, '', newUrl);
+      if (window.location.pathname !== newPath) {
+        window.history.pushState({ page: currentPage, project: selectedProject?.id }, '', newPath);
       }
     };
 
@@ -783,7 +782,7 @@ export default function App() {
       return '/';
     }
     
-    // Get the current path from hash or default to home
+    // Get the current path from pathname or default to home
     if (currentPage === "home") {
       return '/';
     } else if (currentPage === "project-detail" && selectedProject) {
@@ -912,15 +911,15 @@ export default function App() {
   // Listen for browser back/forward buttons
   useEffect(() => {
     const handlePopState = async (event: PopStateEvent) => {
-      const hash = window.location.hash;
+      const pathname = window.location.pathname;
       
-      if (hash === '' || hash === '#') {
+      if (pathname === '/' || pathname === '') {
         // Home page
         setCurrentPage("home");
         setSelectedProject(null);
-      } else if (hash.startsWith('#/project/')) {
+      } else if (pathname.startsWith('/project/')) {
         // Project detail page
-        const projectSlug = hash.split('/project/')[1];
+        const projectSlug = pathname.split('/project/')[1];
         if (projectSlug) {
           const project = await findProjectBySlug(projectSlug);
           if (project) {
@@ -932,11 +931,15 @@ export default function App() {
             setSelectedProject(null);
           }
         }
-      } else if (hash.startsWith('#/')) {
+      } else if (pathname.startsWith('/')) {
         // Other pages
-        const page = hash.substring(2) as Page;
-        if (['about', 'contact'].includes(page)) {
+        const page = pathname.substring(1) as Page;
+        if (['about', 'contact', 'messages'].includes(page)) {
           setCurrentPage(page);
+          setSelectedProject(null);
+        } else {
+          // Unknown route, redirect to home
+          setCurrentPage("home");
           setSelectedProject(null);
         }
       }
@@ -948,15 +951,15 @@ export default function App() {
     window.addEventListener('popstate', handlePopState);
     
     // Parse initial URL on page load
-    const hash = window.location.hash;
-    if (hash.startsWith('#/project/')) {
+    const pathname = window.location.pathname;
+    if (pathname.startsWith('/project/')) {
       // If we're on a project page, we need to load the project data
       handlePopState({} as PopStateEvent);
-    } else if (hash.startsWith('#/') && !['#/about', '#/contact'].includes(hash)) {
-      // Handle any other hash-based routing
+    } else if (pathname !== '/' && pathname !== '') {
+      // Handle any other pathname-based routing
       handlePopState({} as PopStateEvent);
     }
-    // For about/contact pages, the initial state is already correct
+    // For home page, the initial state is already correct
 
     return () => {
       window.removeEventListener('popstate', handlePopState);
