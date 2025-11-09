@@ -834,30 +834,21 @@ export default function App() {
     let retryTimeoutId: NodeJS.Timeout | null = null;
     
     const checkAndTrack = () => {
-      console.log('🔍 Analytics checkAndTrack called for path:', path);
       if (window.va && typeof window.va === 'function') {
-        console.log('📊 Tracking pageview for route:', path);
-        console.log('📊 window.va available:', typeof window.va);
         try {
           (window.va as any)('pageview', { url: path });
-          console.log('✅ Pageview tracked successfully');
         } catch (error) {
-          console.error('❌ Error tracking pageview:', error);
+          console.error('Error tracking pageview:', error);
         }
       } else {
-        console.warn('⚠️ Analytics not available yet. window.va:', typeof window.va);
         // Retry after a delay if Analytics isn't loaded yet
         retryTimeoutId = setTimeout(() => {
           if (window.va && typeof window.va === 'function') {
-            console.log('📊 Tracking pageview for route (retry):', path);
             try {
               (window.va as any)('pageview', { url: path });
-              console.log('✅ Pageview tracked successfully (retry)');
             } catch (error) {
-              console.error('❌ Error tracking pageview (retry):', error);
+              console.error('Error tracking pageview (retry):', error);
             }
-          } else {
-            console.error('❌ Analytics still not available after retry');
           }
         }, 1000);
       }
