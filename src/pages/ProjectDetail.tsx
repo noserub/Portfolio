@@ -778,14 +778,11 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
   );
 
   // Sync editedTitle and editedDescription when project prop changes
+  // Note: We don't include editedTitle/editedDescription in deps to avoid resetting user input
   useEffect(() => {
-    if (project.title !== editedTitle) {
-      setEditedTitle(project.title);
-    }
-    if (project.description !== editedDescription) {
-      setEditedDescription(project.description);
-    }
-  }, [project.title, project.description, editedTitle, editedDescription]);
+    setEditedTitle(project.title);
+    setEditedDescription(project.description);
+  }, [project.title, project.description]);
 
   // Sync editedProjectType when project prop changes
   useEffect(() => {
