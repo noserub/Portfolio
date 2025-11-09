@@ -836,19 +836,26 @@ export default function App() {
     const checkAndTrack = () => {
       if (window.va && typeof window.va === 'function') {
         try {
+          console.log('📊 [ANALYTICS] Tracking pageview:', path);
           (window.va as any)('pageview', { url: path });
+          console.log('✅ [ANALYTICS] Pageview sent successfully');
         } catch (error) {
-          console.error('Error tracking pageview:', error);
+          console.error('❌ [ANALYTICS] Error tracking pageview:', error);
         }
       } else {
+        console.warn('⚠️ [ANALYTICS] window.va not available:', typeof window.va);
         // Retry after a delay if Analytics isn't loaded yet
         retryTimeoutId = setTimeout(() => {
           if (window.va && typeof window.va === 'function') {
             try {
+              console.log('📊 [ANALYTICS] Tracking pageview (retry):', path);
               (window.va as any)('pageview', { url: path });
+              console.log('✅ [ANALYTICS] Pageview sent successfully (retry)');
             } catch (error) {
-              console.error('Error tracking pageview (retry):', error);
+              console.error('❌ [ANALYTICS] Error tracking pageview (retry):', error);
             }
+          } else {
+            console.error('❌ [ANALYTICS] Still not available after retry');
           }
         }, 1000);
       }
