@@ -813,9 +813,8 @@ export default function App() {
     currentRouteRef.current = currentRoute;
   }, [currentRoute]);
 
-  // Track page views for Vercel Analytics (hash-based routing)
-  // Manual tracking is needed for hash-based routing since the Analytics component
-  // doesn't automatically detect hash changes
+  // Track page views for Vercel Analytics (browser-based routing)
+  // Manual tracking ensures all route changes are captured for analytics
   useEffect(() => {
     // Skip tracking on initial load for project-detail without project
     if (!selectedProject && currentPage === "project-detail") {
