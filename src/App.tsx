@@ -814,6 +814,61 @@ export default function App() {
     currentRouteRef.current = currentRoute;
   }, [currentRoute]);
 
+  // Monitor network requests to Vercel Analytics (runs once on mount)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    // Intercept fetch requests
+    const originalFetch = window.fetch;
+    window.fetch = function(...args) {
+      let url = '';
+      if (typeof args[0] === 'string') {
+        url = args[0];
+      } else if (args[0] instanceof Request) {
+        url = args[0].url;
+      } else if (args[0] instanceof URL) {
+        url = args[0].toString();
+      } else if (args[0] && typeof args[0] === 'object' && 'url' in args[0]) {
+        url = (args[0] as any).url || '';
+      }
+      if (url.includes('vercel') || url.includes('insights') || url.includes('analytics')) {
+        console.log('🌐 [NETWORK] Analytics request detected:', url);
+        return originalFetch.apply(this, args as any)
+          .then(response => {
+            console.log('✅ [NETWORK] Analytics response:', response.status, response.statusText, url);
+            return response;
+          })
+          .catch(error => {
+            console.error('❌ [NETWORK] Analytics request failed:', error, url);
+            throw error;
+          });
+      }
+      return originalFetch.apply(this, args as any);
+    };
+
+    // Intercept XMLHttpRequest
+    const originalXHROpen = XMLHttpRequest.prototype.open;
+    XMLHttpRequest.prototype.open = function(method: string, url: string | URL, ...rest: any[]) {
+      const urlString = typeof url === 'string' ? url : url.toString();
+      if (urlString.includes('vercel') || urlString.includes('insights') || urlString.includes('analytics')) {
+        console.log('🌐 [NETWORK] Analytics XHR request:', method, urlString);
+        this.addEventListener('load', function() {
+          console.log('✅ [NETWORK] Analytics XHR response:', this.status, this.statusText, urlString);
+        });
+        this.addEventListener('error', function() {
+          console.error('❌ [NETWORK] Analytics XHR failed:', urlString);
+        });
+      }
+      return originalXHROpen.apply(this, [method, url, ...rest] as any);
+    };
+
+    return () => {
+      // Restore original functions on unmount
+      window.fetch = originalFetch;
+      XMLHttpRequest.prototype.open = originalXHROpen;
+    };
+  }, []);
+
   // Track page views for Vercel Analytics (hash-based routing)
   // Manual tracking is needed for hash-based routing since the Analytics component
   // doesn't automatically detect hash changes
@@ -834,11 +889,24 @@ export default function App() {
     let retryTimeoutId: NodeJS.Timeout | null = null;
     
     const checkAndTrack = () => {
+      // Check for analytics queue
+      if ((window as any).vaq && Array.isArray((window as any).vaq)) {
+        console.log('📦 [ANALYTICS] Queue length:', (window as any).vaq.length);
+      }
+      
       if (window.va && typeof window.va === 'function') {
         try {
           console.log('📊 [ANALYTICS] Tracking pageview:', path);
+          console.log('🔍 [ANALYTICS] window.va type:', typeof window.va);
           (window.va as any)('pageview', { url: path });
           console.log('✅ [ANALYTICS] Pageview sent successfully');
+          
+          // Check queue after sending
+          setTimeout(() => {
+            if ((window as any).vaq && Array.isArray((window as any).vaq)) {
+              console.log('📦 [ANALYTICS] Queue after send:', (window as any).vaq.length);
+            }
+          }, 500);
         } catch (error) {
           console.error('❌ [ANALYTICS] Error tracking pageview:', error);
         }
