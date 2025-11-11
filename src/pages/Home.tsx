@@ -2972,7 +2972,6 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         section_positions: projectData.sectionPositions || {},
         sort_order: 0,
         project_type: projectData.project_type || projectData.projectType || null,
-        project_type: updatedProject.projectType || (updatedProject as any).project_type || null,
       };
 
       const createdProject = await createProject(supabaseProjectData);
@@ -3148,29 +3147,14 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
       console.log('🔍 DEBUG: displayCaseStudies (edit mode):', filtered.length, 'projects');
       return filtered;
     }
-    // In preview mode, show published projects OR projects with meaningful content
-    // Match the same logic as the initial case study filter
+    // In preview mode, only show published projects (draft projects are hidden)
     const previewFiltered = filtered.filter((p) => {
-      const title = (p.title || '').toLowerCase();
-      const description = (p.description || '').toLowerCase();
-      const hasImages = (p.caseStudyImages?.length || p.case_study_images?.length || 0) > 0;
-      const hasContent = ((p.caseStudyContent || p.case_study_content || '') + '').trim().length > 0;
       const isPublished = Boolean(p.published);
       
-      // Same criteria as initial filter: published OR has content/images OR has keywords
-      const hasKeywords = title.includes('case study') ||
-                         title.includes('tandem diabetes care') ||
-                         title.includes('skype qik') ||
-                         title.includes('research') ||
-                         title.includes('study') ||
-                         description.includes('case study');
-      
-      const shouldShow = isPublished || hasImages || hasContent || hasKeywords;
-      
-      if (!shouldShow) {
-        console.log('🔍 DEBUG: Filtering out project:', p.title, { published: isPublished, hasImages, hasContent, hasKeywords });
+      if (!isPublished) {
+        console.log('🔍 DEBUG: Filtering out draft project in preview mode:', p.title);
       }
-      return shouldShow;
+      return isPublished;
     });
     console.log('🔍 DEBUG: displayCaseStudies (preview mode):', previewFiltered.length, 'of', source.length, 'projects');
     console.log('🔍 DEBUG: displayCaseStudies projects:', previewFiltered.map(p => ({ title: p.title, published: p.published, hasImages: (p.caseStudyImages?.length || p.case_study_images?.length || 0) > 0, hasContent: ((p.caseStudyContent || p.case_study_content || '') + '').trim().length > 0 })));
