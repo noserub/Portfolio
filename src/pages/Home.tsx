@@ -809,14 +809,18 @@ export function Home({ onStartClick, isEditMode, onProjectClick, currentPage }: 
     const checkAuth = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
-      setIsAuthenticated(!!(user || isBypassAuth));
+      const authenticated = !!(user || isBypassAuth);
+      console.log('🔍 DEBUG: Auth check - user:', !!user, 'bypass:', isBypassAuth, 'authenticated:', authenticated);
+      setIsAuthenticated(authenticated);
     };
     checkAuth();
     
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
-      setIsAuthenticated(!!(session?.user || isBypassAuth));
+      const authenticated = !!(session?.user || isBypassAuth);
+      console.log('🔍 DEBUG: Auth state change - event:', event, 'user:', !!session?.user, 'bypass:', isBypassAuth, 'authenticated:', authenticated);
+      setIsAuthenticated(authenticated);
     });
     
     return () => subscription.unsubscribe();
@@ -3170,22 +3174,31 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
       return filtered;
     }
     // In preview mode, only show published projects (draft projects are hidden)
-    // Also filter out password-protected projects for signed-out users
+    // Password-protected projects are still shown (user will be prompted for password when clicking)
     const previewFiltered = filtered.filter((p) => {
-      const isPublished = Boolean(p.published);
+      // Check published status - explicitly check for true (handle null/undefined/false as unpublished)
+      // The published field should be a boolean, but handle edge cases
+      const publishedValue = p.published;
+      const isPublished = publishedValue === true;
       const requiresPassword = Boolean(p.requiresPassword || p.requires_password);
       
+      console.log('🔍 DEBUG: Project filtering:', {
+        title: p.title,
+        published: p.published,
+        publishedValue,
+        isPublished,
+        requiresPassword,
+        isAuthenticated
+      });
+      
+      // Only filter out draft projects - password-protected projects should still be visible
+      // (they'll prompt for password when clicked)
       if (!isPublished) {
-        console.log('🔍 DEBUG: Filtering out draft project in preview mode:', p.title);
+        console.log('🔍 DEBUG: Filtering out draft project in preview mode:', p.title, '| published:', p.published);
         return false;
       }
       
-      // Filter out password-protected projects for signed-out users
-      if (requiresPassword && !isAuthenticated) {
-        console.log('🔍 DEBUG: Filtering out password-protected project in preview mode:', p.title, '| isAuthenticated:', isAuthenticated);
-        return false;
-      }
-      
+      // Don't filter out password-protected projects - show them so users can click and enter password
       return true;
     });
     console.log('🔍 DEBUG: displayCaseStudies (preview mode):', previewFiltered.length, 'of', source.length, 'projects');
