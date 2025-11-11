@@ -1134,6 +1134,7 @@ export default function App() {
           flowDiagramColumns: data.flow_diagram_columns,
           videoColumns: data.video_columns,
           keyFeaturesColumns: (data.key_features_columns || 3) as 2 | 3,
+          researchInsightsColumns: ((data as any).research_insights_columns || 3) as 1 | 2 | 3,
           // Convert position fields
           projectImagesPosition: data.project_images_position,
           videosPosition: data.videos_position,
@@ -1351,6 +1352,7 @@ export default function App() {
           flow_diagram_columns: cleanProject.flowDiagramColumns || 1,
           video_columns: cleanProject.videoColumns || 1,
           key_features_columns: (cleanProject as any).keyFeaturesColumns || (cleanProject as any).key_features_columns || 3,
+          research_insights_columns: (cleanProject as any).researchInsightsColumns || (cleanProject as any).research_insights_columns || 3,
           project_images_position: cleanProject.projectImagesPosition,
           videos_position: cleanProject.videosPosition,
           flow_diagrams_position: cleanProject.flowDiagramsPosition,

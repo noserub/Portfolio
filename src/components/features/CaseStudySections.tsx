@@ -71,6 +71,8 @@ interface CaseStudySectionsProps {
   totalSections?: number;
   keyFeaturesColumns?: 2 | 3;
   onKeyFeaturesColumnsChange?: (columns: 2 | 3) => void;
+  researchInsightsColumns?: 1 | 2 | 3;
+  onResearchInsightsColumnsChange?: (columns: 1 | 2 | 3) => void;
 }
 
 // Map section titles to icons and gradients
@@ -213,7 +215,9 @@ export function CaseStudySections({
   onMoveMarkdownSection,
   totalSections = 1000,
   keyFeaturesColumns = 3,
-  onKeyFeaturesColumnsChange
+  onKeyFeaturesColumnsChange,
+  researchInsightsColumns = 3,
+  onResearchInsightsColumnsChange
 }: CaseStudySectionsProps) {
   const [expandedCards, setExpandedCards] = useState<Set<number>>(new Set());
   const [editingSection, setEditingSection] = useState<string | null>(null);
@@ -1431,7 +1435,7 @@ export function CaseStudySections({
       return titleLower.includes(decLower) || decLower.includes(titleLower);
     });
     const isSolution = titleLower.includes("solution") && !titleLower.includes("cards");
-    const isKeyFeatures = titleLower === "key features";
+    const isKeyFeatures = titleLower.includes("key features") || titleLower.includes("project phases");
     // Include decorative sections, solution sections, AND Key features
     return isDecorative || isSolution || isKeyFeatures;
   });
@@ -1449,8 +1453,8 @@ export function CaseStudySections({
     });
     // Exclude any section with "solution" in the title (but not "Solution cards" which is the grid itself)
     const isSolution = titleLower.includes("solution") && !titleLower.includes("cards");
-    const isKeyFeatures = titleLower === "key features";
-    const isResearchInsights = titleLower.includes("research insights");
+    const isKeyFeatures = titleLower.includes("key features") || titleLower.includes("project phases");
+    const isResearchInsights = titleLower.includes("research insights") || titleLower.includes("research");
     
     // Debug logging
     if (isDecorative || isSolution || isKeyFeatures || isResearchInsights) {
@@ -1474,12 +1478,18 @@ export function CaseStudySections({
     "Design team",
     "Business and consumer impact",
     "Key features",
+    "Project phases", // Also exclude when Key features is renamed
     "Research insights",
+    "Research", // Also exclude when Research insights is renamed
     "The solution"
   ];
-  const afterSolution = afterSolutionRaw.filter(section => 
-    !excludedSections.some(excluded => section.title.toLowerCase().includes(excluded.toLowerCase()))
-  );
+  const afterSolution = afterSolutionRaw.filter(section => {
+    const titleLower = section.title.toLowerCase();
+    return !excludedSections.some(excluded => {
+      const excludedLower = excluded.toLowerCase();
+      return titleLower.includes(excludedLower) || excludedLower.includes(titleLower);
+    });
+  });
   
   console.log('🔍 Solution Cards Filtering:', {
     solutionIndex,
@@ -2303,8 +2313,11 @@ export function CaseStudySections({
           );
         }
 
-        // Special handling for Research Insights section
-        if (section.title === "Research insights") {
+        // Special handling for Research Insights section (flexible title matching)
+        const isResearchSection = section.title.toLowerCase().includes("research") && 
+                                  (section.title.toLowerCase().includes("insights") || 
+                                   section.title.toLowerCase() === "research");
+        if (isResearchSection) {
           // Parse insights from ## subsections (same as competitive analysis)
           const parsedInsights = parseSubsections(section.content);
           const insights = parsedInsights.map(item => ({
@@ -2343,7 +2356,27 @@ export function CaseStudySections({
               <div className="mb-8 flex items-center justify-between">
                 <h2>{section.title}</h2>
                 {isEditMode && editingSection !== section.title && (
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 items-center">
+                    {/* Grid Columns Control */}
+                    {onResearchInsightsColumnsChange && (
+                      <div className="flex items-center gap-2 mr-2">
+                        <span className="text-xs text-muted-foreground">Grid:</span>
+                        <div className="flex gap-1">
+                          {[1, 2, 3].map((cols) => (
+                            <Button
+                              key={cols}
+                              size="sm"
+                              variant={researchInsightsColumns === cols ? "default" : "outline"}
+                              onClick={() => onResearchInsightsColumnsChange(cols as 1 | 2 | 3)}
+                              className="h-8 w-8 p-0"
+                              title={`${cols}x${cols} grid`}
+                            >
+                              {cols}
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     {/* Move up/down arrows */}
                     {index > 0 && (
                       <Button
@@ -2392,12 +2425,24 @@ export function CaseStudySections({
               {/* Editable or Display Mode */}
               {isEditMode && editingSection === section.title ? (
                 <div className="space-y-4 bg-card/50 p-6 rounded-xl border border-border">
-                  <Textarea
-                    value={editedSectionContent}
-                    onChange={(e) => setEditedSectionContent(e.target.value)}
-                    className="min-h-[400px] font-mono text-sm"
-                    placeholder={'Enter research insights in Markdown format...\\n\\nExample:\\n## User needs\\nDescription of user needs\\n\\n## Pain points\\nDescription of pain points'}
-                  />
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Section Title</label>
+                    <Input
+                      value={editedSectionTitle}
+                      onChange={(e) => setEditedSectionTitle(e.target.value)}
+                      placeholder="Enter section title"
+                      className="font-semibold"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Content (Markdown)</label>
+                    <Textarea
+                      value={editedSectionContent}
+                      onChange={(e) => setEditedSectionContent(e.target.value)}
+                      className="min-h-[400px] font-mono text-sm"
+                      placeholder={'Enter research insights in Markdown format...\\n\\nExample:\\n## User needs\\nDescription of user needs\\n\\n## Pain points\\nDescription of pain points'}
+                    />
+                  </div>
                   <div className="flex gap-2 justify-end">
                     <Button
                       size="sm"
@@ -2418,8 +2463,21 @@ export function CaseStudySections({
                 </div>
               ) : (
                 /* Insights Cards Grid */
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className={`grid gap-6 ${
+                  researchInsightsColumns === 1 ? 'grid-cols-1' :
+                  researchInsightsColumns === 2 ? 'grid-cols-1 md:grid-cols-2' :
+                  'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
+                }`}>
                   {insights.map((insight, insightIndex) => {
+                  const insightKey = 7000 + insightIndex; // Unique key for each insight
+                  const isExpanded = expandedCards.has(insightKey);
+                  
+                  // Get first 2 lines as preview (same as competitive analysis)
+                  const contentLines = insight.description.trim().split('\n').filter(line => line.trim());
+                  const previewLines = contentLines.slice(0, 2);
+                  const previewContent = previewLines.join('\n');
+                  const hasMore = contentLines.length > 2;
+                  
                   const InsightIcon = insightIcons[insightIndex % insightIcons.length];
                   const gradient = insightGradients[insightIndex % insightGradients.length];
                   
@@ -2465,9 +2523,72 @@ export function CaseStudySections({
                       <div className="relative z-10">
                         <h4 className="mb-2">{insight.title}</h4>
                         {insight.description && (
-                          <p className="text-muted-foreground leading-relaxed">
-                            {insight.description}
-                          </p>
+                          <>
+                            {/* Preview content - always visible */}
+                            <div className="text-muted-foreground leading-relaxed text-sm mb-2">
+                              <MarkdownRenderer content={previewContent} variant="compact" />
+                            </div>
+                            
+                            {/* Expanded content - conditionally visible */}
+                            {hasMore && (
+                              <motion.div
+                                initial={false}
+                                animate={{
+                                  height: isExpanded ? "auto" : 0,
+                                  opacity: isExpanded ? 1 : 0,
+                                  marginTop: isExpanded ? 12 : 0
+                                }}
+                                transition={{ duration: 0.3, ease: "easeInOut" }}
+                                className="overflow-hidden"
+                              >
+                                <div className="text-muted-foreground leading-relaxed text-sm">
+                                  <MarkdownRenderer content={contentLines.slice(2).join('\n')} variant="compact" />
+                                </div>
+                              </motion.div>
+                            )}
+                            
+                            {/* View more button */}
+                            {hasMore && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleCard(insightKey);
+                                  e.currentTarget.blur();
+                                }}
+                                className="mt-3 flex items-center gap-1 text-sm font-medium transition-all relative cursor-pointer hover:translate-x-0.5"
+                              >
+                                <motion.span
+                                  className="inline-block"
+                                  animate={{
+                                    backgroundImage: [
+                                      "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%)",
+                                      "linear-gradient(180deg, #8b5cf6 0%, #ec4899 50%, #3b82f6 100%)",
+                                      "linear-gradient(225deg, #ec4899 0%, #3b82f6 50%, #8b5cf6 100%)",
+                                      "linear-gradient(270deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%)",
+                                      "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%)",
+                                    ],
+                                  }}
+                                  transition={{
+                                    duration: 8,
+                                    repeat: Infinity,
+                                    ease: "linear",
+                                  }}
+                                  style={{
+                                    backgroundClip: "text",
+                                    WebkitBackgroundClip: "text",
+                                    WebkitTextFillColor: "transparent",
+                                  }}
+                                >
+                                  {isExpanded ? "Show less" : "Show more"}
+                                </motion.span>
+                                {isExpanded ? (
+                                  <ChevronUp className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                                ) : (
+                                  <ChevronDown className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                                )}
+                              </button>
+                            )}
+                          </>
                         )}
                       </div>
                     </motion.div>
@@ -2618,8 +2739,11 @@ export function CaseStudySections({
           );
         }
 
-        // Special handling for Key features section (3 cards in a row with solution colors)
-        if (section.title === "Key features") {
+        // Special handling for Key Features section (flexible title matching)
+        const isKeyFeaturesSection = section.title.toLowerCase().includes("key features") || 
+                                     section.title.toLowerCase().includes("project phases") ||
+                                     section.title.toLowerCase() === "key features";
+        if (isKeyFeaturesSection) {
           const features = parseSubsections(section.content);
           const featureCards = features.map(item => ({
             title: item.name,
@@ -2712,12 +2836,24 @@ export function CaseStudySections({
               {/* Editable or Display Mode */}
               {isEditMode && editingSection === section.title ? (
                 <div className="space-y-4 bg-card/50 p-6 rounded-xl border border-border">
-                  <Textarea
-                    value={editedSectionContent}
-                    onChange={(e) => setEditedSectionContent(e.target.value)}
-                    className="min-h-[300px] font-mono text-sm"
-                    placeholder={'Enter key features...\\n\\nExample:\\n## Feature name\\nDescription of this key feature'}
-                  />
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Section Title</label>
+                    <Input
+                      value={editedSectionTitle}
+                      onChange={(e) => setEditedSectionTitle(e.target.value)}
+                      placeholder="Enter section title"
+                      className="font-semibold"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Content (Markdown)</label>
+                    <Textarea
+                      value={editedSectionContent}
+                      onChange={(e) => setEditedSectionContent(e.target.value)}
+                      className="min-h-[400px] font-mono text-sm"
+                      placeholder={'Enter key features in Markdown format...\\n\\nExample:\\n## Feature name\\nDescription of this key feature\\n\\n## Another feature\\nDescription'}
+                    />
+                  </div>
                   <div className="flex gap-2 justify-end">
                     <Button
                       size="sm"
@@ -2740,6 +2876,15 @@ export function CaseStudySections({
                 /* Feature Cards with configurable columns (2x2 or 3x3) */
                 <div className={`grid grid-cols-1 gap-6 ${keyFeaturesColumns === 2 ? 'md:grid-cols-2' : 'md:grid-cols-3'}`}>
                   {featureCards.map((feature, idx) => {
+                    const featureKey = 6000 + idx; // Unique key for each feature
+                    const isExpanded = expandedCards.has(featureKey);
+                    
+                    // Get first 2 lines as preview
+                    const contentLines = feature.description.trim().split('\n').filter(line => line.trim());
+                    const previewLines = contentLines.slice(0, 2);
+                    const previewContent = previewLines.join('\n');
+                    const hasMore = contentLines.length > 2;
+                    
                     const gradient = "linear-gradient(135deg, #10b981, #06b6d4)";
                     
                     return (
@@ -2773,9 +2918,74 @@ export function CaseStudySections({
                           <h3 className="text-lg mb-4">{feature.title}</h3>
                           
                           {/* Content */}
-                          <div className="text-muted-foreground text-sm">
-                            <MarkdownRenderer content={feature.description} variant="compact" />
-                          </div>
+                          {feature.description && (
+                            <>
+                              {/* Preview content - always visible */}
+                              <div className="text-muted-foreground text-sm mb-2">
+                                <MarkdownRenderer content={previewContent} variant="compact" />
+                              </div>
+                              
+                              {/* Expanded content - conditionally visible */}
+                              {hasMore && (
+                                <motion.div
+                                  initial={false}
+                                  animate={{
+                                    height: isExpanded ? "auto" : 0,
+                                    opacity: isExpanded ? 1 : 0,
+                                    marginTop: isExpanded ? 12 : 0
+                                  }}
+                                  transition={{ duration: 0.3, ease: "easeInOut" }}
+                                  className="overflow-hidden"
+                                >
+                                  <div className="text-muted-foreground text-sm">
+                                    <MarkdownRenderer content={contentLines.slice(2).join('\n')} variant="compact" />
+                                  </div>
+                                </motion.div>
+                              )}
+                              
+                              {/* View more button */}
+                              {hasMore && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleCard(featureKey);
+                                    e.currentTarget.blur();
+                                  }}
+                                  className="mt-3 flex items-center gap-1 text-sm font-medium transition-all relative cursor-pointer hover:translate-x-0.5"
+                                >
+                                  <motion.span
+                                    className="inline-block"
+                                    animate={{
+                                      backgroundImage: [
+                                        "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%)",
+                                        "linear-gradient(180deg, #8b5cf6 0%, #ec4899 50%, #3b82f6 100%)",
+                                        "linear-gradient(225deg, #ec4899 0%, #3b82f6 50%, #8b5cf6 100%)",
+                                        "linear-gradient(270deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%)",
+                                        "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%)",
+                                      ],
+                                    }}
+                                    transition={{
+                                      duration: 8,
+                                      repeat: Infinity,
+                                      ease: "linear",
+                                    }}
+                                    style={{
+                                      backgroundClip: "text",
+                                      WebkitBackgroundClip: "text",
+                                      WebkitTextFillColor: "transparent",
+                                    }}
+                                  >
+                                    {isExpanded ? "Show less" : "Show more"}
+                                  </motion.span>
+                                  {isExpanded ? (
+                                    <ChevronUp className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                                  ) : (
+                                    <ChevronDown className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                                  )}
+                                </button>
+                              )}
+                            </>
+                          )}
                         </div>
                       </motion.div>
                     );
@@ -2786,8 +2996,10 @@ export function CaseStudySections({
           );
         }
 
-        // Special handling for Competitive Analysis section
-        if (section.title === "Competitive analysis") {
+        // Special handling for Competitive Analysis section (flexible title matching)
+        const isCompetitiveSection = section.title.toLowerCase().includes("competitive") || 
+                                     section.title.toLowerCase().includes("competitor");
+        if (isCompetitiveSection) {
           const competitors = parseCompetitiveAnalysis(section.content);
           
           return (
@@ -2850,12 +3062,24 @@ export function CaseStudySections({
               {/* Editable or Display Mode */}
               {isEditMode && editingSection === section.title ? (
                 <div className="space-y-4 bg-card/50 p-6 rounded-xl border border-border">
-                  <Textarea
-                    value={editedSectionContent}
-                    onChange={(e) => setEditedSectionContent(e.target.value)}
-                    className="min-h-[400px] font-mono text-sm"
-                    placeholder={'Enter competitive analysis in Markdown format...\\n\\nExample:\\n## Competitor A\\nDescription\\n\\n## Competitor B\\nDescription'}
-                  />
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Section Title</label>
+                    <Input
+                      value={editedSectionTitle}
+                      onChange={(e) => setEditedSectionTitle(e.target.value)}
+                      placeholder="Enter section title"
+                      className="font-semibold"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Content (Markdown)</label>
+                    <Textarea
+                      value={editedSectionContent}
+                      onChange={(e) => setEditedSectionContent(e.target.value)}
+                      className="min-h-[400px] font-mono text-sm"
+                      placeholder={'Enter competitive analysis in Markdown format...\\n\\nExample:\\n## Competitor A\\nDescription\\n\\n## Competitor B\\nDescription'}
+                    />
+                  </div>
                   <div className="flex gap-2 justify-end">
                     <Button
                       size="sm"

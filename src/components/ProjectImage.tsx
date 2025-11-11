@@ -189,7 +189,11 @@ export function ProjectImage({
     onClick();
   };
 
-  const handleTogglePublish = () => {
+  const handleTogglePublish = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     const updated = { ...editedProject, published: !editedProject.published };
     setEditedProject(updated);
     onUpdate(updated);
@@ -719,7 +723,12 @@ export function ProjectImage({
             <Button
               size="sm"
               variant={project.published ? "default" : "secondary"}
-              onClick={handleTogglePublish}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleTogglePublish(e);
+              }}
+              type="button"
               className="shadow-lg"
             >
               {project.published ? "Published" : "Draft"}

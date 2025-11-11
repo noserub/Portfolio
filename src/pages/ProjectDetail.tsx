@@ -908,6 +908,9 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
   const [keyFeaturesColumns, setKeyFeaturesColumns] = useState<2 | 3>(
     (project as any).keyFeaturesColumns || (project as any).key_features_columns || 3
   );
+  const [researchInsightsColumns, setResearchInsightsColumns] = useState<1 | 2 | 3>(
+    (project as any).researchInsightsColumns || (project as any).research_insights_columns || 3
+  );
   const [lightboxImage, setLightboxImage] = useState(null);
   const [flowDiagramLightboxImage, setFlowDiagramLightboxImage] = useState(null);
   const [isEditingHeroImage, setIsEditingHeroImage] = useState(false);
@@ -1402,10 +1405,10 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     
     // Also strip non-whitelisted sections when JSON sidebars exist
     // BUT: Allow any section that appears after "The solution" section (for solution cards grid)
-    const whitelistedSections = [
-      'Overview', 'The challenge', 'My role', 'My role & impact', 'Research insights', 
-      'Competitive analysis', 'The solution', 'The solution: A new direction', 'Solution cards', 'Key features', 'New Card'
-    ];
+      const whitelistedSections = [
+        'Overview', 'The challenge', 'My role', 'My role & impact', 'Research insights', 'Research',
+        'Competitive analysis', 'The solution', 'The solution: A new direction', 'Solution cards', 'Key features', 'Project phases', 'New Card'
+      ];
     const excludedSidebarTitles = ['Sidebar 1', 'Sidebar 2', 'At a glance', 'Impact', 'Tech stack', 'Tools'];
     
     // Decorative sections that should be in beforeSolution (not solution cards grid)
@@ -2324,6 +2327,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       case_study_sidebars: persistedSidebars,
       keyFeaturesColumns,
       key_features_columns: keyFeaturesColumns,
+      researchInsightsColumns,
+      research_insights_columns: researchInsightsColumns,
     } as any;
     console.log('💾 [handleSave] Saving with', caseStudyImagesRef.current.length, 'project images,', videoItemsRef.current.length, 'videos and', flowDiagramImagesRef.current.length, 'flow diagrams');
     onUpdate(updatedProject);
@@ -2383,6 +2388,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
             case_study_sidebars: persistedSidebars,
             keyFeaturesColumns,
             key_features_columns: keyFeaturesColumns,
+            researchInsightsColumns,
+            research_insights_columns: researchInsightsColumns,
           } as any;
           console.log('📸 Adding new image to project:', {
             projectId: project.id,
@@ -2554,6 +2561,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       case_study_sidebars: persistedSidebars,
       keyFeaturesColumns,
       key_features_columns: keyFeaturesColumns,
+      researchInsightsColumns,
+      research_insights_columns: researchInsightsColumns,
     } as any;
     
     console.log('💾 [handleSaveAndBack] Saving all changes synchronously before navigation:', {
@@ -3117,6 +3126,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
             videoColumns,
             keyFeaturesColumns,
             key_features_columns: keyFeaturesColumns,
+            researchInsightsColumns,
+            research_insights_columns: researchInsightsColumns,
             projectImagesPosition,
             videosPosition,
             flowDiagramsPosition,
@@ -3215,6 +3226,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
           videoColumns,
           keyFeaturesColumns,
           key_features_columns: keyFeaturesColumns,
+          researchInsightsColumns,
+          research_insights_columns: researchInsightsColumns,
           projectImagesPosition,
           videosPosition,
           flowDiagramsPosition: flowDiagramsNewPosition,
@@ -3272,6 +3285,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
           videoColumns,
           keyFeaturesColumns,
           key_features_columns: keyFeaturesColumns,
+          researchInsightsColumns,
+          research_insights_columns: researchInsightsColumns,
           projectImagesPosition,
           videosPosition: newVideosPos,
           flowDiagramsPosition,
@@ -3333,6 +3348,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
           videoColumns,
           keyFeaturesColumns,
           key_features_columns: keyFeaturesColumns,
+          researchInsightsColumns,
+          research_insights_columns: researchInsightsColumns,
           projectImagesPosition,
           videosPosition,
           flowDiagramsPosition,
@@ -3464,6 +3481,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       videoColumns,
         keyFeaturesColumns,
         key_features_columns: keyFeaturesColumns,
+        researchInsightsColumns,
+        research_insights_columns: researchInsightsColumns,
         projectImagesPosition,
       videosPosition,
         flowDiagramsPosition,
@@ -3721,10 +3740,10 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     
     // Strict whitelist of legitimate section titles (only these are allowed when JSON sidebars exist)
     // Include "New Card" patterns for solution cards grid
-    const whitelistedSections = [
-      'Overview', 'The challenge', 'My role', 'My role & impact', 'Research insights', 
-      'Competitive analysis', 'The solution', 'The solution: A new direction', 'Solution cards', 'Key features', 'New Card'
-    ];
+      const whitelistedSections = [
+        'Overview', 'The challenge', 'My role', 'My role & impact', 'Research insights', 'Research',
+        'Competitive analysis', 'The solution', 'The solution: A new direction', 'Solution cards', 'Key features', 'Project phases', 'New Card'
+      ];
     
     let sections: string[] = [];
     
@@ -3793,24 +3812,24 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     // Collect insertions - ONLY insert when position is explicitly set (not undefined)
     const insertions: Array<{ pos: number; item: { title: string; type: string } }> = [];
     
-    // Only insert Project Images if position is set AND (images exist OR in edit mode)
-    if (projectImagesPosition !== undefined && (caseStudyImages.length > 0 || isEditMode)) {
+    // Only insert Project Images if position is explicitly set (not null/undefined) AND (images exist OR in edit mode)
+    if (projectImagesPosition != null && (caseStudyImages.length > 0 || isEditMode)) {
       insertions.push({ 
         pos: projectImagesPosition, 
         item: { title: '__PROJECT_IMAGES__', type: 'gallery' }
       });
     }
     
-    // Only insert Videos if position is set AND (videos exist OR in edit mode)
-    if (videosPosition !== undefined && (videoItems.length > 0 || isEditMode)) {
+    // Only insert Videos if position is explicitly set (not null/undefined) AND (videos exist OR in edit mode)
+    if (videosPosition != null && (videoItems.length > 0 || isEditMode)) {
       insertions.push({ 
         pos: videosPosition, 
         item: { title: '__VIDEOS__', type: 'gallery' }
       });
     }
     
-    // Only insert Flow Diagrams if position is set AND (diagrams exist OR in edit mode)
-    if (flowDiagramsPosition !== undefined && (flowDiagramImages.length > 0 || isEditMode)) {
+    // Only insert Flow Diagrams if position is explicitly set (not null/undefined) AND (diagrams exist OR in edit mode)
+    if (flowDiagramsPosition != null && (flowDiagramImages.length > 0 || isEditMode)) {
       insertions.push({ 
         pos: flowDiagramsPosition, 
         item: { title: '__FLOW_DIAGRAMS__', type: 'gallery' }
@@ -3852,7 +3871,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     });
     
     // Only insert if explicitly added via UI OR if there's an explicit "Solution cards" section
-    if ((hasExplicitSolutionCards || (isEditMode && calculatedSolutionCardsPosition !== undefined)) && calculatedSolutionCardsPosition !== undefined) {
+    // AND position is not null (user hasn't removed it)
+    if (solutionCardsPosition != null && (hasExplicitSolutionCards || (isEditMode && calculatedSolutionCardsPosition !== undefined)) && calculatedSolutionCardsPosition !== undefined) {
       console.log('🎴 Inserting Solution Cards at position:', calculatedSolutionCardsPosition);
       insertions.push({ 
         pos: calculatedSolutionCardsPosition, 
@@ -4633,10 +4653,10 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
           // Use cleanedContent (has legacy sidebars stripped) and filter non-whitelisted sections when JSON sidebars exist
           const hasJsonSidebars = Boolean((caseStudySidebars as any)?.atGlance) || Boolean((caseStudySidebars as any)?.impact) ||
                                   Boolean((project as any).caseStudySidebars?.atGlance) || Boolean((project as any).caseStudySidebars?.impact);
-          const whitelistedSections = [
-            'Overview', 'The challenge', 'My role', 'My role & impact', 'Research insights', 
-            'Competitive analysis', 'The solution', 'The solution: A new direction', 'Solution cards', 'Key features', 'New Card'
-          ];
+      const whitelistedSections = [
+        'Overview', 'The challenge', 'My role', 'My role & impact', 'Research insights', 'Research',
+        'Competitive analysis', 'The solution', 'The solution: A new direction', 'Solution cards', 'Key features', 'Project phases', 'New Card'
+      ];
           const excludedSidebarTitles = ['Sidebar 1', 'Sidebar 2', 'At a glance', 'Impact', 'Tech stack', 'Tools'];
           
           const lines = cleanedContent?.split('\n') || [];
@@ -5229,6 +5249,36 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
               } as any;
               onUpdate(updatedProject);
             }}
+            researchInsightsColumns={researchInsightsColumns}
+            onResearchInsightsColumnsChange={(columns) => {
+              setResearchInsightsColumns(columns);
+              // Auto-save when columns change
+              const updatedProject: ProjectData = {
+                ...project,
+                title: editedTitle,
+                description: editedDescription,
+      projectType: editedProjectType,
+                caseStudyContent,
+                caseStudyImages: caseStudyImagesRef.current,
+                flowDiagramImages: flowDiagramImagesRef.current,
+                videoItems: videoItemsRef.current,
+                galleryAspectRatio,
+                flowDiagramAspectRatio,
+                videoAspectRatio,
+                galleryColumns,
+                flowDiagramColumns,
+                videoColumns,
+                projectImagesPosition,
+                videosPosition,
+                flowDiagramsPosition,
+                solutionCardsPosition,
+                keyFeaturesColumns,
+                key_features_columns: keyFeaturesColumns,
+                researchInsightsColumns: columns,
+                research_insights_columns: columns,
+              } as any;
+              onUpdate(updatedProject);
+            }}
           />
           </div>
         )}
@@ -5274,6 +5324,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                     solutionCardsPosition,
                     keyFeaturesColumns,
                     key_features_columns: keyFeaturesColumns,
+                    researchInsightsColumns,
+                    research_insights_columns: researchInsightsColumns,
                     sectionPositions,
                     caseStudySidebars: persistedSidebars,
                     case_study_sidebars: persistedSidebars,
