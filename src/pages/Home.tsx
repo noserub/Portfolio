@@ -2714,6 +2714,8 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
       const researchColumnsValue = Number((updatedProject as any).researchInsightsColumns ?? (updatedProject as any).research_insights_columns);
       const sanitizedResearchColumns = [1, 2, 3].includes(researchColumnsValue) ? researchColumnsValue : 3;
 
+      const solutionCardsPositionRaw = updatedProject.solutionCardsPosition ?? (updatedProject as any).solution_cards_position;
+ 
       const projectData = {
         title: updatedProject.title,
         description: updatedProject.description,
@@ -2739,13 +2741,32 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         project_images_position: updatedProject.projectImagesPosition,
         videos_position: updatedProject.videosPosition,
         flow_diagrams_position: updatedProject.flowDiagramsPosition,
-        solution_cards_position: updatedProject.solutionCardsPosition ?? null,
         section_positions: updatedProject.sectionPositions || {},
         // NEW: persist JSON sidebars if present
         case_study_sidebars: (updatedProject as any).caseStudySidebars || (updatedProject as any).case_study_sidebars || undefined,
         sort_order: (updatedProject as any).sortOrder || 0,
         project_type: updatedProject.projectType || (updatedProject as any).project_type || null,
       };
+
+      const rawKeyFeaturesColumns = (updatedProject as any).keyFeaturesColumns ?? (updatedProject as any).key_features_columns;
+      if (rawKeyFeaturesColumns !== undefined && rawKeyFeaturesColumns !== null) {
+        const normalizedKeyFeaturesColumns = Number(rawKeyFeaturesColumns);
+        if ([2, 3].includes(normalizedKeyFeaturesColumns)) {
+          projectData.key_features_columns = normalizedKeyFeaturesColumns;
+        }
+      }
+
+      const rawResearchInsightsColumns = (updatedProject as any).researchInsightsColumns ?? (updatedProject as any).research_insights_columns;
+      if (rawResearchInsightsColumns !== undefined && rawResearchInsightsColumns !== null) {
+        const normalizedResearchInsightsColumns = Number(rawResearchInsightsColumns);
+        if ([1, 2, 3].includes(normalizedResearchInsightsColumns)) {
+          projectData.research_insights_columns = normalizedResearchInsightsColumns;
+        }
+      }
+
+      if (solutionCardsPositionRaw !== undefined) {
+        projectData.solution_cards_position = solutionCardsPositionRaw;
+      }
 
       console.log('🔄 Home: Calling updateProject with data:', {
         id: updatedProject.id,
