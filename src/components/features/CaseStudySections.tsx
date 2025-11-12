@@ -2779,8 +2779,8 @@ export function CaseStudySections({
         }
 
         // Special handling for Key Features section (flexible title matching)
-        const isKeyFeaturesSection = isKeyFeaturesSection(section);
-        if (isKeyFeaturesSection) {
+        const isKeyFeaturesBlock = isKeyFeaturesSection(section);
+        if (isKeyFeaturesBlock) {
           const features = parseSubsections(section.content);
           const featureCards = features.map(item => ({
             title: item.name,
