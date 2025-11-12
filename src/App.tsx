@@ -1297,33 +1297,28 @@ export default function App() {
   const handleUpdateProject = async (updatedProject: ProjectData) => {
     const { _navTimestamp, ...cleanProject } = updatedProject as any;
     
+    const keyFeaturesColumnsValue = parseColumnsValue(
+      (cleanProject as any).keyFeaturesColumns ?? (cleanProject as any).key_features_columns,
+      [2, 3],
+      3
+    ) as 2 | 3;
+    const researchInsightsColumnsValue = parseColumnsValue(
+      (cleanProject as any).researchInsightsColumns ?? (cleanProject as any).research_insights_columns,
+      [1, 2, 3],
+      3
+    ) as 1 | 2 | 3;
+    const normalizedSolutionCardsPosition =
+      cleanProject.solutionCardsPosition === undefined ? null : cleanProject.solutionCardsPosition;
+    
     const sanitizedProject = {
       ...cleanProject,
+      keyFeaturesColumns: keyFeaturesColumnsValue,
+      key_features_columns: keyFeaturesColumnsValue,
+      researchInsightsColumns: researchInsightsColumnsValue,
+      research_insights_columns: researchInsightsColumnsValue,
+      solutionCardsPosition: normalizedSolutionCardsPosition,
+      solution_cards_position: normalizedSolutionCardsPosition,
     } as ProjectData & Record<string, any>;
-    
-    const rawKeyFeaturesColumns = (cleanProject as any).keyFeaturesColumns ?? (cleanProject as any).key_features_columns;
-    if (rawKeyFeaturesColumns !== undefined) {
-      const normalizedKeyFeaturesColumns = rawKeyFeaturesColumns === null
-        ? null
-        : parseColumnsValue(rawKeyFeaturesColumns, [2, 3], 3);
-      sanitizedProject.keyFeaturesColumns = normalizedKeyFeaturesColumns as any;
-      sanitizedProject.key_features_columns = normalizedKeyFeaturesColumns as any;
-    }
-    
-    const rawResearchInsightsColumns = (cleanProject as any).researchInsightsColumns ?? (cleanProject as any).research_insights_columns;
-    if (rawResearchInsightsColumns !== undefined) {
-      const normalizedResearchInsightsColumns = rawResearchInsightsColumns === null
-        ? null
-        : parseColumnsValue(rawResearchInsightsColumns, [1, 2, 3], 3);
-      sanitizedProject.researchInsightsColumns = normalizedResearchInsightsColumns as any;
-      sanitizedProject.research_insights_columns = normalizedResearchInsightsColumns as any;
-    }
-    
-    const rawSolutionCardsPosition = cleanProject.solutionCardsPosition ?? (cleanProject as any).solution_cards_position;
-    if (rawSolutionCardsPosition !== undefined) {
-      sanitizedProject.solutionCardsPosition = rawSolutionCardsPosition;
-      sanitizedProject.solution_cards_position = rawSolutionCardsPosition;
-    }
     
     setSelectedProject({
       ...sanitizedProject,
@@ -1384,34 +1379,17 @@ export default function App() {
           gallery_columns: sanitizedProject.galleryColumns || 1,
           flow_diagram_columns: sanitizedProject.flowDiagramColumns || 1,
           video_columns: sanitizedProject.videoColumns || 1,
+          key_features_columns: keyFeaturesColumnsValue,
+          research_insights_columns: researchInsightsColumnsValue,
           project_images_position: sanitizedProject.projectImagesPosition,
           videos_position: sanitizedProject.videosPosition,
           flow_diagrams_position: sanitizedProject.flowDiagramsPosition,
+          solution_cards_position: normalizedSolutionCardsPosition,
           section_positions: sanitizedProject.sectionPositions || {},
           case_study_sidebars: (sanitizedProject as any).caseStudySidebars || (sanitizedProject as any).case_study_sidebars || undefined,
           sort_order: (sanitizedProject as any).sortOrder || 0,
           project_type: sanitizedProject.projectType || (sanitizedProject as any).project_type || null
         };
-        
-        if ((sanitizedProject as any).keyFeaturesColumns !== undefined && (sanitizedProject as any).keyFeaturesColumns !== null) {
-          projectData.key_features_columns = parseColumnsValue(
-            (sanitizedProject as any).keyFeaturesColumns,
-            [2, 3],
-            3
-          );
-        }
-        
-        if ((sanitizedProject as any).researchInsightsColumns !== undefined && (sanitizedProject as any).researchInsightsColumns !== null) {
-          projectData.research_insights_columns = parseColumnsValue(
-            (sanitizedProject as any).researchInsightsColumns,
-            [1, 2, 3],
-            3
-          );
-        }
-        
-        if (sanitizedProject.solutionCardsPosition !== undefined) {
-          projectData.solution_cards_position = sanitizedProject.solutionCardsPosition;
-        }
         
         await updateProject(sanitizedProject.id, projectData);
         console.log('✅ Project persisted directly to Supabase:', { id: sanitizedProject.id, hasSidebars: !!projectData.case_study_sidebars });
