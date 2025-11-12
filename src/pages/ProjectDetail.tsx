@@ -431,6 +431,18 @@ function mergeContentWithSidebars(editedContent: string, originalContent: string
   return editedContent + sidebarContent;
 }
 
+const parseResearchInsightsColumnsValue = (value: any, fallback: 1 | 2 | 3 = 3): 1 | 2 | 3 => {
+  const num = Number(value);
+  return num === 1 || num === 2 || num === 3 ? (num as 1 | 2 | 3) : fallback;
+};
+
+const stripSolutionCardSections = (markdown: string): string => {
+  if (!markdown) return markdown;
+  return markdown
+    .replace(/(^|\n)#{1,2}\s*(?:Solution\s+cards?.*|New\s+Card[^\n]*|Project\s+phases[^\n]*)([\s\S]*?)(?=\n#{1,2}\s|$)/gi, '$1')
+    .replace(/\n{3,}/g, '\n\n');
+};
+
 export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: ProjectDetailProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [showSaveIndicator, setShowSaveIndicator] = useState(false);
@@ -846,9 +858,40 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
   const [flowDiagramsPosition, setFlowDiagramsPosition] = useState(
     project.flowDiagramsPosition || (project as any).flow_diagrams_position
   );
-  const [solutionCardsPosition, setSolutionCardsPosition] = useState(
-    project.solutionCardsPosition || (project as any).solution_cards_position
-  );
+  const [solutionCardsPosition, setSolutionCardsPosition] = useState(() => {
+    // Explicitly check for null/undefined - if user removed solution cards, respect that
+    const pos = project.solutionCardsPosition !== undefined ? project.solutionCardsPosition : (project as any).solution_cards_position;
+    return pos !== undefined ? pos : null;
+  });
+  
+  // Track if user has explicitly removed solution cards (to prevent auto-sync from resetting it)
+  const solutionCardsRemovedRef = useRef(false);
+  
+  // Sync solutionCardsPosition with project prop, but respect user's explicit removal
+  useEffect(() => {
+    const projectPos = project.solutionCardsPosition !== undefined ? project.solutionCardsPosition : (project as any).solution_cards_position;
+    
+    // If current state is null (user removed it), NEVER sync from project prop
+    // This prevents the database value from overriding the user's removal
+    if (solutionCardsPosition === null) {
+      if (projectPos !== null && projectPos !== undefined) {
+        console.log('🔒 Solution cards are null (removed) - ignoring project prop value:', projectPos);
+      }
+      return; // Don't sync if current state is null
+    }
+    
+    // Only sync if project has a value AND it's different from current state
+    if (projectPos !== undefined && projectPos !== null && projectPos !== solutionCardsPosition) {
+      console.log('🔄 Syncing solutionCardsPosition from project:', projectPos);
+      setSolutionCardsPosition(projectPos);
+      solutionCardsRemovedRef.current = false; // Reset flag when syncing from project
+    } else if (projectPos === null && solutionCardsPosition !== null) {
+      // If project explicitly has null (user removed it), sync to null
+      console.log('🔄 Syncing solutionCardsPosition to null (user removed)');
+      setSolutionCardsPosition(null);
+      solutionCardsRemovedRef.current = true; // Mark as explicitly removed
+    }
+  }, [project.solutionCardsPosition, (project as any).solution_cards_position, solutionCardsPosition]);
   
   
   // NEW: Track positions for ALL sections (markdown + sidebars + galleries)
@@ -908,9 +951,28 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
   const [keyFeaturesColumns, setKeyFeaturesColumns] = useState<2 | 3>(
     (project as any).keyFeaturesColumns || (project as any).key_features_columns || 3
   );
-  const [researchInsightsColumns, setResearchInsightsColumns] = useState<1 | 2 | 3>(
-    (project as any).researchInsightsColumns || (project as any).research_insights_columns || 3
+  const initialResearchColumns = parseResearchInsightsColumnsValue(
+    (project as any).researchInsightsColumns ?? (project as any).research_insights_columns
   );
+  const [researchInsightsColumns, setResearchInsightsColumns] = useState<1 | 2 | 3>(initialResearchColumns);
+  
+  // Sync researchInsightsColumns with project prop changes, but only if project actually has a value
+  // This prevents resetting user's settings during hot reloads
+  useEffect(() => {
+    const projectValueRaw = (project as any).researchInsightsColumns ?? (project as any).research_insights_columns;
+    if (projectValueRaw === undefined || projectValueRaw === null) {
+      return; // Respect the current in-memory value when project doesn't have a persisted setting
+    }
+    
+    const projectValue = parseResearchInsightsColumnsValue(projectValueRaw);
+    setResearchInsightsColumns((prev) => {
+      if (prev === projectValue) {
+        return prev;
+      }
+      console.log('🔄 Syncing researchInsightsColumns from project:', projectValueRaw, 'normalized:', projectValue, 'current:', prev);
+      return projectValue;
+    });
+  }, [(project as any).researchInsightsColumns, (project as any).research_insights_columns]);
   const [lightboxImage, setLightboxImage] = useState(null);
   const [flowDiagramLightboxImage, setFlowDiagramLightboxImage] = useState(null);
   const [isEditingHeroImage, setIsEditingHeroImage] = useState(false);
@@ -1076,6 +1138,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       console.log('⚠️ "The solution" section not found - using fallback position', position);
     }
     
+    solutionCardsRemovedRef.current = false; // Reset flag when user explicitly adds solution cards
     setSolutionCardsPosition(position);
     const updatedProject: ProjectData = {
       ...project,
@@ -3843,9 +3906,10 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       return t === 'solution cards' || t.startsWith('solution cards:');
     });
     
-    // Auto-calculate solution cards position: always right after "The solution" section if it exists
+    // Only auto-calculate solution cards position if it's explicitly set (not null/undefined)
+    // If user has removed solution cards (set to null/undefined), don't auto-calculate or insert
     let calculatedSolutionCardsPosition = solutionCardsPosition;
-    if (solutionCardsPosition !== undefined) {
+    if (solutionCardsPosition != null && solutionCardsPosition !== undefined) {
       // Find "The solution" section in the sections array
       const solutionSectionIndex = sections.findIndex(title => {
         const t = title.toLowerCase();
@@ -3867,12 +3931,11 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       calculatedSolutionCardsPosition,
       sections: sections,
       hasJsonSidebars,
-      shouldInsert: (hasExplicitSolutionCards || (isEditMode && calculatedSolutionCardsPosition !== undefined)) && calculatedSolutionCardsPosition !== undefined
+      shouldInsert: solutionCardsPosition != null && calculatedSolutionCardsPosition !== undefined
     });
     
-    // Only insert if explicitly added via UI OR if there's an explicit "Solution cards" section
-    // AND position is not null (user hasn't removed it)
-    if (solutionCardsPosition != null && (hasExplicitSolutionCards || (isEditMode && calculatedSolutionCardsPosition !== undefined)) && calculatedSolutionCardsPosition !== undefined) {
+    // Only insert if position is explicitly set (not null/undefined) - respect user's removal
+    if (solutionCardsPosition != null && calculatedSolutionCardsPosition !== undefined) {
       console.log('🎴 Inserting Solution Cards at position:', calculatedSolutionCardsPosition);
       insertions.push({ 
         pos: calculatedSolutionCardsPosition, 
@@ -3939,7 +4002,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
   
   // Auto-update solution cards position ONLY when "The solution" section moves, not when solution cards are manually moved
   useEffect(() => {
-    if (solutionCardsPosition === undefined || !isEditMode || isUpdatingSolutionCardsPositionRef.current) return;
+    if (solutionCardsPosition == null || !isEditMode || isUpdatingSolutionCardsPositionRef.current) return;
     
     const lines = (caseStudyContent || '').split('\n');
     const excludedSidebarTitles = [
@@ -4857,13 +4920,35 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
               });
             }}
             onRemoveSolutionCards={() => {
-              setSolutionCardsPosition(undefined);
-              onUpdate({
+              console.log('🗑️ Removing solution cards - setting position to null');
+              solutionCardsRemovedRef.current = true; // Mark as explicitly removed
+              setSolutionCardsPosition(null);
+              const cleanedCaseStudyContent = stripSolutionCardSections(caseStudyContent || '');
+              if (cleanedCaseStudyContent !== (caseStudyContent || '')) {
+                console.log('🧹 Stripped solution card markdown from case study content');
+                setCaseStudyContent(cleanedCaseStudyContent);
+                setCleanedContent(cleanedCaseStudyContent);
+              }
+              
+              const updatedSectionPositions = { ...sectionPositions };
+              Object.keys(updatedSectionPositions || {}).forEach((key) => {
+                const lower = key.toLowerCase();
+                if (
+                  key === '__SOLUTION_CARDS__' ||
+                  lower.startsWith('solution cards') ||
+                  lower.startsWith('new card')
+                ) {
+                  delete updatedSectionPositions[key];
+                }
+              });
+              setSectionPositions(updatedSectionPositions);
+              
+              const updatedProject: ProjectData = {
                 ...project,
                 title: editedTitle,
                 description: editedDescription,
       projectType: editedProjectType,
-                caseStudyContent,
+                caseStudyContent: cleanedCaseStudyContent,
                 caseStudyImages: caseStudyImagesRef.current,
                 flowDiagramImages: flowDiagramImagesRef.current,
                 videoItems: videoItemsRef.current,
@@ -4876,9 +4961,18 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                 projectImagesPosition,
                 videosPosition,
                 flowDiagramsPosition,
-                solutionCardsPosition: undefined,
-                sectionPositions,
+                solutionCardsPosition: null,
+                solution_cards_position: null, // Explicitly set snake_case version too
+                sectionPositions: updatedSectionPositions,
+                section_positions: updatedSectionPositions,
+                case_study_content: cleanedCaseStudyContent,
+              };
+              console.log('💾 Saving project with solutionCardsPosition = null:', {
+                solutionCardsPosition: updatedProject.solutionCardsPosition,
+                solution_cards_position: (updatedProject as any).solution_cards_position,
+                removedSections: Object.keys(updatedSectionPositions || {}).filter(key => key === '__SOLUTION_CARDS__')
               });
+              onUpdate(updatedProject);
             }}
             onMoveMarkdownSection={handleMoveMarkdownSection}
             actualPositions={actualPositions}

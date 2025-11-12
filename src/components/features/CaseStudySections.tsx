@@ -1553,7 +1553,7 @@ export function CaseStudySections({
   }
   
   // Only insert Solution Cards when an explicit position is provided
-  if ((afterSolution.length > 0 || isEditMode) && solutionCardsPosition !== undefined) {
+  if ((afterSolution.length > 0 || isEditMode) && solutionCardsPosition != null) {
     insertions.push({
       pos: solutionCardsPosition,
       item: { 
@@ -2318,8 +2318,23 @@ export function CaseStudySections({
                                   (section.title.toLowerCase().includes("insights") || 
                                    section.title.toLowerCase() === "research");
         if (isResearchSection) {
+          console.log('🔍 Research section detected:', {
+            title: section.title,
+            contentLength: section.content?.length || 0,
+            contentPreview: section.content?.substring(0, 300)
+          });
+          
           // Parse insights from ## subsections (same as competitive analysis)
           const parsedInsights = parseSubsections(section.content);
+          console.log('🔍 Parsed insights:', {
+            count: parsedInsights.length,
+            insights: parsedInsights.map(i => ({
+              name: i.name,
+              contentLength: i.content?.length || 0,
+              contentPreview: i.content?.substring(0, 100)
+            }))
+          });
+          
           const insights = parsedInsights.map(item => ({
             title: item.name,
             description: item.content.trim()
@@ -2472,11 +2487,28 @@ export function CaseStudySections({
                   const insightKey = 7000 + insightIndex; // Unique key for each insight
                   const isExpanded = expandedCards.has(insightKey);
                   
-                  // Get first 2 lines as preview (same as competitive analysis)
-                  const contentLines = insight.description.trim().split('\n').filter(line => line.trim());
-                  const previewLines = contentLines.slice(0, 2);
-                  const previewContent = previewLines.join('\n');
-                  const hasMore = contentLines.length > 2;
+                  const fullContent = insight.description.trim();
+                  const contentLines = fullContent.split('\n').filter(line => line.trim());
+                  const activeColumns = (researchInsightsColumns ?? 3) as 1 | 2 | 3;
+                  const charThresholdMap: Record<1 | 2 | 3, number> = { 1: 700, 2: 540, 3: 360 };
+                  const collapsedHeightMap: Record<1 | 2 | 3, number> = { 1: 360, 2: 280, 3: 220 };
+                  const charThreshold = charThresholdMap[activeColumns];
+                  const collapsedHeight = collapsedHeightMap[activeColumns];
+                  
+                  const hasMore = contentLines.length > 3 || fullContent.length > charThreshold;
+                  const showGradient = hasMore && !isExpanded;
+                  
+                  console.log('🔍 Research insight card:', {
+                    index: insightIndex,
+                    title: insight.title,
+                    contentLines: contentLines.length,
+                    fullLength: fullContent.length,
+                    hasMore,
+                    isExpanded,
+                    charThreshold,
+                    collapsedHeight,
+                    previewSample: fullContent.substring(0, 160)
+                  });
                   
                   const InsightIcon = insightIcons[insightIndex % insightIcons.length];
                   const gradient = insightGradients[insightIndex % insightGradients.length];
@@ -2524,30 +2556,25 @@ export function CaseStudySections({
                         <h4 className="mb-2">{insight.title}</h4>
                         {insight.description && (
                           <>
-                            {/* Preview content - always visible */}
-                            <div className="text-muted-foreground leading-relaxed text-sm mb-2">
-                              <MarkdownRenderer content={previewContent} variant="compact" />
-                            </div>
-                            
-                            {/* Expanded content - conditionally visible */}
-                            {hasMore && (
+                            <div className="relative text-muted-foreground leading-relaxed text-sm">
                               <motion.div
                                 initial={false}
                                 animate={{
-                                  height: isExpanded ? "auto" : 0,
-                                  opacity: isExpanded ? 1 : 0,
-                                  marginTop: isExpanded ? 12 : 0
+                                  height: hasMore && !isExpanded ? `${collapsedHeight}px` : "auto",
+                                  opacity: 1,
+                                  marginTop: 0
                                 }}
                                 transition={{ duration: 0.3, ease: "easeInOut" }}
-                                className="overflow-hidden"
+                                className="overflow-hidden transition-all duration-300"
+                                style={{ maxHeight: hasMore && !isExpanded ? `${collapsedHeight}px` : undefined }}
                               >
-                                <div className="text-muted-foreground leading-relaxed text-sm">
-                                  <MarkdownRenderer content={contentLines.slice(2).join('\n')} variant="compact" />
-                                </div>
+                                <MarkdownRenderer content={fullContent} variant="compact" />
                               </motion.div>
-                            )}
+                              {showGradient && (
+                                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-b from-transparent via-white/0 to-white/90 dark:via-slate-900/20 dark:to-slate-950/85" />
+                              )}
+                            </div>
                             
-                            {/* View more button */}
                             {hasMore && (
                               <button
                                 onClick={(e) => {
@@ -2574,18 +2601,21 @@ export function CaseStudySections({
                                     ease: "linear",
                                   }}
                                   style={{
+                                    backgroundImage: "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%)",
                                     backgroundClip: "text",
                                     WebkitBackgroundClip: "text",
-                                    WebkitTextFillColor: "transparent",
+                                    color: "transparent",
                                   }}
                                 >
                                   {isExpanded ? "Show less" : "Show more"}
                                 </motion.span>
-                                {isExpanded ? (
-                                  <ChevronUp className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                                ) : (
-                                  <ChevronDown className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                                )}
+                                <motion.span
+                                  animate={{ rotate: isExpanded ? 180 : 0 }}
+                                  transition={{ type: "spring", stiffness: 260, damping: 20 }}
+                                  className="w-4 h-4 text-primary"
+                                >
+                                  {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                                </motion.span>
                               </button>
                             )}
                           </>

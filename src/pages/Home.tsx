@@ -2124,6 +2124,15 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
   // Function to normalize project data structure for ProjectDetail
   const normalizeProjectData = (project: any): ProjectData => {
     const nn = (v: any) => (v === null || v === undefined ? undefined : v);
+    const parseColumn = (value: any, allowed: number[], fallback: number) => {
+      const num = Number(value);
+      return allowed.includes(num) ? num : fallback;
+    };
+    const keyFeaturesColumnsValue = project.keyFeaturesColumns ?? project.key_features_columns;
+    const researchInsightsColumnsValue = project.researchInsightsColumns ?? (project as any).research_insights_columns;
+    const normalizedKeyFeaturesColumns = parseColumn(keyFeaturesColumnsValue, [2, 3], 3) as 2 | 3;
+    const normalizedResearchColumns = parseColumn(researchInsightsColumnsValue, [1, 2, 3], 3) as 1 | 2 | 3;
+
     return {
       ...project,
       // Ensure camelCase fields are available
@@ -2137,13 +2146,13 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
       galleryColumns: project.galleryColumns || project.gallery_columns || 3,
       flowDiagramColumns: project.flowDiagramColumns || project.flow_diagram_columns || 2,
       videoColumns: project.videoColumns || project.video_columns || 1,
-      keyFeaturesColumns: (project.keyFeaturesColumns || project.key_features_columns || 3) as 2 | 3,
-      researchInsightsColumns: (project.researchInsightsColumns || (project as any).research_insights_columns || 3) as 1 | 2 | 3,
+      keyFeaturesColumns: normalizedKeyFeaturesColumns,
+      researchInsightsColumns: normalizedResearchColumns,
       // Map section positions from snake_case → camelCase, coercing null → undefined
       projectImagesPosition: nn(project.projectImagesPosition ?? project.project_images_position),
       videosPosition: nn(project.videosPosition ?? project.videos_position),
       flowDiagramsPosition: nn(project.flowDiagramsPosition ?? project.flow_diagrams_position),
-      solutionCardsPosition: nn(project.solutionCardsPosition ?? project.solution_cards_position),
+      solutionCardsPosition: project.solutionCardsPosition ?? project.solution_cards_position ?? null,
       sectionPositions: project.sectionPositions ?? project.section_positions ?? {},
       // NEW: include JSON sidebars (camelCase)
       caseStudySidebars: (project as any).caseStudySidebars || (project as any).case_study_sidebars || {},
@@ -2700,6 +2709,11 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     
     try {
       // Convert to Supabase format
+      const keyFeaturesColumnsValue = Number((updatedProject as any).keyFeaturesColumns ?? (updatedProject as any).key_features_columns);
+      const sanitizedKeyFeaturesColumns = [2, 3].includes(keyFeaturesColumnsValue) ? keyFeaturesColumnsValue : 3;
+      const researchColumnsValue = Number((updatedProject as any).researchInsightsColumns ?? (updatedProject as any).research_insights_columns);
+      const sanitizedResearchColumns = [1, 2, 3].includes(researchColumnsValue) ? researchColumnsValue : 3;
+
       const projectData = {
         title: updatedProject.title,
         description: updatedProject.description,
@@ -2720,12 +2734,12 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         gallery_columns: updatedProject.galleryColumns || 1,
         flow_diagram_columns: updatedProject.flowDiagramColumns || 1,
         video_columns: updatedProject.videoColumns || 1,
-        key_features_columns: (updatedProject as any).keyFeaturesColumns || (updatedProject as any).key_features_columns || 3,
-        research_insights_columns: (updatedProject as any).researchInsightsColumns || (updatedProject as any).research_insights_columns || 3,
+        key_features_columns: sanitizedKeyFeaturesColumns,
+        research_insights_columns: sanitizedResearchColumns,
         project_images_position: updatedProject.projectImagesPosition,
         videos_position: updatedProject.videosPosition,
         flow_diagrams_position: updatedProject.flowDiagramsPosition,
-        solution_cards_position: updatedProject.solutionCardsPosition,
+        solution_cards_position: updatedProject.solutionCardsPosition ?? null,
         section_positions: updatedProject.sectionPositions || {},
         // NEW: persist JSON sidebars if present
         case_study_sidebars: (updatedProject as any).caseStudySidebars || (updatedProject as any).case_study_sidebars || undefined,
