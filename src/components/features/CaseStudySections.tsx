@@ -1372,6 +1372,15 @@ export function CaseStudySections({
   // Alias for backwards compatibility
   const parseCompetitiveAnalysis = parseSubsections;
 
+  const isKeyFeaturesSection = (section: { title: string; content: string }) => {
+    const titleLower = section.title.toLowerCase();
+    if (titleLower.includes('key feature') || titleLower.includes('project phases') || titleLower.includes('project phase')) {
+      return true;
+    }
+    const features = parseSubsections(section.content || '');
+    return features.length >= 2;
+  };
+
   const sections = parseSections();
 
   console.log('📋 Parsed sections:', {
@@ -1435,7 +1444,7 @@ export function CaseStudySections({
       return titleLower.includes(decLower) || decLower.includes(titleLower);
     });
     const isSolution = titleLower.includes("solution") && !titleLower.includes("cards");
-    const isKeyFeatures = titleLower.includes("key features") || titleLower.includes("project phases");
+    const isKeyFeatures = isKeyFeaturesSection(s);
     // Include decorative sections, solution sections, AND Key features
     return isDecorative || isSolution || isKeyFeatures;
   });
@@ -1453,7 +1462,7 @@ export function CaseStudySections({
     });
     // Exclude any section with "solution" in the title (but not "Solution cards" which is the grid itself)
     const isSolution = titleLower.includes("solution") && !titleLower.includes("cards");
-    const isKeyFeatures = titleLower.includes("key features") || titleLower.includes("project phases");
+    const isKeyFeatures = isKeyFeaturesSection(s);
     const isResearchInsights = titleLower.includes("research insights") || titleLower.includes("research");
     
     // Debug logging
@@ -2770,9 +2779,7 @@ export function CaseStudySections({
         }
 
         // Special handling for Key Features section (flexible title matching)
-        const isKeyFeaturesSection = section.title.toLowerCase().includes("key features") || 
-                                     section.title.toLowerCase().includes("project phases") ||
-                                     section.title.toLowerCase() === "key features";
+        const isKeyFeaturesSection = isKeyFeaturesSection(section);
         if (isKeyFeaturesSection) {
           const features = parseSubsections(section.content);
           const featureCards = features.map(item => ({
