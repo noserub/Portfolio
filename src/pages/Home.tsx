@@ -2709,11 +2709,6 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     
     try {
       // Convert to Supabase format
-      const keyFeaturesColumnsValue = Number((updatedProject as any).keyFeaturesColumns ?? (updatedProject as any).key_features_columns);
-      const sanitizedKeyFeaturesColumns = [2, 3].includes(keyFeaturesColumnsValue) ? keyFeaturesColumnsValue : 3;
-      const researchColumnsValue = Number((updatedProject as any).researchInsightsColumns ?? (updatedProject as any).research_insights_columns);
-      const sanitizedResearchColumns = [1, 2, 3].includes(researchColumnsValue) ? researchColumnsValue : 3;
-
       const solutionCardsPositionRaw = updatedProject.solutionCardsPosition ?? (updatedProject as any).solution_cards_position;
  
       const projectData = {
@@ -2736,11 +2731,6 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         gallery_columns: updatedProject.galleryColumns || 1,
         flow_diagram_columns: updatedProject.flowDiagramColumns || 1,
         video_columns: updatedProject.videoColumns || 1,
-        key_features_columns: sanitizedKeyFeaturesColumns,
-        research_insights_columns: sanitizedResearchColumns,
-        project_images_position: updatedProject.projectImagesPosition,
-        videos_position: updatedProject.videosPosition,
-        flow_diagrams_position: updatedProject.flowDiagramsPosition,
         section_positions: updatedProject.sectionPositions || {},
         // NEW: persist JSON sidebars if present
         case_study_sidebars: (updatedProject as any).caseStudySidebars || (updatedProject as any).case_study_sidebars || undefined,
