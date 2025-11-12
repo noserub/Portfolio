@@ -944,7 +944,7 @@ MassRoots was a failing social network for cannabis users that I transformed int
 
 **Role:** Lead Product Designer & UX Researcher
 
-**Timeline:** 8 months (full-time)
+**Timeline:** 8 months (full-time) 
 
 **Team:** 8 designers and developers
 
@@ -2125,46 +2125,43 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
   const normalizeProjectData = (project: any): ProjectData => {
     const nn = (v: any) => (v === null || v === undefined ? undefined : v);
     const parseColumn = (value: any, allowed: number[], fallback: number) => {
+      if (value === undefined || value === null) return undefined;
       const num = Number(value);
       return allowed.includes(num) ? num : fallback;
     };
     const keyFeaturesColumnsValue = project.keyFeaturesColumns ?? project.key_features_columns;
     const researchInsightsColumnsValue = project.researchInsightsColumns ?? (project as any).research_insights_columns;
-    const normalizedKeyFeaturesColumns = parseColumn(keyFeaturesColumnsValue, [2, 3], 3) as 2 | 3;
-    const normalizedResearchColumns = parseColumn(researchInsightsColumnsValue, [1, 2, 3], 3) as 1 | 2 | 3;
-
-    return {
-      ...project,
-      // Ensure camelCase fields are available
-      caseStudyContent: project.caseStudyContent || project.case_study_content,
-      caseStudyImages: project.caseStudyImages || project.case_study_images || [],
-      flowDiagramImages: project.flowDiagramImages || project.flow_diagram_images || [],
-      videoItems: project.videoItems || project.video_items || [],
-      galleryAspectRatio: project.galleryAspectRatio || project.gallery_aspect_ratio || "3x4",
-      flowDiagramAspectRatio: project.flowDiagramAspectRatio || project.flow_diagram_aspect_ratio || "16x9",
-      videoAspectRatio: project.videoAspectRatio || project.video_aspect_ratio || "16x9",
-      galleryColumns: project.galleryColumns || project.gallery_columns || 3,
-      flowDiagramColumns: project.flowDiagramColumns || project.flow_diagram_columns || 2,
-      videoColumns: project.videoColumns || project.video_columns || 1,
-      keyFeaturesColumns: normalizedKeyFeaturesColumns,
-      researchInsightsColumns: normalizedResearchColumns,
-      // Map section positions from snake_case → camelCase, coercing null → undefined
-      projectImagesPosition: nn(project.projectImagesPosition ?? project.project_images_position),
-      videosPosition: nn(project.videosPosition ?? project.videos_position),
-      flowDiagramsPosition: nn(project.flowDiagramsPosition ?? project.flow_diagrams_position),
-      solutionCardsPosition: project.solutionCardsPosition ?? project.solution_cards_position ?? null,
-      sectionPositions: project.sectionPositions ?? project.section_positions ?? {},
-      // NEW: include JSON sidebars (camelCase)
-      caseStudySidebars: (project as any).caseStudySidebars || (project as any).case_study_sidebars || {},
-      sortOrder: project.sortOrder !== undefined ? project.sortOrder : (project.sort_order !== undefined ? project.sort_order : 0),
-      // Convert requires_password from snake_case to camelCase
-      requiresPassword: project.requiresPassword !== undefined ? project.requiresPassword : project.requires_password,
-      // Map project_type from snake_case to camelCase (handle null explicitly)
-      projectType: project.projectType !== undefined ? project.projectType : (project.project_type !== undefined ? project.project_type : null),
-      // Ensure position is an object
-      position: project.position || { x: project.position_x || 50, y: project.position_y || 50 }
-    };
-  };
+    const normalizedKeyFeaturesColumns = parseColumn(keyFeaturesColumnsValue, [2, 3], 3) as 2 | 3 | undefined;
+    const normalizedResearchColumns = parseColumn(researchInsightsColumnsValue, [1, 2, 3], 3) as 1 | 2 | 3 | undefined;
+ 
+     return {
+       ...project,
+       // Ensure camelCase fields are available
+       caseStudyContent: project.caseStudyContent || project.case_study_content,
+       caseStudyImages: project.caseStudyImages || project.case_study_images || [],
+       flowDiagramImages: project.flowDiagramImages || project.flow_diagram_images || [],
+       videoItems: project.videoItems || project.video_items || [],
+       galleryAspectRatio: project.galleryAspectRatio || project.gallery_aspect_ratio || "3x4",
+       flowDiagramAspectRatio: project.flowDiagramAspectRatio || project.flow_diagram_aspect_ratio || "16x9",
+       videoAspectRatio: project.videoAspectRatio || project.video_aspect_ratio || "16x9",
+       galleryColumns: project.galleryColumns || project.gallery_columns || 3,
+       flowDiagramColumns: project.flowDiagramColumns || project.flow_diagram_columns || 2,
+       videoColumns: project.videoColumns || project.video_columns || 1,
+       keyFeaturesColumns: normalizedKeyFeaturesColumns ?? 3,
+       researchInsightsColumns: normalizedResearchColumns ?? 3,
+       // Map section positions from snake_case → camelCase, coercing null → undefined
+       projectImagesPosition: nn(project.projectImagesPosition ?? project.project_images_position),
+       videosPosition: nn(project.videosPosition ?? project.videos_position),
+       flowDiagramsPosition: nn(project.flowDiagramsPosition ?? project.flow_diagrams_position),
+       solutionCardsPosition: project.solutionCardsPosition ?? project.solution_cards_position ?? null,
+       sectionPositions: project.sectionPositions ?? project.section_positions ?? {},
+       caseStudySidebars: (project as any).caseStudySidebars || (project as any).case_study_sidebars || {},
+       sortOrder: project.sortOrder !== undefined ? project.sortOrder : (project.sort_order !== undefined ? project.sort_order : 0),
+       requiresPassword: project.requiresPassword ?? project.requires_password ?? false,
+       // Ensure project type is consistent
+       projectType: project.projectType ?? project.project_type ?? null,
+     } as ProjectData;
+   };
   
   // Memoize case studies filtering to prevent recalculation
   const caseStudies = useMemo(() => {
@@ -2709,12 +2706,11 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     
     try {
       // Convert to Supabase format
-      const keyFeaturesColumnsValue = Number((updatedProject as any).keyFeaturesColumns ?? (updatedProject as any).key_features_columns);
-      const sanitizedKeyFeaturesColumns = [2, 3].includes(keyFeaturesColumnsValue) ? keyFeaturesColumnsValue : 3;
-      const researchColumnsValue = Number((updatedProject as any).researchInsightsColumns ?? (updatedProject as any).research_insights_columns);
-      const sanitizedResearchColumns = [1, 2, 3].includes(researchColumnsValue) ? researchColumnsValue : 3;
-
-      const projectData = {
+      const keyFeaturesColumnsRaw = (updatedProject as any).keyFeaturesColumns ?? (updatedProject as any).key_features_columns;
+      const researchInsightsColumnsRaw = (updatedProject as any).researchInsightsColumns ?? (updatedProject as any).research_insights_columns;
+      const solutionCardsPositionRaw = updatedProject.solutionCardsPosition ?? (updatedProject as any).solution_cards_position;
+ 
+      const projectData: any = {
         title: updatedProject.title,
         description: updatedProject.description,
         url: updatedProject.url,
@@ -2734,8 +2730,6 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         gallery_columns: updatedProject.galleryColumns || 1,
         flow_diagram_columns: updatedProject.flowDiagramColumns || 1,
         video_columns: updatedProject.videoColumns || 1,
-        key_features_columns: sanitizedKeyFeaturesColumns,
-        research_insights_columns: sanitizedResearchColumns,
         project_images_position: updatedProject.projectImagesPosition,
         videos_position: updatedProject.videosPosition,
         flow_diagrams_position: updatedProject.flowDiagramsPosition,
@@ -2746,6 +2740,18 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         sort_order: (updatedProject as any).sortOrder || 0,
         project_type: updatedProject.projectType || (updatedProject as any).project_type || null,
       };
+
+      if (keyFeaturesColumnsRaw !== undefined && keyFeaturesColumnsRaw !== null) {
+        projectData.key_features_columns = Number(keyFeaturesColumnsRaw);
+      }
+
+      if (researchInsightsColumnsRaw !== undefined && researchInsightsColumnsRaw !== null) {
+        projectData.research_insights_columns = Number(researchInsightsColumnsRaw);
+      }
+
+      if (solutionCardsPositionRaw !== undefined) {
+        projectData.solution_cards_position = solutionCardsPositionRaw;
+      }
 
       console.log('🔄 Home: Calling updateProject with data:', {
         id: updatedProject.id,
