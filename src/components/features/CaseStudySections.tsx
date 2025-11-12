@@ -1373,12 +1373,41 @@ export function CaseStudySections({
   const parseCompetitiveAnalysis = parseSubsections;
 
   const isKeyFeaturesSection = (section: { title: string; content: string }) => {
+    if (!section?.title) return false;
+
     const titleLower = section.title.toLowerCase();
-    if (titleLower.includes('key feature') || titleLower.includes('project phases') || titleLower.includes('project phase')) {
+
+    // Never treat solution sections as key features, even if they contain subsections
+    if (titleLower.includes('solution')) {
+      return false;
+    }
+
+    const titleKeywords = [
+      'key feature',
+      'project phase',
+      'project phases',
+      'project milestone',
+      'milestone',
+      'pillar',
+      'highlight',
+      'capability'
+    ];
+
+    if (titleKeywords.some(keyword => titleLower.includes(keyword))) {
       return true;
     }
+
     const features = parseSubsections(section.content || '');
-    return features.length >= 2;
+    if (features.length < 2) {
+      return false;
+    }
+
+    const headingKeywords = ['feature', 'phase', 'pillar', 'milestone', 'highlight', 'capability'];
+    const headingsLower = features.map(item => (item.name || '').toLowerCase());
+    const hasFeatureKeyword = headingsLower.some(name => headingKeywords.some(keyword => name.includes(keyword)));
+    const distinctHeadingCount = new Set(headingsLower).size;
+
+    return hasFeatureKeyword && distinctHeadingCount >= 2;
   };
 
   const sections = parseSections();
@@ -2779,8 +2808,8 @@ export function CaseStudySections({
         }
 
         // Special handling for Key Features section (flexible title matching)
-        const isKeyFeaturesBlock = isKeyFeaturesSection(section);
-        if (isKeyFeaturesBlock) {
+        const keyFeaturesBlock = isKeyFeaturesSection(section);
+        if (keyFeaturesBlock) {
           const features = parseSubsections(section.content);
           const featureCards = features.map(item => ({
             title: item.name,
