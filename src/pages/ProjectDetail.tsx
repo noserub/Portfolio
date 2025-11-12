@@ -439,7 +439,14 @@ const parseResearchInsightsColumnsValue = (value: any, fallback: 1 | 2 | 3 = 3):
 const stripSolutionCardSections = (markdown: string): string => {
   if (!markdown) return markdown;
   return markdown
-    .replace(/(^|\n)#{1,2}\s*(?:Solution\s+cards?.*|New\s+Card[^\n]*|Project\s+phases[^\n]*)([\s\S]*?)(?=\n#{1,2}\s|$)/gi, '$1')
+    .replace(/(^|\n)#{1,2}\s*(?:Solution\s+cards?.*|New\s+Card[^\n]*)([\s\S]*?)(?=\n#{1,2}\s|$)/gi, '$1')
+    .replace(/(^|\n)#{1,2}\s*Project\s+phases[^\n]*([\s\S]*?)(?=\n#{1,2}\s|$)/gi, (match, prefix) => {
+      // Only strip placeholder Project phases sections that contain default guidance text
+      if (/Add content for New Card|You can use Markdown formatting|Bullet points|\*\*Bold text\*\*|\*Italic text\*/i.test(match)) {
+        return prefix || '';
+      }
+      return match;
+    })
     .replace(/\n{3,}/g, '\n\n');
 };
 
