@@ -3839,7 +3839,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
               const decLower = dec.toLowerCase();
               return t === decLower || t.includes(decLower) || decLower.includes(t);
             });
-            if (!isDecorative && t !== 'key features') {
+            const isKeyFeaturesLike = t.includes('key features') || t.includes('project phases');
+            if (!isDecorative && !isKeyFeaturesLike) {
               // Allow this section - it's part of solution cards grid
               return true;
             }
@@ -4757,7 +4758,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                     const decLower = dec.toLowerCase();
                     return t === decLower || t.includes(decLower) || decLower.includes(t);
                   });
-                  if (!isDecorative && t !== 'key features') {
+                  const isKeyFeaturesLike = t.includes('key features') || t.includes('project phases');
+                  if (!isDecorative && !isKeyFeaturesLike) {
                     // Allow this section - it's part of solution cards grid
                     skipSection = false;
                     continue;
