@@ -1402,12 +1402,19 @@ export function CaseStudySections({
       return false;
     }
 
-    const headingKeywords = ['feature', 'phase', 'pillar', 'milestone', 'highlight', 'capability'];
+    const headingKeywords = ['feature', 'phase', 'pillar', 'milestone', 'highlight', 'capability', 'stage', 'step'];
     const headingsLower = features.map(item => (item.name || '').toLowerCase());
     const hasFeatureKeyword = headingsLower.some(name => headingKeywords.some(keyword => name.includes(keyword)));
     const distinctHeadingCount = new Set(headingsLower).size;
 
-    return hasFeatureKeyword && distinctHeadingCount >= 2;
+    if (hasFeatureKeyword && distinctHeadingCount >= 2) {
+      return true;
+    }
+
+    const averageHeadingLength = headingsLower.reduce((acc, name) => acc + name.length, 0) / features.length;
+    const maxContentLength = Math.max(...features.map(item => (item.content || '').trim().length));
+
+    return distinctHeadingCount >= 2 && averageHeadingLength <= 40 && maxContentLength <= 1200;
   };
 
   const sections = parseSections();
