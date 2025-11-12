@@ -1344,29 +1344,20 @@ export function CaseStudySections({
     const lines = content.split('\n');
     const items: Array<{ name: string; content: string }> = [];
     let currentItem: { name: string; content: string } | null = null;
- 
-     lines.forEach(line => {
--      // Check for h2 header (## Name)
--      if (line.trim().match(/^## (.+)$/)) {
-+      // Check for h2/h3 header (## Name or ### Name)
-+      const headingMatch = line.trim().match(/^##+\s+(.+)$/);
-+      if (headingMatch) {
-         // Save previous item if exists
-         if (currentItem) {
-           items.push(currentItem);
-         }
-         // Start new item
--        const name = (line || '').trim().substring(3).trim();
--        currentItem = { name, content: '' };
-+        const name = headingMatch[1].trim();
-+        currentItem = { name, content: '' };
-       } else if (currentItem) {
-         // Add line to current item
-         currentItem.content += line + '\n';
-       }
-     });
 
-    // Add last item
+    lines.forEach((line) => {
+      const trimmed = line.trim();
+      const headingMatch = trimmed.match(/^##+\s+(.+)$/);
+      if (headingMatch) {
+        if (currentItem) {
+          items.push(currentItem);
+        }
+        currentItem = { name: headingMatch[1].trim(), content: '' };
+      } else if (currentItem) {
+        currentItem.content += line + '\n';
+      }
+    });
+
     if (currentItem) {
       items.push(currentItem);
     }
