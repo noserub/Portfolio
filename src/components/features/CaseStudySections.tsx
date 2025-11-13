@@ -1345,23 +1345,19 @@ export function CaseStudySections({
     const items: Array<{ name: string; content: string }> = [];
     let currentItem: { name: string; content: string } | null = null;
 
-    lines.forEach(line => {
-      // Check for h2 header (## Name)
-      if (line.trim().match(/^## (.+)$/)) {
-        // Save previous item if exists
+    lines.forEach((line) => {
+      const trimmed = line.trim();
+      const headingMatch = trimmed.match(/^##+\s+(.+)$/);
+      if (headingMatch) {
         if (currentItem) {
           items.push(currentItem);
         }
-        // Start new item
-        const name = (line || '').trim().substring(3).trim();
-        currentItem = { name, content: '' };
+        currentItem = { name: headingMatch[1].trim(), content: '' };
       } else if (currentItem) {
-        // Add line to current item
         currentItem.content += line + '\n';
       }
     });
 
-    // Add last item
     if (currentItem) {
       items.push(currentItem);
     }
@@ -1369,21 +1365,89 @@ export function CaseStudySections({
     return items;
   };
 
+  const extractFeatureCards = (content: string = '') => {
+    const blocks = content
+      .split(/\n(?=##+\s)/)
+      .map(block => block.trim())
+      .filter(block => block.length > 0);
+
+    return blocks.map(block => {
+      const [headingLine, ...rest] = block.split('\n');
+      const title = headingLine.replace(/^##+\s*/, '').trim();
+      const description = rest.join('\n').trim();
+      return {
+        title,
+        description,
+      };
+    }).filter(card => {
+      const placeholderPatterns = [
+        /add content for/i,
+        /you can use markdown/i,
+        /bullet points/i,
+        /\*\*bold text\*\*/i,
+        /\*italic text\*/i
+      ];
+      return placeholderPatterns.every(pattern => !pattern.test(card.description));
+    });
+  };
+
   // Alias for backwards compatibility
   const parseCompetitiveAnalysis = parseSubsections;
 
+  const isKeyFeaturesSection = (section: { title: string; content: string }) => {
+    if (!section?.title) return false;
+
+    const titleLower = section.title.toLowerCase();
+
+    const excludedByTitle = [
+      'competitive analysis',
+      'competitive landscape',
+      'competitor',
+      'research insights',
+      'research',
+      'overview',
+      'challenge',
+      'my role',
+      'solution'
+    ];
+
+    if (excludedByTitle.some(keyword => titleLower.includes(keyword))) {
+      return false;
+    }
+
+    const titleKeywords = [
+      'key feature',
+      'project phase',
+      'project phases',
+      'project milestone',
+      'milestone',
+      'pillar',
+      'highlight',
+      'capability'
+    ];
+
+    if (titleKeywords.some(keyword => titleLower.includes(keyword))) {
+      return true;
+    }
+
+    const featureCards = extractFeatureCards(section.content || '');
+
+    if (featureCards.length >= 2) {
+      const averageHeadingLength = featureCards.reduce((acc, item) => acc + item.title.length, 0) / featureCards.length;
+      const maxBodyLength = Math.max(...featureCards.map(item => item.description.length || 0));
+
+      return averageHeadingLength <= 60 && maxBodyLength <= 1600;
+    }
+
+    return false;
+  };
+
+  const contentSource = latestProjectContent || content;
+  console.log('📝 Content preview (first 1200 chars):', contentSource?.slice(0, 1200));
+
   const sections = parseSections();
 
-  console.log('📋 Parsed sections:', {
-    totalSections: sections.length,
-    sectionTitles: sections.map(s => s.title),
-    hasNewCard3: sections.some(s => s.title.includes('New Card 3')),
-    hasNewCard4: sections.some(s => s.title.includes('New Card 4')),
-    usingLatestProjectContent: !!latestProjectContent,
-    contentLength: content.length,
-    latestProjectContentLength: latestProjectContent?.length || 0,
-    contentPreview: (latestProjectContent || content).substring(0, 200)
-  });
+  console.log('📋 Section titles:', sections.map(s => s.title));
 
   // Filter out sidebar sections - they will be rendered separately in the sidebar
   // Also filter out empty sections when not in edit mode
@@ -1435,7 +1499,7 @@ export function CaseStudySections({
       return titleLower.includes(decLower) || decLower.includes(titleLower);
     });
     const isSolution = titleLower.includes("solution") && !titleLower.includes("cards");
-    const isKeyFeatures = titleLower.includes("key features") || titleLower.includes("project phases");
+    const isKeyFeatures = isKeyFeaturesSection(s);
     // Include decorative sections, solution sections, AND Key features
     return isDecorative || isSolution || isKeyFeatures;
   });
@@ -1453,7 +1517,7 @@ export function CaseStudySections({
     });
     // Exclude any section with "solution" in the title (but not "Solution cards" which is the grid itself)
     const isSolution = titleLower.includes("solution") && !titleLower.includes("cards");
-    const isKeyFeatures = titleLower.includes("key features") || titleLower.includes("project phases");
+    const isKeyFeatures = isKeyFeaturesSection(s);
     const isResearchInsights = titleLower.includes("research insights") || titleLower.includes("research");
     
     // Debug logging
@@ -1553,7 +1617,7 @@ export function CaseStudySections({
   }
   
   // Only insert Solution Cards when an explicit position is provided
-  if ((afterSolution.length > 0 || isEditMode) && solutionCardsPosition !== undefined) {
+  if ((afterSolution.length > 0 || isEditMode) && solutionCardsPosition != null) {
     insertions.push({
       pos: solutionCardsPosition,
       item: { 
@@ -2318,8 +2382,23 @@ export function CaseStudySections({
                                   (section.title.toLowerCase().includes("insights") || 
                                    section.title.toLowerCase() === "research");
         if (isResearchSection) {
+          console.log('🔍 Research section detected:', {
+            title: section.title,
+            contentLength: section.content?.length || 0,
+            contentPreview: section.content?.substring(0, 300)
+          });
+          
           // Parse insights from ## subsections (same as competitive analysis)
           const parsedInsights = parseSubsections(section.content);
+          console.log('🔍 Parsed insights:', {
+            count: parsedInsights.length,
+            insights: parsedInsights.map(i => ({
+              name: i.name,
+              contentLength: i.content?.length || 0,
+              contentPreview: i.content?.substring(0, 100)
+            }))
+          });
+          
           const insights = parsedInsights.map(item => ({
             title: item.name,
             description: item.content.trim()
@@ -2472,11 +2551,28 @@ export function CaseStudySections({
                   const insightKey = 7000 + insightIndex; // Unique key for each insight
                   const isExpanded = expandedCards.has(insightKey);
                   
-                  // Get first 2 lines as preview (same as competitive analysis)
-                  const contentLines = insight.description.trim().split('\n').filter(line => line.trim());
-                  const previewLines = contentLines.slice(0, 2);
-                  const previewContent = previewLines.join('\n');
-                  const hasMore = contentLines.length > 2;
+                  const fullContent = insight.description.trim();
+                  const contentLines = fullContent.split('\n').filter(line => line.trim());
+                  const activeColumns = (researchInsightsColumns ?? 3) as 1 | 2 | 3;
+                  const charThresholdMap: Record<1 | 2 | 3, number> = { 1: 700, 2: 540, 3: 360 };
+                  const collapsedHeightMap: Record<1 | 2 | 3, number> = { 1: 360, 2: 280, 3: 220 };
+                  const charThreshold = charThresholdMap[activeColumns];
+                  const collapsedHeight = collapsedHeightMap[activeColumns];
+                  
+                  const hasMore = contentLines.length > 3 || fullContent.length > charThreshold;
+                  const showGradient = hasMore && !isExpanded;
+                  
+                  console.log('🔍 Research insight card:', {
+                    index: insightIndex,
+                    title: insight.title,
+                    contentLines: contentLines.length,
+                    fullLength: fullContent.length,
+                    hasMore,
+                    isExpanded,
+                    charThreshold,
+                    collapsedHeight,
+                    previewSample: fullContent.substring(0, 160)
+                  });
                   
                   const InsightIcon = insightIcons[insightIndex % insightIcons.length];
                   const gradient = insightGradients[insightIndex % insightGradients.length];
@@ -2524,30 +2620,25 @@ export function CaseStudySections({
                         <h4 className="mb-2">{insight.title}</h4>
                         {insight.description && (
                           <>
-                            {/* Preview content - always visible */}
-                            <div className="text-muted-foreground leading-relaxed text-sm mb-2">
-                              <MarkdownRenderer content={previewContent} variant="compact" />
-                            </div>
-                            
-                            {/* Expanded content - conditionally visible */}
-                            {hasMore && (
+                            <div className="relative text-muted-foreground leading-relaxed text-sm">
                               <motion.div
                                 initial={false}
                                 animate={{
-                                  height: isExpanded ? "auto" : 0,
-                                  opacity: isExpanded ? 1 : 0,
-                                  marginTop: isExpanded ? 12 : 0
+                                  height: hasMore && !isExpanded ? `${collapsedHeight}px` : "auto",
+                                  opacity: 1,
+                                  marginTop: 0
                                 }}
                                 transition={{ duration: 0.3, ease: "easeInOut" }}
-                                className="overflow-hidden"
+                                className="overflow-hidden transition-all duration-300"
+                                style={{ maxHeight: hasMore && !isExpanded ? `${collapsedHeight}px` : undefined }}
                               >
-                                <div className="text-muted-foreground leading-relaxed text-sm">
-                                  <MarkdownRenderer content={contentLines.slice(2).join('\n')} variant="compact" />
-                                </div>
+                                <MarkdownRenderer content={fullContent} variant="compact" />
                               </motion.div>
-                            )}
+                              {showGradient && (
+                                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-b from-transparent via-white/0 to-white/90 dark:via-slate-900/20 dark:to-slate-950/85" />
+                              )}
+                            </div>
                             
-                            {/* View more button */}
                             {hasMore && (
                               <button
                                 onClick={(e) => {
@@ -2574,18 +2665,21 @@ export function CaseStudySections({
                                     ease: "linear",
                                   }}
                                   style={{
+                                    backgroundImage: "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%)",
                                     backgroundClip: "text",
                                     WebkitBackgroundClip: "text",
-                                    WebkitTextFillColor: "transparent",
+                                    color: "transparent",
                                   }}
                                 >
                                   {isExpanded ? "Show less" : "Show more"}
                                 </motion.span>
-                                {isExpanded ? (
-                                  <ChevronUp className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                                ) : (
-                                  <ChevronDown className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                                )}
+                                <motion.span
+                                  animate={{ rotate: isExpanded ? 180 : 0 }}
+                                  transition={{ type: "spring", stiffness: 260, damping: 20 }}
+                                  className="w-4 h-4 text-primary"
+                                >
+                                  {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                                </motion.span>
                               </button>
                             )}
                           </>
@@ -2740,15 +2834,25 @@ export function CaseStudySections({
         }
 
         // Special handling for Key Features section (flexible title matching)
-        const isKeyFeaturesSection = section.title.toLowerCase().includes("key features") || 
-                                     section.title.toLowerCase().includes("project phases") ||
-                                     section.title.toLowerCase() === "key features";
-        if (isKeyFeaturesSection) {
-          const features = parseSubsections(section.content);
-          const featureCards = features.map(item => ({
-            title: item.name,
-            description: item.content.trim()
-          }));
+        const keyFeaturesBlock = isKeyFeaturesSection(section);
+        if (keyFeaturesBlock) {
+          const featureCards = extractFeatureCards(section.content);
+
+          console.log('🧩 Key features detection:', {
+            title: section.title,
+            featureCount: featureCards.length,
+            headings: featureCards.map(card => card.title),
+            snippet: section.content?.slice(0, 200)
+          });
+
+          featureCards.forEach((card, idx) => {
+            console.log('🧩 Feature card details:', {
+              sectionTitle: section.title,
+              index: idx,
+              heading: card.title,
+              descriptionPreview: card.description.slice(0, 120)
+            });
+          });
 
           if (featureCards.length === 0) {
             return null;

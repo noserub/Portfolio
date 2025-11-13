@@ -2124,6 +2124,19 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
   // Function to normalize project data structure for ProjectDetail
   const normalizeProjectData = (project: any): ProjectData => {
     const nn = (v: any) => (v === null || v === undefined ? undefined : v);
+    const parseColumn = (value: any, allowed: number[], fallback: number) => {
+      const num = Number(value);
+      return allowed.includes(num) ? num : fallback;
+    };
+    const keyFeaturesColumnsValue = project.keyFeaturesColumns ?? project.key_features_columns;
+    const rawSectionPositions = project.sectionPositions ?? project.section_positions ?? {};
+    const researchInsightsColumnsValue =
+      project.researchInsightsColumns ??
+      (project as any).research_insights_columns ??
+      (rawSectionPositions as any).__RESEARCH_COLUMNS__;
+    const normalizedKeyFeaturesColumns = parseColumn(keyFeaturesColumnsValue, [2, 3], 3) as 2 | 3;
+    const normalizedResearchColumns = parseColumn(researchInsightsColumnsValue, [1, 2, 3], 3) as 1 | 2 | 3;
+
     return {
       ...project,
       // Ensure camelCase fields are available
@@ -2137,14 +2150,14 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
       galleryColumns: project.galleryColumns || project.gallery_columns || 3,
       flowDiagramColumns: project.flowDiagramColumns || project.flow_diagram_columns || 2,
       videoColumns: project.videoColumns || project.video_columns || 1,
-      keyFeaturesColumns: (project.keyFeaturesColumns || project.key_features_columns || 3) as 2 | 3,
-      researchInsightsColumns: (project.researchInsightsColumns || (project as any).research_insights_columns || 3) as 1 | 2 | 3,
+      keyFeaturesColumns: normalizedKeyFeaturesColumns,
+      researchInsightsColumns: normalizedResearchColumns,
       // Map section positions from snake_case → camelCase, coercing null → undefined
       projectImagesPosition: nn(project.projectImagesPosition ?? project.project_images_position),
       videosPosition: nn(project.videosPosition ?? project.videos_position),
       flowDiagramsPosition: nn(project.flowDiagramsPosition ?? project.flow_diagrams_position),
-      solutionCardsPosition: nn(project.solutionCardsPosition ?? project.solution_cards_position),
-      sectionPositions: project.sectionPositions ?? project.section_positions ?? {},
+      solutionCardsPosition: project.solutionCardsPosition ?? project.solution_cards_position ?? null,
+      sectionPositions: rawSectionPositions,
       // NEW: include JSON sidebars (camelCase)
       caseStudySidebars: (project as any).caseStudySidebars || (project as any).case_study_sidebars || {},
       sortOrder: project.sortOrder !== undefined ? project.sortOrder : (project.sort_order !== undefined ? project.sort_order : 0),
@@ -2700,6 +2713,8 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     
     try {
       // Convert to Supabase format
+      const solutionCardsPositionRaw = updatedProject.solutionCardsPosition ?? (updatedProject as any).solution_cards_position;
+ 
       const projectData = {
         title: updatedProject.title,
         description: updatedProject.description,
@@ -2720,18 +2735,32 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         gallery_columns: updatedProject.galleryColumns || 1,
         flow_diagram_columns: updatedProject.flowDiagramColumns || 1,
         video_columns: updatedProject.videoColumns || 1,
-        key_features_columns: (updatedProject as any).keyFeaturesColumns || (updatedProject as any).key_features_columns || 3,
-        research_insights_columns: (updatedProject as any).researchInsightsColumns || (updatedProject as any).research_insights_columns || 3,
-        project_images_position: updatedProject.projectImagesPosition,
-        videos_position: updatedProject.videosPosition,
-        flow_diagrams_position: updatedProject.flowDiagramsPosition,
-        solution_cards_position: updatedProject.solutionCardsPosition,
         section_positions: updatedProject.sectionPositions || {},
         // NEW: persist JSON sidebars if present
         case_study_sidebars: (updatedProject as any).caseStudySidebars || (updatedProject as any).case_study_sidebars || undefined,
         sort_order: (updatedProject as any).sortOrder || 0,
         project_type: updatedProject.projectType || (updatedProject as any).project_type || null,
       };
+
+      const rawKeyFeaturesColumns = (updatedProject as any).keyFeaturesColumns ?? (updatedProject as any).key_features_columns;
+      if (rawKeyFeaturesColumns !== undefined && rawKeyFeaturesColumns !== null) {
+        const normalizedKeyFeaturesColumns = Number(rawKeyFeaturesColumns);
+        if ([2, 3].includes(normalizedKeyFeaturesColumns)) {
+          projectData.key_features_columns = normalizedKeyFeaturesColumns;
+        }
+      }
+
+      const rawResearchInsightsColumns = (updatedProject as any).researchInsightsColumns ?? (updatedProject as any).research_insights_columns;
+      if (rawResearchInsightsColumns !== undefined && rawResearchInsightsColumns !== null) {
+        const normalizedResearchInsightsColumns = Number(rawResearchInsightsColumns);
+        if ([1, 2, 3].includes(normalizedResearchInsightsColumns)) {
+          projectData.research_insights_columns = normalizedResearchInsightsColumns;
+        }
+      }
+
+      if (solutionCardsPositionRaw !== undefined) {
+        projectData.solution_cards_position = solutionCardsPositionRaw;
+      }
 
       console.log('🔄 Home: Calling updateProject with data:', {
         id: updatedProject.id,

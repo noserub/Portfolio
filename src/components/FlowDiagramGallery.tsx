@@ -385,6 +385,7 @@ export function FlowDiagramGallery({
 }: FlowDiagramGalleryProps) {
   const [dragOver, setDragOver] = useState(false);
   const [showAllImages, setShowAllImages] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Calculate the initial limit based on columns
   // 13th image for 3 columns, 9th for 2 columns, 5th for 1 column
@@ -403,7 +404,7 @@ export function FlowDiagramGallery({
   
   const initialLimit = getInitialLimit(columns);
   const hasMoreImages = images.length > initialLimit;
-  const displayedImages = showAllImages || !hasMoreImages ? images : images.slice(0, initialLimit);
+  const displayedImages = isEditMode || showAllImages || !hasMoreImages ? images : images.slice(0, initialLimit);
   
   // Reset showAllImages when columns change
   useEffect(() => {
@@ -443,9 +444,19 @@ export function FlowDiagramGallery({
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!isEditMode) return;
+    if (!isEditMode) {
+      console.warn('⚠️ Upload attempted but not in edit mode');
+      return;
+    }
     const files = Array.from(e.target.files || []);
+    console.log('📁 Files selected:', files.length, files.map(f => f.name));
+    if (files.length === 0) {
+      console.warn('⚠️ No files selected');
+      return;
+    }
     addFiles(files);
+    // Reset input so same file can be selected again
+    e.target.value = '';
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -457,17 +468,38 @@ export function FlowDiagramGallery({
   };
 
   const addFiles = async (files: File[]) => {
+    if (!files || files.length === 0) {
+      console.warn('⚠️ No files provided to addFiles');
+      return;
+    }
+    
+    console.log('🚀 Starting upload process for', files.length, 'file(s)');
+    
     // Dynamic import to avoid blocking initial load
-    const { uploadImage } = await import('../utils/imageHelpers');
+    let uploadImage;
+    try {
+      const imageHelpers = await import('../utils/imageHelpers');
+      uploadImage = imageHelpers.uploadImage;
+      console.log('✅ Image helpers imported successfully');
+    } catch (error) {
+      console.error('❌ Failed to import image helpers:', error);
+      alert('Failed to load upload functionality. Please refresh the page and try again.');
+      return;
+    }
     
     const newImages: FlowDiagramImage[] = [];
     
     for (const file of files) {
       try {
-        console.log('📤 Uploading flow diagram image:', file.name);
+        console.log('📤 Uploading image:', {
+          name: file.name,
+          size: file.size,
+          type: file.type
+        });
+        
         // Upload image to Supabase - wait for completion
         const url = await uploadImage(file, 'diagram');
-        console.log('✅ Flow diagram image uploaded:', url);
+        console.log('✅ Image uploaded successfully:', url);
         
         const newImage: FlowDiagramImage = {
           id: Math.random().toString(36).substr(2, 9),
@@ -476,17 +508,24 @@ export function FlowDiagramGallery({
         };
         
         newImages.push(newImage);
+        console.log('✅ Image added to array:', newImage.id);
       } catch (error) {
-        console.error('❌ Error uploading flow diagram image:', error);
-        alert(`Failed to upload image: ${file.name}. Please try again.`);
+        console.error('❌ Error uploading image:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        alert(`Failed to upload image: ${file.name}\n\nError: ${errorMessage}\n\nPlease check the console for more details.`);
         // Don't add failed images to the array
       }
     }
     
     // Only update images if we successfully uploaded at least one
     if (newImages.length > 0) {
-      console.log('📊 Adding', newImages.length, 'new flow diagram images');
+      console.log('📊 Adding', newImages.length, 'new image(s) to gallery');
+      console.log('📊 Current images count:', images.length);
+      console.log('📊 New total will be:', images.length + newImages.length);
       onImagesChange([...images, ...newImages]);
+      console.log('✅ Images updated successfully');
+    } else {
+      console.warn('⚠️ No images were successfully uploaded');
     }
   };
 
@@ -608,18 +647,30 @@ export function FlowDiagramGallery({
             <p className="text-sm text-muted-foreground mb-4">
               Images will display in {getAspectRatioLabel(aspectRatio)}
             </p>
-            <label>
-              <Button variant="outline" className="cursor-pointer" asChild>
-                <span>Choose Files</span>
-              </Button>
+            <div>
               <input
+                ref={fileInputRef}
                 type="file"
                 accept="image/*"
                 multiple
                 onChange={handleFileChange}
                 className="hidden"
               />
-            </label>
+              <Button 
+                variant="outline" 
+                type="button"
+                onClick={() => {
+                  console.log('🖱️ Choose Files button clicked');
+                  if (fileInputRef.current) {
+                    fileInputRef.current.click();
+                  } else {
+                    console.error('❌ File input ref not found');
+                  }
+                }}
+              >
+                Choose Files
+              </Button>
+            </div>
           </div>
         </div>
       )}

@@ -46,6 +46,11 @@ import { useAppSettings } from "./hooks/useAppSettings";
 import { useProjects } from "./hooks/useProjects";
 import { useContactMessages } from "./hooks/useContactMessages";
 
+const parseColumnsValue = (value: any, allowed: number[], fallback: number) => {
+  const num = Number(value);
+  return allowed.includes(num) ? num : fallback;
+};
+
 // Lazy load diagnostics to avoid blocking React mount
 if (typeof window !== 'undefined') {
   import("./utils/diagnostics").catch(err => {
@@ -1133,8 +1138,8 @@ export default function App() {
           galleryColumns: data.gallery_columns,
           flowDiagramColumns: data.flow_diagram_columns,
           videoColumns: data.video_columns,
-          keyFeaturesColumns: (data.key_features_columns || 3) as 2 | 3,
-          researchInsightsColumns: ((data as any).research_insights_columns || 3) as 1 | 2 | 3,
+          keyFeaturesColumns: parseColumnsValue(data.key_features_columns, [2, 3], 3) as 2 | 3,
+          researchInsightsColumns: parseColumnsValue((data as any).research_insights_columns, [1, 2, 3], 3) as 1 | 2 | 3,
           // Convert position fields
           projectImagesPosition: data.project_images_position,
           videosPosition: data.videos_position,
@@ -1292,27 +1297,51 @@ export default function App() {
   const handleUpdateProject = async (updatedProject: ProjectData) => {
     const { _navTimestamp, ...cleanProject } = updatedProject as any;
     
-    setSelectedProject({
+    const sanitizedProject = {
       ...cleanProject,
+    } as ProjectData & Record<string, any>;
+
+    const rawKeyFeaturesColumns = (cleanProject as any).keyFeaturesColumns ?? (cleanProject as any).key_features_columns;
+    if (rawKeyFeaturesColumns !== undefined) {
+      const normalizedKeyFeaturesColumns = parseColumnsValue(rawKeyFeaturesColumns, [2, 3], 3);
+      sanitizedProject.keyFeaturesColumns = normalizedKeyFeaturesColumns as any;
+      sanitizedProject.key_features_columns = normalizedKeyFeaturesColumns as any;
+    }
+
+    const rawResearchInsightsColumns = (cleanProject as any).researchInsightsColumns ?? (cleanProject as any).research_insights_columns;
+    if (rawResearchInsightsColumns !== undefined) {
+      const normalizedResearchInsightsColumns = parseColumnsValue(rawResearchInsightsColumns, [1, 2, 3], 3);
+      sanitizedProject.researchInsightsColumns = normalizedResearchInsightsColumns as any;
+      sanitizedProject.research_insights_columns = normalizedResearchInsightsColumns as any;
+    }
+
+    const rawSolutionCardsPosition = cleanProject.solutionCardsPosition ?? (cleanProject as any).solution_cards_position;
+    if (rawSolutionCardsPosition !== undefined) {
+      sanitizedProject.solutionCardsPosition = rawSolutionCardsPosition;
+      sanitizedProject.solution_cards_position = rawSolutionCardsPosition;
+    }
+    
+    setSelectedProject({
+      ...sanitizedProject,
       _navTimestamp: (selectedProject as any)?._navTimestamp || Date.now()
     } as any);
     
     if (projectUpdateCallback) {
-      projectUpdateCallback.fn(cleanProject);
-      
+      projectUpdateCallback.fn(sanitizedProject);
+    
       // Silent verification - log warnings to console only (no annoying alerts)
       setTimeout(() => {
         try {
           const caseStudiesData = localStorage.getItem('caseStudies');
           if (caseStudiesData) {
             const caseStudies = JSON.parse(caseStudiesData);
-            const savedProject = caseStudies.find((p: ProjectData) => p.id === cleanProject.id);
+            const savedProject = caseStudies.find((p: ProjectData) => p.id === sanitizedProject.id);
             
             if (!savedProject) {
               console.warn('⚠️ Save verification: Project not found in localStorage after save');
-            } else if ((cleanProject.caseStudyImages?.length || 0) !== (savedProject?.caseStudyImages?.length || 0)) {
+            } else if ((sanitizedProject.caseStudyImages?.length || 0) !== (savedProject?.caseStudyImages?.length || 0)) {
               console.warn('⚠️ Save verification: Image count mismatch', {
-                expected: cleanProject.caseStudyImages?.length || 0,
+                expected: sanitizedProject.caseStudyImages?.length || 0,
                 actual: savedProject?.caseStudyImages?.length || 0
               });
             } else {
@@ -1332,39 +1361,48 @@ export default function App() {
       try {
         // Convert camelCase to snake_case for Supabase
         const projectData: any = {
-          title: cleanProject.title,
-          description: cleanProject.description,
-          url: cleanProject.url,
-          position_x: cleanProject.position?.x || 50,
-          position_y: cleanProject.position?.y || 50,
-          scale: cleanProject.scale || 1,
-          published: cleanProject.published || false,
-          requires_password: cleanProject.requiresPassword || false,
-          password: (cleanProject as any).password || '',
-          case_study_content: cleanProject.caseStudyContent,
-          case_study_images: cleanProject.caseStudyImages || [],
-          flow_diagram_images: cleanProject.flowDiagramImages || [],
-          video_items: cleanProject.videoItems || [],
-          gallery_aspect_ratio: cleanProject.galleryAspectRatio || '3x4',
-          flow_diagram_aspect_ratio: cleanProject.flowDiagramAspectRatio || '3x4',
-          video_aspect_ratio: cleanProject.videoAspectRatio || '3x4',
-          gallery_columns: cleanProject.galleryColumns || 1,
-          flow_diagram_columns: cleanProject.flowDiagramColumns || 1,
-          video_columns: cleanProject.videoColumns || 1,
-          key_features_columns: (cleanProject as any).keyFeaturesColumns || (cleanProject as any).key_features_columns || 3,
-          research_insights_columns: (cleanProject as any).researchInsightsColumns || (cleanProject as any).research_insights_columns || 3,
-          project_images_position: cleanProject.projectImagesPosition,
-          videos_position: cleanProject.videosPosition,
-          flow_diagrams_position: cleanProject.flowDiagramsPosition,
-          solution_cards_position: cleanProject.solutionCardsPosition,
-          section_positions: cleanProject.sectionPositions || {},
-          case_study_sidebars: (cleanProject as any).caseStudySidebars || (cleanProject as any).case_study_sidebars || undefined,
-          sort_order: (cleanProject as any).sortOrder || 0,
-          project_type: cleanProject.projectType || (cleanProject as any).project_type || null
+          title: sanitizedProject.title,
+          description: sanitizedProject.description,
+          url: sanitizedProject.url,
+          position_x: sanitizedProject.position?.x || 50,
+          position_y: sanitizedProject.position?.y || 50,
+          scale: sanitizedProject.scale || 1,
+          published: sanitizedProject.published || false,
+          requires_password: sanitizedProject.requiresPassword || false,
+          password: (sanitizedProject as any).password || '',
+          case_study_content: sanitizedProject.caseStudyContent,
+          case_study_images: sanitizedProject.caseStudyImages || [],
+          flow_diagram_images: sanitizedProject.flowDiagramImages || [],
+          video_items: sanitizedProject.videoItems || [],
+          gallery_aspect_ratio: sanitizedProject.galleryAspectRatio || '3x4',
+          flow_diagram_aspect_ratio: sanitizedProject.flowDiagramAspectRatio || '3x4',
+          video_aspect_ratio: sanitizedProject.videoAspectRatio || '3x4',
+          gallery_columns: sanitizedProject.galleryColumns || 1,
+          flow_diagram_columns: sanitizedProject.flowDiagramColumns || 1,
+          video_columns: sanitizedProject.videoColumns || 1,
+          project_images_position: sanitizedProject.projectImagesPosition,
+          videos_position: sanitizedProject.videosPosition,
+          flow_diagrams_position: sanitizedProject.flowDiagramsPosition,
+          section_positions: sanitizedProject.sectionPositions || {},
+          case_study_sidebars: (sanitizedProject as any).caseStudySidebars || (sanitizedProject as any).case_study_sidebars || undefined,
+          sort_order: (sanitizedProject as any).sortOrder || 0,
+          project_type: sanitizedProject.projectType || (sanitizedProject as any).project_type || null
         };
         
-        await updateProject(cleanProject.id, projectData);
-        console.log('✅ Project persisted directly to Supabase:', { id: cleanProject.id, hasSidebars: !!projectData.case_study_sidebars });
+        if ((sanitizedProject as any).keyFeaturesColumns !== undefined) {
+          projectData.key_features_columns = parseColumnsValue((sanitizedProject as any).keyFeaturesColumns, [2, 3], 3);
+        }
+
+        if ((sanitizedProject as any).researchInsightsColumns !== undefined) {
+          projectData.research_insights_columns = parseColumnsValue((sanitizedProject as any).researchInsightsColumns, [1, 2, 3], 3);
+        }
+
+        if ((sanitizedProject as any).solutionCardsPosition !== undefined) {
+          projectData.solution_cards_position = sanitizedProject.solutionCardsPosition;
+        }
+        
+        await updateProject(sanitizedProject.id, projectData);
+        console.log('✅ Project persisted directly to Supabase:', { id: sanitizedProject.id, hasSidebars: !!projectData.case_study_sidebars });
         setShowSaveIndicator(true);
         setTimeout(() => setShowSaveIndicator(false), 3000);
       } catch (error) {
