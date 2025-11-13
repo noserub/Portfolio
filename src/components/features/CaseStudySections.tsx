@@ -1399,8 +1399,19 @@ export function CaseStudySections({
 
     const titleLower = section.title.toLowerCase();
 
-    // Never treat solution sections as key features, even if they contain subsections
-    if (titleLower.includes('solution')) {
+    const excludedByTitle = [
+      'competitive analysis',
+      'competitive landscape',
+      'competitor',
+      'research insights',
+      'research',
+      'overview',
+      'challenge',
+      'my role',
+      'solution'
+    ];
+
+    if (excludedByTitle.some(keyword => titleLower.includes(keyword))) {
       return false;
     }
 
@@ -1420,21 +1431,23 @@ export function CaseStudySections({
     }
 
     const featureCards = extractFeatureCards(section.content || '');
-    return featureCards.length >= 2;
+
+    if (featureCards.length >= 2) {
+      const averageHeadingLength = featureCards.reduce((acc, item) => acc + item.title.length, 0) / featureCards.length;
+      const maxBodyLength = Math.max(...featureCards.map(item => item.description.length || 0));
+
+      return averageHeadingLength <= 60 && maxBodyLength <= 1600;
+    }
+
+    return false;
   };
+
+  const contentSource = latestProjectContent || content;
+  console.log('📝 Content preview (first 1200 chars):', contentSource?.slice(0, 1200));
 
   const sections = parseSections();
 
-  console.log('📋 Parsed sections:', {
-    totalSections: sections.length,
-    sectionTitles: sections.map(s => s.title),
-    hasNewCard3: sections.some(s => s.title.includes('New Card 3')),
-    hasNewCard4: sections.some(s => s.title.includes('New Card 4')),
-    usingLatestProjectContent: !!latestProjectContent,
-    contentLength: content.length,
-    latestProjectContentLength: latestProjectContent?.length || 0,
-    contentPreview: (latestProjectContent || content).substring(0, 200)
-  });
+  console.log('📋 Section titles:', sections.map(s => s.title));
 
   // Filter out sidebar sections - they will be rendered separately in the sidebar
   // Also filter out empty sections when not in edit mode
@@ -2830,6 +2843,15 @@ export function CaseStudySections({
             featureCount: featureCards.length,
             headings: featureCards.map(card => card.title),
             snippet: section.content?.slice(0, 200)
+          });
+
+          featureCards.forEach((card, idx) => {
+            console.log('🧩 Feature card details:', {
+              sectionTitle: section.title,
+              index: idx,
+              heading: card.title,
+              descriptionPreview: card.description.slice(0, 120)
+            });
           });
 
           if (featureCards.length === 0) {

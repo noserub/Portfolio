@@ -958,16 +958,31 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
   const [keyFeaturesColumns, setKeyFeaturesColumns] = useState<2 | 3>(
     (project as any).keyFeaturesColumns || (project as any).key_features_columns || 3
   );
+  const projectSectionPositionsRaw =
+    project.sectionPositions ||
+    (project as any).sectionPositions ||
+    (project as any).section_positions ||
+    {};
   const initialResearchColumns = parseResearchInsightsColumnsValue(
-    (project as any).researchInsightsColumns ?? (project as any).research_insights_columns
+    (project as any).researchInsightsColumns ??
+    (project as any).research_insights_columns ??
+    (projectSectionPositionsRaw as any).__RESEARCH_COLUMNS__
   );
   const [researchInsightsColumns, setResearchInsightsColumns] = useState<1 | 2 | 3>(initialResearchColumns);
   
   // Sync researchInsightsColumns with project prop changes, but only if project actually has a value
   // This prevents resetting user's settings during hot reloads
   useEffect(() => {
-    const projectValueRaw = (project as any).researchInsightsColumns ?? (project as any).research_insights_columns;
-    if (projectValueRaw === undefined || projectValueRaw === null) {
+    const projectPositions =
+      project.sectionPositions ||
+      (project as any).sectionPositions ||
+      (project as any).section_positions ||
+      {};
+    const projectValueRaw =
+      (project as any).researchInsightsColumns ??
+      (project as any).research_insights_columns ??
+      (projectPositions as any).__RESEARCH_COLUMNS__;
+    if (projectValueRaw === undefined || projectValueRaw === null || projectValueRaw === '') {
       return; // Respect the current in-memory value when project doesn't have a persisted setting
     }
     
@@ -979,7 +994,12 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       console.log('🔄 Syncing researchInsightsColumns from project:', projectValueRaw, 'normalized:', projectValue, 'current:', prev);
       return projectValue;
     });
-  }, [(project as any).researchInsightsColumns, (project as any).research_insights_columns]);
+  }, [
+    (project as any).researchInsightsColumns,
+    (project as any).research_insights_columns,
+    (project.sectionPositions as any)?.__RESEARCH_COLUMNS__,
+    (project as any).section_positions?.__RESEARCH_COLUMNS__
+  ]);
   const [lightboxImage, setLightboxImage] = useState(null);
   const [flowDiagramLightboxImage, setFlowDiagramLightboxImage] = useState(null);
   const [isEditingHeroImage, setIsEditingHeroImage] = useState(false);
@@ -5355,6 +5375,11 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
             researchInsightsColumns={researchInsightsColumns}
             onResearchInsightsColumnsChange={(columns) => {
               setResearchInsightsColumns(columns);
+              const updatedSectionPositions = {
+                ...((sectionPositions as any) || {}),
+                __RESEARCH_COLUMNS__: columns,
+              };
+              setSectionPositions(updatedSectionPositions as any);
               // Auto-save when columns change
               const updatedProject: ProjectData = {
                 ...project,
@@ -5379,6 +5404,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                 key_features_columns: keyFeaturesColumns,
                 researchInsightsColumns: columns,
                 research_insights_columns: columns,
+                sectionPositions: updatedSectionPositions,
+                section_positions: updatedSectionPositions,
               } as any;
               onUpdate(updatedProject);
             }}

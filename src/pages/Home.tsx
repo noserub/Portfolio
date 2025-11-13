@@ -2129,7 +2129,11 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
       return allowed.includes(num) ? num : fallback;
     };
     const keyFeaturesColumnsValue = project.keyFeaturesColumns ?? project.key_features_columns;
-    const researchInsightsColumnsValue = project.researchInsightsColumns ?? (project as any).research_insights_columns;
+    const rawSectionPositions = project.sectionPositions ?? project.section_positions ?? {};
+    const researchInsightsColumnsValue =
+      project.researchInsightsColumns ??
+      (project as any).research_insights_columns ??
+      (rawSectionPositions as any).__RESEARCH_COLUMNS__;
     const normalizedKeyFeaturesColumns = parseColumn(keyFeaturesColumnsValue, [2, 3], 3) as 2 | 3;
     const normalizedResearchColumns = parseColumn(researchInsightsColumnsValue, [1, 2, 3], 3) as 1 | 2 | 3;
 
@@ -2153,7 +2157,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
       videosPosition: nn(project.videosPosition ?? project.videos_position),
       flowDiagramsPosition: nn(project.flowDiagramsPosition ?? project.flow_diagrams_position),
       solutionCardsPosition: project.solutionCardsPosition ?? project.solution_cards_position ?? null,
-      sectionPositions: project.sectionPositions ?? project.section_positions ?? {},
+      sectionPositions: rawSectionPositions,
       // NEW: include JSON sidebars (camelCase)
       caseStudySidebars: (project as any).caseStudySidebars || (project as any).case_study_sidebars || {},
       sortOrder: project.sortOrder !== undefined ? project.sortOrder : (project.sort_order !== undefined ? project.sort_order : 0),
