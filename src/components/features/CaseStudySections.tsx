@@ -1365,6 +1365,32 @@ export function CaseStudySections({
     return items;
   };
 
+  const extractFeatureCards = (content: string = '') => {
+    const blocks = content
+      .split(/\n(?=##+\s)/)
+      .map(block => block.trim())
+      .filter(block => block.length > 0);
+
+    return blocks.map(block => {
+      const [headingLine, ...rest] = block.split('\n');
+      const title = headingLine.replace(/^##+\s*/, '').trim();
+      const description = rest.join('\n').trim();
+      return {
+        title,
+        description,
+      };
+    }).filter(card => {
+      const placeholderPatterns = [
+        /add content for/i,
+        /you can use markdown/i,
+        /bullet points/i,
+        /\*\*bold text\*\*/i,
+        /\*italic text\*/i
+      ];
+      return placeholderPatterns.every(pattern => !pattern.test(card.description));
+    });
+  };
+
   // Alias for backwards compatibility
   const parseCompetitiveAnalysis = parseSubsections;
 
@@ -1393,24 +1419,8 @@ export function CaseStudySections({
       return true;
     }
 
-    const features = parseSubsections(section.content || '');
-    if (features.length < 2) {
-      return false;
-    }
-
-    const headingKeywords = ['feature', 'phase', 'pillar', 'milestone', 'highlight', 'capability', 'stage', 'step'];
-    const headingsLower = features.map(item => (item.name || '').toLowerCase());
-    const hasFeatureKeyword = headingsLower.some(name => headingKeywords.some(keyword => name.includes(keyword)));
-    const distinctHeadingCount = new Set(headingsLower).size;
-
-    if (hasFeatureKeyword && distinctHeadingCount >= 2) {
-      return true;
-    }
-
-    const averageHeadingLength = headingsLower.reduce((acc, name) => acc + name.length, 0) / features.length;
-    const maxContentLength = Math.max(...features.map(item => (item.content || '').trim().length));
-
-    return distinctHeadingCount >= 2 && averageHeadingLength <= 40 && maxContentLength <= 1200;
+    const featureCards = extractFeatureCards(section.content || '');
+    return featureCards.length >= 2;
   };
 
   const sections = parseSections();
@@ -2813,16 +2823,12 @@ export function CaseStudySections({
         // Special handling for Key Features section (flexible title matching)
         const keyFeaturesBlock = isKeyFeaturesSection(section);
         if (keyFeaturesBlock) {
-          const features = parseSubsections(section.content);
-          const featureCards = features.map(item => ({
-            title: item.name,
-            description: item.content.trim()
-          }));
+          const featureCards = extractFeatureCards(section.content);
 
           console.log('🧩 Key features detection:', {
             title: section.title,
             featureCount: featureCards.length,
-            headings: features.map(item => item.name),
+            headings: featureCards.map(card => card.title),
             snippet: section.content?.slice(0, 200)
           });
 
