@@ -1139,14 +1139,20 @@ export default function App() {
           flowDiagramColumns: data.flow_diagram_columns,
           videoColumns: data.video_columns,
           keyFeaturesColumns: parseColumnsValue(data.key_features_columns, [2, 3], 3) as 2 | 3,
-          researchInsightsColumns: parseColumnsValue((data as any).research_insights_columns, [1, 2, 3], 3) as 1 | 2 | 3,
+          // Convert other fields first so we can use section_positions
+          sectionPositions: data.section_positions || {},
+          // Read researchInsightsColumns from section_positions.__RESEARCH_COLUMNS__ if available
+          researchInsightsColumns: parseColumnsValue(
+            (data as any).research_insights_columns ?? 
+            (data.section_positions as any)?.__RESEARCH_COLUMNS__,
+            [1, 2, 3], 
+            3
+          ) as 1 | 2 | 3,
           // Convert position fields
           projectImagesPosition: data.project_images_position,
           videosPosition: data.videos_position,
           flowDiagramsPosition: data.flow_diagrams_position,
           solutionCardsPosition: data.solution_cards_position,
-          // Convert other fields
-          sectionPositions: data.section_positions || {},
           requiresPassword: data.requires_password,
           projectType: data.project_type || null,
           // Remove snake_case fields to avoid confusion
