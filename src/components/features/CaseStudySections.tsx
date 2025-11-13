@@ -2819,6 +2819,13 @@ export function CaseStudySections({
             description: item.content.trim()
           }));
 
+          console.log('🧩 Key features detection:', {
+            title: section.title,
+            featureCount: featureCards.length,
+            headings: features.map(item => item.name),
+            snippet: section.content?.slice(0, 200)
+          });
+
           if (featureCards.length === 0) {
             return null;
           }
