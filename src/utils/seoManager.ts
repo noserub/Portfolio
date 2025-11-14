@@ -39,12 +39,25 @@ export interface AllSEOData {
   caseStudyDefaults: SEOData; // Template for individual case studies
 }
 
+// Get site URL from environment or use default
+const getSiteUrl = (): string => {
+  if (typeof window !== 'undefined') {
+    // In browser: use current origin, or fallback to default
+    const origin = window.location.origin;
+    if (origin && origin !== 'http://localhost:3000' && origin !== 'http://localhost:5173') {
+      return origin;
+    }
+  }
+  // Fallback to default (can be overridden via localStorage or environment variable at build time)
+  return 'https://brianbureson.com';
+};
+
 const DEFAULT_SEO_DATA: AllSEOData = {
   sitewide: {
     siteName: 'Brian Bureson - Product Design Leader',
-    siteUrl: 'https://brianbureson.com',
+    siteUrl: getSiteUrl(),
     defaultAuthor: 'Brian Bureson',
-    defaultOGImage: '',
+    defaultOGImage: `${getSiteUrl()}/api/og?title=Brian%20Bureson%20-%20Product%20Design%20Leader`,
     defaultTwitterCard: 'summary_large_image',
     faviconType: 'text',
     faviconText: 'BB',
@@ -129,8 +142,15 @@ export function getSEOData(): AllSEOData {
     if (stored) {
       const parsed = JSON.parse(stored);
       // Merge with defaults to ensure all fields exist
-      return {
-        sitewide: { ...DEFAULT_SEO_DATA.sitewide, ...parsed.sitewide },
+      const merged = {
+        sitewide: { 
+          ...DEFAULT_SEO_DATA.sitewide, 
+          ...parsed.sitewide,
+          // Ensure siteUrl is always current (in case domain changed)
+          siteUrl: parsed.sitewide?.siteUrl || DEFAULT_SEO_DATA.sitewide.siteUrl,
+          // Ensure defaultOGImage always has a fallback
+          defaultOGImage: parsed.sitewide?.defaultOGImage || DEFAULT_SEO_DATA.sitewide.defaultOGImage,
+        },
         pages: {
           home: { ...DEFAULT_SEO_DATA.pages.home, ...parsed.pages?.home },
           about: { ...DEFAULT_SEO_DATA.pages.about, ...parsed.pages?.about },
@@ -139,11 +159,25 @@ export function getSEOData(): AllSEOData {
         },
         caseStudyDefaults: { ...DEFAULT_SEO_DATA.caseStudyDefaults, ...parsed.caseStudyDefaults },
       };
+      
+      // Ensure defaultOGImage has a fallback if empty
+      if (!merged.sitewide.defaultOGImage || merged.sitewide.defaultOGImage.trim() === '') {
+        merged.sitewide.defaultOGImage = `${merged.sitewide.siteUrl}/api/og?title=${encodeURIComponent(merged.sitewide.siteName)}`;
+      }
+      
+      return merged;
     }
   } catch (error) {
     console.error('Error loading SEO data:', error);
   }
-  return DEFAULT_SEO_DATA;
+  
+  // Always return defaults with valid OG image fallback
+  const defaults = { ...DEFAULT_SEO_DATA };
+  if (!defaults.sitewide.defaultOGImage || defaults.sitewide.defaultOGImage.trim() === '') {
+    defaults.sitewide.defaultOGImage = `${defaults.sitewide.siteUrl}/api/og?title=${encodeURIComponent(defaults.sitewide.siteName)}`;
+  }
+  
+  return defaults;
 }
 
 export function saveSEOData(data: AllSEOData): void {
@@ -204,27 +238,57 @@ export function applyPageSEO(pageSEO: SEOData, sitewide: SitewideSEO): void {
   updateMetaTag('meta[name="description"]', pageSEO.description);
   updateMetaTag('meta[name="keywords"]', pageSEO.keywords);
   updateMetaTag('meta[name="author"]', sitewide.defaultAuthor);
+  
+  // Meta robots (default: index, follow)
+  updateMetaTag('meta[name="robots"]', 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1');
 
   // Open Graph tags
   updateMetaTag('meta[property="og:site_name"]', sitewide.siteName);
   updateMetaTag('meta[property="og:title"]', pageSEO.ogTitle || pageSEO.title);
   updateMetaTag('meta[property="og:description"]', pageSEO.ogDescription || pageSEO.description);
   updateMetaTag('meta[property="og:type"]', 'website');
+  updateMetaTag('meta[property="og:locale"]', 'en_US');
   
-  const ogImage = pageSEO.ogImage || sitewide.defaultOGImage;
-  if (ogImage) {
-    updateMetaTag('meta[property="og:image"]', ogImage);
+  // OG URL - use canonical URL if available, otherwise construct from site URL
+  const ogUrl = pageSEO.canonicalUrl || (pageSEO.canonicalUrl === '' ? undefined : `${sitewide.siteUrl}${window.location.pathname}`);
+  if (ogUrl && !ogUrl.includes('#')) {
+    updateMetaTag('meta[property="og:url"]', ogUrl);
+  } else if (!pageSEO.canonicalUrl) {
+    // Fallback: construct URL from current pathname (without hash)
+    const currentUrl = `${sitewide.siteUrl}${window.location.pathname}`;
+    updateMetaTag('meta[property="og:url"]', currentUrl);
   }
+  
+  // OG Image - always provide a fallback using the OG API
+  let ogImage = pageSEO.ogImage || sitewide.defaultOGImage;
+  if (!ogImage || ogImage.trim() === '') {
+    // Fallback: use OG image API
+    ogImage = `${sitewide.siteUrl}/api/og?title=${encodeURIComponent(pageSEO.ogTitle || pageSEO.title)}`;
+  }
+  
+  // Always set OG image (required for proper social sharing)
+  updateMetaTag('meta[property="og:image"]', ogImage);
+  // Standard OG image dimensions (1200x630 for social sharing)
+  updateMetaTag('meta[property="og:image:width"]', '1200');
+  updateMetaTag('meta[property="og:image:height"]', '630');
+  updateMetaTag('meta[property="og:image:type"]', 'image/png');
+  updateMetaTag('meta[property="og:image:alt"]', pageSEO.ogTitle || pageSEO.title);
 
-  // Twitter Card tags
-  updateMetaTag('meta[name="twitter:card"]', pageSEO.twitterCard || sitewide.defaultTwitterCard);
-  updateMetaTag('meta[name="twitter:title"]', pageSEO.twitterTitle || pageSEO.ogTitle || pageSEO.title);
-  updateMetaTag('meta[name="twitter:description"]', pageSEO.twitterDescription || pageSEO.ogDescription || pageSEO.description);
+  // Twitter Card tags - Twitter requires these to be present
+  const twitterCard = pageSEO.twitterCard || sitewide.defaultTwitterCard || 'summary_large_image';
+  const twitterTitle = pageSEO.twitterTitle || pageSEO.ogTitle || pageSEO.title;
+  const twitterDescription = pageSEO.twitterDescription || pageSEO.ogDescription || pageSEO.description;
   
-  const twitterImage = pageSEO.twitterImage || pageSEO.ogImage || sitewide.defaultOGImage;
-  if (twitterImage) {
-    updateMetaTag('meta[name="twitter:image"]', twitterImage);
-  }
+  // Use the same image as OG (already has fallback)
+  const twitterImage = pageSEO.twitterImage || ogImage;
+  
+  updateMetaTag('meta[name="twitter:card"]', twitterCard);
+  updateMetaTag('meta[name="twitter:title"]', twitterTitle);
+  updateMetaTag('meta[name="twitter:description"]', twitterDescription);
+  
+  // Twitter requires an image for summary_large_image cards - always provide one
+  updateMetaTag('meta[name="twitter:image"]', twitterImage);
+  updateMetaTag('meta[name="twitter:image:alt"]', twitterTitle);
 
   // Canonical URL - only set if explicitly provided (non-empty)
   // Users can set this manually in SEO settings for each page

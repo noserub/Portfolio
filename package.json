@@ -61,9 +61,11 @@
       },
       "scripts": {
             "dev": "vite",
-            "build": "vite build",
+            "prebuild": "node scripts/inject-seo-html.cjs",
+            "build": "vite build && npm run generate:sitemap",
             "analyze": "node scripts/analyze-bundle.js",
             "generate:sitemap": "node scripts/generate-sitemap.cjs",
+            "inject:seo": "node scripts/inject-seo-html.cjs",
             "supabase:test": "vite --open 'http://localhost:3000?supabase=true'",
             "supabase:types": "supabase gen types typescript --local > src/types/supabase.ts"
       }
