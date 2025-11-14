@@ -39,12 +39,25 @@ export interface AllSEOData {
   caseStudyDefaults: SEOData; // Template for individual case studies
 }
 
+// Get site URL from environment or use default
+const getSiteUrl = (): string => {
+  if (typeof window !== 'undefined') {
+    // In browser: use current origin, or fallback to default
+    const origin = window.location.origin;
+    if (origin && origin !== 'http://localhost:3000' && origin !== 'http://localhost:5173') {
+      return origin;
+    }
+  }
+  // Fallback to default (can be overridden via localStorage or environment variable at build time)
+  return 'https://brianbureson.com';
+};
+
 const DEFAULT_SEO_DATA: AllSEOData = {
   sitewide: {
     siteName: 'Brian Bureson - Product Design Leader',
-    siteUrl: 'https://brianbureson.com',
+    siteUrl: getSiteUrl(),
     defaultAuthor: 'Brian Bureson',
-    defaultOGImage: '',
+    defaultOGImage: `${getSiteUrl()}/api/og?title=Brian%20Bureson%20-%20Product%20Design%20Leader`,
     defaultTwitterCard: 'summary_large_image',
     faviconType: 'text',
     faviconText: 'BB',
@@ -129,8 +142,15 @@ export function getSEOData(): AllSEOData {
     if (stored) {
       const parsed = JSON.parse(stored);
       // Merge with defaults to ensure all fields exist
-      return {
-        sitewide: { ...DEFAULT_SEO_DATA.sitewide, ...parsed.sitewide },
+      const merged = {
+        sitewide: { 
+          ...DEFAULT_SEO_DATA.sitewide, 
+          ...parsed.sitewide,
+          // Ensure siteUrl is always current (in case domain changed)
+          siteUrl: parsed.sitewide?.siteUrl || DEFAULT_SEO_DATA.sitewide.siteUrl,
+          // Ensure defaultOGImage always has a fallback
+          defaultOGImage: parsed.sitewide?.defaultOGImage || DEFAULT_SEO_DATA.sitewide.defaultOGImage,
+        },
         pages: {
           home: { ...DEFAULT_SEO_DATA.pages.home, ...parsed.pages?.home },
           about: { ...DEFAULT_SEO_DATA.pages.about, ...parsed.pages?.about },
@@ -139,11 +159,25 @@ export function getSEOData(): AllSEOData {
         },
         caseStudyDefaults: { ...DEFAULT_SEO_DATA.caseStudyDefaults, ...parsed.caseStudyDefaults },
       };
+      
+      // Ensure defaultOGImage has a fallback if empty
+      if (!merged.sitewide.defaultOGImage || merged.sitewide.defaultOGImage.trim() === '') {
+        merged.sitewide.defaultOGImage = `${merged.sitewide.siteUrl}/api/og?title=${encodeURIComponent(merged.sitewide.siteName)}`;
+      }
+      
+      return merged;
     }
   } catch (error) {
     console.error('Error loading SEO data:', error);
   }
-  return DEFAULT_SEO_DATA;
+  
+  // Always return defaults with valid OG image fallback
+  const defaults = { ...DEFAULT_SEO_DATA };
+  if (!defaults.sitewide.defaultOGImage || defaults.sitewide.defaultOGImage.trim() === '') {
+    defaults.sitewide.defaultOGImage = `${defaults.sitewide.siteUrl}/api/og?title=${encodeURIComponent(defaults.sitewide.siteName)}`;
+  }
+  
+  return defaults;
 }
 
 export function saveSEOData(data: AllSEOData): void {
