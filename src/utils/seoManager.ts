@@ -204,16 +204,34 @@ export function applyPageSEO(pageSEO: SEOData, sitewide: SitewideSEO): void {
   updateMetaTag('meta[name="description"]', pageSEO.description);
   updateMetaTag('meta[name="keywords"]', pageSEO.keywords);
   updateMetaTag('meta[name="author"]', sitewide.defaultAuthor);
+  
+  // Meta robots (default: index, follow)
+  updateMetaTag('meta[name="robots"]', 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1');
 
   // Open Graph tags
   updateMetaTag('meta[property="og:site_name"]', sitewide.siteName);
   updateMetaTag('meta[property="og:title"]', pageSEO.ogTitle || pageSEO.title);
   updateMetaTag('meta[property="og:description"]', pageSEO.ogDescription || pageSEO.description);
   updateMetaTag('meta[property="og:type"]', 'website');
+  updateMetaTag('meta[property="og:locale"]', 'en_US');
+  
+  // OG URL - use canonical URL if available, otherwise construct from site URL
+  const ogUrl = pageSEO.canonicalUrl || (pageSEO.canonicalUrl === '' ? undefined : `${sitewide.siteUrl}${window.location.pathname}`);
+  if (ogUrl && !ogUrl.includes('#')) {
+    updateMetaTag('meta[property="og:url"]', ogUrl);
+  } else if (!pageSEO.canonicalUrl) {
+    // Fallback: construct URL from current pathname (without hash)
+    const currentUrl = `${sitewide.siteUrl}${window.location.pathname}`;
+    updateMetaTag('meta[property="og:url"]', currentUrl);
+  }
   
   const ogImage = pageSEO.ogImage || sitewide.defaultOGImage;
   if (ogImage) {
     updateMetaTag('meta[property="og:image"]', ogImage);
+    // Standard OG image dimensions (1200x630 for social sharing)
+    updateMetaTag('meta[property="og:image:width"]', '1200');
+    updateMetaTag('meta[property="og:image:height"]', '630');
+    updateMetaTag('meta[property="og:image:type"]', 'image/png');
   }
 
   // Twitter Card tags

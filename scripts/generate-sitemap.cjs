@@ -36,14 +36,36 @@ function slugify(title) {
 }
 
 function generateSitemap(baseUrl) {
-  const staticPaths = ['/', '/#/about', '/#/contact'];
+  // Remove hash fragments - use proper paths for SEO
+  const staticPaths = [
+    { path: '/', priority: '1.0', changefreq: 'weekly' },
+    { path: '/about', priority: '0.8', changefreq: 'monthly' },
+    { path: '/contact', priority: '0.7', changefreq: 'monthly' },
+  ];
+  
   const titles = loadLocalProjects();
-  const projectPaths = titles.map(t => `/#/project/${slugify(t)}`);
+  const projectPaths = titles.map(t => ({
+    path: `/project/${slugify(t)}`,
+    priority: '0.9',
+    changefreq: 'monthly',
+  }));
+  
   const urls = [...staticPaths, ...projectPaths];
+  const now = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>\n` +
     `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
-    urls.map(u => `  <url><loc>${baseUrl}${u}</loc></url>`).join('\n') +
+    urls.map(u => {
+      const path = typeof u === 'string' ? u : u.path;
+      const priority = typeof u === 'string' ? '0.8' : u.priority;
+      const changefreq = typeof u === 'string' ? 'monthly' : u.changefreq;
+      return `  <url>
+    <loc>${baseUrl}${path}</loc>
+    <lastmod>${now}</lastmod>
+    <changefreq>${changefreq}</changefreq>
+    <priority>${priority}</priority>
+  </url>`;
+    }).join('\n') +
     `\n</urlset>\n`;
   return xml;
 }

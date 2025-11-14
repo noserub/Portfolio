@@ -1,5 +1,13 @@
 import { useEffect } from 'react';
 import { getSEOData, getCaseStudySEO, updateFavicon, applyPageSEO } from '../utils/seoManager';
+import {
+  generateWebSiteSchema,
+  generateOrganizationSchema,
+  generateBreadcrumbListSchema,
+  generateArticleSchema,
+  generatePersonSchema,
+  injectMultipleStructuredData,
+} from '../utils/structuredData';
 
 export function useSEO(pageKey: 'home' | 'about' | 'caseStudies' | 'contact') {
   useEffect(() => {
@@ -19,6 +27,46 @@ export function useSEO(pageKey: 'home' | 'about' | 'caseStudies' | 'contact') {
     }
     // Update favicon on every page
     updateFavicon(seoData.sitewide);
+
+    // Inject structured data
+    const schemas: Array<object> = [];
+    
+    // Always include Organization schema
+    schemas.push(generateOrganizationSchema(seoData.sitewide));
+    
+    // Add WebSite schema for home page
+    if (pageKey === 'home') {
+      schemas.push(generateWebSiteSchema(seoData.sitewide));
+    }
+    
+    // Add Person schema for About page
+    if (pageKey === 'about') {
+      schemas.push(generatePersonSchema(seoData.sitewide, {
+        name: seoData.sitewide.defaultAuthor,
+        jobTitle: 'Product Design Leader',
+        description: pageSEO?.description,
+        image: pageSEO?.ogImage || seoData.sitewide.defaultOGImage,
+      }));
+    }
+    
+    // Add breadcrumbs for all pages
+    const breadcrumbs = [
+      { name: 'Home', url: '/' },
+    ];
+    
+    if (pageKey === 'about') {
+      breadcrumbs.push({ name: 'About', url: '/about' });
+    } else if (pageKey === 'contact') {
+      breadcrumbs.push({ name: 'Contact', url: '/contact' });
+    } else if (pageKey === 'caseStudies') {
+      breadcrumbs.push({ name: 'Case Studies', url: '/#/case-studies' });
+    }
+    
+    if (breadcrumbs.length > 1) {
+      schemas.push(generateBreadcrumbListSchema(breadcrumbs, seoData.sitewide.siteUrl));
+    }
+    
+    injectMultipleStructuredData(schemas);
   }, [pageKey]);
 }
 
@@ -30,5 +78,29 @@ export function useCaseStudySEO(caseStudyId: string, caseStudyTitle?: string) {
     // Apply meta tags for case study page
     applyPageSEO(caseStudySEO, seoData.sitewide);
     updateFavicon(seoData.sitewide);
+
+    // Inject structured data for case study
+    const schemas: Array<object> = [];
+    
+    // Organization schema
+    schemas.push(generateOrganizationSchema(seoData.sitewide));
+    
+    // Article schema for case study
+    const articleUrl = caseStudySEO.canonicalUrl || `${seoData.sitewide.siteUrl}/project/${caseStudyId}`;
+    schemas.push(generateArticleSchema(caseStudySEO, seoData.sitewide, {
+      headline: caseStudyTitle || caseStudySEO.title,
+      description: caseStudySEO.description,
+      image: caseStudySEO.ogImage || caseStudySEO.twitterImage,
+      url: articleUrl,
+    }));
+    
+    // Breadcrumbs
+    const breadcrumbs = [
+      { name: 'Home', url: '/' },
+      { name: caseStudyTitle || 'Case Study', url: articleUrl },
+    ];
+    schemas.push(generateBreadcrumbListSchema(breadcrumbs, seoData.sitewide.siteUrl));
+    
+    injectMultipleStructuredData(schemas);
   }, [caseStudyId, caseStudyTitle]);
 }

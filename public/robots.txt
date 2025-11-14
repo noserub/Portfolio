@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+
+# Disallow admin/private pages if any
+Disallow: /messages
+Disallow: /supabase-test
+Disallow: /*?diagnostic=true
+Disallow: /*?emergency=true
+
+# Sitemap location (will be updated with actual domain)
+Sitemap: https://brianbureson.com/sitemap.xml
+
