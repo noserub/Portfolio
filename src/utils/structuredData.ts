@@ -245,17 +245,46 @@ export function injectStructuredData(schema: object): void {
  * Inject multiple structured data schemas
  */
 export function injectMultipleStructuredData(schemas: object[]): void {
+  if (!schemas || schemas.length === 0) {
+    console.warn('⚠️ SEO: No structured data schemas to inject');
+    return;
+  }
+
   // Remove all existing structured data scripts
   const existingScripts = document.querySelectorAll('script[type="application/ld+json"]');
   existingScripts.forEach((script) => script.remove());
 
   // Inject all schemas
   schemas.forEach((schema, index) => {
-    const script = document.createElement('script');
-    script.type = 'application/ld+json';
-    script.textContent = JSON.stringify(schema, null, 2);
-    script.id = `structured-data-${index}`;
-    document.head.appendChild(script);
+    try {
+      // Validate schema has required fields
+      if (!schema || typeof schema !== 'object') {
+        console.warn(`⚠️ SEO: Invalid schema at index ${index}`, schema);
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.type = 'application/ld+json';
+      const jsonString = JSON.stringify(schema, null, 2);
+      
+      // Validate JSON is valid
+      try {
+        JSON.parse(jsonString);
+      } catch (e) {
+        console.error(`❌ SEO: Invalid JSON in schema at index ${index}:`, e);
+        return;
+      }
+      
+      script.textContent = jsonString;
+      script.id = `structured-data-${index}`;
+      document.head.appendChild(script);
+      
+      console.log(`✅ SEO: Injected structured data schema ${index + 1}/${schemas.length}:`, (schema as any)['@type'] || 'Unknown');
+    } catch (error) {
+      console.error(`❌ SEO: Error injecting schema at index ${index}:`, error);
+    }
   });
+  
+  console.log(`✅ SEO: Injected ${schemas.length} structured data schema(s)`);
 }
 

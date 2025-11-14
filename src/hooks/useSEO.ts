@@ -11,62 +11,85 @@ import {
 
 export function useSEO(pageKey: 'home' | 'about' | 'caseStudies' | 'contact') {
   useEffect(() => {
-    const seoData = getSEOData();
-    const pageSEO = seoData.pages[pageKey];
-    // Apply meta tags imperatively (no Helmet)
-    if (pageSEO) {
-      // Ensure sensible fallbacks for basic pages
-      const withFallbacks = {
-        ...pageSEO,
-        ogTitle: pageSEO.ogTitle || pageSEO.title,
-        ogDescription: pageSEO.ogDescription || pageSEO.description,
-        twitterTitle: pageSEO.twitterTitle || pageSEO.title,
-        twitterDescription: pageSEO.twitterDescription || pageSEO.description,
-      } as typeof pageSEO;
-      applyPageSEO(withFallbacks, seoData.sitewide);
-    }
-    // Update favicon on every page
-    updateFavicon(seoData.sitewide);
+    // Use setTimeout to ensure DOM is ready
+    const applySEO = () => {
+      try {
+        const seoData = getSEOData();
+        const pageSEO = seoData.pages[pageKey];
+        
+        console.log(`🔍 SEO: Applying SEO for page: ${pageKey}`, { pageSEO, sitewide: seoData.sitewide });
+        
+        // Apply meta tags imperatively (no Helmet)
+        if (pageSEO) {
+          // Ensure sensible fallbacks for basic pages
+          const withFallbacks = {
+            ...pageSEO,
+            ogTitle: pageSEO.ogTitle || pageSEO.title,
+            ogDescription: pageSEO.ogDescription || pageSEO.description,
+            twitterTitle: pageSEO.twitterTitle || pageSEO.title,
+            twitterDescription: pageSEO.twitterDescription || pageSEO.description,
+          } as typeof pageSEO;
+          applyPageSEO(withFallbacks, seoData.sitewide);
+        }
+        // Update favicon on every page
+        updateFavicon(seoData.sitewide);
 
-    // Inject structured data
-    const schemas: Array<object> = [];
+        // Inject structured data
+        const schemas: Array<object> = [];
+        
+        // Always include Organization schema
+        const orgSchema = generateOrganizationSchema(seoData.sitewide);
+        schemas.push(orgSchema);
+        
+        // Add WebSite schema for home page
+        if (pageKey === 'home') {
+          const websiteSchema = generateWebSiteSchema(seoData.sitewide);
+          schemas.push(websiteSchema);
+        }
+        
+        // Add Person schema for About page
+        if (pageKey === 'about') {
+          const personSchema = generatePersonSchema(seoData.sitewide, {
+            name: seoData.sitewide.defaultAuthor,
+            jobTitle: 'Product Design Leader',
+            description: pageSEO?.description,
+            image: pageSEO?.ogImage || seoData.sitewide.defaultOGImage,
+          });
+          schemas.push(personSchema);
+        }
+        
+        // Add breadcrumbs for all pages
+        const breadcrumbs = [
+          { name: 'Home', url: '/' },
+        ];
+        
+        if (pageKey === 'about') {
+          breadcrumbs.push({ name: 'About', url: '/about' });
+        } else if (pageKey === 'contact') {
+          breadcrumbs.push({ name: 'Contact', url: '/contact' });
+        } else if (pageKey === 'caseStudies') {
+          breadcrumbs.push({ name: 'Case Studies', url: '/#/case-studies' });
+        }
+        
+        if (breadcrumbs.length > 1) {
+          const breadcrumbSchema = generateBreadcrumbListSchema(breadcrumbs, seoData.sitewide.siteUrl);
+          schemas.push(breadcrumbSchema);
+        }
+        
+        console.log(`🔍 SEO: Generated ${schemas.length} structured data schema(s) for ${pageKey}`);
+        injectMultipleStructuredData(schemas);
+      } catch (error) {
+        console.error('❌ SEO: Error applying SEO:', error);
+      }
+    };
     
-    // Always include Organization schema
-    schemas.push(generateOrganizationSchema(seoData.sitewide));
+    // Apply immediately and also after a short delay to ensure DOM is ready
+    applySEO();
+    const timeoutId = setTimeout(applySEO, 100);
     
-    // Add WebSite schema for home page
-    if (pageKey === 'home') {
-      schemas.push(generateWebSiteSchema(seoData.sitewide));
-    }
-    
-    // Add Person schema for About page
-    if (pageKey === 'about') {
-      schemas.push(generatePersonSchema(seoData.sitewide, {
-        name: seoData.sitewide.defaultAuthor,
-        jobTitle: 'Product Design Leader',
-        description: pageSEO?.description,
-        image: pageSEO?.ogImage || seoData.sitewide.defaultOGImage,
-      }));
-    }
-    
-    // Add breadcrumbs for all pages
-    const breadcrumbs = [
-      { name: 'Home', url: '/' },
-    ];
-    
-    if (pageKey === 'about') {
-      breadcrumbs.push({ name: 'About', url: '/about' });
-    } else if (pageKey === 'contact') {
-      breadcrumbs.push({ name: 'Contact', url: '/contact' });
-    } else if (pageKey === 'caseStudies') {
-      breadcrumbs.push({ name: 'Case Studies', url: '/#/case-studies' });
-    }
-    
-    if (breadcrumbs.length > 1) {
-      schemas.push(generateBreadcrumbListSchema(breadcrumbs, seoData.sitewide.siteUrl));
-    }
-    
-    injectMultipleStructuredData(schemas);
+    return () => {
+      clearTimeout(timeoutId);
+    };
   }, [pageKey]);
 }
 

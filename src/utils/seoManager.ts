@@ -225,24 +225,36 @@ export function applyPageSEO(pageSEO: SEOData, sitewide: SitewideSEO): void {
     updateMetaTag('meta[property="og:url"]', currentUrl);
   }
   
-  const ogImage = pageSEO.ogImage || sitewide.defaultOGImage;
-  if (ogImage) {
-    updateMetaTag('meta[property="og:image"]', ogImage);
-    // Standard OG image dimensions (1200x630 for social sharing)
-    updateMetaTag('meta[property="og:image:width"]', '1200');
-    updateMetaTag('meta[property="og:image:height"]', '630');
-    updateMetaTag('meta[property="og:image:type"]', 'image/png');
+  // OG Image - always provide a fallback using the OG API
+  let ogImage = pageSEO.ogImage || sitewide.defaultOGImage;
+  if (!ogImage || ogImage.trim() === '') {
+    // Fallback: use OG image API
+    ogImage = `${sitewide.siteUrl}/api/og?title=${encodeURIComponent(pageSEO.ogTitle || pageSEO.title)}`;
   }
-
-  // Twitter Card tags
-  updateMetaTag('meta[name="twitter:card"]', pageSEO.twitterCard || sitewide.defaultTwitterCard);
-  updateMetaTag('meta[name="twitter:title"]', pageSEO.twitterTitle || pageSEO.ogTitle || pageSEO.title);
-  updateMetaTag('meta[name="twitter:description"]', pageSEO.twitterDescription || pageSEO.ogDescription || pageSEO.description);
   
-  const twitterImage = pageSEO.twitterImage || pageSEO.ogImage || sitewide.defaultOGImage;
-  if (twitterImage) {
-    updateMetaTag('meta[name="twitter:image"]', twitterImage);
-  }
+  // Always set OG image (required for proper social sharing)
+  updateMetaTag('meta[property="og:image"]', ogImage);
+  // Standard OG image dimensions (1200x630 for social sharing)
+  updateMetaTag('meta[property="og:image:width"]', '1200');
+  updateMetaTag('meta[property="og:image:height"]', '630');
+  updateMetaTag('meta[property="og:image:type"]', 'image/png');
+  updateMetaTag('meta[property="og:image:alt"]', pageSEO.ogTitle || pageSEO.title);
+
+  // Twitter Card tags - Twitter requires these to be present
+  const twitterCard = pageSEO.twitterCard || sitewide.defaultTwitterCard || 'summary_large_image';
+  const twitterTitle = pageSEO.twitterTitle || pageSEO.ogTitle || pageSEO.title;
+  const twitterDescription = pageSEO.twitterDescription || pageSEO.ogDescription || pageSEO.description;
+  
+  // Use the same image as OG (already has fallback)
+  const twitterImage = pageSEO.twitterImage || ogImage;
+  
+  updateMetaTag('meta[name="twitter:card"]', twitterCard);
+  updateMetaTag('meta[name="twitter:title"]', twitterTitle);
+  updateMetaTag('meta[name="twitter:description"]', twitterDescription);
+  
+  // Twitter requires an image for summary_large_image cards - always provide one
+  updateMetaTag('meta[name="twitter:image"]', twitterImage);
+  updateMetaTag('meta[name="twitter:image:alt"]', twitterTitle);
 
   // Canonical URL - only set if explicitly provided (non-empty)
   // Users can set this manually in SEO settings for each page
