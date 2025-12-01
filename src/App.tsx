@@ -5,6 +5,7 @@ import { HTML5Backend } from "react-dnd-html5-backend";
 import { supabase } from "./lib/supabaseClient";
 import { Edit3, Eye, LogOut, Save, AlertTriangle, Moon, Sun, MoreHorizontal, Search, BookOpen, ArrowLeft, Settings, Key, RefreshCw, Mail } from "lucide-react";
 import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import { 
   Header, 
   Footer,
@@ -2106,6 +2107,9 @@ export default function App() {
       
       {/* Vercel Analytics - Manual tracking via useEffect for hash-based routing */}
       <Analytics />
+      
+      {/* Vercel Speed Insights - Tracks Core Web Vitals and performance metrics */}
+      <SpeedInsights />
     </ErrorBoundary>
   );
 }
