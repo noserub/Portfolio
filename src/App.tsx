@@ -832,38 +832,28 @@ export default function App() {
       return;
     }
     
-    // Check if Analytics is available
-    let retryTimeoutId: NodeJS.Timeout | null = null;
-    
-    const checkAndTrack = () => {
-      if (window.va && typeof window.va === 'function') {
-        try {
-          (window.va as any)('pageview', { url: path });
-        } catch (error) {
-          console.error('Error tracking pageview:', error);
-        }
-      } else {
-        // Retry after a delay if Analytics isn't loaded yet
-        retryTimeoutId = setTimeout(() => {
-          if (window.va && typeof window.va === 'function') {
-            try {
-              (window.va as any)('pageview', { url: path });
-            } catch (error) {
-              console.error('Error tracking pageview (retry):', error);
-            }
+    // Track page view using Vercel Analytics
+    // Use a small delay to ensure the page has fully rendered and Analytics is loaded
+    const timeoutId = setTimeout(() => {
+      try {
+        // Use the Vercel Analytics API to track page views
+        // window.va is injected by the Analytics component
+        if (typeof window !== 'undefined' && window.va) {
+          window.va('pageview', { url: path });
+        } else {
+          // If va isn't loaded yet, queue it
+          if (!window.vaq) {
+            window.vaq = [];
           }
-        }, 1000);
+          window.vaq.push(['pageview', { url: path }]);
+        }
+      } catch (error) {
+        console.error('Error tracking pageview:', error);
       }
-    };
-    
-    // Use a small delay to ensure the page has fully rendered
-    const timeoutId = setTimeout(checkAndTrack, 100);
+    }, 100);
     
     return () => {
       clearTimeout(timeoutId);
-      if (retryTimeoutId) {
-        clearTimeout(retryTimeoutId);
-      }
     };
   }, [currentRoute, currentPage, selectedProject]);
 
