@@ -34,7 +34,7 @@ import {
   type HomePageContentV2,
   type HomePageStat,
   createDefaultHomePageContent,
-  parseStoredHomeContent,
+  resolveHomeContentAfterLoad,
   toPersistedPayload,
   heroHasMinimumContent,
   classicBioDocumentFromHero,
@@ -2352,11 +2352,12 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
 
   useEffect(() => {
     const loadHomePageContent = async () => {
-      try {
-        const { supabase } = await import('../lib/supabaseClient');
-        const { data: { user } } = await supabase.auth.getUser();
-        const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
+      const { supabase } = await import('../lib/supabaseClient');
+      const { data: { user } } = await supabase.auth.getUser();
+      const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
+      const authed = Boolean(user || isBypassAuth);
 
+      try {
         console.log('🔄 Loading home page content from Supabase...');
         const raw = await (async () => {
           let data, error;
@@ -2390,7 +2391,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
           return data?.hero_text;
         })();
 
-        const content = parseStoredHomeContent(raw ?? {});
+        const content = resolveHomeContentAfterLoad(raw, authed);
         const hasOldWelcome =
           content.hero.greeting === "Welcome," ||
           content.hero.greetings?.[0] === "Welcome,";
@@ -2399,7 +2400,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
           console.log('⚠️ Detected legacy Welcome greeting; resetting to defaults');
           const fresh = createDefaultHomePageContent();
           setHomePageContent(fresh);
-          localStorage.setItem('heroText', JSON.stringify(toPersistedPayload(fresh)));
+          localStorage.setItem('heroText', JSON.stringify(toPersistedPayload({ ...fresh, _clientSavedAt: Date.now() })));
           return;
         }
 
@@ -2408,30 +2409,20 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         console.log('✅ Home page content synced to localStorage');
       } catch (error) {
         console.error('❌ Error loading home page content from Supabase:', error);
-        const saved = localStorage.getItem('heroText');
-        if (saved) {
-          try {
-            const parsed = JSON.parse(saved);
-            if (parsed && typeof parsed === 'object') {
-              const content = parseStoredHomeContent(parsed);
-              const hasOldWelcome =
-                content.hero.greeting === "Welcome," ||
-                content.hero.greetings?.[0] === "Welcome,";
+        const content = resolveHomeContentAfterLoad(undefined, authed);
+        const hasOldWelcome =
+          content.hero.greeting === "Welcome," ||
+          content.hero.greetings?.[0] === "Welcome,";
 
-              if (hasOldWelcome) {
-                console.log('⚠️ Detected old Welcome text in localStorage, using defaults');
-                localStorage.removeItem('heroText');
-                return;
-              }
-
-              setHomePageContent(content);
-              console.log('✅ Loaded home page content from localStorage fallback');
-            }
-          } catch (e) {
-            console.error('❌ Error parsing localStorage heroText:', e);
-            localStorage.removeItem('heroText');
-          }
+        if (hasOldWelcome) {
+          localStorage.removeItem('heroText');
+          setHomePageContent(createDefaultHomePageContent());
+          return;
         }
+
+        setHomePageContent(content);
+        localStorage.setItem('heroText', JSON.stringify(toPersistedPayload(content)));
+        console.log('✅ Loaded home page content from offline / local merge');
       }
     };
 
@@ -2447,7 +2438,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     if (!heroHasMinimumContent(content.hero)) {
       return;
     }
-    const payload = toPersistedPayload(content);
+    const payload = toPersistedPayload({ ...content, _clientSavedAt: Date.now() });
     localStorage.setItem('heroText', JSON.stringify(payload));
     console.log('💾 Home page content saved to localStorage');
 

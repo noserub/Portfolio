@@ -64,6 +64,8 @@ export interface HomePageContentV2 {
   hero: HeroTextState;
   stats: HomePageStat[];
   ui: HomePageUI;
+  /** Set on each persist so refresh can prefer newer local draft if Supabase is stale. */
+  _clientSavedAt?: number;
 }
 
 export type HomePagePersisted = HomePageContentV2;
@@ -254,11 +256,13 @@ export function parseStoredHomeContent(raw: unknown): HomePageContentV2 {
   const obj = raw as Record<string, unknown>;
 
   if (obj._version === HOME_PAGE_CONTENT_VERSION && obj.hero && typeof obj.hero === "object") {
+    const ts = obj._clientSavedAt;
     return {
       _version: HOME_PAGE_CONTENT_VERSION,
       hero: mergeHero(obj.hero as Record<string, unknown>),
       stats: mergeStats(obj.stats),
       ui: mergeUI(obj.ui),
+      ...(typeof ts === "number" && !Number.isNaN(ts) ? { _clientSavedAt: ts } : {}),
     };
   }
 
@@ -272,16 +276,55 @@ export function parseStoredHomeContent(raw: unknown): HomePageContentV2 {
 }
 
 export function toPersistedPayload(content: HomePageContentV2): HomePagePersisted {
+  const ts = content._clientSavedAt;
   return {
     _version: HOME_PAGE_CONTENT_VERSION,
     hero: { ...content.hero },
     stats: content.stats.map((s) => ({ ...s })),
     ui: { ...content.ui },
+    ...(typeof ts === "number" && !Number.isNaN(ts) ? { _clientSavedAt: ts } : {}),
   };
 }
 
 export function heroHasMinimumContent(hero: HeroTextState): boolean {
   return (hero.greetings?.length ?? 0) > 0 || Boolean(hero.greeting?.trim());
+}
+
+/** Parsed `heroText` from localStorage, or null if missing / invalid / no greetings. */
+export function readHomePageContentFromLocalStorage(): HomePageContentV2 | null {
+  if (typeof globalThis === "undefined" || !("localStorage" in globalThis)) return null;
+  try {
+    const saved = globalThis.localStorage.getItem("heroText");
+    if (!saved) return null;
+    const content = parseStoredHomeContent(JSON.parse(saved) as unknown);
+    if (!heroHasMinimumContent(content.hero)) return null;
+    return content;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * After fetching `profiles.hero_text`, pick what to show. Guests only persist to localStorage,
+ * so their draft must win over the public Supabase profile on refresh. When signed in, prefer
+ * whichever copy was saved more recently (handles failed Supabase writes).
+ */
+export function resolveHomeContentAfterLoad(rawRemote: unknown, authed: boolean): HomePageContentV2 {
+  const remote = parseStoredHomeContent(rawRemote ?? {});
+  const local = readHomePageContentFromLocalStorage();
+
+  if (!authed) {
+    if (local) return local;
+    return remote;
+  }
+
+  if (local && heroHasMinimumContent(local.hero)) {
+    const lt = local._clientSavedAt ?? 0;
+    const rt = remote._clientSavedAt ?? 0;
+    if (lt > rt) return local;
+  }
+
+  return remote;
 }
 
 export function splitBioParagraphs(bioText: string | undefined): string[] {
