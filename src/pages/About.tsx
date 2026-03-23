@@ -159,6 +159,14 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
       items: ["Partner with developers and stakeholders during implementation", "Ensure expected behavior", "Conduct user acceptance testing (UAT)", "Conduct user testing if needed", "Measure impact post-launch and iterate based on feedback"]
     }
   ]);
+
+  const [openProcessAccordion, setOpenProcessAccordion] = useState<string[]>(() =>
+    processItems.map((_, i) => `item-${i}`)
+  );
+
+  useEffect(() => {
+    setOpenProcessAccordion(processItems.map((_, i) => `item-${i}`));
+  }, [processItems.length]);
   
   // Certifications & Tools section state
   const [certificationsTitle, setCertificationsTitle] = useState("Certifications");
@@ -2298,7 +2306,12 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
             )}
           </div>
 
-          <Accordion type="multiple" defaultValue={["item-0"]} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          <Accordion
+            type="multiple"
+            value={openProcessAccordion}
+            onValueChange={setOpenProcessAccordion}
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"
+          >
             {processItems?.map((step, index) => {
               const gradients = [
                 "linear-gradient(135deg, #3b82f6, #8b5cf6)",
@@ -2402,8 +2415,7 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
                             
                             {/* Title */}
                             <div className="flex-1 text-left">
-                              <h3 className="mb-1">{step.title}</h3>
-                              <p className="text-sm text-muted-foreground/70">{step.items?.length || 0} steps</p>
+                              <h3>{step.title}</h3>
                             </div>
                           </div>
                         </AccordionTrigger>
