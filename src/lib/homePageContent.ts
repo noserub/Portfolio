@@ -5,6 +5,21 @@
 
 export const HOME_PAGE_CONTENT_VERSION = 2 as const;
 
+export type BioRunType = "text" | "bold" | "gradient";
+
+export interface BioRun {
+  type: BioRunType;
+  text: string;
+}
+
+export interface BioParagraph {
+  runs: BioRun[];
+}
+
+export interface BioDocument {
+  paragraphs: BioParagraph[];
+}
+
 export interface HeroTextState {
   greeting: string;
   greetings?: string[];
@@ -17,17 +32,16 @@ export interface HeroTextState {
   word3: string;
   word4: string;
   buttonText: string;
-  /** Paragraphs separated by blank lines; when non-empty, replaces subtitle/description/animated words block. */
+  /** Primary bio: paragraphs with mixed plain / bold / gradient segments. */
+  bioDocument?: BioDocument;
+  /** @deprecated Migrated into bioDocument on load */
   bioText?: string;
-  /** Shown below bio (or classic block); optional. */
+  /** @deprecated Migrated into bioDocument on load */
   accentText?: string;
-  /** When false, accent uses normal text color. Default true. */
   accentGradient?: boolean;
-  /** Gap between bio paragraphs (rem). */
   bioParagraphGapRem?: number;
-  /** Line height for bio paragraphs (unitless). */
   bioLineHeight?: number;
-  /** Space above accent line (rem). */
+  /** @deprecated Spacing now controlled by paragraph breaks in bioDocument */
   accentMarginTopRem?: number;
 }
 
@@ -70,7 +84,7 @@ export const DEFAULT_UI: HomePageUI = {
 };
 
 export function defaultHeroTextState(): HeroTextState {
-  return {
+  const hero: HeroTextState = {
     greeting: "I build things.",
     greetings: [
       "I build things.",
@@ -93,6 +107,10 @@ export function defaultHeroTextState(): HeroTextState {
     bioLineHeight: 1.625,
     accentMarginTopRem: 1,
   };
+  return {
+    ...hero,
+    bioDocument: classicBioDocumentFromHero(hero),
+  };
 }
 
 export function createDefaultHomePageContent(): HomePageContentV2 {
@@ -107,7 +125,7 @@ export function createDefaultHomePageContent(): HomePageContentV2 {
 function mergeHero(partial: Partial<HeroTextState> | Record<string, unknown>): HeroTextState {
   const base = defaultHeroTextState();
   const h = partial as HeroTextState;
-  return {
+  const merged: HeroTextState = {
     ...base,
     ...h,
     greetings: h.greetings?.length
@@ -130,6 +148,19 @@ function mergeHero(partial: Partial<HeroTextState> | Record<string, unknown>): H
         ? h.accentMarginTopRem
         : base.accentMarginTopRem,
   };
+
+  const payloadHasBioDocument =
+    Object.prototype.hasOwnProperty.call(partial, "bioDocument") &&
+    h.bioDocument != null &&
+    Array.isArray(h.bioDocument.paragraphs) &&
+    h.bioDocument.paragraphs.length > 0;
+
+  if (!payloadHasBioDocument) {
+    merged.bioDocument = undefined;
+  }
+
+  merged.bioDocument = legacyToBioDocument(merged);
+  return merged;
 }
 
 function mergeStats(raw: unknown): HomePageStat[] {
@@ -199,4 +230,91 @@ export function splitBioParagraphs(bioText: string | undefined): string[] {
     .split(/\n\s*\n/)
     .map((p) => p.trim())
     .filter(Boolean);
+}
+
+export function sanitizeBioDocument(raw: BioDocument): BioDocument {
+  const paragraphs = (raw.paragraphs || [])
+    .map((p) => ({
+      runs: (p.runs || [])
+        .filter(
+          (r) =>
+            r &&
+            typeof r === "object" &&
+            ["text", "bold", "gradient"].includes(String((r as BioRun).type)),
+        )
+        .map((r) => {
+          const run = r as BioRun;
+          return {
+            type: run.type as BioRunType,
+            text: typeof run.text === "string" ? run.text : "",
+          };
+        }),
+    }))
+    .filter((p) => p.runs.length > 0);
+  return { paragraphs };
+}
+
+/** One paragraph matching the original “classic” home bio (bold lead + gradient words). */
+export function classicBioDocumentFromHero(
+  hero: Pick<HeroTextState, "subtitle" | "description" | "word1" | "word2" | "word3" | "word4">,
+): BioDocument {
+  return {
+    paragraphs: [
+      {
+        runs: [
+          { type: "bold", text: hero.subtitle },
+          { type: "text", text: ` ${hero.description} ` },
+          { type: "gradient", text: hero.word1 },
+          { type: "text", text: ", " },
+          { type: "gradient", text: hero.word2 },
+          { type: "text", text: ", " },
+          { type: "gradient", text: hero.word3 },
+          { type: "text", text: ", and " },
+          { type: "gradient", text: hero.word4 },
+          { type: "text", text: "." },
+        ],
+      },
+    ],
+  };
+}
+
+export function legacyToBioDocument(hero: HeroTextState): BioDocument {
+  const raw = hero.bioDocument;
+  if (raw && Array.isArray(raw.paragraphs) && raw.paragraphs.length > 0) {
+    const sanitized = sanitizeBioDocument(raw);
+    if (sanitized.paragraphs.length > 0) {
+      return sanitized;
+    }
+  }
+
+  const fromBioText = splitBioParagraphs(hero.bioText);
+  if (fromBioText.length > 0) {
+    const paragraphs: BioParagraph[] = fromBioText.map((p) => ({
+      runs: [{ type: "text" as const, text: p }],
+    }));
+    if (hero.accentText?.trim()) {
+      paragraphs.push({
+        runs: [
+          {
+            type: hero.accentGradient !== false ? "gradient" : "text",
+            text: hero.accentText.trim(),
+          },
+        ],
+      });
+    }
+    return { paragraphs };
+  }
+
+  const paragraphs: BioParagraph[] = [classicBioDocumentFromHero(hero).paragraphs[0]];
+  if (hero.accentText?.trim()) {
+    paragraphs.push({
+      runs: [
+        {
+          type: hero.accentGradient !== false ? "gradient" : "text",
+          text: hero.accentText.trim(),
+        },
+      ],
+    });
+  }
+  return { paragraphs };
 }

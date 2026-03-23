@@ -28,7 +28,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "../components/ui/alert-dialog";
-import { Switch } from "../components/ui/switch";
 import { Label } from "../components/ui/label";
 import {
   type HeroTextState,
@@ -38,8 +37,9 @@ import {
   parseStoredHomeContent,
   toPersistedPayload,
   heroHasMinimumContent,
-  splitBioParagraphs,
+  classicBioDocumentFromHero,
 } from "../lib/homePageContent";
+import { BioDocumentRenderer, HomeBioDocumentEditor } from "../components/HomeBioDocument";
 
 interface HomeProps {
   onStartClick: () => void;
@@ -3769,82 +3769,55 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                   </Button>
                 </div>
 
-                <div className="space-y-2 border-b border-border pb-4">
-                  <h4 className="text-sm font-semibold text-foreground">Bio (rich text)</h4>
-                  <Label className="text-xs text-muted-foreground">
-                    Main bio — use a blank line between paragraphs. When this has text, it replaces the classic subtitle / description / gradient words block.
-                  </Label>
-                  <Textarea
-                    value={heroText.bioText ?? ''}
-                    onChange={(e) => patchHero({ bioText: e.target.value })}
-                    placeholder={'Paragraph one here.\n\nParagraph two here.'}
-                    rows={8}
-                    className="font-mono text-sm mt-1"
-                  />
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
-                    <div>
-                      <Label className="text-xs">Paragraph gap (rem)</Label>
-                      <Input
-                        type="number"
-                        step={0.125}
-                        min={0}
-                        max={4}
-                        value={heroText.bioParagraphGapRem ?? 1}
-                        onChange={(e) =>
-                          patchHero({ bioParagraphGapRem: parseFloat(e.target.value) || 1 })
-                        }
-                        className="mt-1"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-xs">Line height (unitless)</Label>
-                      <Input
-                        type="number"
-                        step={0.05}
-                        min={1.2}
-                        max={2.2}
-                        value={heroText.bioLineHeight ?? 1.625}
-                        onChange={(e) =>
-                          patchHero({ bioLineHeight: parseFloat(e.target.value) || 1.625 })
-                        }
-                        className="mt-1"
-                      />
-                    </div>
-                  </div>
-                </div>
+                <HomeBioDocumentEditor
+                  document={heroText.bioDocument ?? classicBioDocumentFromHero(heroText)}
+                  onChange={(doc) => patchHero({ bioDocument: doc })}
+                  paragraphGapRem={heroText.bioParagraphGapRem ?? 1}
+                  lineHeight={heroText.bioLineHeight ?? 1.625}
+                  onParagraphGapRem={(v) => patchHero({ bioParagraphGapRem: v })}
+                  onLineHeight={(v) => patchHero({ bioLineHeight: v })}
+                  onReplaceFromTemplate={() =>
+                    patchHero({ bioDocument: classicBioDocumentFromHero(heroText) })
+                  }
+                />
 
-                <div className="space-y-2 border-b border-border pb-4">
-                  <h4 className="text-sm font-semibold">Accent line (rich bio only)</h4>
+                <div className="space-y-3 border-b border-border pb-4">
+                  <h4 className="text-sm font-semibold">Classic template fields</h4>
                   <p className="text-xs text-muted-foreground">
-                    Optional line below bio paragraphs — leave empty to hide.
+                    Edit these, then click &quot;Replace from template&quot; above to rebuild the bio as one paragraph with bold lead and gradient words.
                   </p>
                   <Input
-                    value={heroText.accentText ?? ''}
-                    onChange={(e) => patchHero({ accentText: e.target.value })}
-                    placeholder="planning, collaboration, empathy, design"
+                    value={heroText.subtitle}
+                    onChange={(e) => patchHero({ subtitle: e.target.value })}
+                    placeholder="Bold lead line"
+                    className="text-sm"
                   />
-                  <div className="flex items-center gap-3 mt-2">
-                    <Switch
-                      id="accent-gradient"
-                      checked={heroText.accentGradient !== false}
-                      onCheckedChange={(v) => patchHero({ accentGradient: v })}
-                    />
-                    <Label htmlFor="accent-gradient" className="text-sm cursor-pointer">
-                      Use animated gradient on accent
-                    </Label>
-                  </div>
-                  <div>
-                    <Label className="text-xs">Space above accent (rem)</Label>
+                  <Input
+                    value={heroText.description}
+                    onChange={(e) => patchHero({ description: e.target.value })}
+                    placeholder="Text before gradient words"
+                    className="text-sm"
+                  />
+                  <div className="grid grid-cols-2 gap-2">
                     <Input
-                      type="number"
-                      step={0.125}
-                      min={0}
-                      max={4}
-                      value={heroText.accentMarginTopRem ?? 1}
-                      onChange={(e) =>
-                        patchHero({ accentMarginTopRem: parseFloat(e.target.value) || 1 })
-                      }
-                      className="mt-1 w-32"
+                      value={heroText.word1}
+                      onChange={(e) => patchHero({ word1: e.target.value })}
+                      placeholder="Gradient word 1"
+                    />
+                    <Input
+                      value={heroText.word2}
+                      onChange={(e) => patchHero({ word2: e.target.value })}
+                      placeholder="Gradient word 2"
+                    />
+                    <Input
+                      value={heroText.word3}
+                      onChange={(e) => patchHero({ word3: e.target.value })}
+                      placeholder="Gradient word 3"
+                    />
+                    <Input
+                      value={heroText.word4}
+                      onChange={(e) => patchHero({ word4: e.target.value })}
+                      placeholder="Gradient word 4"
                     />
                   </div>
                 </div>
@@ -3912,44 +3885,6 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                         <SelectItem value="'Palatino Linotype', 'Book Antiqua', Palatino, serif">Palatino</SelectItem>
                       </SelectContent>
                     </Select>
-                  </div>
-                </div>
-
-                <div className="space-y-3 border-b border-border pb-4">
-                  <h4 className="text-sm font-semibold">Classic bio (when rich bio is empty)</h4>
-                  <Input
-                    value={heroText.subtitle}
-                    onChange={(e) => patchHero({ subtitle: e.target.value })}
-                    placeholder="Bold lead"
-                    className="text-sm"
-                  />
-                  <Input
-                    value={heroText.description}
-                    onChange={(e) => patchHero({ description: e.target.value })}
-                    placeholder="Description before gradient words"
-                    className="text-sm"
-                  />
-                  <div className="grid grid-cols-2 gap-2">
-                    <Input
-                      value={heroText.word1}
-                      onChange={(e) => patchHero({ word1: e.target.value })}
-                      placeholder="word 1"
-                    />
-                    <Input
-                      value={heroText.word2}
-                      onChange={(e) => patchHero({ word2: e.target.value })}
-                      placeholder="word 2"
-                    />
-                    <Input
-                      value={heroText.word3}
-                      onChange={(e) => patchHero({ word3: e.target.value })}
-                      placeholder="word 3"
-                    />
-                    <Input
-                      value={heroText.word4}
-                      onChange={(e) => patchHero({ word4: e.target.value })}
-                      placeholder="word 4"
-                    />
                   </div>
                 </div>
 
@@ -4064,181 +3999,11 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                 </div>
               </div>
             ) : (
-              <>
-                {(() => {
-                  const bioParagraphs = splitBioParagraphs(heroText.bioText);
-                  const gapRem = heroText.bioParagraphGapRem ?? 1;
-                  const lh = heroText.bioLineHeight ?? 1.625;
-                  const accentTop = heroText.accentMarginTopRem ?? 1;
-                  const accent = (heroText.accentText ?? '').trim();
-
-                  if (bioParagraphs.length > 0) {
-                    return (
-                      <div className="mb-6 pr-8 md:pr-12 lg:pr-16 text-lg md:text-xl text-foreground">
-                        <div
-                          className="flex flex-col"
-                          style={{ gap: `${gapRem}rem` }}
-                        >
-                          {bioParagraphs.map((p, i) => (
-                            <p
-                              key={i}
-                              className="leading-relaxed"
-                              style={{ lineHeight: lh }}
-                            >
-                              {p}
-                            </p>
-                          ))}
-                        </div>
-                        {accent ? (
-                          <p
-                            className="text-lg md:text-xl font-semibold"
-                            style={{ marginTop: `${accentTop}rem` }}
-                          >
-                            {heroText.accentGradient !== false ? (
-                              <motion.span
-                                className="inline-block"
-                                animate={{
-                                  backgroundImage: [
-                                    'linear-gradient(45deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)',
-                                    'linear-gradient(90deg, #8b5cf6 0%, #3b82f6 50%, #fbbf24 100%)',
-                                    'linear-gradient(135deg, #3b82f6 0%, #fbbf24 50%, #ec4899 100%)',
-                                    'linear-gradient(180deg, #fbbf24 0%, #ec4899 50%, #8b5cf6 100%)',
-                                    'linear-gradient(45deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)',
-                                  ],
-                                }}
-                                transition={{
-                                  duration: 10,
-                                  repeat: Infinity,
-                                  ease: 'linear',
-                                }}
-                                style={{
-                                  backgroundClip: 'text',
-                                  WebkitBackgroundClip: 'text',
-                                  WebkitTextFillColor: 'transparent',
-                                }}
-                              >
-                                {accent}
-                              </motion.span>
-                            ) : (
-                              <span>{accent}</span>
-                            )}
-                          </p>
-                        ) : null}
-                      </div>
-                    );
-                  }
-
-                  return (
-                    <p className="text-lg md:text-xl leading-relaxed mb-6 pr-8 md:pr-12 lg:pr-16">
-                      <strong>{heroText.subtitle}</strong> {heroText.description}{' '}
-                      <motion.span
-                        className="inline-block"
-                        animate={{
-                          backgroundImage: [
-                            'linear-gradient(45deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)',
-                            'linear-gradient(90deg, #8b5cf6 0%, #3b82f6 50%, #fbbf24 100%)',
-                            'linear-gradient(135deg, #3b82f6 0%, #fbbf24 50%, #ec4899 100%)',
-                            'linear-gradient(180deg, #fbbf24 0%, #ec4899 50%, #8b5cf6 100%)',
-                            'linear-gradient(45deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)',
-                          ],
-                        }}
-                        transition={{
-                          duration: 10,
-                          repeat: Infinity,
-                          ease: 'linear',
-                          delay: 0,
-                        }}
-                        style={{
-                          backgroundClip: 'text',
-                          WebkitBackgroundClip: 'text',
-                          WebkitTextFillColor: 'transparent',
-                        }}
-                      >
-                        {heroText.word1}
-                      </motion.span>
-                      ,{' '}
-                      <motion.span
-                        className="inline-block"
-                        animate={{
-                          backgroundImage: [
-                            'linear-gradient(90deg, #8b5cf6 0%, #3b82f6 50%, #fbbf24 100%)',
-                            'linear-gradient(135deg, #3b82f6 0%, #fbbf24 50%, #ec4899 100%)',
-                            'linear-gradient(180deg, #fbbf24 0%, #ec4899 50%, #8b5cf6 100%)',
-                            'linear-gradient(45deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)',
-                            'linear-gradient(90deg, #8b5cf6 0%, #3b82f6 50%, #fbbf24 100%)',
-                          ],
-                        }}
-                        transition={{
-                          duration: 12,
-                          repeat: Infinity,
-                          ease: 'linear',
-                          delay: 2.5,
-                        }}
-                        style={{
-                          backgroundClip: 'text',
-                          WebkitBackgroundClip: 'text',
-                          WebkitTextFillColor: 'transparent',
-                        }}
-                      >
-                        {heroText.word2}
-                      </motion.span>
-                      ,{' '}
-                      <motion.span
-                        className="inline-block"
-                        animate={{
-                          backgroundImage: [
-                            'linear-gradient(135deg, #3b82f6 0%, #fbbf24 50%, #ec4899 100%)',
-                            'linear-gradient(180deg, #fbbf24 0%, #ec4899 50%, #8b5cf6 100%)',
-                            'linear-gradient(45deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)',
-                            'linear-gradient(90deg, #8b5cf6 0%, #3b82f6 50%, #fbbf24 100%)',
-                            'linear-gradient(135deg, #3b82f6 0%, #fbbf24 50%, #ec4899 100%)',
-                          ],
-                        }}
-                        transition={{
-                          duration: 11,
-                          repeat: Infinity,
-                          ease: 'linear',
-                          delay: 5,
-                        }}
-                        style={{
-                          backgroundClip: 'text',
-                          WebkitBackgroundClip: 'text',
-                          WebkitTextFillColor: 'transparent',
-                        }}
-                      >
-                        {heroText.word3}
-                      </motion.span>
-                      , and{' '}
-                      <motion.span
-                        className="inline-block"
-                        animate={{
-                          backgroundImage: [
-                            'linear-gradient(180deg, #fbbf24 0%, #ec4899 50%, #8b5cf6 100%)',
-                            'linear-gradient(45deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)',
-                            'linear-gradient(90deg, #8b5cf6 0%, #3b82f6 50%, #fbbf24 100%)',
-                            'linear-gradient(135deg, #3b82f6 0%, #fbbf24 50%, #ec4899 100%)',
-                            'linear-gradient(180deg, #fbbf24 0%, #ec4899 50%, #8b5cf6 100%)',
-                          ],
-                        }}
-                        transition={{
-                          duration: 13,
-                          repeat: Infinity,
-                          ease: 'linear',
-                          delay: 7.5,
-                        }}
-                        style={{
-                          backgroundClip: 'text',
-                          WebkitBackgroundClip: 'text',
-                          WebkitTextFillColor: 'transparent',
-                        }}
-                      >
-                        {heroText.word4}
-                      </motion.span>
-                      .
-                    </p>
-                  );
-                })()}
-              </>
+              <BioDocumentRenderer
+                document={heroText.bioDocument ?? classicBioDocumentFromHero(heroText)}
+                paragraphGapRem={heroText.bioParagraphGapRem ?? 1}
+                lineHeight={heroText.bioLineHeight ?? 1.625}
+              />
             )}
 
             {/* CTA Button & LinkedIn - Inside container, flush left */}
