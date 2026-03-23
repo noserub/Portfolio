@@ -2363,9 +2363,11 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         console.log('🔄 Loading home page content from Supabase...');
         const raw = await (async () => {
           let data, error;
+          /** Same id used across the app for bypass auth and public portfolio reads. */
+          const portfolioOwnerId = '7cd2752f-93c5-46e6-8535-32769fb10055';
 
           if (user || isBypassAuth) {
-            const userId = user?.id || '7cd2752f-93c5-46e6-8535-32769fb10055';
+            const userId = user?.id || portfolioOwnerId;
             console.log('🏠 Home: Loading hero_text from Supabase for user:', userId, 'Auth type:', user ? 'Supabase' : 'Bypass');
 
             const result = await supabase
@@ -2376,14 +2378,15 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
             data = result.data;
             error = result.error;
           } else {
-            console.log('🏠 Home: Loading hero_text from Supabase (public access)');
+            // Signed-out visitors and preview deploys have no localStorage; load the owner row
+            // explicitly — not "most recently updated profile with hero_text" (that can be a
+            // different user and hide your CMS edits on Vercel previews / incognito).
+            console.log('🏠 Home: Loading hero_text from Supabase (public — portfolio owner row)');
 
             const result = await supabase
               .from('profiles')
               .select('hero_text')
-              .not('hero_text', 'is', null)
-              .order('updated_at', { ascending: false })
-              .limit(1)
+              .eq('id', portfolioOwnerId)
               .maybeSingle();
             data = result.data;
             error = result.error;
