@@ -13,7 +13,7 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Textarea } from "../components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
-import { Plus, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Edit2, Save, GripVertical, Linkedin, Github, FileText, Trash2, Eye, Wand2 } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Edit2, Save, GripVertical, Linkedin, Github, FileText, Trash2, Eye, Wand2, ArrowUp, ArrowDown } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "../components/ui/tooltip";
 // import { createCaseStudyFromTemplate } from "../utils/caseStudyTemplate"; // REMOVED - using unified project creator
 import { loadMigratedProjects } from "../utils/migrateVideoFields";
@@ -28,27 +28,24 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "../components/ui/alert-dialog";
+import { Switch } from "../components/ui/switch";
+import { Label } from "../components/ui/label";
+import {
+  type HeroTextState,
+  type HomePageContentV2,
+  type HomePageStat,
+  createDefaultHomePageContent,
+  parseStoredHomeContent,
+  toPersistedPayload,
+  heroHasMinimumContent,
+  splitBioParagraphs,
+} from "../lib/homePageContent";
 
 interface HomeProps {
   onStartClick: () => void;
   isEditMode: boolean;
   onProjectClick: (project: ProjectData, updateCallback: (project: ProjectData) => void) => void;
   currentPage: string;
-}
-
-/** Hero / CMS copy stored in `profiles.hero_text` and localStorage */
-interface HeroTextState {
-  greeting: string;
-  greetings?: string[];
-  greetingFont?: string;
-  lastGreetingPauseDuration?: number;
-  subtitle: string;
-  description: string;
-  word1: string;
-  word2: string;
-  word3: string;
-  word4: string;
-  buttonText: string;
 }
 
 interface DraggableProjectItemProps {
@@ -2298,56 +2295,71 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     }
   }, [caseStudies, designProjects]);
   
-  // Home page hero text - editable in edit mode
-  const [heroText, setHeroText] = useState<HeroTextState>(() => {
-    const defaultHeroText: HeroTextState = {
-      greeting: "I build things.",
-      greetings: [
-        "I build things.",
-        "Design > Code.",
-        "Figma > Cursor.",
-        "? > Insights.",
-        "AI Product Builder."
-      ],
-      greetingFont: "Inter, sans-serif",
-      lastGreetingPauseDuration: 30000,
-      subtitle: "Brian Bureson is a (super rad) product design leader and builder,",
-      description: "crafting high quality products and teams through",
-      word1: "planning",
-      word2: "collaboration",
-      word3: "empathy",
-      word4: "design",
-      buttonText: "About Brian"
-    };
-    
-    // Start with defaults, will be updated from Supabase if available
-        return defaultHeroText;
-  });
+  const [homePageContent, setHomePageContent] = useState<HomePageContentV2>(() =>
+    createDefaultHomePageContent()
+  );
+
+  const patchHero = useCallback((patch: Partial<HeroTextState>) => {
+    setHomePageContent((c) => ({ ...c, hero: { ...c.hero, ...patch } }));
+  }, []);
+
+  const patchStat = useCallback((index: number, patch: Partial<HomePageStat>) => {
+    setHomePageContent((c) => {
+      const stats = [...c.stats];
+      stats[index] = { ...stats[index], ...patch };
+      return { ...c, stats };
+    });
+  }, []);
+
+  const moveStat = useCallback((index: number, dir: -1 | 1) => {
+    setHomePageContent((c) => {
+      const j = index + dir;
+      if (j < 0 || j >= c.stats.length) return c;
+      const stats = [...c.stats];
+      [stats[index], stats[j]] = [stats[j], stats[index]];
+      return { ...c, stats };
+    });
+  }, []);
+
+  const addStat = useCallback(() => {
+    setHomePageContent((c) => ({
+      ...c,
+      stats: [...c.stats, { number: "0", label: "New stat", description: "Description" }],
+    }));
+  }, []);
+
+  const removeStat = useCallback((index: number) => {
+    setHomePageContent((c) => {
+      if (c.stats.length <= 1) return c;
+      return { ...c, stats: c.stats.filter((_, i) => i !== index) };
+    });
+  }, []);
+
+  const patchUi = useCallback((patch: Partial<HomePageContentV2["ui"]>) => {
+    setHomePageContent((c) => ({ ...c, ui: { ...c.ui, ...patch } }));
+  }, []);
+
+  const heroText = homePageContent.hero;
+
   const [isEditingHero, setIsEditingHero] = useState(false);
   const [greetingsTextValue, setGreetingsTextValue] = useState("");
   const [deleteConfirmation, setDeleteConfirmation] = useState(null);
-  
-  // Hero text is loaded from localStorage and hardcoded defaults
-  // The profiles table doesn't have hero text fields, so we use localStorage
-  
-  // Load hero text - prioritize Supabase to ensure all devices get the latest data
+
   useEffect(() => {
-    const loadHeroText = async () => {
+    const loadHomePageContent = async () => {
       try {
-        // ALWAYS fetch from Supabase first to get the latest data
         const { supabase } = await import('../lib/supabaseClient');
         const { data: { user } } = await supabase.auth.getUser();
         const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
-        
-        console.log('🔄 Loading fresh hero text from Supabase...');
-        const heroText = await (async () => {
+
+        console.log('🔄 Loading home page content from Supabase...');
+        const raw = await (async () => {
           let data, error;
-          
+
           if (user || isBypassAuth) {
-            // Authenticated user - use their ID
             const userId = user?.id || '7cd2752f-93c5-46e6-8535-32769fb10055';
-            console.log('🏠 Home: Loading hero text from Supabase for user:', userId, 'Auth type:', user ? 'Supabase' : 'Bypass');
-            
+            console.log('🏠 Home: Loading hero_text from Supabase for user:', userId, 'Auth type:', user ? 'Supabase' : 'Bypass');
+
             const result = await supabase
               .from('profiles')
               .select('hero_text')
@@ -2356,9 +2368,8 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
             data = result.data;
             error = result.error;
           } else {
-            // Not authenticated - try to get any profile with hero_text (public access)
-            console.log('🏠 Home: Loading hero text from Supabase (public access)');
-            
+            console.log('🏠 Home: Loading hero_text from Supabase (public access)');
+
             const result = await supabase
               .from('profiles')
               .select('hero_text')
@@ -2369,74 +2380,71 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
             data = result.data;
             error = result.error;
           }
-          
+
           if (error) throw error;
-          
-          // Ensure data structure consistency
-          const heroData = data?.hero_text || {};
-          const processedData = {
-            ...heroData,
-            // Ensure greetings array exists - use greetings if available, otherwise create from greeting
-            greetings: heroData.greetings || (heroData.greeting ? [heroData.greeting] : ["I build things.", "Design > Code.", "Figma > Cursor.", "? > Insights.", "AI Product Builder."]),
-            // Ensure greeting exists - use first greeting if greetings array exists
-            greeting: heroData.greeting || (heroData.greetings && heroData.greetings[0]) || "I build things.",
-          };
-          
-          // Update localStorage with fresh Supabase data to keep it in sync
-          localStorage.setItem('heroText', JSON.stringify(processedData));
-          console.log('✅ Updated localStorage with fresh Supabase hero text');
-          
-          return processedData;
+          return data?.hero_text;
         })();
-        
-        setHeroText(heroText);
+
+        const content = parseStoredHomeContent(raw ?? {});
+        const hasOldWelcome =
+          content.hero.greeting === "Welcome," ||
+          content.hero.greetings?.[0] === "Welcome,";
+
+        if (hasOldWelcome) {
+          console.log('⚠️ Detected legacy Welcome greeting; resetting to defaults');
+          const fresh = createDefaultHomePageContent();
+          setHomePageContent(fresh);
+          localStorage.setItem('heroText', JSON.stringify(toPersistedPayload(fresh)));
+          return;
+        }
+
+        setHomePageContent(content);
+        localStorage.setItem('heroText', JSON.stringify(toPersistedPayload(content)));
+        console.log('✅ Home page content synced to localStorage');
       } catch (error) {
-        console.error('❌ Error loading hero text from Supabase:', error);
-        // Fallback to localStorage only if Supabase fails
+        console.error('❌ Error loading home page content from Supabase:', error);
         const saved = localStorage.getItem('heroText');
         if (saved) {
           try {
             const parsed = JSON.parse(saved);
             if (parsed && typeof parsed === 'object') {
-              // Check if localStorage has old "Welcome" text - if so, clear it and use defaults
-              const hasOldWelcome = parsed.greeting === "Welcome," || 
-                                    (parsed.greetings && parsed.greetings[0] === "Welcome,");
-              
+              const content = parseStoredHomeContent(parsed);
+              const hasOldWelcome =
+                content.hero.greeting === "Welcome," ||
+                content.hero.greetings?.[0] === "Welcome,";
+
               if (hasOldWelcome) {
-                console.log('⚠️ Detected old "Welcome" text in localStorage, using defaults instead');
+                console.log('⚠️ Detected old Welcome text in localStorage, using defaults');
                 localStorage.removeItem('heroText');
-                // Use defaults which will be set by useState initial value
                 return;
               }
-              
-              setHeroText(parsed);
-              console.log('✅ Loaded hero text from localStorage fallback');
-              console.log('📝 localStorage hero text:', parsed);
+
+              setHomePageContent(content);
+              console.log('✅ Loaded home page content from localStorage fallback');
             }
           } catch (e) {
-            console.error('❌ Error parsing localStorage hero text:', e);
+            console.error('❌ Error parsing localStorage heroText:', e);
             localStorage.removeItem('heroText');
           }
         }
       }
     };
-    
-    loadHeroText();
+
+    loadHomePageContent();
   }, []);
 
-  const heroTextRef = useRef<HeroTextState>(heroText);
-  heroTextRef.current = heroText;
+  const homePageContentRef = useRef<HomePageContentV2>(homePageContent);
+  homePageContentRef.current = homePageContent;
 
-  // Debounce timer ref to prevent excessive API calls
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const persistHeroTextNow = useCallback(async (text: HeroTextState) => {
-    const hasValidContent = (text?.greetings?.length ?? 0) > 0 || Boolean(text?.greeting);
-    if (!hasValidContent) {
+  const persistHomePageNow = useCallback(async (content: HomePageContentV2) => {
+    if (!heroHasMinimumContent(content.hero)) {
       return;
     }
-    localStorage.setItem('heroText', JSON.stringify(text));
-    console.log('💾 Hero text saved to localStorage');
+    const payload = toPersistedPayload(content);
+    localStorage.setItem('heroText', JSON.stringify(payload));
+    console.log('💾 Home page content saved to localStorage');
 
     try {
       const { supabase } = await import('../lib/supabaseClient');
@@ -2445,52 +2453,50 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
 
       if (user || isBypassAuth) {
         const userId = user?.id || '7cd2752f-93c5-46e6-8535-32769fb10055';
-        console.log('💾 Saving hero text to Supabase for shared access:', userId);
+        console.log('💾 Saving home page content to Supabase:', userId);
 
         const { error: updateError } = await supabase
           .from('profiles')
-          .update({ hero_text: text })
+          .update({ hero_text: payload })
           .eq('id', userId);
 
         if (updateError) {
-          console.log('📝 Profile not found, creating new profile with hero text...');
+          console.log('📝 Profile not found, creating new profile...');
           const { error: insertError } = await supabase
             .from('profiles')
             .insert({
               id: userId,
               email: user?.email || 'brian.bureson@gmail.com',
               full_name: 'Brian Bureson',
-              hero_text: text
+              hero_text: payload,
             });
 
           if (insertError) {
             console.warn('⚠️ Failed to save to Supabase (egress limits?):', insertError.message);
           } else {
-            console.log('✅ Created profile with hero text in Supabase');
+            console.log('✅ Created profile with home page content in Supabase');
           }
         } else {
-          console.log('✅ Hero text updated in Supabase (shared)');
+          console.log('✅ Home page content updated in Supabase');
         }
       }
     } catch (error) {
       console.warn('⚠️ Supabase save failed (egress limits?):', error);
-      console.log('💾 Hero text saved to localStorage only');
+      console.log('💾 Saved to localStorage only');
     }
   }, []);
 
-  const flushPendingHeroText = useCallback(() => {
+  const flushPendingHomePage = useCallback(() => {
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
       saveTimeoutRef.current = null;
     }
-    void persistHeroTextNow(heroTextRef.current);
-  }, [persistHeroTextNow]);
+    void persistHomePageNow(homePageContentRef.current);
+  }, [persistHomePageNow]);
 
-  // Save heroText to localStorage and Supabase (debounced — flush on hide/unmount handles fast refresh)
   useEffect(() => {
-    const hasValidContent = heroText?.greetings?.length > 0 || heroText?.greeting;
-    if (!hasValidContent) {
-      console.log('⏸️ Skipping save: Hero text is empty or invalid');
+    if (!heroHasMinimumContent(homePageContent.hero)) {
+      console.log('⏸️ Skipping save: hero greetings invalid');
       return;
     }
 
@@ -2499,7 +2505,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     }
 
     saveTimeoutRef.current = setTimeout(() => {
-      void persistHeroTextNow(heroText);
+      void persistHomePageNow(homePageContent);
     }, 800);
 
     return () => {
@@ -2508,17 +2514,16 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         saveTimeoutRef.current = null;
       }
     };
-  }, [heroText, persistHeroTextNow]);
+  }, [homePageContent, persistHomePageNow]);
 
-  // Flush before refresh/close or when tab goes to background so Supabase has latest copy before reload
   useEffect(() => {
     const onHidden = () => {
       if (document.visibilityState === 'hidden') {
-        flushPendingHeroText();
+        flushPendingHomePage();
       }
     };
     const onPageHide = () => {
-      flushPendingHeroText();
+      flushPendingHomePage();
     };
     document.addEventListener('visibilitychange', onHidden);
     window.addEventListener('pagehide', onPageHide);
@@ -2526,14 +2531,13 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
       document.removeEventListener('visibilitychange', onHidden);
       window.removeEventListener('pagehide', onPageHide);
     };
-  }, [flushPendingHeroText]);
+  }, [flushPendingHomePage]);
 
-  // Persist when leaving the home page (e.g. music nav) before debounce fires
   useEffect(() => {
     return () => {
-      flushPendingHeroText();
+      flushPendingHomePage();
     };
-  }, [flushPendingHeroText]);
+  }, [flushPendingHomePage]);
   
   // Use ref to store greetings array - prevents infinite re-render loops
   const greetingsRef = useRef([]);
@@ -3725,39 +3729,35 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                   className="rounded-full"
                 >
                   <Edit2 className="w-3 h-3 mr-2" />
-                  Edit Hero Text
+                  Edit home content
                 </Button>
               </div>
             )}
 
             {isEditingHero ? (
-              <div className="space-y-4 p-6 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-2xl border border-border shadow-lg">
-                {/* Done Button at Top */}
-                <div className="flex items-center justify-between border-b border-border pb-4 mb-2">
-                  <h3 className="text-lg font-semibold">Edit Hero Text</h3>
+              <div className="space-y-6 p-6 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-2xl border border-border shadow-lg max-h-[min(85vh,900px)] overflow-y-auto">
+                <div className="flex items-center justify-between border-b border-border pb-4">
+                  <h3 className="text-lg font-semibold">Edit home content</h3>
                   <Button
                     onClick={async () => {
-                      console.log('🔘 Done Editing button clicked!');
-                      console.log('🔘 Current heroText state:', heroText);
-                      // Save all hero text fields before closing edit mode
                       const greetings = greetingsTextValue
                         ?.split('\n')
-                        .map(g => g.trim())
+                        .map((g) => g.trim())
                         .filter(Boolean);
-                      
-                      // Always save the current hero text state (which includes subtitle, description, etc.)
-                      // and update greetings if they were edited
-                      const updatedHeroText: HeroTextState = greetings && greetings.length > 0 
-                        ? { 
-                            ...heroText, 
-                            greetings,
-                            greeting: greetings[0]
-                          }
-                        : heroText; // Use current state if no greetings were edited
-                      
-                      setHeroText(updatedHeroText);
-                      await persistHeroTextNow(updatedHeroText);
-                      
+
+                      const updatedHero: HeroTextState =
+                        greetings && greetings.length > 0
+                          ? {
+                              ...heroText,
+                              greetings,
+                              greeting: greetings[0],
+                            }
+                          : heroText;
+
+                      const next = { ...homePageContent, hero: updatedHero };
+                      setHomePageContent(next);
+                      await persistHomePageNow(next);
+
                       setIsEditingHero(false);
                     }}
                     variant="default"
@@ -3765,260 +3765,480 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                     className="rounded-full"
                   >
                     <Save className="w-3 h-3 mr-2" />
-                    Done Editing
+                    Done editing
                   </Button>
                 </div>
-                <div>
-                  <label className="block mb-2 text-sm">Animated Greetings (one per line - types through each)</label>
+
+                <div className="space-y-2 border-b border-border pb-4">
+                  <h4 className="text-sm font-semibold text-foreground">Bio (rich text)</h4>
+                  <Label className="text-xs text-muted-foreground">
+                    Main bio — use a blank line between paragraphs. When this has text, it replaces the classic subtitle / description / gradient words block.
+                  </Label>
+                  <Textarea
+                    value={heroText.bioText ?? ''}
+                    onChange={(e) => patchHero({ bioText: e.target.value })}
+                    placeholder={'Paragraph one here.\n\nParagraph two here.'}
+                    rows={8}
+                    className="font-mono text-sm mt-1"
+                  />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
+                    <div>
+                      <Label className="text-xs">Paragraph gap (rem)</Label>
+                      <Input
+                        type="number"
+                        step={0.125}
+                        min={0}
+                        max={4}
+                        value={heroText.bioParagraphGapRem ?? 1}
+                        onChange={(e) =>
+                          patchHero({ bioParagraphGapRem: parseFloat(e.target.value) || 1 })
+                        }
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Line height (unitless)</Label>
+                      <Input
+                        type="number"
+                        step={0.05}
+                        min={1.2}
+                        max={2.2}
+                        value={heroText.bioLineHeight ?? 1.625}
+                        onChange={(e) =>
+                          patchHero({ bioLineHeight: parseFloat(e.target.value) || 1.625 })
+                        }
+                        className="mt-1"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2 border-b border-border pb-4">
+                  <h4 className="text-sm font-semibold">Accent line (rich bio only)</h4>
+                  <p className="text-xs text-muted-foreground">
+                    Optional line below bio paragraphs — leave empty to hide.
+                  </p>
+                  <Input
+                    value={heroText.accentText ?? ''}
+                    onChange={(e) => patchHero({ accentText: e.target.value })}
+                    placeholder="planning, collaboration, empathy, design"
+                  />
+                  <div className="flex items-center gap-3 mt-2">
+                    <Switch
+                      id="accent-gradient"
+                      checked={heroText.accentGradient !== false}
+                      onCheckedChange={(v) => patchHero({ accentGradient: v })}
+                    />
+                    <Label htmlFor="accent-gradient" className="text-sm cursor-pointer">
+                      Use animated gradient on accent
+                    </Label>
+                  </div>
+                  <div>
+                    <Label className="text-xs">Space above accent (rem)</Label>
+                    <Input
+                      type="number"
+                      step={0.125}
+                      min={0}
+                      max={4}
+                      value={heroText.accentMarginTopRem ?? 1}
+                      onChange={(e) =>
+                        patchHero({ accentMarginTopRem: parseFloat(e.target.value) || 1 })
+                      }
+                      className="mt-1 w-32"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-3 border-b border-border pb-4">
+                  <h4 className="text-sm font-semibold">Animated headline</h4>
+                  <Label className="text-xs text-muted-foreground">One greeting per line</Label>
                   <Textarea
                     value={greetingsTextValue}
-                    onChange={(e) => {
-                      // Just update the raw text value - don't parse yet
-                      setGreetingsTextValue(e.target.value);
-                    }}
+                    onChange={(e) => setGreetingsTextValue(e.target.value)}
                     onFocus={() => {
-                      // Initialize with current greetings when focused
                       setGreetingsTextValue((heroText.greetings || [heroText.greeting]).join('\n'));
                     }}
                     onBlur={() => {
-                      // Parse the greetings when user leaves the field
                       const greetings = greetingsTextValue
                         ?.split('\n')
-                        .map(g => g.trim())
+                        .map((g) => g.trim())
                         .filter(Boolean);
-                      
+
                       if (greetings.length > 0) {
-                        setHeroText({ 
-                          ...heroText, 
+                        patchHero({
                           greetings,
-                          greeting: greetings[0]
+                          greeting: greetings[0],
                         });
                       }
                     }}
-                    placeholder="Welcome&#10;I'm Brian&#10;Designer&#10;Builder&#10;Researcher&#10;Product"
-                    rows={8}
+                    rows={6}
                     className="font-mono text-sm"
                   />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    💡 Type one greeting per line. You can add up to 6 (or more!) Keep them short for mobile.
-                  </p>
-                </div>
-                <div>
-                  <label className="block mb-2 text-sm">Pause Duration After Last Greeting (seconds)</label>
                   <div className="flex items-center gap-3">
+                    <Label className="text-xs shrink-0">Pause after last (sec)</Label>
                     <Input
                       type="number"
-                      min="1"
-                      max="120"
+                      min={1}
+                      max={120}
                       value={(heroText.lastGreetingPauseDuration || 30000) / 1000}
                       onChange={(e) => {
-                        const seconds = parseInt(e.target.value) || 30;
-                        setHeroText({ 
-                          ...heroText, 
-                          lastGreetingPauseDuration: seconds * 1000 
-                        });
-                        // No cache to clear since we're loading directly from Supabase
+                        const seconds = parseInt(e.target.value, 10) || 30;
+                        patchHero({ lastGreetingPauseDuration: seconds * 1000 });
                       }}
                       className="w-24"
                     />
-                    <span className="text-sm text-muted-foreground">seconds</span>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    How long to wait after the last greeting before looping back to the first
-                  </p>
+                  <div>
+                    <Label className="text-xs">Greeting font</Label>
+                    <Select
+                      value={heroText.greetingFont}
+                      onValueChange={(value) => patchHero({ greetingFont: value })}
+                    >
+                      <SelectTrigger className="mt-1">
+                        <SelectValue placeholder="Select a font" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Inter, sans-serif">Inter (Default)</SelectItem>
+                        <SelectItem value="Montserrat, sans-serif">Montserrat</SelectItem>
+                        <SelectItem value="Arial, sans-serif">Arial</SelectItem>
+                        <SelectItem value="'Helvetica Neue', Helvetica, sans-serif">Helvetica</SelectItem>
+                        <SelectItem value="Georgia, serif">Georgia</SelectItem>
+                        <SelectItem value="'Times New Roman', Times, serif">Times New Roman</SelectItem>
+                        <SelectItem value="'Courier New', Courier, monospace">Courier New</SelectItem>
+                        <SelectItem value="Verdana, sans-serif">Verdana</SelectItem>
+                        <SelectItem value="'Trebuchet MS', sans-serif">Trebuchet MS</SelectItem>
+                        <SelectItem value="'Comic Sans MS', cursive">Comic Sans MS</SelectItem>
+                        <SelectItem value="Impact, sans-serif">Impact</SelectItem>
+                        <SelectItem value="'Palatino Linotype', 'Book Antiqua', Palatino, serif">Palatino</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-                <div>
-                  <label className="block mb-2 text-sm">Greeting Font Family</label>
-                  <Select
-                    value={heroText.greetingFont}
-                    onValueChange={(value) => setHeroText({ ...heroText, greetingFont: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a font" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Inter, sans-serif">Inter (Default)</SelectItem>
-                      <SelectItem value="Montserrat, sans-serif">Montserrat</SelectItem>
-                      <SelectItem value="Arial, sans-serif">Arial</SelectItem>
-                      <SelectItem value="'Helvetica Neue', Helvetica, sans-serif">Helvetica</SelectItem>
-                      <SelectItem value="Georgia, serif">Georgia</SelectItem>
-                      <SelectItem value="'Times New Roman', Times, serif">Times New Roman</SelectItem>
-                      <SelectItem value="'Courier New', Courier, monospace">Courier New</SelectItem>
-                      <SelectItem value="Verdana, sans-serif">Verdana</SelectItem>
-                      <SelectItem value="'Trebuchet MS', sans-serif">Trebuchet MS</SelectItem>
-                      <SelectItem value="'Comic Sans MS', cursive">Comic Sans MS</SelectItem>
-                      <SelectItem value="Impact, sans-serif">Impact</SelectItem>
-                      <SelectItem value="'Palatino Linotype', 'Book Antiqua', Palatino, serif">Palatino</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <label className="block mb-2 text-sm">Subtitle (bold text)</label>
+
+                <div className="space-y-3 border-b border-border pb-4">
+                  <h4 className="text-sm font-semibold">Classic bio (when rich bio is empty)</h4>
                   <Input
                     value={heroText.subtitle}
-                    onChange={(e) => setHeroText({ ...heroText, subtitle: e.target.value })}
-                    placeholder="Product design leader"
+                    onChange={(e) => patchHero({ subtitle: e.target.value })}
+                    placeholder="Bold lead"
+                    className="text-sm"
                   />
-                </div>
-                <div>
-                  <label className="block mb-2 text-sm">Description</label>
                   <Input
                     value={heroText.description}
-                    onChange={(e) => setHeroText({ ...heroText, description: e.target.value })}
-                    placeholder="building high quality products and teams through"
+                    onChange={(e) => patchHero({ description: e.target.value })}
+                    placeholder="Description before gradient words"
+                    className="text-sm"
                   />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block mb-2 text-sm">Animated Word 1</label>
+                  <div className="grid grid-cols-2 gap-2">
                     <Input
                       value={heroText.word1}
-                      onChange={(e) => setHeroText({ ...heroText, word1: e.target.value })}
-                      placeholder="planning"
+                      onChange={(e) => patchHero({ word1: e.target.value })}
+                      placeholder="word 1"
                     />
-                  </div>
-                  <div>
-                    <label className="block mb-2 text-sm">Animated Word 2</label>
                     <Input
                       value={heroText.word2}
-                      onChange={(e) => setHeroText({ ...heroText, word2: e.target.value })}
-                      placeholder="collaboration"
+                      onChange={(e) => patchHero({ word2: e.target.value })}
+                      placeholder="word 2"
                     />
-                  </div>
-                  <div>
-                    <label className="block mb-2 text-sm">Animated Word 3</label>
                     <Input
                       value={heroText.word3}
-                      onChange={(e) => setHeroText({ ...heroText, word3: e.target.value })}
-                      placeholder="empathy"
+                      onChange={(e) => patchHero({ word3: e.target.value })}
+                      placeholder="word 3"
                     />
-                  </div>
-                  <div>
-                    <label className="block mb-2 text-sm">Animated Word 4</label>
                     <Input
                       value={heroText.word4}
-                      onChange={(e) => setHeroText({ ...heroText, word4: e.target.value })}
-                      placeholder="design"
+                      onChange={(e) => patchHero({ word4: e.target.value })}
+                      placeholder="word 4"
                     />
                   </div>
                 </div>
-                <div>
-                  <label className="block mb-2 text-sm">Button Text</label>
+
+                <div className="space-y-2 border-b border-border pb-4">
+                  <h4 className="text-sm font-semibold">CTA button</h4>
                   <Input
                     value={heroText.buttonText}
-                    onChange={(e) => setHeroText({ ...heroText, buttonText: e.target.value })}
-                    placeholder="More about Brian"
+                    onChange={(e) => patchHero({ buttonText: e.target.value })}
+                    placeholder="About Brian"
                   />
+                </div>
+
+                <div className="space-y-3 border-b border-border pb-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <h4 className="text-sm font-semibold">Quick stats</h4>
+                    <Button type="button" variant="outline" size="sm" onClick={addStat}>
+                      <Plus className="w-3 h-3 mr-1" />
+                      Add
+                    </Button>
+                  </div>
+                  {homePageContent.stats.map((stat, index) => (
+                    <div
+                      key={index}
+                      className="flex flex-col gap-2 p-3 rounded-lg border border-border bg-muted/30"
+                    >
+                      <div className="flex gap-1 justify-end">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => moveStat(index, -1)}
+                          disabled={index === 0}
+                          aria-label="Move stat up"
+                        >
+                          <ArrowUp className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => moveStat(index, 1)}
+                          disabled={index === homePageContent.stats.length - 1}
+                          aria-label="Move stat down"
+                        >
+                          <ArrowDown className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="text-destructive"
+                          onClick={() => removeStat(index)}
+                          disabled={homePageContent.stats.length <= 1}
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        <Input
+                          value={stat.number}
+                          onChange={(e) => patchStat(index, { number: e.target.value })}
+                          placeholder="#"
+                        />
+                        <Input
+                          className="col-span-2"
+                          value={stat.label}
+                          onChange={(e) => patchStat(index, { label: e.target.value })}
+                          placeholder="Label"
+                        />
+                      </div>
+                      <Input
+                        value={stat.description}
+                        onChange={(e) => patchStat(index, { description: e.target.value })}
+                        placeholder="Description"
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                <div className="space-y-2">
+                  <h4 className="text-sm font-semibold">Section & filters</h4>
+                  <Label className="text-xs">Case studies heading</Label>
+                  <Input
+                    value={homePageContent.ui.caseStudiesTitle}
+                    onChange={(e) => patchUi({ caseStudiesTitle: e.target.value })}
+                    className="mb-2"
+                  />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <Input
+                      value={homePageContent.ui.filterAll}
+                      onChange={(e) => patchUi({ filterAll: e.target.value })}
+                      placeholder="All"
+                    />
+                    <Input
+                      value={homePageContent.ui.filterProductDesign}
+                      onChange={(e) => patchUi({ filterProductDesign: e.target.value })}
+                      placeholder="Product design"
+                    />
+                    <Input
+                      value={homePageContent.ui.filterDevelopment}
+                      onChange={(e) => patchUi({ filterDevelopment: e.target.value })}
+                      placeholder="Development"
+                    />
+                    <Input
+                      value={homePageContent.ui.filterBranding}
+                      onChange={(e) => patchUi({ filterBranding: e.target.value })}
+                      placeholder="Branding"
+                    />
+                  </div>
                 </div>
               </div>
             ) : (
-              <p className="text-lg md:text-xl leading-relaxed mb-6 pr-8 md:pr-12 lg:pr-16">
-                <strong>{heroText.subtitle}</strong> {heroText.description}{' '}
-                <motion.span
-                  className="inline-block"
-                  animate={{
-                    backgroundImage: [
-                      "linear-gradient(45deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)",
-                      "linear-gradient(90deg, #8b5cf6 0%, #3b82f6 50%, #fbbf24 100%)",
-                      "linear-gradient(135deg, #3b82f6 0%, #fbbf24 50%, #ec4899 100%)",
-                      "linear-gradient(180deg, #fbbf24 0%, #ec4899 50%, #8b5cf6 100%)",
-                      "linear-gradient(45deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)",
-                    ],
-                  }}
-                  transition={{
-                    duration: 10,
-                    repeat: Infinity,
-                    ease: "linear",
-                    delay: 0,
-                  }}
-                  style={{
-                    backgroundClip: "text",
-                    WebkitBackgroundClip: "text",
-                    WebkitTextFillColor: "transparent",
-                  }}
-                >
-                  {heroText.word1}
-                </motion.span>
-                ,{' '}
-                <motion.span
-                  className="inline-block"
-                  animate={{
-                    backgroundImage: [
-                      "linear-gradient(90deg, #8b5cf6 0%, #3b82f6 50%, #fbbf24 100%)",
-                      "linear-gradient(135deg, #3b82f6 0%, #fbbf24 50%, #ec4899 100%)",
-                      "linear-gradient(180deg, #fbbf24 0%, #ec4899 50%, #8b5cf6 100%)",
-                      "linear-gradient(45deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)",
-                      "linear-gradient(90deg, #8b5cf6 0%, #3b82f6 50%, #fbbf24 100%)",
-                    ],
-                  }}
-                  transition={{
-                    duration: 12,
-                    repeat: Infinity,
-                    ease: "linear",
-                    delay: 2.5,
-                  }}
-                  style={{
-                    backgroundClip: "text",
-                    WebkitBackgroundClip: "text",
-                    WebkitTextFillColor: "transparent",
-                  }}
-                >
-                  {heroText.word2}
-                </motion.span>
-                ,{' '}
-                <motion.span
-                  className="inline-block"
-                  animate={{
-                    backgroundImage: [
-                      "linear-gradient(135deg, #3b82f6 0%, #fbbf24 50%, #ec4899 100%)",
-                      "linear-gradient(180deg, #fbbf24 0%, #ec4899 50%, #8b5cf6 100%)",
-                      "linear-gradient(45deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)",
-                      "linear-gradient(90deg, #8b5cf6 0%, #3b82f6 50%, #fbbf24 100%)",
-                      "linear-gradient(135deg, #3b82f6 0%, #fbbf24 50%, #ec4899 100%)",
-                    ],
-                  }}
-                  transition={{
-                    duration: 11,
-                    repeat: Infinity,
-                    ease: "linear",
-                    delay: 5,
-                  }}
-                  style={{
-                    backgroundClip: "text",
-                    WebkitBackgroundClip: "text",
-                    WebkitTextFillColor: "transparent",
-                  }}
-                >
-                  {heroText.word3}
-                </motion.span>
-                , and{' '}
-                <motion.span
-                  className="inline-block"
-                  animate={{
-                    backgroundImage: [
-                      "linear-gradient(180deg, #fbbf24 0%, #ec4899 50%, #8b5cf6 100%)",
-                      "linear-gradient(45deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)",
-                      "linear-gradient(90deg, #8b5cf6 0%, #3b82f6 50%, #fbbf24 100%)",
-                      "linear-gradient(135deg, #3b82f6 0%, #fbbf24 50%, #ec4899 100%)",
-                      "linear-gradient(180deg, #fbbf24 0%, #ec4899 50%, #8b5cf6 100%)",
-                    ],
-                  }}
-                  transition={{
-                    duration: 13,
-                    repeat: Infinity,
-                    ease: "linear",
-                    delay: 7.5,
-                  }}
-                  style={{
-                    backgroundClip: "text",
-                    WebkitBackgroundClip: "text",
-                    WebkitTextFillColor: "transparent",
-                  }}
-                >
-                  {heroText.word4}
-                </motion.span>
-                .
-              </p>
+              <>
+                {(() => {
+                  const bioParagraphs = splitBioParagraphs(heroText.bioText);
+                  const gapRem = heroText.bioParagraphGapRem ?? 1;
+                  const lh = heroText.bioLineHeight ?? 1.625;
+                  const accentTop = heroText.accentMarginTopRem ?? 1;
+                  const accent = (heroText.accentText ?? '').trim();
+
+                  if (bioParagraphs.length > 0) {
+                    return (
+                      <div className="mb-6 pr-8 md:pr-12 lg:pr-16 text-lg md:text-xl text-foreground">
+                        <div
+                          className="flex flex-col"
+                          style={{ gap: `${gapRem}rem` }}
+                        >
+                          {bioParagraphs.map((p, i) => (
+                            <p
+                              key={i}
+                              className="leading-relaxed"
+                              style={{ lineHeight: lh }}
+                            >
+                              {p}
+                            </p>
+                          ))}
+                        </div>
+                        {accent ? (
+                          <p
+                            className="text-lg md:text-xl font-semibold"
+                            style={{ marginTop: `${accentTop}rem` }}
+                          >
+                            {heroText.accentGradient !== false ? (
+                              <motion.span
+                                className="inline-block"
+                                animate={{
+                                  backgroundImage: [
+                                    'linear-gradient(45deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)',
+                                    'linear-gradient(90deg, #8b5cf6 0%, #3b82f6 50%, #fbbf24 100%)',
+                                    'linear-gradient(135deg, #3b82f6 0%, #fbbf24 50%, #ec4899 100%)',
+                                    'linear-gradient(180deg, #fbbf24 0%, #ec4899 50%, #8b5cf6 100%)',
+                                    'linear-gradient(45deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)',
+                                  ],
+                                }}
+                                transition={{
+                                  duration: 10,
+                                  repeat: Infinity,
+                                  ease: 'linear',
+                                }}
+                                style={{
+                                  backgroundClip: 'text',
+                                  WebkitBackgroundClip: 'text',
+                                  WebkitTextFillColor: 'transparent',
+                                }}
+                              >
+                                {accent}
+                              </motion.span>
+                            ) : (
+                              <span>{accent}</span>
+                            )}
+                          </p>
+                        ) : null}
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <p className="text-lg md:text-xl leading-relaxed mb-6 pr-8 md:pr-12 lg:pr-16">
+                      <strong>{heroText.subtitle}</strong> {heroText.description}{' '}
+                      <motion.span
+                        className="inline-block"
+                        animate={{
+                          backgroundImage: [
+                            'linear-gradient(45deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)',
+                            'linear-gradient(90deg, #8b5cf6 0%, #3b82f6 50%, #fbbf24 100%)',
+                            'linear-gradient(135deg, #3b82f6 0%, #fbbf24 50%, #ec4899 100%)',
+                            'linear-gradient(180deg, #fbbf24 0%, #ec4899 50%, #8b5cf6 100%)',
+                            'linear-gradient(45deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)',
+                          ],
+                        }}
+                        transition={{
+                          duration: 10,
+                          repeat: Infinity,
+                          ease: 'linear',
+                          delay: 0,
+                        }}
+                        style={{
+                          backgroundClip: 'text',
+                          WebkitBackgroundClip: 'text',
+                          WebkitTextFillColor: 'transparent',
+                        }}
+                      >
+                        {heroText.word1}
+                      </motion.span>
+                      ,{' '}
+                      <motion.span
+                        className="inline-block"
+                        animate={{
+                          backgroundImage: [
+                            'linear-gradient(90deg, #8b5cf6 0%, #3b82f6 50%, #fbbf24 100%)',
+                            'linear-gradient(135deg, #3b82f6 0%, #fbbf24 50%, #ec4899 100%)',
+                            'linear-gradient(180deg, #fbbf24 0%, #ec4899 50%, #8b5cf6 100%)',
+                            'linear-gradient(45deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)',
+                            'linear-gradient(90deg, #8b5cf6 0%, #3b82f6 50%, #fbbf24 100%)',
+                          ],
+                        }}
+                        transition={{
+                          duration: 12,
+                          repeat: Infinity,
+                          ease: 'linear',
+                          delay: 2.5,
+                        }}
+                        style={{
+                          backgroundClip: 'text',
+                          WebkitBackgroundClip: 'text',
+                          WebkitTextFillColor: 'transparent',
+                        }}
+                      >
+                        {heroText.word2}
+                      </motion.span>
+                      ,{' '}
+                      <motion.span
+                        className="inline-block"
+                        animate={{
+                          backgroundImage: [
+                            'linear-gradient(135deg, #3b82f6 0%, #fbbf24 50%, #ec4899 100%)',
+                            'linear-gradient(180deg, #fbbf24 0%, #ec4899 50%, #8b5cf6 100%)',
+                            'linear-gradient(45deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)',
+                            'linear-gradient(90deg, #8b5cf6 0%, #3b82f6 50%, #fbbf24 100%)',
+                            'linear-gradient(135deg, #3b82f6 0%, #fbbf24 50%, #ec4899 100%)',
+                          ],
+                        }}
+                        transition={{
+                          duration: 11,
+                          repeat: Infinity,
+                          ease: 'linear',
+                          delay: 5,
+                        }}
+                        style={{
+                          backgroundClip: 'text',
+                          WebkitBackgroundClip: 'text',
+                          WebkitTextFillColor: 'transparent',
+                        }}
+                      >
+                        {heroText.word3}
+                      </motion.span>
+                      , and{' '}
+                      <motion.span
+                        className="inline-block"
+                        animate={{
+                          backgroundImage: [
+                            'linear-gradient(180deg, #fbbf24 0%, #ec4899 50%, #8b5cf6 100%)',
+                            'linear-gradient(45deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)',
+                            'linear-gradient(90deg, #8b5cf6 0%, #3b82f6 50%, #fbbf24 100%)',
+                            'linear-gradient(135deg, #3b82f6 0%, #fbbf24 50%, #ec4899 100%)',
+                            'linear-gradient(180deg, #fbbf24 0%, #ec4899 50%, #8b5cf6 100%)',
+                          ],
+                        }}
+                        transition={{
+                          duration: 13,
+                          repeat: Infinity,
+                          ease: 'linear',
+                          delay: 7.5,
+                        }}
+                        style={{
+                          backgroundClip: 'text',
+                          WebkitBackgroundClip: 'text',
+                          WebkitTextFillColor: 'transparent',
+                        }}
+                      >
+                        {heroText.word4}
+                      </motion.span>
+                      .
+                    </p>
+                  );
+                })()}
+              </>
             )}
 
             {/* CTA Button & LinkedIn - Inside container, flush left */}
@@ -4156,38 +4376,13 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
 
         {/* Quick Stats Section */}
         <section className="w-full pt-2 md:pt-3 pb-12 relative z-10 px-0 md:px-6">
-          {/* Grid layout matching hero container width */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-4xl mx-auto p-8 px-0 md:px-8">
-            {[
-              { 
-                number: "1", 
-                label: "Full stack web app",
-                description: "Solo developer"
-              },
-              { 
-                number: "4", 
-                label: "AI native apps designed",
-                description: "with RAG & MCP hooks"
-              },
-              { 
-                number: "6", 
-                label: "0-1 product launches",
-                description: "From ambiguity to product"
-              },
-              { 
-                number: "9", 
-                label: "US patents",
-                description: "Innovation and IP contribution"
-              }
-              
-            ].map((stat, index) => {
-              // Calculate if this card is alone in its row
-              const totalCards = 4;
+            {homePageContent.stats.map((stat, index) => {
+              const totalCards = homePageContent.stats.length;
               const isLastCard = index === totalCards - 1;
-              
-              // With 2-column grid on sm+: if last card is alone (5 % 2 = 1), span 2 cols
+
               const gridSpanClass = isLastCard && totalCards % 2 === 1
-                ? 'sm:col-span-2' // Last card spans 2 cols when alone on sm+ screens
+                ? 'sm:col-span-2'
                 : '';
               
               return (
@@ -4225,10 +4420,10 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                 
                 {/* Content */}
                 <div className="flex-1 flex flex-col justify-center min-w-0">
-                  <h3 className="text-base md:text-lg font-semibold text-foreground mb-1 whitespace-nowrap overflow-hidden text-ellipsis">
+                  <h3 className="text-base md:text-lg font-semibold text-foreground mb-1 break-words">
                     {stat.label}
                   </h3>
-                  <p className="text-sm md:text-base text-muted-foreground whitespace-nowrap overflow-hidden text-ellipsis">
+                  <p className="text-sm md:text-base text-muted-foreground break-words">
                     {stat.description}
                   </p>
                 </div>
@@ -4275,7 +4470,6 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                   ease: "easeInOut",
                 },
               }}
-              style={{ pointerEvents: 'none' }}
             >
               <button
                   type="button"
@@ -4316,8 +4510,9 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
             transition={{ delay: 0.5, duration: 0.5 }}
             className="mb-6 px-4 text-center md:px-0"
           >
-            Case studies
-          </motion.h2>          {/* Filter Buttons */}
+            {homePageContent.ui.caseStudiesTitle}
+          </motion.h2>
+          {/* Filter Buttons */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -4346,7 +4541,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                       onMouseUp={(e) => e.currentTarget.blur()}
                       className={getFilterButtonClasses(selectedProjectType === null)}
                     >
-                      All
+                      {homePageContent.ui.filterAll}
                     </button>
                     {availableProjectTypes.includes('product-design') && (
                       <button
@@ -4354,7 +4549,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                         onMouseUp={(e) => e.currentTarget.blur()}
                         className={getFilterButtonClasses(selectedProjectType === 'product-design')}
                       >
-                        Product design
+                        {homePageContent.ui.filterProductDesign}
                       </button>
                     )}
                     {availableProjectTypes.includes('development') && (
@@ -4363,7 +4558,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                         onMouseUp={(e) => e.currentTarget.blur()}
                         className={getFilterButtonClasses(selectedProjectType === 'development')}
                       >
-                        Development
+                        {homePageContent.ui.filterDevelopment}
                       </button>
                     )}
                     {availableProjectTypes.includes('branding') && (
@@ -4372,7 +4567,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                         onMouseUp={(e) => e.currentTarget.blur()}
                         className={getFilterButtonClasses(selectedProjectType === 'branding')}
                       >
-                        Branding
+                        {homePageContent.ui.filterBranding}
                       </button>
                     )}
                   </>
