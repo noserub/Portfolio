@@ -83,6 +83,66 @@ export const DEFAULT_UI: HomePageUI = {
   filterBranding: "Branding",
 };
 
+/** Default strings for classic bio when stored hero fields are blank (prevents empty gradient/bold runs). */
+export const DEFAULT_CLASSIC_BIO_FIELDS = {
+  subtitle: "Brian Bureson is a (super rad) product design leader and builder,",
+  description: "crafting high quality products and teams through",
+  word1: "planning",
+  word2: "collaboration",
+  word3: "empathy",
+  word4: "design",
+} as const;
+
+/** True when the doc uses bold/gradient runs but every one is empty — shows only ", , , and ." in production. */
+export function hasEmptyClassicShell(doc: BioDocument | undefined): boolean {
+  if (!doc?.paragraphs?.length) return false;
+  let sawStyled = false;
+  let anyStyledHasText = false;
+  for (const p of doc.paragraphs) {
+    for (const r of p.runs || []) {
+      if (r.type === "bold" || r.type === "gradient") {
+        sawStyled = true;
+        if ((r.text || "").trim().length > 0) {
+          anyStyledHasText = true;
+        }
+      }
+    }
+  }
+  return sawStyled && !anyStyledHasText;
+}
+
+export function coerceClassicBioFields(
+  hero: Pick<HeroTextState, "subtitle" | "description" | "word1" | "word2" | "word3" | "word4">,
+): typeof DEFAULT_CLASSIC_BIO_FIELDS {
+  const d = DEFAULT_CLASSIC_BIO_FIELDS;
+  return {
+    subtitle: hero.subtitle?.trim() || d.subtitle,
+    description: hero.description?.trim() || d.description,
+    word1: hero.word1?.trim() || d.word1,
+    word2: hero.word2?.trim() || d.word2,
+    word3: hero.word3?.trim() || d.word3,
+    word4: hero.word4?.trim() || d.word4,
+  };
+}
+
+export function healDegenerateHeroBio(hero: HeroTextState): HeroTextState {
+  const sanitized = hero.bioDocument ? sanitizeBioDocument(hero.bioDocument) : null;
+  if (!sanitized?.paragraphs?.length || !hasEmptyClassicShell(sanitized)) {
+    return hero;
+  }
+  const fields = coerceClassicBioFields(hero);
+  return {
+    ...hero,
+    subtitle: fields.subtitle,
+    description: fields.description,
+    word1: fields.word1,
+    word2: fields.word2,
+    word3: fields.word3,
+    word4: fields.word4,
+    bioDocument: classicBioDocumentFromHero(fields),
+  };
+}
+
 export function defaultHeroTextState(): HeroTextState {
   const hero: HeroTextState = {
     greeting: "I build things.",
@@ -160,7 +220,7 @@ function mergeHero(partial: Partial<HeroTextState> | Record<string, unknown>): H
   }
 
   merged.bioDocument = legacyToBioDocument(merged);
-  return merged;
+  return healDegenerateHeroBio(merged);
 }
 
 function mergeStats(raw: unknown): HomePageStat[] {
@@ -282,7 +342,7 @@ export function legacyToBioDocument(hero: HeroTextState): BioDocument {
   const raw = hero.bioDocument;
   if (raw && Array.isArray(raw.paragraphs) && raw.paragraphs.length > 0) {
     const sanitized = sanitizeBioDocument(raw);
-    if (sanitized.paragraphs.length > 0) {
+    if (sanitized.paragraphs.length > 0 && !hasEmptyClassicShell(sanitized)) {
       return sanitized;
     }
   }
@@ -305,7 +365,8 @@ export function legacyToBioDocument(hero: HeroTextState): BioDocument {
     return { paragraphs };
   }
 
-  const paragraphs: BioParagraph[] = [classicBioDocumentFromHero(hero).paragraphs[0]];
+  const fields = coerceClassicBioFields(hero);
+  const paragraphs: BioParagraph[] = [classicBioDocumentFromHero(fields).paragraphs[0]];
   if (hero.accentText?.trim()) {
     paragraphs.push({
       runs: [

@@ -38,6 +38,7 @@ import {
   toPersistedPayload,
   heroHasMinimumContent,
   classicBioDocumentFromHero,
+  healDegenerateHeroBio,
 } from "../lib/homePageContent";
 import { BioDocumentRenderer, HomeBioDocumentEditor } from "../components/HomeBioDocument";
 
@@ -2340,6 +2341,15 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
   }, []);
 
   const heroText = homePageContent.hero;
+  const resolvedHeroBio = useMemo(() => healDegenerateHeroBio(heroText), [heroText]);
+  const bioDocumentForUi =
+    resolvedHeroBio.bioDocument ?? classicBioDocumentFromHero(resolvedHeroBio);
+
+  useEffect(() => {
+    const healed = healDegenerateHeroBio(homePageContent.hero);
+    if (healed === homePageContent.hero) return;
+    setHomePageContent((c) => ({ ...c, hero: healed }));
+  }, [homePageContent.hero]);
 
   const [isEditingHero, setIsEditingHero] = useState(false);
   const [greetingsTextValue, setGreetingsTextValue] = useState("");
@@ -3770,7 +3780,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                 </div>
 
                 <HomeBioDocumentEditor
-                  document={heroText.bioDocument ?? classicBioDocumentFromHero(heroText)}
+                  document={bioDocumentForUi}
                   onChange={(doc) => patchHero({ bioDocument: doc })}
                   paragraphGapRem={heroText.bioParagraphGapRem ?? 1}
                   lineHeight={heroText.bioLineHeight ?? 1.625}
@@ -4000,7 +4010,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
               </div>
             ) : (
               <BioDocumentRenderer
-                document={heroText.bioDocument ?? classicBioDocumentFromHero(heroText)}
+                document={bioDocumentForUi}
                 paragraphGapRem={heroText.bioParagraphGapRem ?? 1}
                 lineHeight={heroText.bioLineHeight ?? 1.625}
               />
