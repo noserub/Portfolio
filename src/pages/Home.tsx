@@ -4164,72 +4164,13 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
           </div>
         </motion.div>
 
-        {/* Quick Stats Section */}
-        <section className="w-full pt-2 md:pt-3 pb-12 relative z-10 px-0 md:px-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-4xl mx-auto p-8 px-0 md:px-8">
-            {homePageContent.stats.map((stat, index) => {
-              const totalCards = homePageContent.stats.length;
-              const isLastCard = index === totalCards - 1;
-
-              const gridSpanClass = isLastCard && totalCards % 2 === 1
-                ? 'sm:col-span-2'
-                : '';
-              
-              return (
-              <div
-                key={index}
-                className={`bg-gradient-to-br from-slate-50/80 via-white/60 to-gray-50/40 dark:from-slate-800/30 dark:via-slate-900/25 dark:to-slate-800/20 backdrop-blur-md rounded-3xl border border-border/20 shadow-lg hover:shadow-xl transition-shadow duration-300 px-4 py-4 flex flex-row items-center justify-center gap-4 text-left w-full ${gridSpanClass}`}
-              >
-                {/* Number - Left */}
-                <motion.span
-                  className="flex-shrink-0 block font-extrabold tracking-tight leading-none"
-                  style={{
-                    fontSize: '44px',
-                    backgroundClip: "text",
-                    WebkitBackgroundClip: "text",
-                    WebkitTextFillColor: "transparent",
-                  }}
-                  animate={{
-                    backgroundImage: [
-                      "linear-gradient(45deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)",
-                      "linear-gradient(90deg, #8b5cf6 0%, #3b82f6 50%, #fbbf24 100%)",
-                      "linear-gradient(135deg, #3b82f6 0%, #fbbf24 50%, #ec4899 100%)",
-                      "linear-gradient(180deg, #fbbf24 0%, #ec4899 50%, #8b5cf6 100%)",
-                      "linear-gradient(225deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)",
-                      "linear-gradient(45deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)",
-                    ],
-                  }}
-                  transition={{
-                    duration: 8,
-                    repeat: Infinity,
-                    ease: "linear",
-                  }}
-                >
-                  {stat.number}
-                </motion.span>
-                
-                {/* Content */}
-                <div className="flex-1 flex flex-col justify-center min-w-0">
-                  <h3 className="text-base md:text-lg font-semibold text-foreground mb-1 break-words">
-                    {stat.label}
-                  </h3>
-                  <p className="text-sm md:text-base text-muted-foreground break-words">
-                    {stat.description}
-                  </p>
-                </div>
-              </div>
-            );
-            })}
-          </div>
-        </section>
-
         {/* Scroll Indicator Arrow - Dynamic up/down chevron based on scroll position */}
         {!isEditMode && (
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 1, duration: 0.6 }}
-            className="flex justify-center py-8 mt-2 relative z-10"
+            className="flex justify-center py-12 md:py-16 relative z-10"
           >
             <motion.div
               className="rounded-full p-[2px] inline-block flex-shrink-0 pointer-events-none"
@@ -4289,6 +4230,65 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
             </motion.div>
           </motion.div>
         )}
+
+        {/* Quick Stats Section */}
+        <section className="w-full pt-6 md:pt-8 pb-12 relative z-10 px-0 md:px-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-4xl mx-auto p-8 px-0 md:px-8">
+            {homePageContent.stats.map((stat, index) => {
+              const totalCards = homePageContent.stats.length;
+              const isLastCard = index === totalCards - 1;
+
+              const gridSpanClass = isLastCard && totalCards % 2 === 1
+                ? 'sm:col-span-2'
+                : '';
+              
+              return (
+              <div
+                key={index}
+                className={`bg-gradient-to-br from-slate-50/80 via-white/60 to-gray-50/40 dark:from-slate-800/30 dark:via-slate-900/25 dark:to-slate-800/20 backdrop-blur-md rounded-3xl border border-border/20 shadow-lg hover:shadow-xl transition-shadow duration-300 px-4 py-4 flex flex-row items-center justify-center gap-4 text-left w-full ${gridSpanClass}`}
+              >
+                {/* Number - Left */}
+                <motion.span
+                  className="flex-shrink-0 block font-extrabold tracking-tight leading-none"
+                  style={{
+                    fontSize: '44px',
+                    backgroundClip: "text",
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                  }}
+                  animate={{
+                    backgroundImage: [
+                      "linear-gradient(45deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)",
+                      "linear-gradient(90deg, #8b5cf6 0%, #3b82f6 50%, #fbbf24 100%)",
+                      "linear-gradient(135deg, #3b82f6 0%, #fbbf24 50%, #ec4899 100%)",
+                      "linear-gradient(180deg, #fbbf24 0%, #ec4899 50%, #8b5cf6 100%)",
+                      "linear-gradient(225deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)",
+                      "linear-gradient(45deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)",
+                    ],
+                  }}
+                  transition={{
+                    duration: 8,
+                    repeat: Infinity,
+                    ease: "linear",
+                  }}
+                >
+                  {stat.number}
+                </motion.span>
+                
+                {/* Content */}
+                <div className="flex-1 flex flex-col justify-center min-w-0">
+                  <h3 className="text-base md:text-lg font-semibold text-foreground mb-1 break-words">
+                    {stat.label}
+                  </h3>
+                  <p className="text-sm md:text-base text-muted-foreground break-words">
+                    {stat.description}
+                  </p>
+                </div>
+              </div>
+            );
+            })}
+          </div>
+        </section>
 
         {/* Case Studies Carousel */}
         <div 
