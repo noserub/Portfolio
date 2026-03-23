@@ -36,6 +36,21 @@ interface HomeProps {
   currentPage: string;
 }
 
+/** Hero / CMS copy stored in `profiles.hero_text` and localStorage */
+interface HeroTextState {
+  greeting: string;
+  greetings?: string[];
+  greetingFont?: string;
+  lastGreetingPauseDuration?: number;
+  subtitle: string;
+  description: string;
+  word1: string;
+  word2: string;
+  word3: string;
+  word4: string;
+  buttonText: string;
+}
+
 interface DraggableProjectItemProps {
   project: ProjectData;
   index: number;
@@ -2284,8 +2299,8 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
   }, [caseStudies, designProjects]);
   
   // Home page hero text - editable in edit mode
-  const [heroText, setHeroText] = useState(() => {
-    const defaultHeroText = {
+  const [heroText, setHeroText] = useState<HeroTextState>(() => {
+    const defaultHeroText: HeroTextState = {
       greeting: "I build things.",
       greetings: [
         "I build things.",
@@ -2409,79 +2424,116 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     loadHeroText();
   }, []);
 
-  // Debounce timer ref to prevent excessive API calls
-  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const heroTextRef = useRef<HeroTextState>(heroText);
+  heroTextRef.current = heroText;
 
-  // Save heroText to localStorage and Supabase (with debouncing to prevent excessive API calls)
+  // Debounce timer ref to prevent excessive API calls
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const persistHeroTextNow = useCallback(async (text: HeroTextState) => {
+    const hasValidContent = (text?.greetings?.length ?? 0) > 0 || Boolean(text?.greeting);
+    if (!hasValidContent) {
+      return;
+    }
+    localStorage.setItem('heroText', JSON.stringify(text));
+    console.log('💾 Hero text saved to localStorage');
+
+    try {
+      const { supabase } = await import('../lib/supabaseClient');
+      const { data: { user } } = await supabase.auth.getUser();
+      const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
+
+      if (user || isBypassAuth) {
+        const userId = user?.id || '7cd2752f-93c5-46e6-8535-32769fb10055';
+        console.log('💾 Saving hero text to Supabase for shared access:', userId);
+
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({ hero_text: text })
+          .eq('id', userId);
+
+        if (updateError) {
+          console.log('📝 Profile not found, creating new profile with hero text...');
+          const { error: insertError } = await supabase
+            .from('profiles')
+            .insert({
+              id: userId,
+              email: user?.email || 'brian.bureson@gmail.com',
+              full_name: 'Brian Bureson',
+              hero_text: text
+            });
+
+          if (insertError) {
+            console.warn('⚠️ Failed to save to Supabase (egress limits?):', insertError.message);
+          } else {
+            console.log('✅ Created profile with hero text in Supabase');
+          }
+        } else {
+          console.log('✅ Hero text updated in Supabase (shared)');
+        }
+      }
+    } catch (error) {
+      console.warn('⚠️ Supabase save failed (egress limits?):', error);
+      console.log('💾 Hero text saved to localStorage only');
+    }
+  }, []);
+
+  const flushPendingHeroText = useCallback(() => {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = null;
+    }
+    void persistHeroTextNow(heroTextRef.current);
+  }, [persistHeroTextNow]);
+
+  // Save heroText to localStorage and Supabase (debounced — flush on hide/unmount handles fast refresh)
   useEffect(() => {
-    // Prevent saving empty or invalid hero text that would overwrite user content
     const hasValidContent = heroText?.greetings?.length > 0 || heroText?.greeting;
     if (!hasValidContent) {
       console.log('⏸️ Skipping save: Hero text is empty or invalid');
       return;
     }
-    
-    // Clear any existing timeout
+
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
     }
 
-    // Set a new timeout for saving (increased debounce to prevent excessive saves)
-    saveTimeoutRef.current = setTimeout(async () => {
-      // Always save to localStorage first
-      localStorage.setItem('heroText', JSON.stringify(heroText));
-      console.log('💾 Hero text saved to localStorage');
-      
-      // Try to save to Supabase for shared access (with error handling)
-      try {
-        const { supabase } = await import('../lib/supabaseClient');
-        const { data: { user } } = await supabase.auth.getUser();
-        const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
-        
-        if (user || isBypassAuth) {
-          const userId = user?.id || '7cd2752f-93c5-46e6-8535-32769fb10055';
-          console.log('💾 Saving hero text to Supabase for shared access:', userId);
-          
-          // Try to update existing profile first
-          const { error: updateError } = await supabase
-            .from('profiles')
-            .update({ hero_text: heroText })
-            .eq('id', userId);
-            
-          if (updateError) {
-            console.log('📝 Profile not found, creating new profile with hero text...');
-            // If profile doesn't exist, create it
-            const { error: insertError } = await supabase
-              .from('profiles')
-              .insert({
-                id: userId,
-                email: user?.email || 'brian.bureson@gmail.com',
-                full_name: 'Brian Bureson',
-                hero_text: heroText
-              });
-              
-            if (insertError) {
-              console.warn('⚠️ Failed to save to Supabase (egress limits?):', insertError.message);
-            } else {
-              console.log('✅ Created profile with hero text in Supabase');
-            }
-          } else {
-            console.log('✅ Hero text updated in Supabase (shared)');
-          }
-        }
-      } catch (error) {
-        console.warn('⚠️ Supabase save failed (egress limits?):', error);
-        console.log('💾 Hero text saved to localStorage only');
-      }
-    }, 2000); // Increased to 2 seconds to reduce save frequency
+    saveTimeoutRef.current = setTimeout(() => {
+      void persistHeroTextNow(heroText);
+    }, 800);
 
-    // Cleanup function
     return () => {
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
+        saveTimeoutRef.current = null;
       }
     };
-  }, [heroText]);
+  }, [heroText, persistHeroTextNow]);
+
+  // Flush before refresh/close or when tab goes to background so Supabase has latest copy before reload
+  useEffect(() => {
+    const onHidden = () => {
+      if (document.visibilityState === 'hidden') {
+        flushPendingHeroText();
+      }
+    };
+    const onPageHide = () => {
+      flushPendingHeroText();
+    };
+    document.addEventListener('visibilitychange', onHidden);
+    window.addEventListener('pagehide', onPageHide);
+    return () => {
+      document.removeEventListener('visibilitychange', onHidden);
+      window.removeEventListener('pagehide', onPageHide);
+    };
+  }, [flushPendingHeroText]);
+
+  // Persist when leaving the home page (e.g. music nav) before debounce fires
+  useEffect(() => {
+    return () => {
+      flushPendingHeroText();
+    };
+  }, [flushPendingHeroText]);
   
   // Use ref to store greetings array - prevents infinite re-render loops
   const greetingsRef = useRef([]);
@@ -3695,7 +3747,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                       
                       // Always save the current hero text state (which includes subtitle, description, etc.)
                       // and update greetings if they were edited
-                      const updatedHeroText = greetings && greetings.length > 0 
+                      const updatedHeroText: HeroTextState = greetings && greetings.length > 0 
                         ? { 
                             ...heroText, 
                             greetings,
@@ -3703,31 +3755,8 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                           }
                         : heroText; // Use current state if no greetings were edited
                       
-                      // Update local state
                       setHeroText(updatedHeroText);
-                      
-                      // Save to Supabase
-                      try {
-                        const { supabase } = await import('../lib/supabaseClient');
-                        const { data: { user } } = await supabase.auth.getUser();
-                        const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
-                        
-                        if (user || isBypassAuth) {
-                          const userId = user?.id || '7cd2752f-93c5-46e6-8535-32769fb10055';
-                          
-                          const { error } = await supabase
-                            .from('profiles')
-                            .update({ hero_text: updatedHeroText })
-                            .eq('id', userId);
-                          
-                          if (error) throw error;
-                          
-                          console.log('✅ Hero text saved to Supabase successfully');
-                          console.log('📝 Saved data:', updatedHeroText);
-                        }
-                      } catch (error) {
-                        console.error('❌ Error saving hero text:', error);
-                      }
+                      await persistHeroTextNow(updatedHeroText);
                       
                       setIsEditingHero(false);
                     }}
