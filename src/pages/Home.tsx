@@ -2349,6 +2349,8 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
   const [bioEditorRevision, setBioEditorRevision] = useState(0);
   const [greetingsTextValue, setGreetingsTextValue] = useState("");
   const [deleteConfirmation, setDeleteConfirmation] = useState(null);
+  /** False until initial hero load finishes — blocks debounced persist from overwriting DB with defaults. */
+  const homeContentHydratedRef = useRef(false);
 
   useEffect(() => {
     const loadHomePageContent = async () => {
@@ -2399,12 +2401,16 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         if (hasOldWelcome) {
           console.log('⚠️ Detected legacy Welcome greeting; resetting to defaults');
           const fresh = createDefaultHomePageContent();
+          homeContentHydratedRef.current = true;
           setHomePageContent(fresh);
+          setBioEditorRevision((n) => n + 1);
           localStorage.setItem('heroText', JSON.stringify(toPersistedPayload({ ...fresh, _clientSavedAt: Date.now() })));
           return;
         }
 
+        homeContentHydratedRef.current = true;
         setHomePageContent(content);
+        setBioEditorRevision((n) => n + 1);
         localStorage.setItem('heroText', JSON.stringify(toPersistedPayload(content)));
         console.log('✅ Home page content synced to localStorage');
       } catch (error) {
@@ -2416,11 +2422,15 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
 
         if (hasOldWelcome) {
           localStorage.removeItem('heroText');
+          homeContentHydratedRef.current = true;
           setHomePageContent(createDefaultHomePageContent());
+          setBioEditorRevision((n) => n + 1);
           return;
         }
 
+        homeContentHydratedRef.current = true;
         setHomePageContent(content);
+        setBioEditorRevision((n) => n + 1);
         localStorage.setItem('heroText', JSON.stringify(toPersistedPayload(content)));
         console.log('✅ Loaded home page content from offline / local merge');
       }
@@ -2489,6 +2499,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
   }, []);
 
   const flushPendingHomePage = useCallback(() => {
+    if (!homeContentHydratedRef.current) return;
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
       saveTimeoutRef.current = null;
@@ -2497,6 +2508,9 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
   }, [persistHomePageNow]);
 
   useEffect(() => {
+    if (!homeContentHydratedRef.current) {
+      return;
+    }
     if (!heroHasMinimumContent(homePageContent.hero)) {
       console.log('⏸️ Skipping save: hero greetings invalid');
       return;
