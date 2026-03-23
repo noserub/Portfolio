@@ -2345,12 +2345,6 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
   const bioDocumentForUi =
     resolvedHeroBio.bioDocument ?? classicBioDocumentFromHero(resolvedHeroBio);
 
-  useEffect(() => {
-    const healed = healDegenerateHeroBio(homePageContent.hero);
-    if (healed === homePageContent.hero) return;
-    setHomePageContent((c) => ({ ...c, hero: healed }));
-  }, [homePageContent.hero]);
-
   const [isEditingHero, setIsEditingHero] = useState(false);
   const [bioEditorRevision, setBioEditorRevision] = useState(0);
   const [greetingsTextValue, setGreetingsTextValue] = useState("");
@@ -3751,23 +3745,30 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                   <h3 className="text-lg font-semibold">Edit home content</h3>
                   <Button
                     onClick={async () => {
+                      flushPendingHomePage();
+
                       const greetings = greetingsTextValue
                         ?.split('\n')
                         .map((g) => g.trim())
                         .filter(Boolean);
 
-                      const updatedHero: HeroTextState =
-                        greetings && greetings.length > 0
-                          ? {
-                              ...heroText,
-                              greetings,
-                              greeting: greetings[0],
-                            }
-                          : heroText;
+                      let next: HomePageContentV2 | null = null;
+                      setHomePageContent((c) => {
+                        const updatedHero: HeroTextState =
+                          greetings && greetings.length > 0
+                            ? {
+                                ...c.hero,
+                                greetings,
+                                greeting: greetings[0],
+                              }
+                            : c.hero;
+                        next = { ...c, hero: updatedHero };
+                        return next;
+                      });
 
-                      const next = { ...homePageContent, hero: updatedHero };
-                      setHomePageContent(next);
-                      await persistHomePageNow(next);
+                      if (next) {
+                        await persistHomePageNow(next);
+                      }
 
                       setIsEditingHero(false);
                     }}
