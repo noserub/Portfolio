@@ -2352,6 +2352,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
   }, [homePageContent.hero]);
 
   const [isEditingHero, setIsEditingHero] = useState(false);
+  const [bioEditorRevision, setBioEditorRevision] = useState(0);
   const [greetingsTextValue, setGreetingsTextValue] = useState("");
   const [deleteConfirmation, setDeleteConfirmation] = useState(null);
 
@@ -3781,14 +3782,16 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
 
                 <HomeBioDocumentEditor
                   document={bioDocumentForUi}
+                  contentRevision={bioEditorRevision}
                   onChange={(doc) => patchHero({ bioDocument: doc })}
                   paragraphGapRem={heroText.bioParagraphGapRem ?? 1}
                   lineHeight={heroText.bioLineHeight ?? 1.625}
                   onParagraphGapRem={(v) => patchHero({ bioParagraphGapRem: v })}
                   onLineHeight={(v) => patchHero({ bioLineHeight: v })}
-                  onReplaceFromTemplate={() =>
-                    patchHero({ bioDocument: classicBioDocumentFromHero(heroText) })
-                  }
+                  onReplaceFromTemplate={() => {
+                    patchHero({ bioDocument: classicBioDocumentFromHero(heroText) });
+                    setBioEditorRevision((n) => n + 1);
+                  }}
                 />
 
                 <div className="space-y-3 border-b border-border pb-4">
