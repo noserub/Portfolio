@@ -2440,7 +2440,6 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     }
     const payload = toPersistedPayload({ ...content, _clientSavedAt: Date.now() });
     localStorage.setItem('heroText', JSON.stringify(payload));
-    console.log('💾 Home page content saved to localStorage');
 
     try {
       const { supabase } = await import('../lib/supabaseClient');
@@ -2449,7 +2448,10 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
 
       if (user || isBypassAuth) {
         const userId = user?.id || '7cd2752f-93c5-46e6-8535-32769fb10055';
-        console.log('💾 Saving home page content to Supabase:', userId);
+        console.log(
+          '💾 Home page: localStorage ✓ · syncing profiles.hero_text to Supabase for',
+          userId,
+        );
 
         const { error: updateError } = await supabase
           .from('profiles')
@@ -2470,15 +2472,19 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
           if (insertError) {
             console.warn('⚠️ Failed to save to Supabase (egress limits?):', insertError.message);
           } else {
-            console.log('✅ Created profile with home page content in Supabase');
+            console.log('✅ Home page: Supabase hero_text saved (new profile row)');
           }
         } else {
-          console.log('✅ Home page content updated in Supabase');
+          console.log('✅ Home page: Supabase hero_text saved (same payload as localStorage)');
         }
+      } else {
+        console.log(
+          '💾 Home page: localStorage ✓ · not signed in — cloud sync skipped (edits stay on this browser)',
+        );
       }
     } catch (error) {
       console.warn('⚠️ Supabase save failed (egress limits?):', error);
-      console.log('💾 Saved to localStorage only');
+      console.log('💾 Home page: localStorage still has your draft; Supabase sync failed');
     }
   }, []);
 
