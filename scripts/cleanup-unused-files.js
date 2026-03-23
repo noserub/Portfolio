@@ -145,28 +145,6 @@ async function getAllReferencedUrls() {
       }
     });
     
-    // Music Tracks
-    const { data: musicTracks } = await supabase.from('music_tracks').select('url, image');
-    musicTracks?.forEach(t => {
-      if (t.url) {
-        const filePath = extractFilePath(t.url);
-        if (filePath) referencedFiles.add(filePath);
-      }
-      if (t.image) {
-        const filePath = extractFilePath(t.image);
-        if (filePath) referencedFiles.add(filePath);
-      }
-    });
-    
-    // Music Playlist
-    const { data: musicPlaylist } = await supabase.from('music_playlist').select('url');
-    musicPlaylist?.forEach(p => {
-      if (p.url) {
-        const filePath = extractFilePath(p.url);
-        if (filePath) referencedFiles.add(filePath);
-      }
-    });
-    
     return referencedFiles;
   } catch (error) {
     console.error('❌ Error querying database:', error.message);
@@ -386,4 +364,5 @@ async function main() {
 }
 
 main().catch(console.error);
+
 

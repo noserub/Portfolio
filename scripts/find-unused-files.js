@@ -173,30 +173,6 @@ async function getAllReferencedUrls() {
     });
     console.log(`   ✓ App Settings: ${appSettings?.length || 0} records`);
     
-    // 6. Music Tracks - url (audio), image (album art)
-    const { data: musicTracks } = await supabase.from('music_tracks').select('url, image');
-    musicTracks?.forEach(t => {
-      if (t.url) {
-        const filePath = extractFilePath(t.url);
-        if (filePath) referencedFiles.add(filePath);
-      }
-      if (t.image) {
-        const filePath = extractFilePath(t.image);
-        if (filePath) referencedFiles.add(filePath);
-      }
-    });
-    console.log(`   ✓ Music Tracks: ${musicTracks?.length || 0} records`);
-    
-    // 7. Music Playlist - url
-    const { data: musicPlaylist } = await supabase.from('music_playlist').select('url');
-    musicPlaylist?.forEach(p => {
-      if (p.url) {
-        const filePath = extractFilePath(p.url);
-        if (filePath) referencedFiles.add(filePath);
-      }
-    });
-    console.log(`   ✓ Music Playlist: ${musicPlaylist?.length || 0} records`);
-    
     console.log(`\n   📊 Total unique referenced files: ${referencedFiles.size}\n`);
     
     return referencedFiles;
@@ -327,4 +303,5 @@ async function main() {
 }
 
 main().catch(console.error);
+
 

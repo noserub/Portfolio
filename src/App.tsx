@@ -819,6 +819,27 @@ export default function App() {
     currentRouteRef.current = currentRoute;
   }, [currentRoute]);
 
+  // Debug: Verify Speed Insights is loading
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      // Check if Speed Insights is loaded
+      const checkSpeedInsights = () => {
+        const hasSpeedInsights = !!(window as any).__VERCEL_SPEED_INSIGHTS__;
+        const isProduction = import.meta.env.MODE === 'production';
+        console.log('🔍 Speed Insights check:', {
+          hasSpeedInsights,
+          isProduction,
+          currentRoute,
+          userAgent: navigator.userAgent.includes('Chrome') ? 'Chrome' : 'Other'
+        });
+      };
+      
+      // Check immediately and after a delay
+      checkSpeedInsights();
+      setTimeout(checkSpeedInsights, 2000);
+    }
+  }, [currentRoute]);
+
   // Track page views for Vercel Analytics (browser-based routing)
   // Manual tracking ensures all route changes are captured for analytics
   useEffect(() => {
@@ -1776,8 +1797,8 @@ export default function App() {
               {isEditMode ? "Preview Mode" : (isAuthenticated ? "Edit Mode" : "Sign In")}
             </DropdownMenuItem>
             
-            {/* Page Visibility Section */}
-            {isAuthenticated && !isEditMode && (
+            {/* Page Visibility Section - Only in Edit Mode */}
+            {isAuthenticated && isEditMode && (
               <>
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground">Page Visibility</DropdownMenuLabel>
@@ -2109,7 +2130,10 @@ export default function App() {
       <Analytics />
       
       {/* Vercel Speed Insights - Tracks Core Web Vitals and performance metrics */}
-      <SpeedInsights />
+      <SpeedInsights 
+        sampleRate={1}
+        route={currentRoute}
+      />
     </ErrorBoundary>
   );
 }
