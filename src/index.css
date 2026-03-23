@@ -6516,3 +6516,45 @@ kbd {
 body.dialog-open {
   overflow: hidden;
 }
+
+/* TipTap bio editor (home CMS) */
+.bio-tiptap-editor .ProseMirror {
+  outline: none;
+  min-height: 10rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--background));
+  font-size: 0.9375rem;
+  line-height: 1.6;
+}
+
+.bio-tiptap-editor .ProseMirror:focus {
+  border-color: hsl(var(--ring));
+  box-shadow: 0 0 0 1px hsl(var(--ring));
+}
+
+.bio-tiptap-editor .ProseMirror p {
+  margin: 0 0 0.5rem;
+}
+
+.bio-tiptap-editor .ProseMirror p:last-child {
+  margin-bottom: 0;
+}
+
+.bio-tiptap-editor .ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: hsl(var(--muted-foreground));
+  pointer-events: none;
+  height: 0;
+}
+
+.bio-gradient-mark-editor {
+  font-weight: 600;
+  background-image: linear-gradient(90deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24);
+  background-size: 200% auto;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}

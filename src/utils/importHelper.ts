@@ -137,11 +137,13 @@ export async function importAllData(
       }
     }
     
-    // 4. Import Hero Text
+    // 4. Import Hero Text / home page content (v2 or legacy)
     if (jsonData.heroText) {
       onProgress('\n🎭 Importing hero text...');
       try {
-        localStorage.setItem('heroText', JSON.stringify(jsonData.heroText));
+        const { parseStoredHomeContent, toPersistedPayload } = await import('../lib/homePageContent');
+        const normalized = parseStoredHomeContent(jsonData.heroText);
+        localStorage.setItem('heroText', JSON.stringify(toPersistedPayload(normalized)));
         onProgress('✅ Updated hero text');
         results.hero.imported = true;
       } catch (error: any) {
