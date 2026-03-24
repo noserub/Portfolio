@@ -397,17 +397,11 @@ export function useHomePageContent(options: UseHomePageContentOptions) {
       persistHomePageToLocalStorageSync(homePageContentRef.current);
       flushPendingHomePage();
     };
-    const onBeforeUnload = () => {
-      persistHomePageToLocalStorageSync(homePageContentRef.current);
-      flushPendingHomePage();
-    };
     document.addEventListener("visibilitychange", onHidden);
     window.addEventListener("pagehide", onPageHide);
-    window.addEventListener("beforeunload", onBeforeUnload);
     return () => {
       document.removeEventListener("visibilitychange", onHidden);
       window.removeEventListener("pagehide", onPageHide);
-      window.removeEventListener("beforeunload", onBeforeUnload);
     };
   }, [flushPendingHomePage]);
 

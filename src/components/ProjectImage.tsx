@@ -71,6 +71,8 @@ interface ProjectImageProps {
   onReplace: (file: File) => void;
   onNavigate?: () => void;
   onDelete?: () => void;
+  /** First visible project card: eager load + high fetch priority for LCP */
+  priority?: boolean;
 }
 
 export function ProjectImage({
@@ -81,6 +83,7 @@ export function ProjectImage({
   onReplace,
   onNavigate,
   onDelete,
+  priority = false,
 }: ProjectImageProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -98,28 +101,16 @@ export function ProjectImage({
   // Sync local state when project prop changes (e.g., when image is replaced)
   // But only update if the project ID changes or if we're not currently editing
   useEffect(() => {
-    console.log('🔄 ProjectImage: Project prop changed:');
-    console.log('  projectId:', project.id);
-    console.log('  project.requiresPassword:', project.requiresPassword);
-    console.log('  editedProjectId:', editedProject.id);
-    console.log('  editedProject.requiresPassword:', editedProject.requiresPassword);
-    console.log('  isEditing:', isEditing);
-    
-    // Only reset if the project ID actually changed (new project) or if we're not editing
     if (project.id !== editedProject.id || !isEditing) {
-      console.log('🔄 ProjectImage: Updating editedProject with new data');
       setEditedProject(project);
-      setImageLoadError(false); // Reset error state when project changes
+      setImageLoadError(false);
     } else if (project.id === editedProject.id && project.requiresPassword !== editedProject.requiresPassword) {
-      // If it's the same project but requiresPassword changed, update it
-      console.log('🔄 ProjectImage: Updating requiresPassword from', editedProject.requiresPassword, 'to', project.requiresPassword);
       setEditedProject(prev => ({ ...prev, requiresPassword: project.requiresPassword }));
     }
-  }, [project.id, project.url, project.title, project.description, project.requiresPassword]); // Include requiresPassword in dependencies
+  }, [project.id, project.url, project.title, project.description, project.requiresPassword]);
 
   // Handle image load error
   const handleImageError = () => {
-    console.log('❌ Image failed to load:', editedProject.url);
     setImageLoadError(true);
   };
 
@@ -127,7 +118,6 @@ export function ProjectImage({
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isPositioning) {
-        console.log('⌨️ Escape key pressed - exiting positioning mode');
         setIsPositioning(false);
       }
     };
@@ -554,6 +544,8 @@ export function ProjectImage({
           <img
             src={editedProject.url}
             alt=""
+            width={1}
+            height={1}
             style={{ display: 'none' }}
             onError={handleImageError}
             onLoad={() => setImageLoadError(false)}
@@ -597,8 +589,9 @@ export function ProjectImage({
                 fit="contain" // Always contain - frame masks the image, never crops
                 onLoad={() => setImageLoadError(false)}
                 onError={handleImageError}
-                priority={false}
-                lazy={true}
+                priority={priority}
+                lazy={!priority}
+                sizes="(max-width: 768px) min(100vw, 560px), (max-width: 1280px) min(50vw, 640px), min(720px, 40vw)"
               />
               
               {/* Drag crosshair indicator */}
@@ -1034,7 +1027,6 @@ export function ProjectImage({
 
 // Memoized component to prevent unnecessary re-renders
 const MemoizedProjectImage = memo(ProjectImage, (prevProps, nextProps) => {
-  // Custom comparison function for better performance
   return (
     prevProps.project.id === nextProps.project.id &&
     prevProps.project.title === nextProps.project.title &&
@@ -1046,8 +1038,7 @@ const MemoizedProjectImage = memo(ProjectImage, (prevProps, nextProps) => {
     prevProps.project.position?.y === nextProps.project.position?.y &&
     prevProps.project.scale === nextProps.project.scale &&
     prevProps.isEditMode === nextProps.isEditMode &&
-    prevProps.isDragging === nextProps.isDragging &&
-    prevProps.isOver === nextProps.isOver
+    prevProps.priority === nextProps.priority
   );
 });
 

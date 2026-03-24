@@ -3,20 +3,13 @@
   <html lang="en">
   <head>
     <!-- Resource Hints for Performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Montserrat:wght@600;700;800;900&display=swap" />
     <link rel="preconnect" href="https://www.googletagmanager.com" crossorigin />
     <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
     <link rel="preconnect" href="https://www.google-analytics.com" crossorigin />
     <link rel="dns-prefetch" href="https://www.google-analytics.com" />
-    
-    <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-T7DZ7EQL03"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-
-      gtag('config', 'G-T7DZ7EQL03');
-    </script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="format-detection" content="telephone=no" />
@@ -33,6 +26,8 @@
     
     
     
+  
+  
   
   
   
@@ -58,6 +53,22 @@
 
     <body>
       <div id="root"></div>
+      <!-- Defer GA until after load so first paint is not competing with gtag main-thread work -->
+      <script>
+        window.addEventListener('load', function loadGtag() {
+          window.removeEventListener('load', loadGtag);
+          var s = document.createElement('script');
+          s.async = true;
+          s.src = 'https://www.googletagmanager.com/gtag/js?id=G-T7DZ7EQL03';
+          document.head.appendChild(s);
+          s.onload = function () {
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-T7DZ7EQL03');
+          };
+        });
+      </script>
       <script type="module" src="/src/main.tsx"></script>
     </body>
   </html>

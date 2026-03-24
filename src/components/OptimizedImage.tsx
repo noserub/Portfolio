@@ -24,6 +24,9 @@ interface OptimizedImageProps {
   height?: number;
   fit?: 'cover' | 'contain' | 'fill' | 'inside' | 'outside';
   lazy?: boolean; // Enable/disable lazy loading
+  /** Intrinsic dimensions for layout stability (CLS); defaults preserve a common card aspect ratio */
+  intrinsicWidth?: number;
+  intrinsicHeight?: number;
 }
 
 const OptimizedImage = memo(({ 
@@ -41,7 +44,9 @@ const OptimizedImage = memo(({
   width,
   height,
   fit = 'cover',
-  lazy = true
+  lazy = true,
+  intrinsicWidth = 1200,
+  intrinsicHeight = 800,
 }: OptimizedImageProps) => {
   const [isInView, setIsInView] = useState(priority); // Load immediately if priority
   const [isLoaded, setIsLoaded] = useState(false);
@@ -137,6 +142,8 @@ const OptimizedImage = memo(({
           <img
             src={blurDataURL || blurPlaceholder || placeholder || generateDataUrlPlaceholder()}
             alt=""
+            width={20}
+            height={20}
             className="w-full h-full object-cover filter blur-sm"
             style={{ imageRendering: 'pixelated' }}
           />
@@ -158,6 +165,8 @@ const OptimizedImage = memo(({
             srcSet={generateSrcSet(responsiveSet.jpeg)}
             sizes={sizes || responsiveSet.sizes}
             alt={alt}
+            width={intrinsicWidth}
+            height={intrinsicHeight}
             className={`w-full h-full object-cover transition-opacity duration-300 ${
               isLoaded ? 'opacity-100' : 'opacity-0'
             }`}
@@ -165,6 +174,7 @@ const OptimizedImage = memo(({
             onError={handleError}
             loading={priority ? 'eager' : 'lazy'}
             decoding="async"
+            fetchPriority={priority ? 'high' : 'auto'}
             style={{
               objectFit: fit,
               ...style
@@ -178,6 +188,8 @@ const OptimizedImage = memo(({
         <motion.img
           src={src}
           alt={alt}
+          width={intrinsicWidth}
+          height={intrinsicHeight}
           className={`w-full h-full object-cover transition-opacity duration-300 ${
             isLoaded ? 'opacity-100' : 'opacity-0'
           }`}
@@ -185,6 +197,7 @@ const OptimizedImage = memo(({
           onError={handleError}
           loading={priority ? 'eager' : 'lazy'}
           decoding="async"
+          fetchPriority={priority ? 'high' : 'auto'}
           style={{
             objectFit: fit,
             ...style

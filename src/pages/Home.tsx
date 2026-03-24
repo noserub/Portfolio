@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo, useCallback, memo, Suspense } from "react";
+import React, { useState, useRef, useEffect, useMemo, useCallback, memo, Suspense, lazy } from "react";
 import { flushSync } from "react-dom";
 import { motion } from "motion/react";
 import { useDrag, useDrop } from "react-dnd";
@@ -20,7 +20,12 @@ import { toast } from "sonner";
 import { Tooltip, TooltipTrigger, TooltipContent } from "../components/ui/tooltip";
 // import { createCaseStudyFromTemplate } from "../utils/caseStudyTemplate"; // REMOVED - using unified project creator
 import { loadMigratedProjects } from "../utils/migrateVideoFields";
-import { UnifiedProjectCreator } from "../components/UnifiedProjectCreator";
+
+const UnifiedProjectCreator = lazy(() =>
+  import("../components/UnifiedProjectCreator").then((m) => ({
+    default: m.UnifiedProjectCreator,
+  })),
+);
 import {
   AlertDialog,
   AlertDialogAction,
@@ -202,6 +207,7 @@ function DraggableProjectItem({
         onReplace={onReplace}
         onNavigate={onNavigate}
         onDelete={onDelete}
+        priority={index === 0}
       />
     </motion.div>
   );
@@ -2284,23 +2290,6 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
       }));
   }, [deduplicatedProjects]);
 
-  // Preload images for better perceived performance
-  React.useEffect(() => {
-    const preloadImages = () => {
-      const allProjects = [...caseStudies, ...designProjects];
-      allProjects.forEach(project => {
-        if (project.url && !project.url.startsWith('blob:')) {
-          const img = new Image();
-          img.src = project.url;
-        }
-      });
-    };
-    
-    if (caseStudies.length > 0 || designProjects.length > 0) {
-      preloadImages();
-    }
-  }, [caseStudies, designProjects]);
-  
   const [isEditingHero, setIsEditingHero] = useState(false);
   const isEditingHeroRef = useRef(isEditingHero);
   isEditingHeroRef.current = isEditingHero;
@@ -4360,13 +4349,22 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Unified Project Creator */}
-      <UnifiedProjectCreator
-        isOpen={showUnifiedProjectCreator}
-        onClose={useCallback(() => setShowUnifiedProjectCreator(false), [])}
-        onCreateProject={handleCreateUnifiedProject}
-        isEditMode={isEditMode}
-      />
+      {showUnifiedProjectCreator && (
+        <Suspense
+          fallback={
+            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/60" aria-busy="true">
+              <div className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            </div>
+          }
+        >
+          <UnifiedProjectCreator
+            isOpen={showUnifiedProjectCreator}
+            onClose={useCallback(() => setShowUnifiedProjectCreator(false), [])}
+            onCreateProject={handleCreateUnifiedProject}
+            isEditMode={isEditMode}
+          />
+        </Suspense>
+      )}
 
     </div>
   );

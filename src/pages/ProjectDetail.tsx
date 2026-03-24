@@ -2406,10 +2406,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       onUpdate(buildEditorSavePayload());
     };
     window.addEventListener('pagehide', flush);
-    window.addEventListener('beforeunload', flush);
     return () => {
       window.removeEventListener('pagehide', flush);
-      window.removeEventListener('beforeunload', flush);
     };
   }, [isEditMode, project, onUpdate, buildEditorSavePayload]);
 
