@@ -29,7 +29,7 @@ export interface HomeBioDocumentEditorProps {
   onParagraphGapRem: (v: number) => void;
   onLineHeight: (v: number) => void;
   onReplaceFromTemplate: () => void;
-  /** Increment when `document` was replaced externally (e.g. template) so the editor reloads without fighting typing. */
+  /** Increment when `document` was replaced externally (e.g. reset to default) so the editor reloads without fighting typing. */
   contentRevision?: number;
 }
 
@@ -95,7 +95,7 @@ export function HomeBioDocumentEditor({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h4 className="text-sm font-semibold">Bio</h4>
         <Button type="button" variant="outline" size="sm" onClick={onReplaceFromTemplate}>
-          Replace from template
+          Reset to default
         </Button>
       </div>
       <p className="text-xs text-muted-foreground">

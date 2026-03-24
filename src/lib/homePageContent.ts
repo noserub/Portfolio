@@ -88,14 +88,14 @@ export const DEFAULT_UI: HomePageUI = {
   filterBranding: "Branding",
 };
 
-/** Default strings for classic bio when stored hero fields are blank (prevents empty gradient/bold runs). */
+/** Default segment strings for initial hero state and legacy migration when building bioDocument. */
 export const DEFAULT_CLASSIC_BIO_FIELDS = {
-  subtitle: "Brian Bureson is a (super rad) product design leader and builder,",
-  description: "crafting high quality products and teams through",
-  word1: "planning",
-  word2: "collaboration",
-  word3: "empathy",
-  word4: "design",
+  subtitle: "Brian Bureson is a product design leader and builder who turns complex ideas into high-quality, shipped products. He architects AI-native designs, from high-fidelity vision to production-ready code.", 
+  description: "Brian works across product strategy, UX, and engineering to help teams move from ambiguity to execution.",
+  word1: "help teams",
+  word2: "move",
+  word3: "from ambiguity",
+  word4: "to execution",
 } as const;
 
 /** True when the doc uses bold/gradient runs but every one is empty — shows only ", , , and ." in production. */
@@ -118,7 +118,14 @@ export function hasEmptyClassicShell(doc: BioDocument | undefined): boolean {
 
 export function coerceClassicBioFields(
   hero: Pick<HeroTextState, "subtitle" | "description" | "word1" | "word2" | "word3" | "word4">,
-): typeof DEFAULT_CLASSIC_BIO_FIELDS {
+): {
+  subtitle: string;
+  description: string;
+  word1: string;
+  word2: string;
+  word3: string;
+  word4: string;
+} {
   const d = DEFAULT_CLASSIC_BIO_FIELDS;
   return {
     subtitle: hero.subtitle?.trim() || d.subtitle,
@@ -128,6 +135,58 @@ export function coerceClassicBioFields(
     word3: hero.word3?.trim() || d.word3,
     word4: hero.word4?.trim() || d.word4,
   };
+}
+
+/** Two plain paragraphs (line break between sections); no bold or gradient runs. */
+export function plainBioDocumentFromHeroFields(fields: {
+  subtitle: string;
+  description: string;
+}): BioDocument {
+  return {
+    paragraphs: [
+      { runs: [{ type: "text", text: fields.subtitle }] },
+      { runs: [{ type: "text", text: fields.description }] },
+    ],
+  };
+}
+
+/** Canonical default home bio (matches `defaultHeroTextState` copy). */
+export const DEFAULT_BIO_DOCUMENT: BioDocument = plainBioDocumentFromHeroFields({
+  subtitle: DEFAULT_CLASSIC_BIO_FIELDS.subtitle,
+  description: DEFAULT_CLASSIC_BIO_FIELDS.description,
+});
+
+/** Old single-paragraph template: bold lead + gradient phrases — migrate to plain two paragraphs. */
+function isStoredClassicTemplateBio(doc: BioDocument): boolean {
+  if (doc.paragraphs.length !== 1) return false;
+  const runs = doc.paragraphs[0]?.runs ?? [];
+  if (runs.length < 5) return false;
+  if (runs[0]?.type !== "bold") return false;
+  return runs.some((r) => r.type === "gradient");
+}
+
+function shouldMigrateStoredClassicBioToPlain(sanitized: BioDocument, hero: HeroTextState): boolean {
+  if (!isStoredClassicTemplateBio(sanitized)) return false;
+  const boldRun = sanitized.paragraphs[0]?.runs?.[0];
+  if (boldRun?.type !== "bold") return false;
+  const boldText = (boldRun.text ?? "").trim();
+  const f = coerceClassicBioFields(hero);
+  return (
+    boldText === f.subtitle.trim() ||
+    boldText === DEFAULT_CLASSIC_BIO_FIELDS.subtitle.trim()
+  );
+}
+
+export function cloneBioDocument(doc: BioDocument): BioDocument {
+  return {
+    paragraphs: doc.paragraphs.map((p) => ({
+      runs: p.runs.map((r) => ({ ...r })),
+    })),
+  };
+}
+
+export function defaultBioDocument(): BioDocument {
+  return cloneBioDocument(DEFAULT_BIO_DOCUMENT);
 }
 
 export function healDegenerateHeroBio(hero: HeroTextState): HeroTextState {
@@ -144,11 +203,15 @@ export function healDegenerateHeroBio(hero: HeroTextState): HeroTextState {
     word2: fields.word2,
     word3: fields.word3,
     word4: fields.word4,
-    bioDocument: classicBioDocumentFromHero(fields),
+    bioDocument: plainBioDocumentFromHeroFields({
+      subtitle: fields.subtitle,
+      description: fields.description,
+    }),
   };
 }
 
 export function defaultHeroTextState(): HeroTextState {
+  const f = DEFAULT_CLASSIC_BIO_FIELDS;
   const hero: HeroTextState = {
     greeting: "I build things.",
     greetings: [
@@ -160,12 +223,12 @@ export function defaultHeroTextState(): HeroTextState {
     ],
     greetingFont: "Inter, sans-serif",
     lastGreetingPauseDuration: 30000,
-    subtitle: "Brian Bureson is a (super rad) product design leader and builder,",
-    description: "crafting high quality products and teams through",
-    word1: "planning",
-    word2: "collaboration",
-    word3: "empathy",
-    word4: "design",
+    subtitle: f.subtitle,
+    description: f.description,
+    word1: f.word1,
+    word2: f.word2,
+    word3: f.word3,
+    word4: f.word4,
     buttonText: "About Brian",
     accentGradient: true,
     bioParagraphGapRem: 1,
@@ -174,7 +237,7 @@ export function defaultHeroTextState(): HeroTextState {
   };
   return {
     ...hero,
-    bioDocument: classicBioDocumentFromHero(hero),
+    bioDocument: defaultBioDocument(),
   };
 }
 
@@ -591,35 +654,18 @@ export function sanitizeBioDocument(raw: BioDocument): BioDocument {
   return { paragraphs };
 }
 
-/** One paragraph matching the original “classic” home bio (bold lead + gradient words). */
-export function classicBioDocumentFromHero(
-  hero: Pick<HeroTextState, "subtitle" | "description" | "word1" | "word2" | "word3" | "word4">,
-): BioDocument {
-  return {
-    paragraphs: [
-      {
-        runs: [
-          { type: "bold", text: hero.subtitle },
-          { type: "text", text: ` ${hero.description} ` },
-          { type: "gradient", text: hero.word1 },
-          { type: "text", text: ", " },
-          { type: "gradient", text: hero.word2 },
-          { type: "text", text: ", " },
-          { type: "gradient", text: hero.word3 },
-          { type: "text", text: ", and " },
-          { type: "gradient", text: hero.word4 },
-          { type: "text", text: "." },
-        ],
-      },
-    ],
-  };
-}
-
 export function legacyToBioDocument(hero: HeroTextState): BioDocument {
   const raw = hero.bioDocument;
   if (raw && Array.isArray(raw.paragraphs) && raw.paragraphs.length > 0) {
     const sanitized = sanitizeBioDocument(raw);
     if (sanitized.paragraphs.length > 0 && !hasEmptyClassicShell(sanitized)) {
+      if (shouldMigrateStoredClassicBioToPlain(sanitized, hero)) {
+        const fields = coerceClassicBioFields(hero);
+        return plainBioDocumentFromHeroFields({
+          subtitle: fields.subtitle,
+          description: fields.description,
+        });
+      }
       return sanitized;
     }
   }
@@ -631,27 +677,20 @@ export function legacyToBioDocument(hero: HeroTextState): BioDocument {
     }));
     if (hero.accentText?.trim()) {
       paragraphs.push({
-        runs: [
-          {
-            type: hero.accentGradient !== false ? "gradient" : "text",
-            text: hero.accentText.trim(),
-          },
-        ],
+        runs: [{ type: "text" as const, text: hero.accentText.trim() }],
       });
     }
     return { paragraphs };
   }
 
   const fields = coerceClassicBioFields(hero);
-  const paragraphs: BioParagraph[] = [classicBioDocumentFromHero(fields).paragraphs[0]];
+  const paragraphs: BioParagraph[] = plainBioDocumentFromHeroFields({
+    subtitle: fields.subtitle,
+    description: fields.description,
+  }).paragraphs;
   if (hero.accentText?.trim()) {
     paragraphs.push({
-      runs: [
-        {
-          type: hero.accentGradient !== false ? "gradient" : "text",
-          text: hero.accentText.trim(),
-        },
-      ],
+      runs: [{ type: "text" as const, text: hero.accentText.trim() }],
     });
   }
   return { paragraphs };
