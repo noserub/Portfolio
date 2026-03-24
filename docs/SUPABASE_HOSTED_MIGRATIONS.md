@@ -25,6 +25,8 @@ This restores anonymous `SELECT` on `app_settings` so the custom favicon loads f
 
 4. Click **Run**.
 
+**If Supabase shows “Potential issue detected” / “Query has destructive operations”:** that is expected. The script contains `DROP POLICY IF EXISTS` so the old policy can be replaced. It does **not** delete tables or rows—only removes one **named RLS policy** on `app_settings`, then creates it again. If you are running the intended `0025_restore_app_settings_public_select.sql` file, click **Run this query** to confirm.
+
 You should see success (no error). Refresh your Vercel preview and the favicon should resolve after the policy is in place.
 
 ---
