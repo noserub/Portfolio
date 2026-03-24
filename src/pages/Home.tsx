@@ -13,7 +13,7 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Textarea } from "../components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
-import { Plus, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Edit2, Save, GripVertical, Linkedin, Github, FileText, Trash2, Eye, Wand2, ArrowUp, ArrowDown, Cloud } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Edit2, Save, GripVertical, Linkedin, Github, FileText, Trash2, Eye, Wand2, ArrowUp, ArrowDown, Cloud, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { Tooltip, TooltipTrigger, TooltipContent } from "../components/ui/tooltip";
 // import { createCaseStudyFromTemplate } from "../utils/caseStudyTemplate"; // REMOVED - using unified project creator
@@ -2362,6 +2362,8 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
   const [deleteConfirmation, setDeleteConfirmation] = useState(null);
   /** Shown when live Supabase content replaced an older browser draft (edit mode banner). */
   const [showHeroCloudNotice, setShowHeroCloudNotice] = useState(false);
+  /** Local draft is newer than last loaded cloud row — visitors see cloud until sync succeeds. */
+  const [heroDraftAheadOfCloud, setHeroDraftAheadOfCloud] = useState(false);
   /** False until initial hero load finishes — blocks debounced persist from overwriting DB with defaults. */
   const homeContentHydratedRef = useRef(false);
 
@@ -2375,45 +2377,40 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
       try {
         console.log('🔄 Loading home page content from Supabase...');
         const row = await (async () => {
-          let data: { hero_text: unknown; updated_at: string | null } | null;
-          let error: unknown = null;
-          /** Same id used across the app for bypass auth and public portfolio reads. */
+          /** Same row for signed-in editor, incognito, and Vercel preview — must match VITE_PUBLIC_PORTFOLIO_OWNER_ID to your auth user id. */
           const portfolioOwnerId = getPortfolioOwnerUserId();
-
-          if (user || isBypassAuth) {
-            const userId = user?.id || portfolioOwnerId;
-            console.log('🏠 Home: Loading hero_text from Supabase for user:', userId, 'Auth type:', user ? 'Supabase' : 'Bypass');
-
-            const result = await supabase
-              .from('profiles')
-              .select('hero_text, updated_at')
-              .eq('id', userId)
-              .single();
-            data = result.data as typeof data;
-            error = result.error;
-          } else {
-            console.log('🏠 Home: Loading hero_text from Supabase (public — portfolio owner row)');
-
-            const result = await supabase
-              .from('profiles')
-              .select('hero_text, updated_at')
-              .eq('id', portfolioOwnerId)
-              .maybeSingle();
-            data = result.data as typeof data;
-            error = result.error;
+          if (user?.id && user.id !== portfolioOwnerId) {
+            console.warn(
+              '⚠️ Home hero: signed-in user id ≠ VITE_PUBLIC_PORTFOLIO_OWNER_ID — incognito shows the owner row, not your account row. Set the env to your Supabase user UUID.',
+              { authId: user.id, ownerId: portfolioOwnerId },
+            );
           }
 
-          if (error) throw error;
-          return data;
+          console.log(
+            '🏠 Home: Loading hero_text from published profile row',
+            portfolioOwnerId,
+            user ? '(signed in)' : '(public)',
+          );
+
+          const result = await supabase
+            .from('profiles')
+            .select('hero_text, updated_at')
+            .eq('id', portfolioOwnerId)
+            .maybeSingle();
+
+          if (result.error) throw result.error;
+          return result.data as { hero_text: unknown; updated_at: string | null } | null;
         })();
 
         const raw = row?.hero_text;
         const ts = row?.updated_at != null ? Date.parse(String(row.updated_at)) : NaN;
         const remoteProfileUpdatedAtMs = !Number.isNaN(ts) ? ts : null;
 
-        const { content, localDraftSupersededByCloud } = resolveHomeContentAfterLoad(raw, authed, {
-          remoteProfileUpdatedAtMs,
-        });
+        const { content, localDraftSupersededByCloud, draftAheadOfPublished } =
+          resolveHomeContentAfterLoad(raw, authed, {
+            remoteProfileUpdatedAtMs,
+          });
+        setHeroDraftAheadOfCloud(draftAheadOfPublished);
 
         if (localDraftSupersededByCloud) {
           setShowHeroCloudNotice(true);
@@ -2439,7 +2436,8 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         console.log('✅ Home page content synced to localStorage');
       } catch (error) {
         console.error('❌ Error loading home page content from Supabase:', error);
-        const { content } = resolveHomeContentAfterLoad(undefined, authed);
+        const { content, draftAheadOfPublished } = resolveHomeContentAfterLoad(undefined, authed);
+        setHeroDraftAheadOfCloud(draftAheadOfPublished);
         const migratedContent = migrateLegacyWelcomeGreeting(content);
 
         homeContentHydratedRef.current = true;
@@ -2472,6 +2470,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
       });
       localStorage.setItem('heroText', JSON.stringify(toPersistedPayload(next)));
       setShowHeroCloudNotice(false);
+      setHeroDraftAheadOfCloud(false);
       if (!isEditingHeroRef.current) {
         setHomePageContent(next);
         setBioEditorRevision((n) => n + 1);
@@ -2484,16 +2483,28 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
       const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
 
       if (user || isBypassAuth) {
-        const userId = user?.id || getPortfolioOwnerUserId();
+        const ownerId = getPortfolioOwnerUserId();
+        if (user?.id && user.id !== ownerId) {
+          console.warn('⚠️ Home hero save skipped: auth user must match VITE_PUBLIC_PORTFOLIO_OWNER_ID to update the published row.', {
+            authId: user.id,
+            ownerId,
+          });
+          toast.error(
+            'Home content is published from a fixed profile id. Set VITE_PUBLIC_PORTFOLIO_OWNER_ID to your Supabase user id so saves match what visitors see.',
+            { id: 'home-hero-owner-mismatch', duration: 8000 },
+          );
+          return;
+        }
+
         console.log(
-          '💾 Home page: localStorage ✓ · syncing profiles.hero_text to Supabase for',
-          userId,
+          '💾 Home page: localStorage ✓ · syncing profiles.hero_text to Supabase for published row',
+          ownerId,
         );
 
         const { data: updatedRow, error: updateError } = await supabase
           .from('profiles')
           .update({ hero_text: payload })
-          .eq('id', userId)
+          .eq('id', ownerId)
           .select('hero_text, updated_at')
           .single();
 
@@ -2502,7 +2513,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
           const { data: insertedRow, error: insertError } = await supabase
             .from('profiles')
             .insert({
-              id: userId,
+              id: ownerId,
               email: user?.email || 'brian.bureson@gmail.com',
               full_name: 'Brian Bureson',
               hero_text: payload,
@@ -2512,6 +2523,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
 
           if (insertError) {
             console.warn('⚠️ Failed to save to Supabase (egress limits?):', insertError.message);
+            setHeroDraftAheadOfCloud(true);
             toast.error('Could not sync the hero section to the cloud. Your text is still saved on this device.');
           } else if (insertedRow) {
             console.log('✅ Home page: Supabase hero_text saved (new profile row)');
@@ -2529,6 +2541,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     } catch (error) {
       console.warn('⚠️ Supabase save failed (egress limits?):', error);
       console.log('💾 Home page: localStorage still has your draft; Supabase sync failed');
+      setHeroDraftAheadOfCloud(true);
       try {
         const { supabase } = await import('../lib/supabaseClient');
         const { data: { user } } = await supabase.auth.getUser();
@@ -3829,6 +3842,29 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                     onClick={() => setShowHeroCloudNotice(false)}
                   >
                     Dismiss
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
+            {isEditMode && heroDraftAheadOfCloud && (
+              <Alert
+                className="mb-4 border-amber-500/40 bg-amber-500/[0.08] text-foreground dark:bg-amber-950/40 dark:border-amber-500/35"
+                role="status"
+              >
+                <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" aria-hidden />
+                <AlertTitle className="text-foreground">Draft not published yet</AlertTitle>
+                <AlertDescription className="flex flex-col gap-3 text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+                  <span>
+                    This browser has a newer home draft than the last cloud save. Visitors and incognito only see what is stored in Supabase — wait for autosave to finish, switch to preview (flushes save), or check the console if sync fails.
+                  </span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="shrink-0"
+                    onClick={() => void flushPendingHomePage()}
+                  >
+                    Save now
                   </Button>
                 </AlertDescription>
               </Alert>

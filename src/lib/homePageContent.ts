@@ -393,14 +393,18 @@ export interface ResolveHomeContentResult {
   content: HomePageContentV2;
   /** True when a local draft existed but the published Supabase copy was shown instead. */
   localDraftSupersededByCloud: boolean;
+  /**
+   * True when signed in and this device has a newer draft than the cloud row.
+   * Visitors/incognito always see cloud — this flags that they may see older content until sync succeeds.
+   */
+  draftAheadOfPublished: boolean;
 }
 
 /**
  * After fetching `profiles.hero_text`, pick what to show.
- * - Signed-out: published Supabase row is authoritative when it has valid hero content.
- * - Signed in: prefer local when its `_clientSavedAt` beats the remote hero version.
- *   Use `hero_text._clientSavedAt` when set; only if missing, fall back to `profiles.updated_at`
- *   (do not mix both — unrelated profile updates must not look “newer” than the hero JSON).
+ * - Signed-out / visitors: never use localStorage — only the published `remote` payload (same as incognito).
+ * - Signed in: prefer local when its `_clientSavedAt` beats the remote hero version (editing drafts).
+ *   Use `hero_text._clientSavedAt` when set; only if missing, fall back to `profiles.updated_at`.
  */
 export function resolveHomeContentAfterLoad(
   rawRemote: unknown,
@@ -416,16 +420,12 @@ export function resolveHomeContentAfterLoad(
   const localValid = Boolean(local && shouldPersistHomePageContent(local));
 
   if (!authed) {
-    if (shouldPersistHomePageContent(remote)) {
-      return {
-        content: remote,
-        localDraftSupersededByCloud: localValid,
-      };
-    }
-    if (local) {
-      return { content: local, localDraftSupersededByCloud: false };
-    }
-    return { content: remote, localDraftSupersededByCloud: false };
+    // Public / incognito: DB (or empty defaults) only — never blend in localStorage.
+    return {
+      content: remote,
+      localDraftSupersededByCloud: false,
+      draftAheadOfPublished: false,
+    };
   }
 
   if (localValid) {
@@ -438,12 +438,24 @@ export function resolveHomeContentAfterLoad(
           ? remoteProfileAt
           : 0;
     if (lt > rt) {
-      return { content: local!, localDraftSupersededByCloud: false };
+      return {
+        content: local!,
+        localDraftSupersededByCloud: false,
+        draftAheadOfPublished: true,
+      };
     }
-    return { content: remote, localDraftSupersededByCloud: true };
+    return {
+      content: remote,
+      localDraftSupersededByCloud: true,
+      draftAheadOfPublished: false,
+    };
   }
 
-  return { content: remote, localDraftSupersededByCloud: false };
+  return {
+    content: remote,
+    localDraftSupersededByCloud: false,
+    draftAheadOfPublished: false,
+  };
 }
 
 export function splitBioParagraphs(bioText: string | undefined): string[] {
