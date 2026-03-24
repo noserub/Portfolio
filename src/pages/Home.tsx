@@ -4373,7 +4373,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
             transition={{ delay: 0.6, duration: 0.5 }}
             className="w-full">
             {/* Grid Container */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 max-w-4xl mx-auto px-4 md:px-8 py-8">
+            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6 max-w-4xl mx-auto px-4 md:px-8 py-8">
               {loading ? (
                 <ProjectCardSkeleton count={3} />
               ) : (
