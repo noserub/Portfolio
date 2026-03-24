@@ -5,6 +5,12 @@ import { useDrag, useDrop } from "react-dnd";
 import { ProjectImage, ProjectData } from "../components/ProjectImage";
 import MemoizedProjectImage from "../components/ProjectImage";
 import { ProjectCardSkeleton } from "../components/ProjectCardSkeleton";
+import {
+  HomeBioSkeleton,
+  HomeCaseStudiesHeaderSkeleton,
+  HomeHeroSkeleton,
+  HomeStatsSkeleton,
+} from "../components/HomePageContentSkeleton";
 // Removed performance optimizations that were causing slowdown
 import { useSEO } from "../hooks/useSEO";
 import { useHomePageContent } from "../hooks/useHomePageContent";
@@ -2309,6 +2315,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     homePageContent,
     setHomePageContent,
     homeContentHydratedRef,
+    homeContentLoading,
     showHeroCloudNotice,
     setShowHeroCloudNotice,
     heroDraftAheadOfCloud,
@@ -2323,6 +2330,8 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     isEditingHero,
     greetingsTextValue,
   });
+
+  const showHomeContentSkeleton = homeContentLoading && !isEditingHero;
 
   const patchHero = useCallback((patch: Partial<HeroTextState>) => {
     setHomePageContent((c) => ({ ...c, hero: { ...c.hero, ...patch } }));
@@ -2390,6 +2399,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
   
   // Typing animation effect - uses ref so doesn't re-run when heroText changes
   useEffect(() => {
+    if (homeContentLoading) return;
     const greetings = greetingsRef.current;
     if (!greetings || greetings.length === 0) return;
     
@@ -2441,7 +2451,25 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     }, delay);
     
     return () => clearTimeout(timer);
-  }, [displayedText, isDeleting, currentGreetingIndex, isWaitingForCycle, heroText.lastGreetingPauseDuration]);
+  }, [
+    displayedText,
+    isDeleting,
+    currentGreetingIndex,
+    isWaitingForCycle,
+    heroText.lastGreetingPauseDuration,
+    homeContentLoading,
+  ]);
+
+  const prevHomeContentLoadingRef = useRef(true);
+  useEffect(() => {
+    if (prevHomeContentLoadingRef.current && !homeContentLoading) {
+      setDisplayedText("");
+      setCurrentGreetingIndex(0);
+      setIsDeleting(false);
+      setIsWaitingForCycle(false);
+    }
+    prevHomeContentLoadingRef.current = homeContentLoading;
+  }, [homeContentLoading]);
 
   // Reset animation when pause duration changes
   useEffect(() => {
@@ -3292,8 +3320,13 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     <div className="min-h-screen relative">
 
       {/* Hero Section */}
-      <section className="min-h-screen flex flex-col items-center justify-center px-6 pt-20 md:pt-32 pb-28 md:pb-36">
-        
+      <section
+        className="min-h-screen flex flex-col items-center justify-center px-6 pt-20 md:pt-32 pb-28 md:pb-36"
+        aria-busy={homeContentLoading}
+      >
+        {showHomeContentSkeleton ? (
+          <HomeHeroSkeleton />
+        ) : (
         <motion.div
           initial={false}
           className="text-center space-y-6 mb-16 relative z-10 mt-10 md:mt-20"
@@ -3379,6 +3412,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
             ))}
           </div>
         </motion.div>
+        )}
 
         {/* Bio Container — static wrapper: hero <p> is often LCP; motion fade-in hid text and inflated element render delay */}
         <div className="relative p-8 bg-gradient-to-br from-slate-50/80 via-blue-50/60 to-purple-50/40 dark:from-slate-900/20 dark:via-blue-900/10 dark:to-purple-900/10 backdrop-blur-sm rounded-3xl border border-border shadow-2xl overflow-hidden transition-all duration-500 max-w-4xl mx-auto mb-2 md:mb-3">
@@ -3564,6 +3598,10 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
           ))}
 
           <div className="max-w-3xl relative z-10">
+            {showHomeContentSkeleton ? (
+              <HomeBioSkeleton />
+            ) : (
+            <>
             {isEditMode && showHeroCloudNotice && (
               <Alert
                 className="mb-4 border-sky-500/25 bg-sky-500/[0.06] text-foreground dark:bg-sky-950/50 dark:border-sky-500/30"
@@ -4034,11 +4072,13 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                 </Tooltip>
               </div>
             </motion.div>
+            </>
+            )}
           </div>
         </div>
 
         {/* Scroll Indicator Arrow - Dynamic up/down chevron based on scroll position */}
-        {!isEditMode && (
+        {!isEditMode && !homeContentLoading && (
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -4107,7 +4147,10 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         {/* Quick Stats Section */}
         <section className="w-full pt-6 md:pt-8 pb-12 relative z-10 px-0 md:px-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-4xl mx-auto p-8 px-0 md:px-8">
-            {homePageContent.stats.map((stat, index) => {
+            {showHomeContentSkeleton ? (
+              <HomeStatsSkeleton />
+            ) : (
+            homePageContent.stats.map((stat, index) => {
               const totalCards = homePageContent.stats.length;
               const isLastCard = index === totalCards - 1;
 
@@ -4159,7 +4202,8 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                 </div>
               </div>
             );
-            })}
+            })
+            )}
           </div>
         </section>
 
@@ -4167,6 +4211,10 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         <div 
           ref={caseStudiesSectionRef}
           className="w-full max-w-[1400px] mx-auto mb-16 mt-16 md:mt-[116px] relative z-10 md:text-center">
+          {showHomeContentSkeleton ? (
+            <HomeCaseStudiesHeaderSkeleton />
+          ) : (
+            <>
           <motion.h2
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -4237,6 +4285,8 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                 );
               })()}
           </motion.div>
+            </>
+          )}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
