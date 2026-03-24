@@ -34,7 +34,7 @@ import {
   type HeroTextState,
   type HomePageContentV2,
   type HomePageStat,
-  classicBioDocumentFromHero,
+  defaultBioDocument,
   healDegenerateHeroBio,
   mergeHeroGreetingsFromDraftLines,
 } from "../lib/homePageContent";
@@ -2309,6 +2309,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     homePageContent,
     setHomePageContent,
     homeContentHydratedRef,
+    homeContentLoading,
     showHeroCloudNotice,
     setShowHeroCloudNotice,
     heroDraftAheadOfCloud,
@@ -2367,7 +2368,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
   const heroText = homePageContent.hero;
   const resolvedHeroBio = useMemo(() => healDegenerateHeroBio(heroText), [heroText]);
   const bioDocumentForUi =
-    resolvedHeroBio.bioDocument ?? classicBioDocumentFromHero(resolvedHeroBio);
+    resolvedHeroBio.bioDocument ?? defaultBioDocument();
 
   const [deleteConfirmation, setDeleteConfirmation] = useState(null);
 
@@ -2390,6 +2391,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
   
   // Typing animation effect - uses ref so doesn't re-run when heroText changes
   useEffect(() => {
+    if (homeContentLoading) return;
     const greetings = greetingsRef.current;
     if (!greetings || greetings.length === 0) return;
     
@@ -2441,7 +2443,25 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     }, delay);
     
     return () => clearTimeout(timer);
-  }, [displayedText, isDeleting, currentGreetingIndex, isWaitingForCycle, heroText.lastGreetingPauseDuration]);
+  }, [
+    displayedText,
+    isDeleting,
+    currentGreetingIndex,
+    isWaitingForCycle,
+    heroText.lastGreetingPauseDuration,
+    homeContentLoading,
+  ]);
+
+  const prevHomeContentLoadingRef = useRef(true);
+  useEffect(() => {
+    if (prevHomeContentLoadingRef.current && !homeContentLoading) {
+      setDisplayedText("");
+      setCurrentGreetingIndex(0);
+      setIsDeleting(false);
+      setIsWaitingForCycle(false);
+    }
+    prevHomeContentLoadingRef.current = homeContentLoading;
+  }, [homeContentLoading]);
 
   // Reset animation when pause duration changes
   useEffect(() => {
@@ -3292,11 +3312,13 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     <div className="min-h-screen relative">
 
       {/* Hero Section */}
-      <section className="min-h-screen flex flex-col items-center justify-center px-6 pt-20 md:pt-32 pb-28 md:pb-36">
-        
+      <section
+        className="min-h-screen flex flex-col items-center justify-center px-6 pt-20 md:pt-32 pb-28 md:pb-36"
+        aria-busy={homeContentLoading}
+      >
         <motion.div
           initial={false}
-          className="text-center space-y-6 mb-16 relative z-10 mt-10 md:mt-20"
+          className="text-center space-y-6 mb-16 relative z-10 mt-10 md:mt-20 w-full max-w-4xl"
         >
           <motion.h1
             className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl tracking-tight font-extrabold text-center break-words md:whitespace-nowrap px-4"
@@ -3381,7 +3403,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         </motion.div>
 
         {/* Bio Container — static wrapper: hero <p> is often LCP; motion fade-in hid text and inflated element render delay */}
-        <div className="relative p-8 bg-gradient-to-br from-slate-50/80 via-blue-50/60 to-purple-50/40 dark:from-slate-900/20 dark:via-blue-900/10 dark:to-purple-900/10 backdrop-blur-sm rounded-3xl border border-border shadow-2xl overflow-hidden transition-all duration-500 max-w-4xl mx-auto mb-2 md:mb-3">
+        <div className="relative w-full max-w-4xl mx-auto mb-2 md:mb-3 p-8 bg-gradient-to-br from-slate-50/80 via-blue-50/60 to-purple-50/40 dark:from-slate-900/20 dark:via-blue-900/10 dark:to-purple-900/10 backdrop-blur-sm rounded-3xl border border-border shadow-2xl overflow-hidden transition-all duration-500">
           {/* Decorative Curved Brushstrokes - Far right near dots, bleeding off edges */}
           <svg
             className="absolute right-0 top-0 h-full w-[25%] pointer-events-none"
@@ -3563,7 +3585,8 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
             />
           ))}
 
-          <div className="max-w-3xl relative z-10">
+          <div className="relative z-10 mx-auto w-full min-w-0 max-w-3xl">
+            <>
             {isEditMode && showHeroCloudNotice && (
               <Alert
                 className="mb-4 border-sky-500/25 bg-sky-500/[0.06] text-foreground dark:bg-sky-950/50 dark:border-sky-500/30"
@@ -3673,52 +3696,11 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                     onParagraphGapRem={(v) => patchHero({ bioParagraphGapRem: v })}
                     onLineHeight={(v) => patchHero({ bioLineHeight: v })}
                     onReplaceFromTemplate={() => {
-                      patchHero({ bioDocument: classicBioDocumentFromHero(heroText) });
+                      patchHero({ bioDocument: defaultBioDocument() });
                       setBioEditorRevision((n) => n + 1);
                     }}
                   />
                 </Suspense>
-
-                <div className="space-y-3 border-b border-border pb-4">
-                  <h4 className="text-sm font-semibold">Classic template fields</h4>
-                  <p className="text-xs text-muted-foreground">
-                    Edit these, then click &quot;Replace from template&quot; above to rebuild the bio as one paragraph with bold lead and gradient words.
-                  </p>
-                  <Input
-                    value={heroText.subtitle}
-                    onChange={(e) => patchHero({ subtitle: e.target.value })}
-                    placeholder="Bold lead line"
-                    className="text-sm"
-                  />
-                  <Input
-                    value={heroText.description}
-                    onChange={(e) => patchHero({ description: e.target.value })}
-                    placeholder="Text before gradient words"
-                    className="text-sm"
-                  />
-                  <div className="grid grid-cols-2 gap-2">
-                    <Input
-                      value={heroText.word1}
-                      onChange={(e) => patchHero({ word1: e.target.value })}
-                      placeholder="Gradient word 1"
-                    />
-                    <Input
-                      value={heroText.word2}
-                      onChange={(e) => patchHero({ word2: e.target.value })}
-                      placeholder="Gradient word 2"
-                    />
-                    <Input
-                      value={heroText.word3}
-                      onChange={(e) => patchHero({ word3: e.target.value })}
-                      placeholder="Gradient word 3"
-                    />
-                    <Input
-                      value={heroText.word4}
-                      onChange={(e) => patchHero({ word4: e.target.value })}
-                      placeholder="Gradient word 4"
-                    />
-                  </div>
-                </div>
 
                 <div className="space-y-3 border-b border-border pb-4">
                   <h4 className="text-sm font-semibold">Animated headline</h4>
@@ -4034,11 +4016,12 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                 </Tooltip>
               </div>
             </motion.div>
+            </>
           </div>
         </div>
 
         {/* Scroll Indicator Arrow - Dynamic up/down chevron based on scroll position */}
-        {!isEditMode && (
+        {!isEditMode && !homeContentLoading && (
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -4105,8 +4088,8 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         )}
 
         {/* Quick Stats Section */}
-        <section className="w-full pt-6 md:pt-8 pb-12 relative z-10 px-0 md:px-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-4xl mx-auto p-8 px-0 md:px-8">
+        <section className="w-full min-w-0 pt-6 md:pt-8 pb-12 relative z-10 px-0 md:px-6">
+          <div className="grid w-full min-w-0 grid-cols-1 sm:grid-cols-2 gap-6 max-w-4xl mx-auto p-8 px-0 md:px-8">
             {homePageContent.stats.map((stat, index) => {
               const totalCards = homePageContent.stats.length;
               const isLastCard = index === totalCards - 1;
@@ -4167,6 +4150,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         <div 
           ref={caseStudiesSectionRef}
           className="w-full max-w-[1400px] mx-auto mb-16 mt-16 md:mt-[116px] relative z-10 md:text-center">
+          <>
           <motion.h2
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -4237,6 +4221,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                 );
               })()}
           </motion.div>
+          </>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}

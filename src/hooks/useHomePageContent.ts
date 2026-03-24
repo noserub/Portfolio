@@ -60,6 +60,8 @@ export function useHomePageContent(options: UseHomePageContentOptions) {
   );
   const [showHeroCloudNotice, setShowHeroCloudNotice] = useState(false);
   const [heroDraftAheadOfCloud, setHeroDraftAheadOfCloud] = useState(false);
+  /** True until the first `profiles.hero_text` load finishes (success or fallback). Drives hero skeleton UI. */
+  const [homeContentLoading, setHomeContentLoading] = useState(true);
 
   const homeContentHydratedRef = useRef(false);
   const heroLoadGenerationRef = useRef(0);
@@ -72,6 +74,7 @@ export function useHomePageContent(options: UseHomePageContentOptions) {
     const loadHomePageContent = async () => {
       const gen = ++heroLoadGenerationRef.current;
       homeContentHydratedRef.current = false;
+      setHomeContentLoading(true);
 
       const { supabase } = await import("../lib/supabaseClient");
       const {
@@ -142,6 +145,7 @@ export function useHomePageContent(options: UseHomePageContentOptions) {
           if (gen !== heroLoadGenerationRef.current) return;
           homeContentHydratedRef.current = true;
           setHomePageContent(migratedContent);
+          setHomeContentLoading(false);
           bumpBio();
           localStorage.setItem("heroText", JSON.stringify(toPersistedPayload(migratedContent)));
           console.log("✅ Home page: no profile row — merged from local/offline defaults");
@@ -188,6 +192,7 @@ export function useHomePageContent(options: UseHomePageContentOptions) {
         if (gen !== heroLoadGenerationRef.current) return;
         homeContentHydratedRef.current = true;
         setHomePageContent(migratedContent);
+        setHomeContentLoading(false);
         bumpBio();
         localStorage.setItem("heroText", JSON.stringify(toPersistedPayload(migratedContent)));
         console.log("✅ Home page content loaded from Supabase (published row is source of truth)");
@@ -203,6 +208,7 @@ export function useHomePageContent(options: UseHomePageContentOptions) {
         if (gen !== heroLoadGenerationRef.current) return;
         homeContentHydratedRef.current = true;
         setHomePageContent(migratedContent);
+        setHomeContentLoading(false);
         bumpBio();
         localStorage.setItem("heroText", JSON.stringify(toPersistedPayload(migratedContent)));
         console.log("✅ Loaded home page content from offline / local merge");
@@ -424,6 +430,7 @@ export function useHomePageContent(options: UseHomePageContentOptions) {
     homePageContent,
     setHomePageContent,
     homeContentHydratedRef,
+    homeContentLoading,
     showHeroCloudNotice,
     setShowHeroCloudNotice,
     heroDraftAheadOfCloud,
