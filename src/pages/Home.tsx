@@ -8,6 +8,7 @@ import { ProjectCardSkeleton } from "../components/ProjectCardSkeleton";
 import { Lightbox } from "../components/Lightbox";
 // Removed performance optimizations that were causing slowdown
 import { useSEO } from "../hooks/useSEO";
+import { useHomePageContent } from "../hooks/useHomePageContent";
 import { useProjects } from "../hooks/useProjects";
 import { supabase } from "../lib/supabaseClient";
 import { Button } from "../components/ui/button";
@@ -36,18 +37,9 @@ import {
   type HeroTextState,
   type HomePageContentV2,
   type HomePageStat,
-  createDefaultHomePageContent,
-  migrateLegacyWelcomeGreeting,
-  parseStoredHomeContent,
-  resolveHomeContentAfterLoad,
-  toPersistedPayload,
-  shouldPersistHomePageContent,
-  persistHomePageToLocalStorageSync,
-  FLUSH_HOME_PAGE_CMS_EVENT,
   classicBioDocumentFromHero,
   healDegenerateHeroBio,
   mergeHeroGreetingsFromDraftLines,
-  readHomePageContentFromLocalStorage,
 } from "../lib/homePageContent";
 import { getPortfolioOwnerUserId } from "../lib/portfolioOwner";
 import { BioDocumentRenderer, HomeBioDocumentEditor } from "../components/HomeBioDocument";
@@ -2309,9 +2301,34 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     }
   }, [caseStudies, designProjects]);
   
-  const [homePageContent, setHomePageContent] = useState<HomePageContentV2>(() =>
-    createDefaultHomePageContent()
-  );
+  const [isEditingHero, setIsEditingHero] = useState(false);
+  const isEditingHeroRef = useRef(isEditingHero);
+  isEditingHeroRef.current = isEditingHero;
+  const [bioEditorRevision, setBioEditorRevision] = useState(0);
+  const [greetingsTextValue, setGreetingsTextValue] = useState("");
+  const greetingsTextValueRef = useRef(greetingsTextValue);
+  greetingsTextValueRef.current = greetingsTextValue;
+
+  const bumpBioEditorRevision = useCallback(() => setBioEditorRevision((n) => n + 1), []);
+
+  const {
+    homePageContent,
+    setHomePageContent,
+    homeContentHydratedRef,
+    showHeroCloudNotice,
+    setShowHeroCloudNotice,
+    heroDraftAheadOfCloud,
+    persistHomePageNow,
+    flushPendingHomePage,
+    clearDebouncedHeroSave,
+  } = useHomePageContent({
+    bumpBioEditorRevision,
+    isEditingHeroRef,
+    greetingsTextValueRef,
+    setIsEditingHero,
+    isEditingHero,
+    greetingsTextValue,
+  });
 
   const patchHero = useCallback((patch: Partial<HeroTextState>) => {
     setHomePageContent((c) => ({ ...c, hero: { ...c.hero, ...patch } }));
@@ -2358,352 +2375,8 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
   const bioDocumentForUi =
     resolvedHeroBio.bioDocument ?? classicBioDocumentFromHero(resolvedHeroBio);
 
-  const [isEditingHero, setIsEditingHero] = useState(false);
-  const isEditingHeroRef = useRef(isEditingHero);
-  isEditingHeroRef.current = isEditingHero;
-  const [bioEditorRevision, setBioEditorRevision] = useState(0);
-  const [greetingsTextValue, setGreetingsTextValue] = useState("");
-  const greetingsTextValueRef = useRef(greetingsTextValue);
-  greetingsTextValueRef.current = greetingsTextValue;
   const [deleteConfirmation, setDeleteConfirmation] = useState(null);
-  /** Shown when live Supabase content replaced an older browser draft (edit mode banner). */
-  const [showHeroCloudNotice, setShowHeroCloudNotice] = useState(false);
-  /** Local draft is newer than last loaded cloud row — visitors see cloud until sync succeeds. */
-  const [heroDraftAheadOfCloud, setHeroDraftAheadOfCloud] = useState(false);
-  /** False until initial hero load finishes — blocks debounced persist from overwriting DB with defaults. */
-  const homeContentHydratedRef = useRef(false);
 
-  useEffect(() => {
-    const loadHomePageContent = async () => {
-      const { supabase } = await import('../lib/supabaseClient');
-      const { data: { user } } = await supabase.auth.getUser();
-      /** Same row for signed-in editor, incognito, and Vercel preview — must match VITE_PUBLIC_PORTFOLIO_OWNER_ID to your auth user id. */
-      const portfolioOwnerId = getPortfolioOwnerUserId(user?.id);
-      /** Only real owner session may prefer stale local over remote in fallback paths (not bypass flag). */
-      const allowLocalDraftPreference =
-        Boolean(user?.id) && user.id === portfolioOwnerId;
-
-      try {
-        console.log('🔄 Loading home page content from Supabase...');
-        const row = await (async () => {
-          if (user?.id && user.id !== portfolioOwnerId) {
-            console.warn(
-              '⚠️ Home hero: signed-in user id ≠ VITE_PUBLIC_PORTFOLIO_OWNER_ID — incognito shows the owner row, not your account row. Set the env to your Supabase user UUID.',
-              { authId: user.id, ownerId: portfolioOwnerId },
-            );
-          }
-
-          console.log(
-            '🏠 Home: Loading hero_text from published profile row',
-            portfolioOwnerId,
-            user ? '(signed in)' : '(public)',
-          );
-
-          const result = await supabase
-            .from('profiles')
-            .select('hero_text, updated_at')
-            .eq('id', portfolioOwnerId)
-            .maybeSingle();
-
-          if (result.error) throw result.error;
-          return result.data as { hero_text: unknown; updated_at: string | null } | null;
-        })();
-
-        const raw = row?.hero_text;
-        const heroTextMissing =
-          raw == null ||
-          (typeof raw === "string" && raw.trim() === "") ||
-          (typeof raw === "object" &&
-            raw !== null &&
-            !Array.isArray(raw) &&
-            Object.keys(raw as object).length === 0);
-        if (heroTextMissing) {
-          console.warn(
-            "[home] profiles.hero_text is empty for this row — UI uses defaults until you save from the editor.",
-            { portfolioOwnerId },
-          );
-        }
-        const ts = row?.updated_at != null ? Date.parse(String(row.updated_at)) : NaN;
-        const remoteProfileUpdatedAtMs = !Number.isNaN(ts) ? ts : null;
-
-        /**
-         * When Supabase returns a profile row, published content MUST come from `hero_text` —
-         * never prefer localStorage over the server row. The old `resolveHomeContentAfterLoad`
-         * path let signed-in users keep a "newer" local `_clientSavedAt` and **ignore** prod DB
-         * updates (preview/production looked "reverted" after saving to cloud).
-         */
-        if (row == null) {
-          console.warn(
-            "[home] No profiles row for this id — visitors see defaults. Create a profile for this UUID or fix VITE_PUBLIC_PORTFOLIO_OWNER_ID.",
-            { portfolioOwnerId },
-          );
-          const { content, localDraftSupersededByCloud, draftAheadOfPublished } =
-            resolveHomeContentAfterLoad(undefined, {
-              remoteProfileUpdatedAtMs,
-              allowLocalDraftPreference,
-            });
-          setHeroDraftAheadOfCloud(draftAheadOfPublished);
-          if (localDraftSupersededByCloud) setShowHeroCloudNotice(true);
-
-          const migratedContent = migrateLegacyWelcomeGreeting(content);
-          homeContentHydratedRef.current = true;
-          setHomePageContent(migratedContent);
-          setBioEditorRevision((n) => n + 1);
-          localStorage.setItem('heroText', JSON.stringify(toPersistedPayload(migratedContent)));
-          console.log('✅ Home page: no profile row — merged from local/offline defaults');
-          return;
-        }
-
-        const parsedFromDb = parseStoredHomeContent(raw ?? {});
-        let migratedContent = migrateLegacyWelcomeGreeting(parsedFromDb);
-        if (JSON.stringify(parsedFromDb.hero) !== JSON.stringify(migratedContent.hero)) {
-          console.log(
-            '🔄 Migrated legacy "Welcome," greeting in place (stats, bio, and UI labels unchanged)',
-          );
-        }
-
-        const serverClock = remoteProfileUpdatedAtMs ?? Date.now();
-        migratedContent = {
-          ...migratedContent,
-          _clientSavedAt: Math.max(
-            typeof migratedContent._clientSavedAt === 'number' && !Number.isNaN(migratedContent._clientSavedAt)
-              ? migratedContent._clientSavedAt
-              : 0,
-            serverClock,
-          ),
-        };
-
-        const previousLocal = readHomePageContentFromLocalStorage();
-        const fp = (c: HomePageContentV2) => {
-          const { _clientSavedAt: _t, ...rest } = c;
-          return JSON.stringify(rest);
-        };
-        const replacedLocalDraft =
-          allowLocalDraftPreference &&
-          previousLocal &&
-          shouldPersistHomePageContent(previousLocal) &&
-          fp(previousLocal) !== fp(migratedContent);
-
-        setHeroDraftAheadOfCloud(false);
-        if (replacedLocalDraft) {
-          setShowHeroCloudNotice(true);
-        }
-
-        homeContentHydratedRef.current = true;
-        setHomePageContent(migratedContent);
-        setBioEditorRevision((n) => n + 1);
-        localStorage.setItem('heroText', JSON.stringify(toPersistedPayload(migratedContent)));
-        console.log('✅ Home page content loaded from Supabase (published row is source of truth)');
-      } catch (error) {
-        console.error('❌ Error loading home page content from Supabase:', error);
-        const { content, draftAheadOfPublished } = resolveHomeContentAfterLoad(undefined, {
-          allowLocalDraftPreference,
-        });
-        setHeroDraftAheadOfCloud(draftAheadOfPublished);
-        const migratedContent = migrateLegacyWelcomeGreeting(content);
-
-        homeContentHydratedRef.current = true;
-        setHomePageContent(migratedContent);
-        setBioEditorRevision((n) => n + 1);
-        localStorage.setItem('heroText', JSON.stringify(toPersistedPayload(migratedContent)));
-        console.log('✅ Loaded home page content from offline / local merge');
-      }
-    };
-
-    loadHomePageContent();
-  }, []);
-
-  const homePageContentRef = useRef<HomePageContentV2>(homePageContent);
-  homePageContentRef.current = homePageContent;
-
-  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const persistHomePageNow = useCallback(async (content: HomePageContentV2) => {
-    if (!shouldPersistHomePageContent(content)) {
-      return;
-    }
-    const payload = toPersistedPayload({ ...content, _clientSavedAt: Date.now() });
-    localStorage.setItem('heroText', JSON.stringify(payload));
-
-    const applyRowFromServer = (row: { hero_text: unknown; updated_at: string | null }) => {
-      // Trust Supabase response — do not merge with localStorage (merge can prefer stale local and drop stats).
-      const next = migrateLegacyWelcomeGreeting(
-        parseStoredHomeContent(row.hero_text ?? {}),
-      );
-      localStorage.setItem('heroText', JSON.stringify(toPersistedPayload(next)));
-      setShowHeroCloudNotice(false);
-      setHeroDraftAheadOfCloud(false);
-      if (!isEditingHeroRef.current) {
-        setHomePageContent(next);
-        setBioEditorRevision((n) => n + 1);
-      }
-    };
-
-    try {
-      const { supabase } = await import('../lib/supabaseClient');
-      const { data: { user } } = await supabase.auth.getUser();
-      const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
-
-      if (user || isBypassAuth) {
-        const ownerId = getPortfolioOwnerUserId(user?.id);
-        if (user?.id && user.id !== ownerId) {
-          console.warn('⚠️ Home hero save skipped: auth user must match VITE_PUBLIC_PORTFOLIO_OWNER_ID to update the published row.', {
-            authId: user.id,
-            ownerId,
-          });
-          toast.error(
-            'Home content is published from a fixed profile id. Set VITE_PUBLIC_PORTFOLIO_OWNER_ID to your Supabase user id so saves match what visitors see.',
-            { id: 'home-hero-owner-mismatch', duration: 8000 },
-          );
-          return;
-        }
-
-        console.log(
-          '💾 Home page: localStorage ✓ · syncing profiles.hero_text to Supabase for published row',
-          ownerId,
-        );
-
-        const { data: updatedRow, error: updateError } = await supabase
-          .from('profiles')
-          .update({ hero_text: payload })
-          .eq('id', ownerId)
-          .select('hero_text, updated_at')
-          .single();
-
-        if (updateError) {
-          console.log('📝 Profile not found, creating new profile...');
-          const { data: insertedRow, error: insertError } = await supabase
-            .from('profiles')
-            .insert({
-              id: ownerId,
-              email: user?.email || 'brian.bureson@gmail.com',
-              full_name: 'Brian Bureson',
-              hero_text: payload,
-            })
-            .select('hero_text, updated_at')
-            .single();
-
-          if (insertError) {
-            console.warn('⚠️ Failed to save to Supabase (egress limits?):', insertError.message);
-            setHeroDraftAheadOfCloud(true);
-            toast.error('Could not sync the hero section to the cloud. Your text is still saved on this device.');
-          } else if (insertedRow) {
-            console.log('✅ Home page: Supabase hero_text saved (new profile row)');
-            applyRowFromServer(insertedRow as { hero_text: unknown; updated_at: string | null });
-          }
-        } else if (updatedRow) {
-          console.log('✅ Home page: Supabase hero_text saved (confirmed from server)');
-          applyRowFromServer(updatedRow as { hero_text: unknown; updated_at: string | null });
-        }
-      } else {
-        console.log(
-          '💾 Home page: localStorage ✓ · not signed in — cloud sync skipped (edits stay on this browser)',
-        );
-      }
-    } catch (error) {
-      console.warn('⚠️ Supabase save failed (egress limits?):', error);
-      console.log('💾 Home page: localStorage still has your draft; Supabase sync failed');
-      setHeroDraftAheadOfCloud(true);
-      try {
-        const { supabase } = await import('../lib/supabaseClient');
-        const { data: { user } } = await supabase.auth.getUser();
-        const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
-        if (user || isBypassAuth) {
-          toast.error('Could not sync the hero section to the cloud. Your text is still saved on this device.');
-        }
-      } catch {
-        /* ignore */
-      }
-    }
-  }, []);
-
-  const flushPendingHomePage = useCallback(() => {
-    if (!homeContentHydratedRef.current) return;
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
-      saveTimeoutRef.current = null;
-    }
-    let content = homePageContentRef.current;
-    if (isEditingHeroRef.current) {
-      content = mergeHeroGreetingsFromDraftLines(content, greetingsTextValueRef.current);
-    }
-    void persistHomePageNow(content);
-  }, [persistHomePageNow]);
-
-  useEffect(() => {
-    if (!homeContentHydratedRef.current) {
-      return;
-    }
-    const mergedForGate = isEditingHero
-      ? mergeHeroGreetingsFromDraftLines(homePageContent, greetingsTextValue)
-      : homePageContent;
-    if (!shouldPersistHomePageContent(mergedForGate)) {
-      console.log('⏸️ Skipping save: no persistable home content yet');
-      return;
-    }
-
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
-    }
-
-    saveTimeoutRef.current = setTimeout(() => {
-      const snapshot = isEditingHeroRef.current
-        ? mergeHeroGreetingsFromDraftLines(
-            homePageContentRef.current,
-            greetingsTextValueRef.current,
-          )
-        : homePageContentRef.current;
-      void persistHomePageNow(snapshot);
-    }, 800);
-
-    return () => {
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-        saveTimeoutRef.current = null;
-      }
-    };
-  }, [homePageContent, persistHomePageNow, isEditingHero, greetingsTextValue]);
-
-  useEffect(() => {
-    const onHidden = () => {
-      if (document.visibilityState === 'hidden') {
-        persistHomePageToLocalStorageSync(homePageContentRef.current);
-        flushPendingHomePage();
-      }
-    };
-    const onPageHide = () => {
-      persistHomePageToLocalStorageSync(homePageContentRef.current);
-      flushPendingHomePage();
-    };
-    const onBeforeUnload = () => {
-      persistHomePageToLocalStorageSync(homePageContentRef.current);
-      flushPendingHomePage();
-    };
-    document.addEventListener('visibilitychange', onHidden);
-    window.addEventListener('pagehide', onPageHide);
-    window.addEventListener('beforeunload', onBeforeUnload);
-    return () => {
-      document.removeEventListener('visibilitychange', onHidden);
-      window.removeEventListener('pagehide', onPageHide);
-      window.removeEventListener('beforeunload', onBeforeUnload);
-    };
-  }, [flushPendingHomePage]);
-
-  useEffect(() => {
-    const onFlushHomeCms = () => {
-      persistHomePageToLocalStorageSync(homePageContentRef.current);
-      flushPendingHomePage();
-    };
-    window.addEventListener(FLUSH_HOME_PAGE_CMS_EVENT, onFlushHomeCms);
-    return () => window.removeEventListener(FLUSH_HOME_PAGE_CMS_EVENT, onFlushHomeCms);
-  }, [flushPendingHomePage]);
-
-  useEffect(() => {
-    return () => {
-      flushPendingHomePage();
-    };
-  }, [flushPendingHomePage]);
-  
   // Use ref to store greetings array - prevents infinite re-render loops
   const greetingsRef = useRef([]);
   
@@ -3971,10 +3644,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                   <h3 className="text-lg font-semibold">Edit home content</h3>
                   <Button
                     onClick={async () => {
-                      if (saveTimeoutRef.current) {
-                        clearTimeout(saveTimeoutRef.current);
-                        saveTimeoutRef.current = null;
-                      }
+                      clearDebouncedHeroSave();
 
                       let merged: HomePageContentV2 | null = null;
                       flushSync(() => {
