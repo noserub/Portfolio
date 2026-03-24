@@ -221,6 +221,31 @@ export function migrateLegacyWelcomeGreeting(c: HomePageContentV2): HomePageCont
   };
 }
 
+/**
+ * While editing hero, animated headline lines may only exist in the textarea until blur.
+ * Merge draft text into the persisted hero so autosave / flush / Done include the latest lines.
+ */
+export function mergeHeroGreetingsFromDraftLines(
+  content: HomePageContentV2,
+  greetingsDraftText: string,
+): HomePageContentV2 {
+  const greetings = greetingsDraftText
+    .split("\n")
+    .map((g) => g.trim())
+    .filter(Boolean);
+  if (greetings.length === 0) {
+    return content;
+  }
+  return {
+    ...content,
+    hero: {
+      ...content.hero,
+      greetings,
+      greeting: greetings[0],
+    },
+  };
+}
+
 function mergeHero(partial: Partial<HeroTextState> | Record<string, unknown>): HeroTextState {
   const base = defaultHeroTextState();
   const h = partial as HeroTextState;

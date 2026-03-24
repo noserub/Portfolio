@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback, memo, Suspense } from "react";
+import { flushSync } from "react-dom";
 import { motion } from "motion/react";
 import { useDrag, useDrop } from "react-dnd";
 import { ProjectImage, ProjectData } from "../components/ProjectImage";
@@ -45,6 +46,7 @@ import {
   FLUSH_HOME_PAGE_CMS_EVENT,
   classicBioDocumentFromHero,
   healDegenerateHeroBio,
+  mergeHeroGreetingsFromDraftLines,
 } from "../lib/homePageContent";
 import { getPortfolioOwnerUserId } from "../lib/portfolioOwner";
 import { BioDocumentRenderer, HomeBioDocumentEditor } from "../components/HomeBioDocument";
@@ -2360,6 +2362,8 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
   isEditingHeroRef.current = isEditingHero;
   const [bioEditorRevision, setBioEditorRevision] = useState(0);
   const [greetingsTextValue, setGreetingsTextValue] = useState("");
+  const greetingsTextValueRef = useRef(greetingsTextValue);
+  greetingsTextValueRef.current = greetingsTextValue;
   const [deleteConfirmation, setDeleteConfirmation] = useState(null);
   /** Shown when live Supabase content replaced an older browser draft (edit mode banner). */
   const [showHeroCloudNotice, setShowHeroCloudNotice] = useState(false);
@@ -2557,14 +2561,21 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
       clearTimeout(saveTimeoutRef.current);
       saveTimeoutRef.current = null;
     }
-    void persistHomePageNow(homePageContentRef.current);
+    let content = homePageContentRef.current;
+    if (isEditingHeroRef.current) {
+      content = mergeHeroGreetingsFromDraftLines(content, greetingsTextValueRef.current);
+    }
+    void persistHomePageNow(content);
   }, [persistHomePageNow]);
 
   useEffect(() => {
     if (!homeContentHydratedRef.current) {
       return;
     }
-    if (!shouldPersistHomePageContent(homePageContent)) {
+    const mergedForGate = isEditingHero
+      ? mergeHeroGreetingsFromDraftLines(homePageContent, greetingsTextValue)
+      : homePageContent;
+    if (!shouldPersistHomePageContent(mergedForGate)) {
       console.log('⏸️ Skipping save: no persistable home content yet');
       return;
     }
@@ -2574,7 +2585,13 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     }
 
     saveTimeoutRef.current = setTimeout(() => {
-      void persistHomePageNow(homePageContent);
+      const snapshot = isEditingHeroRef.current
+        ? mergeHeroGreetingsFromDraftLines(
+            homePageContentRef.current,
+            greetingsTextValueRef.current,
+          )
+        : homePageContentRef.current;
+      void persistHomePageNow(snapshot);
     }, 800);
 
     return () => {
@@ -2583,7 +2600,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         saveTimeoutRef.current = null;
       }
     };
-  }, [homePageContent, persistHomePageNow]);
+  }, [homePageContent, persistHomePageNow, isEditingHero, greetingsTextValue]);
 
   useEffect(() => {
     const onHidden = () => {
@@ -3886,29 +3903,21 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                   <h3 className="text-lg font-semibold">Edit home content</h3>
                   <Button
                     onClick={async () => {
-                      flushPendingHomePage();
+                      if (saveTimeoutRef.current) {
+                        clearTimeout(saveTimeoutRef.current);
+                        saveTimeoutRef.current = null;
+                      }
 
-                      const greetings = greetingsTextValue
-                        ?.split('\n')
-                        .map((g) => g.trim())
-                        .filter(Boolean);
-
-                      let next: HomePageContentV2 | null = null;
-                      setHomePageContent((c) => {
-                        const updatedHero: HeroTextState =
-                          greetings && greetings.length > 0
-                            ? {
-                                ...c.hero,
-                                greetings,
-                                greeting: greetings[0],
-                              }
-                            : c.hero;
-                        next = { ...c, hero: updatedHero };
-                        return next;
+                      let merged: HomePageContentV2 | null = null;
+                      flushSync(() => {
+                        setHomePageContent((c) => {
+                          merged = mergeHeroGreetingsFromDraftLines(c, greetingsTextValue);
+                          return merged;
+                        });
                       });
 
-                      if (next) {
-                        await persistHomePageNow(next);
+                      if (merged && homeContentHydratedRef.current) {
+                        await persistHomePageNow(merged);
                       }
 
                       setIsEditingHero(false);
