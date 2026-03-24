@@ -29,6 +29,7 @@ import { cleanMarkdownContent, isContentCorrupted } from "../utils/cleanMarkdown
 import { uploadImage } from "../utils/imageHelpers";
 import { Search } from "lucide-react";
 import { Label } from "../components/ui/label";
+import { ScrollArea } from "../components/ui/scroll-area";
 
 interface ProjectDetailProps {
   project: ProjectData;
@@ -5542,27 +5543,35 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
         {(atGlanceContent || impactContent) && (
           <div className="hidden min-h-0 lg:block lg:col-start-2 lg:col-end-2">
             <div
-              className="space-y-12 lg:sticky lg:top-24 lg:max-h-[calc(100dvh-6rem-1.5rem)] lg:overflow-y-auto lg:overscroll-contain lg:pb-2 [scrollbar-gutter:stable]"
+              className="w-full lg:sticky lg:top-24"
               style={{ marginTop: '60px' }}
             >
-              {atGlanceContent && (
-                <AtAGlanceSidebar 
-                  content={atGlanceContent.content}
-                  title={atGlanceContent.title}
-                  isEditMode={isEditMode}
-                  onUpdate={handleUpdateAtAGlance}
-                  onRemove={handleRemoveAtAGlance}
-                />
-              )}
-              {impactContent && (
-                <ImpactSidebar 
-                  content={impactContent.content}
-                  title={impactContent.title}
-                  isEditMode={isEditMode}
-                  onUpdate={handleUpdateImpact}
-                  onRemove={handleRemoveImpact}
-                />
-              )}
+              {/* Radix ScrollArea: one slim rail (hover) instead of native scrollbar + scrollbar-gutter */}
+              <ScrollArea
+                type="hover"
+                className="lg:h-[calc(100dvh-6rem-1.5rem)] lg:max-h-[calc(100dvh-6rem-1.5rem)] lg:overscroll-contain"
+              >
+                <div className="space-y-12 pb-2 pr-1">
+                  {atGlanceContent && (
+                    <AtAGlanceSidebar 
+                      content={atGlanceContent.content}
+                      title={atGlanceContent.title}
+                      isEditMode={isEditMode}
+                      onUpdate={handleUpdateAtAGlance}
+                      onRemove={handleRemoveAtAGlance}
+                    />
+                  )}
+                  {impactContent && (
+                    <ImpactSidebar 
+                      content={impactContent.content}
+                      title={impactContent.title}
+                      isEditMode={isEditMode}
+                      onUpdate={handleUpdateImpact}
+                      onRemove={handleRemoveImpact}
+                    />
+                  )}
+                </div>
+              </ScrollArea>
             </div>
           </div>
         )}
