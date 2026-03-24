@@ -5,6 +5,8 @@
     <!-- Resource Hints for Performance -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Latin Inter 400 woff2 — speeds up LCP text (hero bio) vs waiting on stylesheet chain alone -->
+    <link rel="preload" href="https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuLyfAZ9hiJ-Ek-_EeA.woff2" as="font" type="font/woff2" crossorigin />
     <!-- Inter: critical path for body/LCP text. Fewer weights = smaller CSS + faster font files. -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" />
     <!-- Montserrat: headings only — load async so it doesn't extend render-blocking for hero copy -->
@@ -32,6 +34,8 @@
     
     
     
+  
+  
   
   
   

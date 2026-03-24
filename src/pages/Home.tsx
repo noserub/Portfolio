@@ -5,7 +5,6 @@ import { useDrag, useDrop } from "react-dnd";
 import { ProjectImage, ProjectData } from "../components/ProjectImage";
 import MemoizedProjectImage from "../components/ProjectImage";
 import { ProjectCardSkeleton } from "../components/ProjectCardSkeleton";
-import { Lightbox } from "../components/Lightbox";
 // Removed performance optimizations that were causing slowdown
 import { useSEO } from "../hooks/useSEO";
 import { useHomePageContent } from "../hooks/useHomePageContent";
@@ -19,13 +18,6 @@ import { Plus, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Edit2, Save, G
 import { toast } from "sonner";
 import { Tooltip, TooltipTrigger, TooltipContent } from "../components/ui/tooltip";
 // import { createCaseStudyFromTemplate } from "../utils/caseStudyTemplate"; // REMOVED - using unified project creator
-import { loadMigratedProjects } from "../utils/migrateVideoFields";
-
-const UnifiedProjectCreator = lazy(() =>
-  import("../components/UnifiedProjectCreator").then((m) => ({
-    default: m.UnifiedProjectCreator,
-  })),
-);
 import {
   AlertDialog,
   AlertDialogAction,
@@ -47,7 +39,19 @@ import {
   mergeHeroGreetingsFromDraftLines,
 } from "../lib/homePageContent";
 import { getPortfolioOwnerUserId } from "../lib/portfolioOwner";
-import { BioDocumentRenderer, HomeBioDocumentEditor } from "../components/HomeBioDocument";
+import { BioDocumentRenderer } from "../components/HomeBioDocument";
+
+const UnifiedProjectCreator = lazy(() =>
+  import("../components/UnifiedProjectCreator").then((m) => ({
+    default: m.UnifiedProjectCreator,
+  })),
+);
+const HomeBioDocumentEditor = lazy(() =>
+  import("../components/HomeBioDocumentEditor").then((m) => ({
+    default: m.HomeBioDocumentEditor,
+  })),
+);
+const Lightbox = lazy(() => import("../components/Lightbox").then((m) => ({ default: m.default })));
 
 interface HomeProps {
   onStartClick: () => void;
@@ -3652,19 +3656,28 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                   </Button>
                 </div>
 
-                <HomeBioDocumentEditor
-                  document={bioDocumentForUi}
-                  contentRevision={bioEditorRevision}
-                  onChange={(doc) => patchHero({ bioDocument: doc })}
-                  paragraphGapRem={heroText.bioParagraphGapRem ?? 1}
-                  lineHeight={heroText.bioLineHeight ?? 1.625}
-                  onParagraphGapRem={(v) => patchHero({ bioParagraphGapRem: v })}
-                  onLineHeight={(v) => patchHero({ bioLineHeight: v })}
-                  onReplaceFromTemplate={() => {
-                    patchHero({ bioDocument: classicBioDocumentFromHero(heroText) });
-                    setBioEditorRevision((n) => n + 1);
-                  }}
-                />
+                <Suspense
+                  fallback={
+                    <div className="min-h-[14rem] flex flex-col gap-3 border-b border-border pb-4">
+                      <div className="h-4 w-24 rounded bg-muted/50 animate-pulse" />
+                      <div className="h-32 rounded-lg bg-muted/30 animate-pulse" />
+                    </div>
+                  }
+                >
+                  <HomeBioDocumentEditor
+                    document={bioDocumentForUi}
+                    contentRevision={bioEditorRevision}
+                    onChange={(doc) => patchHero({ bioDocument: doc })}
+                    paragraphGapRem={heroText.bioParagraphGapRem ?? 1}
+                    lineHeight={heroText.bioLineHeight ?? 1.625}
+                    onParagraphGapRem={(v) => patchHero({ bioParagraphGapRem: v })}
+                    onLineHeight={(v) => patchHero({ bioLineHeight: v })}
+                    onReplaceFromTemplate={() => {
+                      patchHero({ bioDocument: classicBioDocumentFromHero(heroText) });
+                      setBioEditorRevision((n) => n + 1);
+                    }}
+                  />
+                </Suspense>
 
                 <div className="space-y-3 border-b border-border pb-4">
                   <h4 className="text-sm font-semibold">Classic template fields</h4>
@@ -4293,12 +4306,14 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
 
       {/* Lightbox */}
       {lightboxProject && (
-        <Lightbox
-          isOpen={true}
-          onClose={() => setLightboxProject(null)}
-          imageUrl={lightboxProject.url}
-          imageAlt={lightboxProject.title}
-        />
+        <Suspense fallback={null}>
+          <Lightbox
+            isOpen={true}
+            onClose={() => setLightboxProject(null)}
+            imageUrl={lightboxProject.url}
+            imageAlt={lightboxProject.title}
+          />
+        </Suspense>
       )}
 
       <style>{`
