@@ -5,12 +5,7 @@ import { useDrag, useDrop } from "react-dnd";
 import { ProjectImage, ProjectData } from "../components/ProjectImage";
 import MemoizedProjectImage from "../components/ProjectImage";
 import { ProjectCardSkeleton } from "../components/ProjectCardSkeleton";
-import {
-  HomeBioSkeleton,
-  HomeCaseStudiesHeaderSkeleton,
-  HomeHeroSkeleton,
-  HomeStatsSkeleton,
-} from "../components/HomePageContentSkeleton";
+import { HomeBioSkeleton, HomeHeroSkeleton } from "../components/HomePageContentSkeleton";
 // Removed performance optimizations that were causing slowdown
 import { useSEO } from "../hooks/useSEO";
 import { useHomePageContent } from "../hooks/useHomePageContent";
@@ -3325,11 +3320,11 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         aria-busy={homeContentLoading}
       >
         {showHomeContentSkeleton ? (
-          <HomeHeroSkeleton />
+          <HomeHeroSkeleton className="w-full max-w-4xl" />
         ) : (
         <motion.div
           initial={false}
-          className="text-center space-y-6 mb-16 relative z-10 mt-10 md:mt-20"
+          className="text-center space-y-6 mb-16 relative z-10 mt-10 md:mt-20 w-full max-w-4xl"
         >
           <motion.h1
             className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl tracking-tight font-extrabold text-center break-words md:whitespace-nowrap px-4"
@@ -3415,7 +3410,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         )}
 
         {/* Bio Container — static wrapper: hero <p> is often LCP; motion fade-in hid text and inflated element render delay */}
-        <div className="relative p-8 bg-gradient-to-br from-slate-50/80 via-blue-50/60 to-purple-50/40 dark:from-slate-900/20 dark:via-blue-900/10 dark:to-purple-900/10 backdrop-blur-sm rounded-3xl border border-border shadow-2xl overflow-hidden transition-all duration-500 max-w-4xl mx-auto mb-2 md:mb-3">
+        <div className="relative w-full max-w-4xl mx-auto mb-2 md:mb-3 p-8 bg-gradient-to-br from-slate-50/80 via-blue-50/60 to-purple-50/40 dark:from-slate-900/20 dark:via-blue-900/10 dark:to-purple-900/10 backdrop-blur-sm rounded-3xl border border-border shadow-2xl overflow-hidden transition-all duration-500">
           {/* Decorative Curved Brushstrokes - Far right near dots, bleeding off edges */}
           <svg
             className="absolute right-0 top-0 h-full w-[25%] pointer-events-none"
@@ -3597,7 +3592,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
             />
           ))}
 
-          <div className="max-w-3xl relative z-10">
+          <div className="relative z-10 mx-auto w-full min-w-0 max-w-3xl">
             {showHomeContentSkeleton ? (
               <HomeBioSkeleton />
             ) : (
@@ -4144,13 +4139,11 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
           </motion.div>
         )}
 
-        {/* Quick Stats Section */}
-        <section className="w-full pt-6 md:pt-8 pb-12 relative z-10 px-0 md:px-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-4xl mx-auto p-8 px-0 md:px-8">
-            {showHomeContentSkeleton ? (
-              <HomeStatsSkeleton />
-            ) : (
-            homePageContent.stats.map((stat, index) => {
+        {/* Quick Stats Section — hidden while hero CMS loads (no extra skeleton chrome) */}
+        {!showHomeContentSkeleton && (
+        <section className="w-full min-w-0 pt-6 md:pt-8 pb-12 relative z-10 px-0 md:px-6">
+          <div className="grid w-full min-w-0 grid-cols-1 sm:grid-cols-2 gap-6 max-w-4xl mx-auto p-8 px-0 md:px-8">
+            {homePageContent.stats.map((stat, index) => {
               const totalCards = homePageContent.stats.length;
               const isLastCard = index === totalCards - 1;
 
@@ -4202,18 +4195,16 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                 </div>
               </div>
             );
-            })
-            )}
+            })}
           </div>
         </section>
+        )}
 
         {/* Case Studies Carousel */}
         <div 
           ref={caseStudiesSectionRef}
           className="w-full max-w-[1400px] mx-auto mb-16 mt-16 md:mt-[116px] relative z-10 md:text-center">
-          {showHomeContentSkeleton ? (
-            <HomeCaseStudiesHeaderSkeleton />
-          ) : (
+          {!showHomeContentSkeleton && (
             <>
           <motion.h2
             initial={{ opacity: 0, x: -20 }}
