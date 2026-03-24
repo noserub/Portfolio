@@ -1,11 +1,10 @@
-import React, { useState, useRef, useEffect, useMemo, useCallback, memo, Suspense } from "react";
+import React, { useState, useRef, useEffect, useMemo, useCallback, memo, Suspense, lazy } from "react";
 import { flushSync } from "react-dom";
 import { motion } from "motion/react";
 import { useDrag, useDrop } from "react-dnd";
 import { ProjectImage, ProjectData } from "../components/ProjectImage";
 import MemoizedProjectImage from "../components/ProjectImage";
 import { ProjectCardSkeleton } from "../components/ProjectCardSkeleton";
-import { Lightbox } from "../components/Lightbox";
 // Removed performance optimizations that were causing slowdown
 import { useSEO } from "../hooks/useSEO";
 import { useHomePageContent } from "../hooks/useHomePageContent";
@@ -19,8 +18,6 @@ import { Plus, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Edit2, Save, G
 import { toast } from "sonner";
 import { Tooltip, TooltipTrigger, TooltipContent } from "../components/ui/tooltip";
 // import { createCaseStudyFromTemplate } from "../utils/caseStudyTemplate"; // REMOVED - using unified project creator
-import { loadMigratedProjects } from "../utils/migrateVideoFields";
-import { UnifiedProjectCreator } from "../components/UnifiedProjectCreator";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -42,7 +39,19 @@ import {
   mergeHeroGreetingsFromDraftLines,
 } from "../lib/homePageContent";
 import { getPortfolioOwnerUserId } from "../lib/portfolioOwner";
-import { BioDocumentRenderer, HomeBioDocumentEditor } from "../components/HomeBioDocument";
+import { BioDocumentRenderer } from "../components/HomeBioDocument";
+
+const UnifiedProjectCreator = lazy(() =>
+  import("../components/UnifiedProjectCreator").then((m) => ({
+    default: m.UnifiedProjectCreator,
+  })),
+);
+const HomeBioDocumentEditor = lazy(() =>
+  import("../components/HomeBioDocumentEditor").then((m) => ({
+    default: m.HomeBioDocumentEditor,
+  })),
+);
+const Lightbox = lazy(() => import("../components/Lightbox").then((m) => ({ default: m.default })));
 
 interface HomeProps {
   onStartClick: () => void;
@@ -202,6 +211,7 @@ function DraggableProjectItem({
         onReplace={onReplace}
         onNavigate={onNavigate}
         onDelete={onDelete}
+        priority={index === 0}
       />
     </motion.div>
   );
@@ -854,7 +864,8 @@ export function Home({ onStartClick, isEditMode, onProjectClick, currentPage }: 
   
   // State for unified project creator
   const [showUnifiedProjectCreator, setShowUnifiedProjectCreator] = useState(false);
-  
+  const closeUnifiedProjectCreator = useCallback(() => setShowUnifiedProjectCreator(false), []);
+
   // Function to clean up blank/invalid case studies
   const cleanupBlankCaseStudies = () => {
     const caseStudiesStorage = localStorage.getItem('caseStudies');
@@ -2284,23 +2295,6 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
       }));
   }, [deduplicatedProjects]);
 
-  // Preload images for better perceived performance
-  React.useEffect(() => {
-    const preloadImages = () => {
-      const allProjects = [...caseStudies, ...designProjects];
-      allProjects.forEach(project => {
-        if (project.url && !project.url.startsWith('blob:')) {
-          const img = new Image();
-          img.src = project.url;
-        }
-      });
-    };
-    
-    if (caseStudies.length > 0 || designProjects.length > 0) {
-      preloadImages();
-    }
-  }, [caseStudies, designProjects]);
-  
   const [isEditingHero, setIsEditingHero] = useState(false);
   const isEditingHeroRef = useRef(isEditingHero);
   isEditingHeroRef.current = isEditingHero;
@@ -3301,9 +3295,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
       <section className="min-h-screen flex flex-col items-center justify-center px-6 pt-20 md:pt-32 pb-28 md:pb-36">
         
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
+          initial={false}
           className="text-center space-y-6 mb-16 relative z-10 mt-10 md:mt-20"
         >
           <motion.h1
@@ -3388,13 +3380,8 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
           </div>
         </motion.div>
 
-        {/* Bio Container */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2, duration: 0.5 }}
-          className="relative p-8 bg-gradient-to-br from-slate-50/80 via-blue-50/60 to-purple-50/40 dark:from-slate-900/20 dark:via-blue-900/10 dark:to-purple-900/10 backdrop-blur-sm rounded-3xl border border-border shadow-2xl overflow-hidden transition-all duration-500 max-w-4xl mx-auto mb-2 md:mb-3"
-        >
+        {/* Bio Container — static wrapper: hero <p> is often LCP; motion fade-in hid text and inflated element render delay */}
+        <div className="relative p-8 bg-gradient-to-br from-slate-50/80 via-blue-50/60 to-purple-50/40 dark:from-slate-900/20 dark:via-blue-900/10 dark:to-purple-900/10 backdrop-blur-sm rounded-3xl border border-border shadow-2xl overflow-hidden transition-all duration-500 max-w-4xl mx-auto mb-2 md:mb-3">
           {/* Decorative Curved Brushstrokes - Far right near dots, bleeding off edges */}
           <svg
             className="absolute right-0 top-0 h-full w-[25%] pointer-events-none"
@@ -3669,19 +3656,28 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                   </Button>
                 </div>
 
-                <HomeBioDocumentEditor
-                  document={bioDocumentForUi}
-                  contentRevision={bioEditorRevision}
-                  onChange={(doc) => patchHero({ bioDocument: doc })}
-                  paragraphGapRem={heroText.bioParagraphGapRem ?? 1}
-                  lineHeight={heroText.bioLineHeight ?? 1.625}
-                  onParagraphGapRem={(v) => patchHero({ bioParagraphGapRem: v })}
-                  onLineHeight={(v) => patchHero({ bioLineHeight: v })}
-                  onReplaceFromTemplate={() => {
-                    patchHero({ bioDocument: classicBioDocumentFromHero(heroText) });
-                    setBioEditorRevision((n) => n + 1);
-                  }}
-                />
+                <Suspense
+                  fallback={
+                    <div className="min-h-[14rem] flex flex-col gap-3 border-b border-border pb-4">
+                      <div className="h-4 w-24 rounded bg-muted/50 animate-pulse" />
+                      <div className="h-32 rounded-lg bg-muted/30 animate-pulse" />
+                    </div>
+                  }
+                >
+                  <HomeBioDocumentEditor
+                    document={bioDocumentForUi}
+                    contentRevision={bioEditorRevision}
+                    onChange={(doc) => patchHero({ bioDocument: doc })}
+                    paragraphGapRem={heroText.bioParagraphGapRem ?? 1}
+                    lineHeight={heroText.bioLineHeight ?? 1.625}
+                    onParagraphGapRem={(v) => patchHero({ bioParagraphGapRem: v })}
+                    onLineHeight={(v) => patchHero({ bioLineHeight: v })}
+                    onReplaceFromTemplate={() => {
+                      patchHero({ bioDocument: classicBioDocumentFromHero(heroText) });
+                      setBioEditorRevision((n) => n + 1);
+                    }}
+                  />
+                </Suspense>
 
                 <div className="space-y-3 border-b border-border pb-4">
                   <h4 className="text-sm font-semibold">Classic template fields</h4>
@@ -4039,7 +4035,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
               </div>
             </motion.div>
           </div>
-        </motion.div>
+        </div>
 
         {/* Scroll Indicator Arrow - Dynamic up/down chevron based on scroll position */}
         {!isEditMode && (
@@ -4310,12 +4306,14 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
 
       {/* Lightbox */}
       {lightboxProject && (
-        <Lightbox
-          isOpen={true}
-          onClose={() => setLightboxProject(null)}
-          imageUrl={lightboxProject.url}
-          imageAlt={lightboxProject.title}
-        />
+        <Suspense fallback={null}>
+          <Lightbox
+            isOpen={true}
+            onClose={() => setLightboxProject(null)}
+            imageUrl={lightboxProject.url}
+            imageAlt={lightboxProject.title}
+          />
+        </Suspense>
       )}
 
       <style>{`
@@ -4360,13 +4358,22 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Unified Project Creator */}
-      <UnifiedProjectCreator
-        isOpen={showUnifiedProjectCreator}
-        onClose={useCallback(() => setShowUnifiedProjectCreator(false), [])}
-        onCreateProject={handleCreateUnifiedProject}
-        isEditMode={isEditMode}
-      />
+      {showUnifiedProjectCreator && (
+        <Suspense
+          fallback={
+            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/60" aria-busy="true">
+              <div className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            </div>
+          }
+        >
+          <UnifiedProjectCreator
+            isOpen={showUnifiedProjectCreator}
+            onClose={closeUnifiedProjectCreator}
+            onCreateProject={handleCreateUnifiedProject}
+            isEditMode={isEditMode}
+          />
+        </Suspense>
+      )}
 
     </div>
   );

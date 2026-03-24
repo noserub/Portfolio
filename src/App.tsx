@@ -301,9 +301,9 @@ export default function App() {
           updateFavicon(updatedSitewide);
           console.log('✅ Favicon applied successfully');
         } else {
-          console.log('❌ No favicon found in Supabase, keeping static favicon');
-          // Don't override the static favicon if no custom one is found
-          // The static favicon in index.html will be used
+          console.log('❌ No favicon in Supabase; applying sitewide from localStorage (text or image)');
+          const seoData = getSEOData();
+          updateFavicon(seoData.sitewide);
         }
       } catch (error) {
         console.error('❌ Error loading global favicon:', error);

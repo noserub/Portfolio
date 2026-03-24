@@ -332,8 +332,8 @@ export function applyPageSEO(pageSEO: SEOData, sitewide: SitewideSEO): void {
     }
   }
 
-  // Update favicon
-  updateFavicon(sitewide);
+  // Favicon is applied once in App.tsx (Supabase + localStorage fallback), not here — applying it
+  // from page SEO would overwrite the server-resolved favicon on every route.
 }
 
 // Function to update favicon dynamically
@@ -435,6 +435,13 @@ export async function uploadFaviconToSupabase(file: File): Promise<string | null
 // Get favicon from Supabase Storage
 export async function getFaviconFromSupabase(): Promise<string | null> {
   try {
+    // Optional: set in Vercel (Preview/Production) to the same public Storage URL as in app_settings
+    // if you need the icon before DB migrations run, or as a fixed override.
+    const fromEnv = import.meta.env.VITE_PUBLIC_FAVICON_URL;
+    if (typeof fromEnv === 'string' && fromEnv.trim().length > 0) {
+      return fromEnv.trim();
+    }
+
     const { data: { user } } = await supabase.auth.getUser();
     const ownerId = getPortfolioOwnerUserId(user?.id);
     const { data: ownerSettings, error: ownerErr } = await supabase

@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { getSEOData, getCaseStudySEO, updateFavicon, applyPageSEO } from '../utils/seoManager';
+import { getSEOData, getCaseStudySEO, applyPageSEO } from '../utils/seoManager';
 import {
   generateWebSiteSchema,
   generateOrganizationSchema,
@@ -31,8 +31,6 @@ export function useSEO(pageKey: 'home' | 'about' | 'caseStudies' | 'contact') {
           } as typeof pageSEO;
           applyPageSEO(withFallbacks, seoData.sitewide);
         }
-        // Update favicon on every page
-        updateFavicon(seoData.sitewide);
 
         // Inject structured data
         const schemas: Array<object> = [];
@@ -100,7 +98,6 @@ export function useCaseStudySEO(caseStudyId: string, caseStudyTitle?: string) {
     const caseStudySEO = getCaseStudySEO(caseStudyId, caseStudyTitle);
     // Apply meta tags for case study page
     applyPageSEO(caseStudySEO, seoData.sitewide);
-    updateFavicon(seoData.sitewide);
 
     // Inject structured data for case study
     const schemas: Array<object> = [];

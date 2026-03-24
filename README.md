@@ -62,9 +62,11 @@ A modern, interactive portfolio application built with React, TypeScript, and Su
 This project uses Supabase for data persistence. You'll need to:
 
 1. Create a Supabase project
-2. Run the database migrations (see `supabase/migrations/`)
+2. Apply migrations (see `supabase/migrations/`)
 3. Set up the required tables: `projects`, `profiles`, `app_settings`
 4. Configure Row Level Security (RLS) policies
+
+**Hosted project (production / preview):** Do **not** paste `0001_init.sql` or the full migration history into the SQL Editor if tables already exist — you will get errors like `relation "profiles" already exists`. For a **new** migration, run **only that migration file** in the SQL Editor, or use `supabase db push` with a linked project. See **`docs/SUPABASE_HOSTED_MIGRATIONS.md`** (includes the favicon RLS patch steps).
 
 ## 📁 Project Structure
 
