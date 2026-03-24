@@ -2432,6 +2432,10 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
          * updates (preview/production looked "reverted" after saving to cloud).
          */
         if (row == null) {
+          console.warn(
+            "[home] No profiles row for this id — visitors see defaults. Create a profile for this UUID or fix VITE_PUBLIC_PORTFOLIO_OWNER_ID.",
+            { portfolioOwnerId },
+          );
           const { content, localDraftSupersededByCloud, draftAheadOfPublished } =
             resolveHomeContentAfterLoad(undefined, authed, {
               remoteProfileUpdatedAtMs,

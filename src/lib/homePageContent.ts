@@ -342,6 +342,39 @@ function coerceHomeContentJsonToObject(raw: unknown): Record<string, unknown> | 
   return raw as Record<string, unknown>;
 }
 
+/**
+ * v2 payloads store fields under `hero`. That value may be a plain object **or** a JSON string
+ * (double-encoded JSONB / dashboard paste). Arrays are invalid hero payloads.
+ */
+function normalizeNestedHeroField(raw: unknown): Record<string, unknown> | null {
+  if (raw == null) return null;
+  if (typeof raw === "string") {
+    return coerceHomeContentJsonToObject(raw);
+  }
+  if (typeof raw !== "object" || Array.isArray(raw)) return null;
+  return raw as Record<string, unknown>;
+}
+
+/**
+ * Legacy flat shape may still carry `hero` as a string; spreading that into mergeHero drops real
+ * greeting/subtitle into a useless `hero` property and shows defaults.
+ */
+function mergeHeroFromLegacyFlat(heroFlat: Record<string, unknown>): HeroTextState {
+  const hf: Record<string, unknown> = { ...heroFlat };
+  const hHero = hf.hero;
+  if (typeof hHero === "string") {
+    const parsed = coerceHomeContentJsonToObject(hHero);
+    delete hf.hero;
+    if (parsed) {
+      return mergeHero({ ...hf, ...parsed });
+    }
+  }
+  if (hHero !== undefined && (typeof hHero !== "object" || Array.isArray(hHero))) {
+    delete hf.hero;
+  }
+  return mergeHero(hf);
+}
+
 /** Normalize Supabase / localStorage JSON into v2 content. */
 export function parseStoredHomeContent(raw: unknown): HomePageContentV2 {
   const obj = coerceHomeContentJsonToObject(raw);
@@ -353,10 +386,10 @@ export function parseStoredHomeContent(raw: unknown): HomePageContentV2 {
   const tsOpt =
     typeof ts === "number" && !Number.isNaN(ts) ? { _clientSavedAt: ts } : {};
 
-  // Nested hero (v2) — include when _version was omitted by older saves
-  if (obj.hero && typeof obj.hero === "object") {
-    const heroRaw = obj.hero as Record<string, unknown>;
-    const { stats: _statsInsideHero, ...heroWithoutStats } = heroRaw;
+  // Nested hero (v2) — include when _version was omitted by older saves; `hero` may be a JSON string
+  const nestedHero = normalizeNestedHeroField(obj.hero);
+  if (nestedHero) {
+    const { stats: _statsInsideHero, ...heroWithoutStats } = nestedHero;
     return {
       _version: HOME_PAGE_CONTENT_VERSION,
       hero: mergeHero(heroWithoutStats),
@@ -377,7 +410,7 @@ export function parseStoredHomeContent(raw: unknown): HomePageContentV2 {
 
   return {
     _version: HOME_PAGE_CONTENT_VERSION,
-    hero: mergeHero(heroFlat as Record<string, unknown>),
+    hero: mergeHeroFromLegacyFlat(heroFlat as Record<string, unknown>),
     stats: mergeStats(
       rawStats !== undefined && rawStats !== null
         ? rawStats
