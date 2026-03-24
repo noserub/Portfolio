@@ -5540,8 +5540,11 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
 
         {/* Desktop Sidebar - Show when content exists, hidden on mobile */}
         {(atGlanceContent || impactContent) && (
-          <div className="hidden lg:block lg:col-start-2 lg:col-end-2">
-            <div className="lg:sticky lg:top-24 space-y-12" style={{ marginTop: '60px' }}>
+          <div className="hidden min-h-0 lg:block lg:col-start-2 lg:col-end-2">
+            <div
+              className="space-y-12 lg:sticky lg:top-24 lg:max-h-[calc(100dvh-6rem-1.5rem)] lg:overflow-y-auto lg:overscroll-contain lg:pb-2 [scrollbar-gutter:stable]"
+              style={{ marginTop: '60px' }}
+            >
               {atGlanceContent && (
                 <AtAGlanceSidebar 
                   content={atGlanceContent.content}
