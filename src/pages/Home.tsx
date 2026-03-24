@@ -36,6 +36,7 @@ import {
   type HomePageContentV2,
   type HomePageStat,
   createDefaultHomePageContent,
+  migrateLegacyWelcomeGreeting,
   resolveHomeContentAfterLoad,
   toPersistedPayload,
   shouldPersistHomePageContent,
@@ -2422,45 +2423,27 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
           }
         }
 
-        const hasOldWelcome =
-          content.hero.greeting === "Welcome," ||
-          content.hero.greetings?.[0] === "Welcome,";
-
-        if (hasOldWelcome) {
-          console.log('⚠️ Detected legacy Welcome greeting; resetting to defaults');
-          setShowHeroCloudNotice(false);
-          const fresh = createDefaultHomePageContent();
-          homeContentHydratedRef.current = true;
-          setHomePageContent(fresh);
-          setBioEditorRevision((n) => n + 1);
-          localStorage.setItem('heroText', JSON.stringify(toPersistedPayload({ ...fresh, _clientSavedAt: Date.now() })));
-          return;
+        const migratedContent = migrateLegacyWelcomeGreeting(content);
+        if (migratedContent !== content) {
+          console.log(
+            '🔄 Migrated legacy "Welcome," greeting in place (stats, bio, and UI labels unchanged)',
+          );
         }
 
         homeContentHydratedRef.current = true;
-        setHomePageContent(content);
+        setHomePageContent(migratedContent);
         setBioEditorRevision((n) => n + 1);
-        localStorage.setItem('heroText', JSON.stringify(toPersistedPayload(content)));
+        localStorage.setItem('heroText', JSON.stringify(toPersistedPayload(migratedContent)));
         console.log('✅ Home page content synced to localStorage');
       } catch (error) {
         console.error('❌ Error loading home page content from Supabase:', error);
         const { content } = resolveHomeContentAfterLoad(undefined, authed);
-        const hasOldWelcome =
-          content.hero.greeting === "Welcome," ||
-          content.hero.greetings?.[0] === "Welcome,";
-
-        if (hasOldWelcome) {
-          localStorage.removeItem('heroText');
-          homeContentHydratedRef.current = true;
-          setHomePageContent(createDefaultHomePageContent());
-          setBioEditorRevision((n) => n + 1);
-          return;
-        }
+        const migratedContent = migrateLegacyWelcomeGreeting(content);
 
         homeContentHydratedRef.current = true;
-        setHomePageContent(content);
+        setHomePageContent(migratedContent);
         setBioEditorRevision((n) => n + 1);
-        localStorage.setItem('heroText', JSON.stringify(toPersistedPayload(content)));
+        localStorage.setItem('heroText', JSON.stringify(toPersistedPayload(migratedContent)));
         console.log('✅ Loaded home page content from offline / local merge');
       }
     };

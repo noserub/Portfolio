@@ -184,6 +184,40 @@ export function createDefaultHomePageContent(): HomePageContentV2 {
   };
 }
 
+const LEGACY_WELCOME_GREETING = "Welcome,";
+const LEGACY_WELCOME_REPLACEMENT = "I build things.";
+
+/**
+ * Old templates stored greeting "Welcome," — do NOT reset the whole home CMS to defaults.
+ * Only swap the legacy string so stats, bio, and filter labels stay intact.
+ */
+export function migrateLegacyWelcomeGreeting(c: HomePageContentV2): HomePageContentV2 {
+  const h = c.hero;
+  const hasLegacy =
+    h.greeting === LEGACY_WELCOME_GREETING ||
+    (h.greetings ?? []).some((x) => x === LEGACY_WELCOME_GREETING);
+
+  if (!hasLegacy) {
+    return c;
+  }
+
+  const sourceLines = h.greetings?.length ? [...h.greetings] : [h.greeting];
+  const nextGreetings = sourceLines.map((s) =>
+    s === LEGACY_WELCOME_GREETING ? LEGACY_WELCOME_REPLACEMENT : s,
+  );
+  const nextGreeting =
+    h.greeting === LEGACY_WELCOME_GREETING ? LEGACY_WELCOME_REPLACEMENT : h.greeting;
+
+  return {
+    ...c,
+    hero: {
+      ...h,
+      greeting: nextGreeting,
+      greetings: nextGreetings.length ? nextGreetings : defaultHeroTextState().greetings,
+    },
+  };
+}
+
 function mergeHero(partial: Partial<HeroTextState> | Record<string, unknown>): HeroTextState {
   const base = defaultHeroTextState();
   const h = partial as HeroTextState;
