@@ -3291,9 +3291,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
       <section className="min-h-screen flex flex-col items-center justify-center px-6 pt-20 md:pt-32 pb-28 md:pb-36">
         
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
+          initial={false}
           className="text-center space-y-6 mb-16 relative z-10 mt-10 md:mt-20"
         >
           <motion.h1
@@ -3378,13 +3376,8 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
           </div>
         </motion.div>
 
-        {/* Bio Container */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2, duration: 0.5 }}
-          className="relative p-8 bg-gradient-to-br from-slate-50/80 via-blue-50/60 to-purple-50/40 dark:from-slate-900/20 dark:via-blue-900/10 dark:to-purple-900/10 backdrop-blur-sm rounded-3xl border border-border shadow-2xl overflow-hidden transition-all duration-500 max-w-4xl mx-auto mb-2 md:mb-3"
-        >
+        {/* Bio Container — static wrapper: hero <p> is often LCP; motion fade-in hid text and inflated element render delay */}
+        <div className="relative p-8 bg-gradient-to-br from-slate-50/80 via-blue-50/60 to-purple-50/40 dark:from-slate-900/20 dark:via-blue-900/10 dark:to-purple-900/10 backdrop-blur-sm rounded-3xl border border-border shadow-2xl overflow-hidden transition-all duration-500 max-w-4xl mx-auto mb-2 md:mb-3">
           {/* Decorative Curved Brushstrokes - Far right near dots, bleeding off edges */}
           <svg
             className="absolute right-0 top-0 h-full w-[25%] pointer-events-none"
@@ -4029,7 +4022,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
               </div>
             </motion.div>
           </div>
-        </motion.div>
+        </div>
 
         {/* Scroll Indicator Arrow - Dynamic up/down chevron based on scroll position */}
         {!isEditMode && (
