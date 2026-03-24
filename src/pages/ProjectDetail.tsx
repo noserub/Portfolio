@@ -4558,7 +4558,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
         className={(atGlanceContent || impactContent) ? "space-y-16 lg:grid lg:grid-cols-[1fr_320px] lg:gap-16 lg:space-y-0" : "space-y-16"}
         style={{
           ...((atGlanceContent || impactContent) && {
-            display: 'block',
+            // Do not set display here — it overrides Tailwind `lg:grid` and breaks the desktop two-column layout.
             maxWidth: '100%',
             margin: '0 auto',
             paddingLeft: '24px',
