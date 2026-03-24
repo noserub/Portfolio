@@ -2413,13 +2413,8 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         setHeroDraftAheadOfCloud(draftAheadOfPublished);
 
         if (localDraftSupersededByCloud) {
+          // Banner only in edit mode (see below) — no toast on refresh for visitors/preview.
           setShowHeroCloudNotice(true);
-          if (!isEditModeRef.current) {
-            toast.info('Showing your live site — replaced an older draft stored on this device.', {
-              id: 'home-hero-live-sync',
-              duration: 4500,
-            });
-          }
         }
 
         const migratedContent = migrateLegacyWelcomeGreeting(content);

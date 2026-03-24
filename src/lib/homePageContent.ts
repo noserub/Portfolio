@@ -276,6 +276,18 @@ function mergeStats(raw: unknown): HomePageStat[] {
   });
 }
 
+/** Stats may live at root or (legacy / bad exports) under `hero.stats` — never drop them when `stats` is missing at root. */
+function pickStatsArrayFromStored(obj: Record<string, unknown>): unknown {
+  if (Array.isArray(obj.stats) && obj.stats.length > 0) {
+    return obj.stats;
+  }
+  const hero = obj.hero;
+  if (hero && typeof hero === "object" && Array.isArray((hero as Record<string, unknown>).stats)) {
+    return (hero as Record<string, unknown>).stats;
+  }
+  return obj.stats;
+}
+
 function mergeUI(raw: unknown): HomePageUI {
   const o = (raw && typeof raw === "object" ? raw : {}) as Partial<HomePageUI>;
   return {
@@ -319,7 +331,11 @@ export function parseStoredHomeContent(raw: unknown): HomePageContentV2 {
   return {
     _version: HOME_PAGE_CONTENT_VERSION,
     hero: mergeHero(heroFlat as Record<string, unknown>),
-    stats: mergeStats(rawStats),
+    stats: mergeStats(
+      rawStats !== undefined && rawStats !== null
+        ? rawStats
+        : pickStatsArrayFromStored(obj),
+    ),
     ui: mergeUI(rawUi),
     ...tsOpt,
   };
