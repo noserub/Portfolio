@@ -434,7 +434,7 @@ export default function App() {
       // Try to load from Supabase (prioritize public access for consistency)
       const { data: { user } } = await supabase.auth.getUser();
       const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
-      const fallbackUserId = getPortfolioOwnerUserId();
+      const fallbackUserId = getPortfolioOwnerUserId(user?.id);
 
       console.log('📄 Loading page visibility from Supabase (public access):', fallbackUserId);
       console.log('📄 User auth state:', { user: user?.id, isBypassAuth, fallbackUserId });
@@ -565,7 +565,7 @@ export default function App() {
         // Try to save to Supabase for shared access (always use fallback user ID for public access)
         const { data: { user } } = await supabase.auth.getUser();
         const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
-        const fallbackUserId = getPortfolioOwnerUserId();
+        const fallbackUserId = getPortfolioOwnerUserId(user?.id);
 
         console.log('💾 Saving page visibility to Supabase for shared access (public):', fallbackUserId);
         

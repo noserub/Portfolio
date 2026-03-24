@@ -2384,7 +2384,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         console.log('🔄 Loading home page content from Supabase...');
         const row = await (async () => {
           /** Same row for signed-in editor, incognito, and Vercel preview — must match VITE_PUBLIC_PORTFOLIO_OWNER_ID to your auth user id. */
-          const portfolioOwnerId = getPortfolioOwnerUserId();
+          const portfolioOwnerId = getPortfolioOwnerUserId(user?.id);
           if (user?.id && user.id !== portfolioOwnerId) {
             console.warn(
               '⚠️ Home hero: signed-in user id ≠ VITE_PUBLIC_PORTFOLIO_OWNER_ID — incognito shows the owner row, not your account row. Set the env to your Supabase user UUID.',
@@ -2524,7 +2524,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
       const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
 
       if (user || isBypassAuth) {
-        const ownerId = getPortfolioOwnerUserId();
+        const ownerId = getPortfolioOwnerUserId(user?.id);
         if (user?.id && user.id !== ownerId) {
           console.warn('⚠️ Home hero save skipped: auth user must match VITE_PUBLIC_PORTFOLIO_OWNER_ID to update the published row.', {
             authId: user.id,
@@ -3204,7 +3204,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
       // Get current user for the project (with bypass auth support)
       const { data: { user } } = await supabase.auth.getUser();
       const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
-      const fallbackUserId = getPortfolioOwnerUserId();
+      const fallbackUserId = getPortfolioOwnerUserId(user?.id);
 
       let userId = user?.id;
       if (!userId && isBypassAuth) {

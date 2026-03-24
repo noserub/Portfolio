@@ -435,7 +435,8 @@ export async function uploadFaviconToSupabase(file: File): Promise<string | null
 // Get favicon from Supabase Storage
 export async function getFaviconFromSupabase(): Promise<string | null> {
   try {
-    const ownerId = getPortfolioOwnerUserId();
+    const { data: { user } } = await supabase.auth.getUser();
+    const ownerId = getPortfolioOwnerUserId(user?.id);
     const { data: ownerSettings, error: ownerErr } = await supabase
       .from('app_settings')
       .select('favicon_url')
@@ -541,7 +542,7 @@ export async function saveFaviconToSupabase(faviconUrl: string): Promise<boolean
     }
 
     // Use user ID or fallback for bypass auth
-    const userId = user?.id || getPortfolioOwnerUserId();
+    const userId = getPortfolioOwnerUserId(user?.id);
     console.log('Saving favicon for user:', userId, 'Auth type:', user ? 'Supabase' : 'Bypass');
 
     // Update or create app settings with favicon URL for user and mark as public

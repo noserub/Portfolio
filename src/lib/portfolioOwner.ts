@@ -1,14 +1,22 @@
 /**
  * Single canonical auth user id for the published portfolio (profiles.id, app_settings.user_id, etc.).
- * Anonymous visitors load this row; set VITE_PUBLIC_PORTFOLIO_OWNER_ID in Vercel Preview/Production
- * to match your Supabase auth user id so edits and public reads use the same data.
+ *
+ * Resolution order:
+ * 1. `VITE_PUBLIC_PORTFOLIO_OWNER_ID` — required for anonymous visitors to see the published row
+ *    (set this in Vercel Production + Preview to your Supabase user UUID).
+ * 2. Signed-in user's id — when env is missing (local dev / misconfigured deploy), load and save
+ *    the same `profiles` row RLS allows, instead of a stale hardcoded default UUID.
+ * 3. Legacy default UUID — last resort for unauthenticated sessions when env is unset.
  */
 const DEFAULT_PORTFOLIO_OWNER_ID = "7cd2752f-93c5-46e6-8535-32769fb10055";
 
-export function getPortfolioOwnerUserId(): string {
+export function getPortfolioOwnerUserId(authenticatedUserId?: string | null): string {
   const fromEnv = import.meta.env.VITE_PUBLIC_PORTFOLIO_OWNER_ID;
   if (typeof fromEnv === "string" && fromEnv.trim().length > 0) {
     return fromEnv.trim();
+  }
+  if (typeof authenticatedUserId === "string" && authenticatedUserId.trim().length > 0) {
+    return authenticatedUserId.trim();
   }
   return DEFAULT_PORTFOLIO_OWNER_ID;
 }
