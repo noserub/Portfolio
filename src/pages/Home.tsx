@@ -47,6 +47,7 @@ import {
   classicBioDocumentFromHero,
   healDegenerateHeroBio,
   mergeHeroGreetingsFromDraftLines,
+  readHomePageContentFromLocalStorage,
 } from "../lib/homePageContent";
 import { getPortfolioOwnerUserId } from "../lib/portfolioOwner";
 import { BioDocumentRenderer, HomeBioDocumentEditor } from "../components/HomeBioDocument";
@@ -2411,29 +2412,69 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         const ts = row?.updated_at != null ? Date.parse(String(row.updated_at)) : NaN;
         const remoteProfileUpdatedAtMs = !Number.isNaN(ts) ? ts : null;
 
-        const { content, localDraftSupersededByCloud, draftAheadOfPublished } =
-          resolveHomeContentAfterLoad(raw, authed, {
-            remoteProfileUpdatedAtMs,
-          });
-        setHeroDraftAheadOfCloud(draftAheadOfPublished);
+        /**
+         * When Supabase returns a profile row, published content MUST come from `hero_text` —
+         * never prefer localStorage over the server row. The old `resolveHomeContentAfterLoad`
+         * path let signed-in users keep a "newer" local `_clientSavedAt` and **ignore** prod DB
+         * updates (preview/production looked "reverted" after saving to cloud).
+         */
+        if (row == null) {
+          const { content, localDraftSupersededByCloud, draftAheadOfPublished } =
+            resolveHomeContentAfterLoad(undefined, authed, {
+              remoteProfileUpdatedAtMs,
+            });
+          setHeroDraftAheadOfCloud(draftAheadOfPublished);
+          if (localDraftSupersededByCloud) setShowHeroCloudNotice(true);
 
-        if (localDraftSupersededByCloud) {
-          // Banner only in edit mode (see below) — no toast on refresh for visitors/preview.
-          setShowHeroCloudNotice(true);
+          const migratedContent = migrateLegacyWelcomeGreeting(content);
+          homeContentHydratedRef.current = true;
+          setHomePageContent(migratedContent);
+          setBioEditorRevision((n) => n + 1);
+          localStorage.setItem('heroText', JSON.stringify(toPersistedPayload(migratedContent)));
+          console.log('✅ Home page: no profile row — merged from local/offline defaults');
+          return;
         }
 
-        const migratedContent = migrateLegacyWelcomeGreeting(content);
-        if (migratedContent !== content) {
+        const parsedFromDb = parseStoredHomeContent(raw ?? {});
+        let migratedContent = migrateLegacyWelcomeGreeting(parsedFromDb);
+        if (JSON.stringify(parsedFromDb.hero) !== JSON.stringify(migratedContent.hero)) {
           console.log(
             '🔄 Migrated legacy "Welcome," greeting in place (stats, bio, and UI labels unchanged)',
           );
+        }
+
+        const serverClock = remoteProfileUpdatedAtMs ?? Date.now();
+        migratedContent = {
+          ...migratedContent,
+          _clientSavedAt: Math.max(
+            typeof migratedContent._clientSavedAt === 'number' && !Number.isNaN(migratedContent._clientSavedAt)
+              ? migratedContent._clientSavedAt
+              : 0,
+            serverClock,
+          ),
+        };
+
+        const previousLocal = readHomePageContentFromLocalStorage();
+        const fp = (c: HomePageContentV2) => {
+          const { _clientSavedAt: _t, ...rest } = c;
+          return JSON.stringify(rest);
+        };
+        const replacedLocalDraft =
+          authed &&
+          previousLocal &&
+          shouldPersistHomePageContent(previousLocal) &&
+          fp(previousLocal) !== fp(migratedContent);
+
+        setHeroDraftAheadOfCloud(false);
+        if (replacedLocalDraft) {
+          setShowHeroCloudNotice(true);
         }
 
         homeContentHydratedRef.current = true;
         setHomePageContent(migratedContent);
         setBioEditorRevision((n) => n + 1);
         localStorage.setItem('heroText', JSON.stringify(toPersistedPayload(migratedContent)));
-        console.log('✅ Home page content synced to localStorage');
+        console.log('✅ Home page content loaded from Supabase (published row is source of truth)');
       } catch (error) {
         console.error('❌ Error loading home page content from Supabase:', error);
         const { content, draftAheadOfPublished } = resolveHomeContentAfterLoad(undefined, authed);
