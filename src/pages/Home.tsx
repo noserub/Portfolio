@@ -37,6 +37,7 @@ import {
   type HomePageStat,
   createDefaultHomePageContent,
   migrateLegacyWelcomeGreeting,
+  parseStoredHomeContent,
   resolveHomeContentAfterLoad,
   toPersistedPayload,
   shouldPersistHomePageContent,
@@ -2459,10 +2460,10 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     localStorage.setItem('heroText', JSON.stringify(payload));
 
     const applyRowFromServer = (row: { hero_text: unknown; updated_at: string | null }) => {
-      const t = row.updated_at != null ? Date.parse(String(row.updated_at)) : NaN;
-      const { content: next } = resolveHomeContentAfterLoad(row.hero_text, true, {
-        remoteProfileUpdatedAtMs: !Number.isNaN(t) ? t : null,
-      });
+      // Trust Supabase response — do not merge with localStorage (merge can prefer stale local and drop stats).
+      const next = migrateLegacyWelcomeGreeting(
+        parseStoredHomeContent(row.hero_text ?? {}),
+      );
       localStorage.setItem('heroText', JSON.stringify(toPersistedPayload(next)));
       setShowHeroCloudNotice(false);
       setHeroDraftAheadOfCloud(false);

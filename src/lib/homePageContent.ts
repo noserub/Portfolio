@@ -310,10 +310,12 @@ export function parseStoredHomeContent(raw: unknown): HomePageContentV2 {
 
   // Nested hero (v2) — include when _version was omitted by older saves
   if (obj.hero && typeof obj.hero === "object") {
+    const heroRaw = obj.hero as Record<string, unknown>;
+    const { stats: _statsInsideHero, ...heroWithoutStats } = heroRaw;
     return {
       _version: HOME_PAGE_CONTENT_VERSION,
-      hero: mergeHero(obj.hero as Record<string, unknown>),
-      stats: mergeStats(obj.stats),
+      hero: mergeHero(heroWithoutStats),
+      stats: mergeStats(pickStatsArrayFromStored(obj)),
       ui: mergeUI(obj.ui),
       ...tsOpt,
     };
