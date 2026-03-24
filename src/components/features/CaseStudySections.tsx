@@ -188,6 +188,98 @@ const getSectionConfig = (title: string) => {
   };
 };
 
+const SIDEBAR_SECTION_TITLES = new Set([
+  "Impact",
+  "Tools",
+  "At a glance",
+  "Tech stack",
+  "Sidebar 1",
+  "Sidebar 2",
+]);
+
+type GalleryMergeKey =
+  | "__PROJECT_IMAGES__"
+  | "__VIDEOS__"
+  | "__FLOW_DIAGRAMS__"
+  | "__SOLUTION_CARDS__";
+
+type MergedLayoutItem =
+  | { kind: "section"; title: string }
+  | { kind: "gallery"; key: GalleryMergeKey };
+
+/**
+ * ProjectDetail stores gallery positions as indices into the merged list of ALL
+ * markdown sections + gallery slots. This component splices galleries into the
+ * smaller `beforeSolution` list only — without mapping, saved indices point at
+ * the wrong slot (e.g. images jump to the top when Key features + Overview exist).
+ */
+function mapGalleryPositionToBeforeSolutionInsertIndex(
+  regularSections: Array<{ title: string }>,
+  beforeSolution: Array<{ title: string }>,
+  galleryKey: GalleryMergeKey,
+  opts: {
+    projectImagesPosition?: number;
+    videosPosition?: number;
+    flowDiagramsPosition?: number;
+    solutionCardsPosition?: number | null;
+    hasImageSlot: boolean;
+    hasVideoSlot: boolean;
+    hasFlowSlot: boolean;
+    hasSolutionCardsSlot: boolean;
+  },
+): number {
+  const sectionTitles = regularSections
+    .filter((s) => !SIDEBAR_SECTION_TITLES.has(s.title))
+    .map((s) => s.title);
+
+  const insertions: Array<{ pos: number; key: GalleryMergeKey }> = [];
+  if (opts.hasImageSlot && opts.projectImagesPosition != null && opts.projectImagesPosition >= 0) {
+    insertions.push({ pos: opts.projectImagesPosition, key: "__PROJECT_IMAGES__" });
+  }
+  if (opts.hasVideoSlot && opts.videosPosition != null && opts.videosPosition >= 0) {
+    insertions.push({ pos: opts.videosPosition, key: "__VIDEOS__" });
+  }
+  if (opts.hasFlowSlot && opts.flowDiagramsPosition != null && opts.flowDiagramsPosition >= 0) {
+    insertions.push({ pos: opts.flowDiagramsPosition, key: "__FLOW_DIAGRAMS__" });
+  }
+  if (
+    opts.hasSolutionCardsSlot &&
+    opts.solutionCardsPosition != null &&
+    opts.solutionCardsPosition >= 0
+  ) {
+    insertions.push({ pos: opts.solutionCardsPosition, key: "__SOLUTION_CARDS__" });
+  }
+
+  let items: MergedLayoutItem[] = sectionTitles.map((t) => ({ kind: "section", title: t }));
+  insertions.sort((a, b) => b.pos - a.pos);
+  for (const ins of insertions) {
+    items.splice(Math.min(ins.pos, items.length), 0, { kind: "gallery", key: ins.key });
+  }
+
+  const gIdx = items.findIndex((i) => i.kind === "gallery" && i.key === galleryKey);
+  if (gIdx === -1) {
+    const fallback =
+      galleryKey === "__PROJECT_IMAGES__"
+        ? opts.projectImagesPosition ?? 2
+        : galleryKey === "__VIDEOS__"
+          ? opts.videosPosition ?? 0
+          : galleryKey === "__FLOW_DIAGRAMS__"
+            ? opts.flowDiagramsPosition ?? 0
+            : opts.solutionCardsPosition ?? 0;
+    return Math.min(Math.max(0, fallback), beforeSolution.length);
+  }
+
+  const beforeSolTitles = new Set(beforeSolution.map((s) => s.title));
+  let count = 0;
+  for (let i = 0; i < gIdx; i++) {
+    const it = items[i];
+    if (it.kind === "section" && beforeSolTitles.has(it.title)) {
+      count++;
+    }
+  }
+  return Math.min(count, beforeSolution.length);
+}
+
 export function CaseStudySections({ 
   content, 
   latestProjectContent,
@@ -1568,72 +1660,142 @@ export function CaseStudySections({
   // Build sections array with insertable items using configurable positions
   let sectionsWithInserts: Array<{ title: string; content: string; type?: 'section' | 'gallery' | 'sidebar' }> = [];
   
-  // Create a list of all items with their positions
-  const items = [
-    ...beforeSolution.map((s, idx) => ({ ...s, type: 'section' as const, position: idx })),
+  type SectionRow = {
+    title: string;
+    content: string;
+    type: "section" | "gallery" | "sidebar";
+    position: number;
+  };
+
+  // Create a list of all items with their positions (beforeSolution only — galleries spliced next)
+  const items: SectionRow[] = [
+    ...beforeSolution.map((s, idx) => ({ ...s, type: "section" as const, position: idx })),
   ];
   
-  // CRITICAL: Collect all insertions and insert in DESCENDING order
-  // This prevents index shifting issues when multiple sections are inserted
-  const insertions: Array<{ 
-    pos: number; 
-    item: { title: string; content: string; type: 'section' | 'gallery' | 'sidebar'; position: number }
+  // Gallery positions from ProjectDetail index the FULL section list + galleries.
+  // `items` here is only `beforeSolution` — map each gallery to the correct splice index.
+  const hasSolutionCardsSlot =
+    (afterSolution.length > 0 || isEditMode) && solutionCardsPosition != null;
+
+  const sectionTitlesFlat = regularSections
+    .filter((s) => !SIDEBAR_SECTION_TITLES.has(s.title))
+    .map((s) => s.title);
+
+  let solutionCardsPositionForMerge: number | null = solutionCardsPosition ?? null;
+  if (hasSolutionCardsSlot && solutionCardsPositionForMerge != null) {
+    const solutionSectionIndex = sectionTitlesFlat.findIndex((title) => {
+      const t = title.toLowerCase();
+      return (
+        t.includes("the solution") &&
+        (t.includes("new direction") || t === "the solution")
+      );
+    });
+    if (solutionSectionIndex >= 0) {
+      solutionCardsPositionForMerge = solutionSectionIndex + 1;
+    }
+  }
+
+  const galleryPositionOpts = {
+    projectImagesPosition: projectImagesPosition ?? 2,
+    videosPosition: videosPosition ?? 998,
+    flowDiagramsPosition: flowDiagramsPosition ?? 1000,
+    solutionCardsPosition: solutionCardsPositionForMerge,
+    hasImageSlot: Boolean(imageGallerySlot),
+    hasVideoSlot: Boolean(videoSlot),
+    hasFlowSlot: Boolean(flowDiagramSlot),
+    hasSolutionCardsSlot: Boolean(hasSolutionCardsSlot),
+  };
+
+  const effectiveImagePos = imageGallerySlot
+    ? mapGalleryPositionToBeforeSolutionInsertIndex(
+        regularSections,
+        beforeSolution,
+        "__PROJECT_IMAGES__",
+        galleryPositionOpts,
+      )
+    : 0;
+  const effectiveVideosPos = videoSlot
+    ? mapGalleryPositionToBeforeSolutionInsertIndex(
+        regularSections,
+        beforeSolution,
+        "__VIDEOS__",
+        galleryPositionOpts,
+      )
+    : 0;
+  const effectiveFlowPos = flowDiagramSlot
+    ? mapGalleryPositionToBeforeSolutionInsertIndex(
+        regularSections,
+        beforeSolution,
+        "__FLOW_DIAGRAMS__",
+        galleryPositionOpts,
+      )
+    : 0;
+  const effectiveSolutionCardsPos =
+    hasSolutionCardsSlot
+      ? mapGalleryPositionToBeforeSolutionInsertIndex(
+          regularSections,
+          beforeSolution,
+          "__SOLUTION_CARDS__",
+          galleryPositionOpts,
+        )
+      : 0;
+
+  // Collect insertions and apply in DESCENDING position order (matches ProjectDetail)
+  const insertions: Array<{
+    pos: number;
+    item: { title: string; content: string; type: "section" | "gallery" | "sidebar"; position: number };
   }> = [];
-  
+
   if (imageGallerySlot) {
     insertions.push({
-      pos: projectImagesPosition,
-      item: { 
-        title: '__PROJECT_IMAGES__', 
-        content: '', 
-        type: 'gallery' as const,
-        position: projectImagesPosition
-      }
+      pos: effectiveImagePos,
+      item: {
+        title: "__PROJECT_IMAGES__",
+        content: "",
+        type: "gallery" as const,
+        position: effectiveImagePos,
+      },
     });
   }
-  
+
   if (videoSlot) {
     insertions.push({
-      pos: videosPosition,
-      item: { 
-        title: '__VIDEOS__', 
-        content: '', 
-        type: 'gallery' as const,
-        position: videosPosition
-      }
+      pos: effectiveVideosPos,
+      item: {
+        title: "__VIDEOS__",
+        content: "",
+        type: "gallery" as const,
+        position: effectiveVideosPos,
+      },
     });
   }
-  
+
   if (flowDiagramSlot) {
     insertions.push({
-      pos: flowDiagramsPosition,
-      item: { 
-        title: '__FLOW_DIAGRAMS__', 
-        content: '', 
-        type: 'gallery' as const,
-        position: flowDiagramsPosition
-      }
+      pos: effectiveFlowPos,
+      item: {
+        title: "__FLOW_DIAGRAMS__",
+        content: "",
+        type: "gallery" as const,
+        position: effectiveFlowPos,
+      },
     });
   }
-  
-  // Only insert Solution Cards when an explicit position is provided
-  if ((afterSolution.length > 0 || isEditMode) && solutionCardsPosition != null) {
+
+  if (hasSolutionCardsSlot) {
     insertions.push({
-      pos: solutionCardsPosition,
-      item: { 
-        title: '__SOLUTION_CARDS__', 
-        content: '', 
-        type: 'gallery' as const,
-        position: solutionCardsPosition
-      }
+      pos: effectiveSolutionCardsPos,
+      item: {
+        title: "__SOLUTION_CARDS__",
+        content: "",
+        type: "gallery" as const,
+        position: effectiveSolutionCardsPos,
+      },
     });
   }
-  
-  // Sort by position ASCENDING (lowest position first)
-  // This ensures sections appear in the correct order when using Math.min
-  insertions.sort((a, b) => a.pos - b.pos);
-  
-  // Insert in order - each insertion pushes subsequent ones further down
+
+  insertions.sort((a, b) => b.pos - a.pos);
+
   for (const insertion of insertions) {
     items.splice(Math.min(insertion.pos, items.length), 0, insertion.item);
   }
