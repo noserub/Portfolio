@@ -239,24 +239,10 @@ export function useProjects() {
           console.log('🔄 Bypass auth detected, proceeding with Supabase save...');
           // Continue with Supabase save using fallback user ID
         } else {
-          console.log('❌ useProjects: No authentication found, saving to localStorage as fallback');
-          // Save to localStorage as fallback for unauthenticated users
-          try {
-            const existingProjects = JSON.parse(localStorage.getItem('caseStudies') || '[]');
-            const updatedProjects = existingProjects.map((p: any) => 
-              p.id === id ? { ...p, ...updates, updated_at: new Date().toISOString() } : p
-            );
-            localStorage.setItem('caseStudies', JSON.stringify(updatedProjects));
-            console.log('✅ useProjects: Changes saved to localStorage');
-            
-            // Update local state
-            setProjects(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
-            return { ...prev.find(p => p.id === id), ...updates } as Project;
-          } catch (err) {
-            console.error('❌ useProjects: Error saving to localStorage:', err);
-            setError('Failed to save changes locally');
-            return null;
-          }
+          // Unauthenticated: do not write localStorage here — callers (e.g. Home) persist full
+          // ProjectData and must not trigger a truthy return (that would refetch and wipe edits).
+          console.log('❌ useProjects: No authentication — Supabase save skipped (caller handles local persistence)');
+          return null;
         }
       }
       

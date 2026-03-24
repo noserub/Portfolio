@@ -13,7 +13,8 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Textarea } from "../components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
-import { Plus, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Edit2, Save, GripVertical, Linkedin, Github, FileText, Trash2, Eye, Wand2, ArrowUp, ArrowDown } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Edit2, Save, GripVertical, Linkedin, Github, FileText, Trash2, Eye, Wand2, ArrowUp, ArrowDown, Cloud } from "lucide-react";
+import { toast } from "sonner";
 import { Tooltip, TooltipTrigger, TooltipContent } from "../components/ui/tooltip";
 // import { createCaseStudyFromTemplate } from "../utils/caseStudyTemplate"; // REMOVED - using unified project creator
 import { loadMigratedProjects } from "../utils/migrateVideoFields";
@@ -29,6 +30,7 @@ import {
   AlertDialogTitle,
 } from "../components/ui/alert-dialog";
 import { Label } from "../components/ui/label";
+import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
 import {
   type HeroTextState,
   type HomePageContentV2,
@@ -786,6 +788,9 @@ const defaultDesignProjects: ProjectData[] = [
 ];
 
 export function Home({ onStartClick, isEditMode, onProjectClick, currentPage }: HomeProps) {
+  const isEditModeRef = useRef(isEditMode);
+  isEditModeRef.current = isEditMode;
+
   // DEBUG: Latest deployment test - if you see this, the new code is deployed
   // Apply SEO for home page
   useSEO('home');
@@ -2346,9 +2351,13 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     resolvedHeroBio.bioDocument ?? classicBioDocumentFromHero(resolvedHeroBio);
 
   const [isEditingHero, setIsEditingHero] = useState(false);
+  const isEditingHeroRef = useRef(isEditingHero);
+  isEditingHeroRef.current = isEditingHero;
   const [bioEditorRevision, setBioEditorRevision] = useState(0);
   const [greetingsTextValue, setGreetingsTextValue] = useState("");
   const [deleteConfirmation, setDeleteConfirmation] = useState(null);
+  /** Shown when live Supabase content replaced an older browser draft (edit mode banner). */
+  const [showHeroCloudNotice, setShowHeroCloudNotice] = useState(false);
   /** False until initial hero load finishes — blocks debounced persist from overwriting DB with defaults. */
   const homeContentHydratedRef = useRef(false);
 
@@ -2361,8 +2370,9 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
 
       try {
         console.log('🔄 Loading home page content from Supabase...');
-        const raw = await (async () => {
-          let data, error;
+        const row = await (async () => {
+          let data: { hero_text: unknown; updated_at: string | null } | null;
+          let error: unknown = null;
           /** Same id used across the app for bypass auth and public portfolio reads. */
           const portfolioOwnerId = '7cd2752f-93c5-46e6-8535-32769fb10055';
 
@@ -2372,37 +2382,52 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
 
             const result = await supabase
               .from('profiles')
-              .select('hero_text')
+              .select('hero_text, updated_at')
               .eq('id', userId)
               .single();
-            data = result.data;
+            data = result.data as typeof data;
             error = result.error;
           } else {
-            // Signed-out visitors and preview deploys have no localStorage; load the owner row
-            // explicitly — not "most recently updated profile with hero_text" (that can be a
-            // different user and hide your CMS edits on Vercel previews / incognito).
             console.log('🏠 Home: Loading hero_text from Supabase (public — portfolio owner row)');
 
             const result = await supabase
               .from('profiles')
-              .select('hero_text')
+              .select('hero_text, updated_at')
               .eq('id', portfolioOwnerId)
               .maybeSingle();
-            data = result.data;
+            data = result.data as typeof data;
             error = result.error;
           }
 
           if (error) throw error;
-          return data?.hero_text;
+          return data;
         })();
 
-        const content = resolveHomeContentAfterLoad(raw, authed);
+        const raw = row?.hero_text;
+        const ts = row?.updated_at != null ? Date.parse(String(row.updated_at)) : NaN;
+        const remoteProfileUpdatedAtMs = !Number.isNaN(ts) ? ts : null;
+
+        const { content, localDraftSupersededByCloud } = resolveHomeContentAfterLoad(raw, authed, {
+          remoteProfileUpdatedAtMs,
+        });
+
+        if (localDraftSupersededByCloud) {
+          setShowHeroCloudNotice(true);
+          if (!isEditModeRef.current) {
+            toast.info('Showing your live site — replaced an older draft stored on this device.', {
+              id: 'home-hero-live-sync',
+              duration: 4500,
+            });
+          }
+        }
+
         const hasOldWelcome =
           content.hero.greeting === "Welcome," ||
           content.hero.greetings?.[0] === "Welcome,";
 
         if (hasOldWelcome) {
           console.log('⚠️ Detected legacy Welcome greeting; resetting to defaults');
+          setShowHeroCloudNotice(false);
           const fresh = createDefaultHomePageContent();
           homeContentHydratedRef.current = true;
           setHomePageContent(fresh);
@@ -2418,7 +2443,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         console.log('✅ Home page content synced to localStorage');
       } catch (error) {
         console.error('❌ Error loading home page content from Supabase:', error);
-        const content = resolveHomeContentAfterLoad(undefined, authed);
+        const { content } = resolveHomeContentAfterLoad(undefined, authed);
         const hasOldWelcome =
           content.hero.greeting === "Welcome," ||
           content.hero.greetings?.[0] === "Welcome,";
@@ -2454,6 +2479,19 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     const payload = toPersistedPayload({ ...content, _clientSavedAt: Date.now() });
     localStorage.setItem('heroText', JSON.stringify(payload));
 
+    const applyRowFromServer = (row: { hero_text: unknown; updated_at: string | null }) => {
+      const t = row.updated_at != null ? Date.parse(String(row.updated_at)) : NaN;
+      const { content: next } = resolveHomeContentAfterLoad(row.hero_text, true, {
+        remoteProfileUpdatedAtMs: !Number.isNaN(t) ? t : null,
+      });
+      localStorage.setItem('heroText', JSON.stringify(toPersistedPayload(next)));
+      setShowHeroCloudNotice(false);
+      if (!isEditingHeroRef.current) {
+        setHomePageContent(next);
+        setBioEditorRevision((n) => n + 1);
+      }
+    };
+
     try {
       const { supabase } = await import('../lib/supabaseClient');
       const { data: { user } } = await supabase.auth.getUser();
@@ -2466,29 +2504,36 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
           userId,
         );
 
-        const { error: updateError } = await supabase
+        const { data: updatedRow, error: updateError } = await supabase
           .from('profiles')
           .update({ hero_text: payload })
-          .eq('id', userId);
+          .eq('id', userId)
+          .select('hero_text, updated_at')
+          .single();
 
         if (updateError) {
           console.log('📝 Profile not found, creating new profile...');
-          const { error: insertError } = await supabase
+          const { data: insertedRow, error: insertError } = await supabase
             .from('profiles')
             .insert({
               id: userId,
               email: user?.email || 'brian.bureson@gmail.com',
               full_name: 'Brian Bureson',
               hero_text: payload,
-            });
+            })
+            .select('hero_text, updated_at')
+            .single();
 
           if (insertError) {
             console.warn('⚠️ Failed to save to Supabase (egress limits?):', insertError.message);
-          } else {
+            toast.error('Could not sync the hero section to the cloud. Your text is still saved on this device.');
+          } else if (insertedRow) {
             console.log('✅ Home page: Supabase hero_text saved (new profile row)');
+            applyRowFromServer(insertedRow as { hero_text: unknown; updated_at: string | null });
           }
-        } else {
-          console.log('✅ Home page: Supabase hero_text saved (same payload as localStorage)');
+        } else if (updatedRow) {
+          console.log('✅ Home page: Supabase hero_text saved (confirmed from server)');
+          applyRowFromServer(updatedRow as { hero_text: unknown; updated_at: string | null });
         }
       } else {
         console.log(
@@ -2498,6 +2543,16 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     } catch (error) {
       console.warn('⚠️ Supabase save failed (egress limits?):', error);
       console.log('💾 Home page: localStorage still has your draft; Supabase sync failed');
+      try {
+        const { supabase } = await import('../lib/supabaseClient');
+        const { data: { user } } = await supabase.auth.getUser();
+        const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
+        if (user || isBypassAuth) {
+          toast.error('Could not sync the hero section to the cloud. Your text is still saved on this device.');
+        }
+      } catch {
+        /* ignore */
+      }
     }
   }, []);
 
@@ -2924,7 +2979,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         try {
           const storageKey = type === 'caseStudies' ? 'caseStudies' : 'designProjects';
           const savedProjects = localStorage.getItem(storageKey);
-          let projects = [];
+          let projects: any[] = [];
           
           if (savedProjects) {
             projects = JSON.parse(savedProjects);
@@ -2960,16 +3015,29 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
             
             // Trigger re-render
             setLocalStorageVersion(prev => prev + 1);
+            toast.warning(
+              'Could not save to the cloud. Changes are stored on this browser only — sign in to sync elsewhere.',
+            );
           } else {
-            console.log('❌ Project not found in localStorage for fallback');
-      }
+            console.log('⚠️ Project not in localStorage; upserting full project for offline recovery');
+            projects.push({
+              ...updatedProject,
+              lastModified: new Date().toISOString(),
+            });
+            localStorage.setItem(storageKey, JSON.stringify(projects));
+            setLocalStorageVersion(prev => prev + 1);
+            toast.warning(
+              'Could not save to the cloud. Changes are stored on this browser only — sign in to sync elsewhere.',
+            );
+          }
     } catch (error) {
           console.error('❌ localStorage fallback failed:', error);
+          toast.error('Could not save your changes. Sign in and try again, or check your connection.');
         }
       }
     } catch (error) {
       console.error('❌ Update failed:', error);
-      alert('⚠️ Update failed! Please try again.');
+      toast.error('Update failed. Please try again.');
     }
   };
 
@@ -2985,6 +3053,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         console.log('✅ Image updated in Supabase:', id);
       } else {
         console.error('❌ Failed to update image in Supabase:', id);
+        toast.error('Image could not be saved to the cloud. Sign in and try again.');
       }
     };
     reader.readAsDataURL(file);
@@ -3738,6 +3807,29 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
           ))}
 
           <div className="max-w-3xl relative z-10">
+            {isEditMode && showHeroCloudNotice && (
+              <Alert
+                className="mb-4 border-sky-500/25 bg-sky-500/[0.06] text-foreground dark:bg-sky-950/50 dark:border-sky-500/30"
+                role="status"
+              >
+                <Cloud className="h-4 w-4 text-sky-600 dark:text-sky-400" aria-hidden />
+                <AlertTitle className="text-foreground">Live site content</AlertTitle>
+                <AlertDescription className="flex flex-col gap-3 text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+                  <span>
+                    You&apos;re viewing the published copy from the server. An older draft stored on this device was not used.
+                  </span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="shrink-0"
+                    onClick={() => setShowHeroCloudNotice(false)}
+                  >
+                    Dismiss
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
             {/* Edit Mode Controls */}
             {isEditMode && !isEditingHero && (
               <div className="mb-4 flex items-center gap-2">

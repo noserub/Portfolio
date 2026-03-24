@@ -304,27 +304,62 @@ export function readHomePageContentFromLocalStorage(): HomePageContentV2 | null 
   }
 }
 
+export interface ResolveHomeContentOptions {
+  /**
+   * `profiles.updated_at` (ms). Used when `hero_text` JSON omits `_clientSavedAt`
+   * (e.g. edits in the Supabase dashboard) so the server copy still wins over stale local drafts.
+   */
+  remoteProfileUpdatedAtMs?: number | null;
+}
+
+export interface ResolveHomeContentResult {
+  content: HomePageContentV2;
+  /** True when a local draft existed but the published Supabase copy was shown instead. */
+  localDraftSupersededByCloud: boolean;
+}
+
 /**
- * After fetching `profiles.hero_text`, pick what to show. Guests only persist to localStorage,
- * so their draft must win over the public Supabase profile on refresh. When signed in, prefer
- * whichever copy was saved more recently (handles failed Supabase writes).
+ * After fetching `profiles.hero_text`, pick what to show.
+ * - Signed-out: published Supabase row is authoritative when it has valid hero content.
+ * - Signed in: prefer local only when its `_clientSavedAt` is newer than remote (JSON or profile row).
  */
-export function resolveHomeContentAfterLoad(rawRemote: unknown, authed: boolean): HomePageContentV2 {
+export function resolveHomeContentAfterLoad(
+  rawRemote: unknown,
+  authed: boolean,
+  options?: ResolveHomeContentOptions,
+): ResolveHomeContentResult {
   const remote = parseStoredHomeContent(rawRemote ?? {});
   const local = readHomePageContentFromLocalStorage();
+  const profileMs = options?.remoteProfileUpdatedAtMs;
+  const remoteProfileAt =
+    typeof profileMs === "number" && !Number.isNaN(profileMs) ? profileMs : 0;
+
+  const localValid = Boolean(local && heroHasMinimumContent(local.hero));
 
   if (!authed) {
-    if (local) return local;
-    return remote;
+    if (heroHasMinimumContent(remote.hero)) {
+      return {
+        content: remote,
+        localDraftSupersededByCloud: localValid,
+      };
+    }
+    if (local) {
+      return { content: local, localDraftSupersededByCloud: false };
+    }
+    return { content: remote, localDraftSupersededByCloud: false };
   }
 
-  if (local && heroHasMinimumContent(local.hero)) {
-    const lt = local._clientSavedAt ?? 0;
-    const rt = remote._clientSavedAt ?? 0;
-    if (lt > rt) return local;
+  if (localValid) {
+    const lt = local!._clientSavedAt ?? 0;
+    const rtFromJson = remote._clientSavedAt ?? 0;
+    const rt = Math.max(rtFromJson, remoteProfileAt);
+    if (lt > rt) {
+      return { content: local!, localDraftSupersededByCloud: false };
+    }
+    return { content: remote, localDraftSupersededByCloud: true };
   }
 
-  return remote;
+  return { content: remote, localDraftSupersededByCloud: false };
 }
 
 export function splitBioParagraphs(bioText: string | undefined): string[] {
