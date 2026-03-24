@@ -321,13 +321,33 @@ function mergeUI(raw: unknown): HomePageUI {
   };
 }
 
+/**
+ * JSONB from Postgres or copy-paste in the dashboard may arrive as a JSON **string**.
+ * Arrays are rejected — valid payload is always a plain object.
+ */
+function coerceHomeContentJsonToObject(raw: unknown): Record<string, unknown> | null {
+  if (raw == null) return null;
+  if (typeof raw === "string") {
+    const t = raw.trim();
+    if (!t) return null;
+    try {
+      const parsed = JSON.parse(t) as unknown;
+      return coerceHomeContentJsonToObject(parsed);
+    } catch {
+      return null;
+    }
+  }
+  if (typeof raw !== "object") return null;
+  if (Array.isArray(raw)) return null;
+  return raw as Record<string, unknown>;
+}
+
 /** Normalize Supabase / localStorage JSON into v2 content. */
 export function parseStoredHomeContent(raw: unknown): HomePageContentV2 {
-  if (!raw || typeof raw !== "object") {
+  const obj = coerceHomeContentJsonToObject(raw);
+  if (!obj) {
     return createDefaultHomePageContent();
   }
-
-  const obj = raw as Record<string, unknown>;
 
   const ts = obj._clientSavedAt;
   const tsOpt =

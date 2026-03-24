@@ -2379,12 +2379,12 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
       const { data: { user } } = await supabase.auth.getUser();
       const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
       const authed = Boolean(user || isBypassAuth);
+      /** Same row for signed-in editor, incognito, and Vercel preview — must match VITE_PUBLIC_PORTFOLIO_OWNER_ID to your auth user id. */
+      const portfolioOwnerId = getPortfolioOwnerUserId(user?.id);
 
       try {
         console.log('🔄 Loading home page content from Supabase...');
         const row = await (async () => {
-          /** Same row for signed-in editor, incognito, and Vercel preview — must match VITE_PUBLIC_PORTFOLIO_OWNER_ID to your auth user id. */
-          const portfolioOwnerId = getPortfolioOwnerUserId(user?.id);
           if (user?.id && user.id !== portfolioOwnerId) {
             console.warn(
               '⚠️ Home hero: signed-in user id ≠ VITE_PUBLIC_PORTFOLIO_OWNER_ID — incognito shows the owner row, not your account row. Set the env to your Supabase user UUID.',
@@ -2409,6 +2409,19 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         })();
 
         const raw = row?.hero_text;
+        const heroTextMissing =
+          raw == null ||
+          (typeof raw === "string" && raw.trim() === "") ||
+          (typeof raw === "object" &&
+            raw !== null &&
+            !Array.isArray(raw) &&
+            Object.keys(raw as object).length === 0);
+        if (heroTextMissing) {
+          console.warn(
+            "[home] profiles.hero_text is empty for this row — UI uses defaults until you save from the editor.",
+            { portfolioOwnerId },
+          );
+        }
         const ts = row?.updated_at != null ? Date.parse(String(row.updated_at)) : NaN;
         const remoteProfileUpdatedAtMs = !Number.isNaN(ts) ? ts : null;
 
