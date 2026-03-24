@@ -36,6 +36,7 @@ import {
   type HomePageStat,
   defaultBioDocument,
   healDegenerateHeroBio,
+  HERO_SEQUENCE_PAUSE_MS,
   mergeHeroGreetingsFromDraftLines,
 } from "../lib/homePageContent";
 import { getPortfolioOwnerUserId } from "../lib/portfolioOwner";
@@ -2407,7 +2408,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
       if (displayedText.length < currentGreeting.length) {
         delay = 40 + Math.floor(Math.random() * 40); // Variable typing speed (40-80ms)
       } else {
-        delay = 1200; // Pause after typing complete
+        delay = HERO_SEQUENCE_PAUSE_MS;
       }
     } else {
       if (displayedText.length > 0) {

@@ -48,6 +48,9 @@ export interface HeroTextState {
   accentMarginTopRem?: number;
 }
 
+/** Pause after each hero greeting finishes typing (before backspace or cycle wait). Not CMS-editable by design. */
+export const HERO_SEQUENCE_PAUSE_MS = 2000;
+
 export interface HomePageStat {
   number: string;
   label: string;
