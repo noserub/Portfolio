@@ -198,7 +198,7 @@ export function useProfiles() {
       }
       
       // Use bypass user ID if no real user
-      const userId = user?.id || getPortfolioOwnerUserId();
+      const userId = getPortfolioOwnerUserId(user?.id);
 
       return await getProfile(userId);
     } catch (err: any) {
@@ -218,7 +218,7 @@ export function useProfiles() {
       }
       
       // Use bypass user ID if no real user
-      const userId = user?.id || getPortfolioOwnerUserId();
+      const userId = getPortfolioOwnerUserId(user?.id);
 
       // Try to update existing profile first
       let result = await updateProfile(userId, updates);

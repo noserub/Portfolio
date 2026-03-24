@@ -249,7 +249,7 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
         
         if (user || isBypassAuth) {
           // Authenticated user - load user-specific data
-          const userId = user?.id || getPortfolioOwnerUserId();
+          const userId = getPortfolioOwnerUserId(user?.id);
           console.log('📥 About page: Loading profile for authenticated user:', userId);
           profile = await getCurrentUserProfile();
         } else {

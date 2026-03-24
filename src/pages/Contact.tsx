@@ -112,13 +112,13 @@ export function Contact({ onBack, isEditMode = false }: ContactProps) {
         const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
         
         if (user || isBypassAuth) {
-          const userId = user?.id || getPortfolioOwnerUserId();
+          const userId = getPortfolioOwnerUserId(user?.id);
 
           console.log('🔐 Contact: Authentication check:', {
             hasUser: !!user,
             userId: user?.id,
             isBypassAuth,
-            fallbackUserId: getPortfolioOwnerUserId(),
+            fallbackUserId: getPortfolioOwnerUserId(user?.id),
             finalUserId: userId
           });
           
@@ -198,7 +198,7 @@ export function Contact({ onBack, isEditMode = false }: ContactProps) {
         const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
         
         if (user || isBypassAuth) {
-          const userId = user?.id || getPortfolioOwnerUserId();
+          const userId = getPortfolioOwnerUserId(user?.id);
           
           console.log('💾 Attempting to save email to Supabase:', editedText);
           

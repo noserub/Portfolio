@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, lazy, Suspense } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
@@ -16,16 +16,17 @@ import {
   SEOEditor, 
   ComponentLibrary 
 } from "./components";
-import SupabaseTest from "./components/SupabaseTest";
-import { 
-  Home, 
-  About, 
-  Contact, 
-  ProjectDetail, 
-  DiagnosticPage, 
-  EmergencyRecovery,
-  Messages
-} from "./pages";
+import Home from "./pages/Home";
+
+const About = lazy(() => import("./pages/About"));
+const Contact = lazy(() => import("./pages/Contact"));
+const ProjectDetail = lazy(() => import("./pages/ProjectDetail"));
+const DiagnosticPage = lazy(() => import("./pages/DiagnosticPage"));
+const EmergencyRecovery = lazy(() => import("./pages/EmergencyRecovery"));
+const Messages = lazy(() =>
+  import("./pages/Messages").then((m) => ({ default: m.Messages })),
+);
+const SupabaseTest = lazy(() => import("./components/SupabaseTest"));
 import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
 import { Switch } from "./components/ui/switch";
@@ -53,6 +54,21 @@ const parseColumnsValue = (value: any, allowed: number[], fallback: number) => {
   const num = Number(value);
   return allowed.includes(num) ? num : fallback;
 };
+
+/** Shown while lazy route chunks load — keeps layout stable vs a blank flash */
+function RouteFallback() {
+  return (
+    <div className="min-h-screen w-full flex items-center justify-center bg-background">
+      <div className="flex flex-col items-center gap-3 text-muted-foreground text-sm">
+        <div
+          className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full animate-spin"
+          aria-hidden
+        />
+        <span>Loading…</span>
+      </div>
+    </div>
+  );
+}
 
 // Lazy load diagnostics to avoid blocking React mount
 if (typeof window !== 'undefined') {
@@ -418,7 +434,7 @@ export default function App() {
       // Try to load from Supabase (prioritize public access for consistency)
       const { data: { user } } = await supabase.auth.getUser();
       const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
-      const fallbackUserId = getPortfolioOwnerUserId();
+      const fallbackUserId = getPortfolioOwnerUserId(user?.id);
 
       console.log('📄 Loading page visibility from Supabase (public access):', fallbackUserId);
       console.log('📄 User auth state:', { user: user?.id, isBypassAuth, fallbackUserId });
@@ -549,7 +565,7 @@ export default function App() {
         // Try to save to Supabase for shared access (always use fallback user ID for public access)
         const { data: { user } } = await supabase.auth.getUser();
         const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
-        const fallbackUserId = getPortfolioOwnerUserId();
+        const fallbackUserId = getPortfolioOwnerUserId(user?.id);
 
         console.log('💾 Saving page visibility to Supabase for shared access (public):', fallbackUserId);
         
@@ -987,12 +1003,20 @@ export default function App() {
   // NOW ALL HOOKS ARE DECLARED - SAFE TO DO CONDITIONAL RENDERING
   // If in emergency mode, show emergency recovery
   if (isEmergencyMode) {
-    return <EmergencyRecovery />;
+    return (
+      <Suspense fallback={<RouteFallback />}>
+        <EmergencyRecovery />
+      </Suspense>
+    );
   }
-  
+
   // If in diagnostic mode, show diagnostic page
   if (isDiagnosticMode) {
-    return <DiagnosticPage />;
+    return (
+      <Suspense fallback={<RouteFallback />}>
+        <DiagnosticPage />
+      </Suspense>
+    );
   }
   
   // Supabase test mode removed - now using integrated hooks in components
@@ -2046,28 +2070,28 @@ export default function App() {
             currentPage={currentPage}
           />
         )}
-        {currentPage === "about" && (isEditMode || pageVisibility.about) && (
-          <About onBack={navigateHome} onHoverChange={setIsBlurringBackground} isEditMode={isEditMode} />
-        )}
-        {currentPage === "contact" && (isEditMode || pageVisibility.contact) && (
-          <Contact onBack={navigateHome} isEditMode={isEditMode} />
-        )}
-        {currentPage === "messages" && isAuthenticated && (
-          <Messages onBack={navigateHome} isEditMode={isEditMode} />
-        )}
-        {currentPage === "project-detail" && selectedProject && (
-          <div key={(selectedProject as any)._navTimestamp || selectedProject.id}>
-            <ProjectDetail
-              project={selectedProject}
-              onBack={navigateHome}
-              onUpdate={handleUpdateProject}
-              isEditMode={isEditMode}
-            />
-          </div>
-        )}
-          {currentPage === "supabase-test" && (
-            <SupabaseTest />
+        <Suspense fallback={<RouteFallback />}>
+          {currentPage === "about" && (isEditMode || pageVisibility.about) && (
+            <About onBack={navigateHome} onHoverChange={setIsBlurringBackground} isEditMode={isEditMode} />
           )}
+          {currentPage === "contact" && (isEditMode || pageVisibility.contact) && (
+            <Contact onBack={navigateHome} isEditMode={isEditMode} />
+          )}
+          {currentPage === "messages" && isAuthenticated && (
+            <Messages onBack={navigateHome} isEditMode={isEditMode} />
+          )}
+          {currentPage === "project-detail" && selectedProject && (
+            <div key={(selectedProject as any)._navTimestamp || selectedProject.id}>
+              <ProjectDetail
+                project={selectedProject}
+                onBack={navigateHome}
+                onUpdate={handleUpdateProject}
+                isEditMode={isEditMode}
+              />
+            </div>
+          )}
+          {currentPage === "supabase-test" && <SupabaseTest />}
+        </Suspense>
           {/* Supabase test page removed */}
       </div>
       </DndProvider>

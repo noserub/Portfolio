@@ -159,6 +159,7 @@ const HeroImage = memo(({
             onError={handleError}
             loading="eager" // Hero images should load immediately
             decoding="async"
+            fetchPriority={priority ? 'high' : 'auto'}
             style={{
               objectFit: fit,
               ...style
@@ -179,6 +180,7 @@ const HeroImage = memo(({
           onError={handleError}
           loading="eager"
           decoding="async"
+          fetchPriority={priority ? 'high' : 'auto'}
           style={{
             objectFit: fit,
             ...style

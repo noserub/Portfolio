@@ -257,7 +257,7 @@ export function useProjects() {
       console.log('🔄 useProjects: Attempting to update project in Supabase:', { id, updates });
       
       // Use fallback user ID for bypass auth
-      const userId = user?.id || getPortfolioOwnerUserId();
+      const userId = getPortfolioOwnerUserId(user?.id);
       console.log('🔄 useProjects: Using user ID:', userId, 'Auth type:', user ? 'Supabase' : 'Bypass');
       
       // Filter to valid DB columns only and drop undefined
@@ -330,7 +330,7 @@ export function useProjects() {
         
         // Get the current user or use fallback
         const { data: { user: currentUser } } = await supabase.auth.getUser();
-        const fallbackUserId = getPortfolioOwnerUserId();
+        const fallbackUserId = getPortfolioOwnerUserId(currentUser?.id);
         const effectiveUserId = currentUser?.id || fallbackUserId;
         
         console.log('🔄 useProjects: Transfer ownership using user ID:', effectiveUserId);

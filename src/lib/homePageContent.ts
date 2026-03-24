@@ -221,6 +221,31 @@ export function migrateLegacyWelcomeGreeting(c: HomePageContentV2): HomePageCont
   };
 }
 
+/**
+ * While editing hero, animated headline lines may only exist in the textarea until blur.
+ * Merge draft text into the persisted hero so autosave / flush / Done include the latest lines.
+ */
+export function mergeHeroGreetingsFromDraftLines(
+  content: HomePageContentV2,
+  greetingsDraftText: string,
+): HomePageContentV2 {
+  const greetings = greetingsDraftText
+    .split("\n")
+    .map((g) => g.trim())
+    .filter(Boolean);
+  if (greetings.length === 0) {
+    return content;
+  }
+  return {
+    ...content,
+    hero: {
+      ...content.hero,
+      greetings,
+      greeting: greetings[0],
+    },
+  };
+}
+
 function mergeHero(partial: Partial<HeroTextState> | Record<string, unknown>): HeroTextState {
   const base = defaultHeroTextState();
   const h = partial as HeroTextState;
@@ -296,22 +321,75 @@ function mergeUI(raw: unknown): HomePageUI {
   };
 }
 
+/**
+ * JSONB from Postgres or copy-paste in the dashboard may arrive as a JSON **string**.
+ * Arrays are rejected — valid payload is always a plain object.
+ */
+function coerceHomeContentJsonToObject(raw: unknown): Record<string, unknown> | null {
+  if (raw == null) return null;
+  if (typeof raw === "string") {
+    const t = raw.trim();
+    if (!t) return null;
+    try {
+      const parsed = JSON.parse(t) as unknown;
+      return coerceHomeContentJsonToObject(parsed);
+    } catch {
+      return null;
+    }
+  }
+  if (typeof raw !== "object") return null;
+  if (Array.isArray(raw)) return null;
+  return raw as Record<string, unknown>;
+}
+
+/**
+ * v2 payloads store fields under `hero`. That value may be a plain object **or** a JSON string
+ * (double-encoded JSONB / dashboard paste). Arrays are invalid hero payloads.
+ */
+function normalizeNestedHeroField(raw: unknown): Record<string, unknown> | null {
+  if (raw == null) return null;
+  if (typeof raw === "string") {
+    return coerceHomeContentJsonToObject(raw);
+  }
+  if (typeof raw !== "object" || Array.isArray(raw)) return null;
+  return raw as Record<string, unknown>;
+}
+
+/**
+ * Legacy flat shape may still carry `hero` as a string; spreading that into mergeHero drops real
+ * greeting/subtitle into a useless `hero` property and shows defaults.
+ */
+function mergeHeroFromLegacyFlat(heroFlat: Record<string, unknown>): HeroTextState {
+  const hf: Record<string, unknown> = { ...heroFlat };
+  const hHero = hf.hero;
+  if (typeof hHero === "string") {
+    const parsed = coerceHomeContentJsonToObject(hHero);
+    delete hf.hero;
+    if (parsed) {
+      return mergeHero({ ...hf, ...parsed });
+    }
+  }
+  if (hHero !== undefined && (typeof hHero !== "object" || Array.isArray(hHero))) {
+    delete hf.hero;
+  }
+  return mergeHero(hf);
+}
+
 /** Normalize Supabase / localStorage JSON into v2 content. */
 export function parseStoredHomeContent(raw: unknown): HomePageContentV2 {
-  if (!raw || typeof raw !== "object") {
+  const obj = coerceHomeContentJsonToObject(raw);
+  if (!obj) {
     return createDefaultHomePageContent();
   }
-
-  const obj = raw as Record<string, unknown>;
 
   const ts = obj._clientSavedAt;
   const tsOpt =
     typeof ts === "number" && !Number.isNaN(ts) ? { _clientSavedAt: ts } : {};
 
-  // Nested hero (v2) — include when _version was omitted by older saves
-  if (obj.hero && typeof obj.hero === "object") {
-    const heroRaw = obj.hero as Record<string, unknown>;
-    const { stats: _statsInsideHero, ...heroWithoutStats } = heroRaw;
+  // Nested hero (v2) — include when _version was omitted by older saves; `hero` may be a JSON string
+  const nestedHero = normalizeNestedHeroField(obj.hero);
+  if (nestedHero) {
+    const { stats: _statsInsideHero, ...heroWithoutStats } = nestedHero;
     return {
       _version: HOME_PAGE_CONTENT_VERSION,
       hero: mergeHero(heroWithoutStats),
@@ -332,7 +410,7 @@ export function parseStoredHomeContent(raw: unknown): HomePageContentV2 {
 
   return {
     _version: HOME_PAGE_CONTENT_VERSION,
-    hero: mergeHero(heroFlat as Record<string, unknown>),
+    hero: mergeHeroFromLegacyFlat(heroFlat as Record<string, unknown>),
     stats: mergeStats(
       rawStats !== undefined && rawStats !== null
         ? rawStats
@@ -405,6 +483,12 @@ export interface ResolveHomeContentOptions {
    * (e.g. edits in the Supabase dashboard) so the server copy still wins over stale local drafts.
    */
   remoteProfileUpdatedAtMs?: number | null;
+  /**
+   * Only the portfolio owner, signed in via Supabase (real session), may see a newer local draft
+   * over remote. Never set for visitors, bypass-only flags, or non-owner accounts — otherwise
+   * stale `localStorage` can mask published `profiles.hero_text` for everyone on that device.
+   */
+  allowLocalDraftPreference?: boolean;
 }
 
 export interface ResolveHomeContentResult {
@@ -419,14 +503,14 @@ export interface ResolveHomeContentResult {
 }
 
 /**
- * After fetching `profiles.hero_text`, pick what to show.
- * - Signed-out / visitors: never use localStorage — only the published `remote` payload (same as incognito).
- * - Signed in: prefer local when its `_clientSavedAt` beats the remote hero version (editing drafts).
- *   Use `hero_text._clientSavedAt` when set; only if missing, fall back to `profiles.updated_at`.
+ * After fetching `profiles.hero_text`, pick what to show when the row is missing or load failed.
+ * - Default: published `remote` only — visitors and non-owner sessions never read stale `heroText`.
+ * - When `allowLocalDraftPreference` is true (owner signed in via Supabase): prefer local if its
+ *   `_clientSavedAt` beats remote (editing drafts). Use `hero_text._clientSavedAt` when set; if
+ *   missing, fall back to `profiles.updated_at`.
  */
 export function resolveHomeContentAfterLoad(
   rawRemote: unknown,
-  authed: boolean,
   options?: ResolveHomeContentOptions,
 ): ResolveHomeContentResult {
   const remote = parseStoredHomeContent(rawRemote ?? {});
@@ -436,9 +520,10 @@ export function resolveHomeContentAfterLoad(
     typeof profileMs === "number" && !Number.isNaN(profileMs) ? profileMs : 0;
 
   const localValid = Boolean(local && shouldPersistHomePageContent(local));
+  const allowLocal = Boolean(options?.allowLocalDraftPreference);
 
-  if (!authed) {
-    // Public / incognito: DB (or empty defaults) only — never blend in localStorage.
+  if (!allowLocal) {
+    // Published remote (or parsed defaults) only — never blend in localStorage.
     return {
       content: remote,
       localDraftSupersededByCloud: false,

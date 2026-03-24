@@ -33,7 +33,7 @@ export async function importAllData(
       throw new Error('Not authenticated. Please sign in first.');
     }
     
-    const userId = user?.id || getPortfolioOwnerUserId();
+    const userId = getPortfolioOwnerUserId(user?.id);
     
     // 1. Import Projects
     onProgress('\n📦 Importing projects...');
@@ -208,7 +208,7 @@ export async function importProjectsFromBackup(
       throw new Error('Not authenticated. Please sign in first.');
     }
     
-    const userId = user?.id || getPortfolioOwnerUserId(); // Use current user or fallback
+    const userId = getPortfolioOwnerUserId(user?.id); // Use current user or fallback
     
     // Import case studies
     if (jsonData.caseStudies && Array.isArray(jsonData.caseStudies)) {
