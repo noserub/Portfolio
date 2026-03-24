@@ -38,7 +38,8 @@ import {
   createDefaultHomePageContent,
   resolveHomeContentAfterLoad,
   toPersistedPayload,
-  heroHasMinimumContent,
+  shouldPersistHomePageContent,
+  persistHomePageToLocalStorageSync,
   classicBioDocumentFromHero,
   healDegenerateHeroBio,
 } from "../lib/homePageContent";
@@ -2473,7 +2474,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const persistHomePageNow = useCallback(async (content: HomePageContentV2) => {
-    if (!heroHasMinimumContent(content.hero)) {
+    if (!shouldPersistHomePageContent(content)) {
       return;
     }
     const payload = toPersistedPayload({ ...content, _clientSavedAt: Date.now() });
@@ -2569,8 +2570,8 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     if (!homeContentHydratedRef.current) {
       return;
     }
-    if (!heroHasMinimumContent(homePageContent.hero)) {
-      console.log('⏸️ Skipping save: hero greetings invalid');
+    if (!shouldPersistHomePageContent(homePageContent)) {
+      console.log('⏸️ Skipping save: no persistable home content yet');
       return;
     }
 
@@ -2593,17 +2594,25 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
   useEffect(() => {
     const onHidden = () => {
       if (document.visibilityState === 'hidden') {
+        persistHomePageToLocalStorageSync(homePageContentRef.current);
         flushPendingHomePage();
       }
     };
     const onPageHide = () => {
+      persistHomePageToLocalStorageSync(homePageContentRef.current);
+      flushPendingHomePage();
+    };
+    const onBeforeUnload = () => {
+      persistHomePageToLocalStorageSync(homePageContentRef.current);
       flushPendingHomePage();
     };
     document.addEventListener('visibilitychange', onHidden);
     window.addEventListener('pagehide', onPageHide);
+    window.addEventListener('beforeunload', onBeforeUnload);
     return () => {
       document.removeEventListener('visibilitychange', onHidden);
       window.removeEventListener('pagehide', onPageHide);
+      window.removeEventListener('beforeunload', onBeforeUnload);
     };
   }, [flushPendingHomePage]);
 

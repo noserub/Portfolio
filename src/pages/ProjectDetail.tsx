@@ -2205,10 +2205,9 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     return () => observer.disconnect();
   }, []);
 
-  // Auto-save content changes with debouncing
+  // Auto-save content changes with debouncing (runs only while editing — preview mode skips)
   useEffect(() => {
-    // Explicit-save mode: do not persist while user is editing. Save only via Save/Done.
-    if (isEditMode) {
+    if (!isEditMode) {
       return;
     }
     const currentContent = caseStudyContent || '';
@@ -2264,84 +2263,134 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
 
     const timeoutId = setTimeout(() => {
       console.log('⏰ Auto-save timeout triggered');
-      // Always save if we're in edit mode and content exists
-      if (isEditMode && caseStudyContent && caseStudyContent.length > 0) {
-        // Clean blob URLs from content before saving
-        const cleanBlobUrls = (content: string): string => {
-          if (!content) return content;
-          return content.replace(/blob:http:\/\/[^\s)]+/g, '');
-        };
-        
-        const cleanedContent = cleanBlobUrls(caseStudyContent);
-        const blobUrlCount = (caseStudyContent.match(/blob:http:\/\/[^\s)]+/g) || []).length;
-        
-        console.log('💾 Auto-saving content changes...', {
-          title: editedTitle,
-          description: editedDescription,
-      projectType: editedProjectType,
-          contentLength: caseStudyContent.length,
-          blobUrlsRemoved: blobUrlCount,
-          originalContent: caseStudyContent.substring(0, 100) + '...',
-          cleanedContent: cleanedContent.substring(0, 100) + '...'
-        });
-        
-        // Update refs to current values
-        prevContentRef.current = currentContent;
-        prevTitleRef.current = currentTitle;
-        prevDescriptionRef.current = currentDescription;
-        prevProjectTypeRef.current = currentProjectType;
-        prevImagesRef.current = currentImagesStr;
-        prevFlowDiagramsRef.current = currentFlowDiagramsStr;
-        prevVideosRef.current = currentVideosStr;
-        
-        console.log('📤 ProjectDetail: Calling onUpdate with:', {
-          id: project.id,
-          title: editedTitle,
-          description: editedDescription,
-          projectType: editedProjectType,
-          project_type: editedProjectType,
-          contentLength: caseStudyContent?.length || 0
-        });
-        
-        onUpdate({
-          ...project,
-          title: editedTitle,
-          description: editedDescription,
-          projectType: editedProjectType,
-          project_type: editedProjectType,
-          caseStudyContent: cleanedContent,
-          caseStudyImages,
-          flowDiagramImages: flowDiagramImagesRef.current,
-          videoItems: videoItemsRef.current,
-          galleryAspectRatio,
-          flowDiagramAspectRatio,
-          videoAspectRatio,
-          galleryColumns,
-          flowDiagramColumns,
-          videoColumns,
-          projectImagesPosition,
-          videosPosition,
-          flowDiagramsPosition,
-          solutionCardsPosition,
-        });
-      } else {
-        console.log('❌ Auto-save skipped - DETAILED REASON:', {
-          isEditMode,
-          hasContent: !!caseStudyContent,
-          contentLength: caseStudyContent?.length || 0,
-          contentTrimmed: caseStudyContent?.trim() || '',
-          contentTrimmedLength: caseStudyContent?.trim()?.length || 0,
-          'isEditMode check': isEditMode,
-          'hasContent check': !!caseStudyContent,
-          'trimmed check': caseStudyContent?.trim() ? true : false,
-          'FINAL CONDITION': `isEditMode: ${isEditMode}, hasContent: ${!!caseStudyContent}, trimmed: ${caseStudyContent?.trim() ? true : false}`,
-          'WHY SKIPPED': !isEditMode ? 'NOT IN EDIT MODE' : !caseStudyContent ? 'NO CONTENT' : !caseStudyContent?.trim() ? 'CONTENT IS EMPTY AFTER TRIM' : 'UNKNOWN'
-        });
-      }
-    }, 2000); // Save 2 seconds after last change
+      if (!isEditMode) return;
+
+      const cleanBlobUrls = (content: string): string => {
+        if (!content) return content;
+        return content.replace(/blob:http:\/\/[^\s)]+/g, '');
+      };
+
+      const cleanedContent = cleanBlobUrls(caseStudyContent || '');
+      const blobUrlCount = ((caseStudyContent || '').match(/blob:http:\/\/[^\s)]+/g) || []).length;
+
+      console.log('💾 Auto-saving content changes...', {
+        title: editedTitle,
+        description: editedDescription,
+        projectType: editedProjectType,
+        contentLength: (caseStudyContent || '').length,
+        blobUrlsRemoved: blobUrlCount,
+      });
+
+      prevContentRef.current = currentContent;
+      prevTitleRef.current = currentTitle;
+      prevDescriptionRef.current = currentDescription;
+      prevProjectTypeRef.current = currentProjectType;
+      prevImagesRef.current = currentImagesStr;
+      prevFlowDiagramsRef.current = currentFlowDiagramsStr;
+      prevVideosRef.current = currentVideosStr;
+
+      onUpdate({
+        ...project,
+        title: editedTitle,
+        description: editedDescription,
+        projectType: editedProjectType,
+        project_type: editedProjectType,
+        caseStudyContent: cleanedContent,
+        caseStudyImages,
+        flowDiagramImages: flowDiagramImagesRef.current,
+        videoItems: videoItemsRef.current,
+        galleryAspectRatio,
+        flowDiagramAspectRatio,
+        videoAspectRatio,
+        galleryColumns,
+        flowDiagramColumns,
+        videoColumns,
+        projectImagesPosition,
+        videosPosition,
+        flowDiagramsPosition,
+        solutionCardsPosition,
+      });
+    }, 2000);
 
     return () => clearTimeout(timeoutId);
-  }, [caseStudyContent, editedTitle, editedDescription, editedProjectType, isEditMode, project, onUpdate]);
+  }, [
+    caseStudyContent,
+    editedTitle,
+    editedDescription,
+    editedProjectType,
+    isEditMode,
+    project,
+    onUpdate,
+    caseStudyImages,
+    galleryAspectRatio,
+    flowDiagramAspectRatio,
+    videoAspectRatio,
+    galleryColumns,
+    flowDiagramColumns,
+    videoColumns,
+    projectImagesPosition,
+    videosPosition,
+    flowDiagramsPosition,
+    solutionCardsPosition,
+  ]);
+
+  // Best-effort flush when leaving the tab (Supabase may not finish; next open still has debounced path)
+  useEffect(() => {
+    if (!isEditMode) return;
+    const flush = () => {
+      const cleanBlobUrls = (content: string): string => {
+        if (!content) return content;
+        return content.replace(/blob:http:\/\/[^\s)]+/g, '');
+      };
+      const cleanedContent = cleanBlobUrls(caseStudyContent || '');
+      onUpdate({
+        ...project,
+        title: editedTitle,
+        description: editedDescription,
+        projectType: editedProjectType,
+        project_type: editedProjectType,
+        caseStudyContent: cleanedContent,
+        caseStudyImages,
+        flowDiagramImages: flowDiagramImagesRef.current,
+        videoItems: videoItemsRef.current,
+        galleryAspectRatio,
+        flowDiagramAspectRatio,
+        videoAspectRatio,
+        galleryColumns,
+        flowDiagramColumns,
+        videoColumns,
+        projectImagesPosition,
+        videosPosition,
+        flowDiagramsPosition,
+        solutionCardsPosition,
+      });
+    };
+    window.addEventListener('pagehide', flush);
+    window.addEventListener('beforeunload', flush);
+    return () => {
+      window.removeEventListener('pagehide', flush);
+      window.removeEventListener('beforeunload', flush);
+    };
+  }, [
+    isEditMode,
+    project,
+    onUpdate,
+    caseStudyContent,
+    editedTitle,
+    editedDescription,
+    editedProjectType,
+    caseStudyImages,
+    galleryAspectRatio,
+    flowDiagramAspectRatio,
+    videoAspectRatio,
+    galleryColumns,
+    flowDiagramColumns,
+    videoColumns,
+    projectImagesPosition,
+    videosPosition,
+    flowDiagramsPosition,
+    solutionCardsPosition,
+  ]);
 
   // Immediate save when user stops typing (onBlur)
   const handleContentBlur = () => {

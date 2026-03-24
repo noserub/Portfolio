@@ -290,14 +290,41 @@ export function heroHasMinimumContent(hero: HeroTextState): boolean {
   return (hero.greetings?.length ?? 0) > 0 || Boolean(hero.greeting?.trim());
 }
 
-/** Parsed `heroText` from localStorage, or null if missing / invalid / no greetings. */
+/**
+ * True when the home CMS payload is worth persisting (autosave / localStorage / Supabase).
+ * Do not gate on greetings alone — stats, filter labels, and bio edits must save even if
+ * rotating greetings are temporarily empty.
+ */
+export function shouldPersistHomePageContent(c: HomePageContentV2): boolean {
+  if (heroHasMinimumContent(c.hero)) return true;
+  const baseline = createDefaultHomePageContent();
+  const strip = (x: HomePageContentV2) => {
+    const { _clientSavedAt: _a, ...rest } = x;
+    return rest;
+  };
+  return JSON.stringify(strip(c)) !== JSON.stringify(strip(baseline));
+}
+
+/**
+ * Synchronous local backup — safe for beforeunload (Supabase cannot finish in time).
+ * Returns false when there is nothing meaningful to store.
+ */
+export function persistHomePageToLocalStorageSync(c: HomePageContentV2): boolean {
+  if (!shouldPersistHomePageContent(c)) return false;
+  if (typeof globalThis === "undefined" || !("localStorage" in globalThis)) return false;
+  const payload = toPersistedPayload({ ...c, _clientSavedAt: Date.now() });
+  globalThis.localStorage.setItem("heroText", JSON.stringify(payload));
+  return true;
+}
+
+/** Parsed `heroText` from localStorage, or null if missing / invalid / empty. */
 export function readHomePageContentFromLocalStorage(): HomePageContentV2 | null {
   if (typeof globalThis === "undefined" || !("localStorage" in globalThis)) return null;
   try {
     const saved = globalThis.localStorage.getItem("heroText");
     if (!saved) return null;
     const content = parseStoredHomeContent(JSON.parse(saved) as unknown);
-    if (!heroHasMinimumContent(content.hero)) return null;
+    if (!shouldPersistHomePageContent(content)) return null;
     return content;
   } catch {
     return null;
@@ -334,10 +361,10 @@ export function resolveHomeContentAfterLoad(
   const remoteProfileAt =
     typeof profileMs === "number" && !Number.isNaN(profileMs) ? profileMs : 0;
 
-  const localValid = Boolean(local && heroHasMinimumContent(local.hero));
+  const localValid = Boolean(local && shouldPersistHomePageContent(local));
 
   if (!authed) {
-    if (heroHasMinimumContent(remote.hero)) {
+    if (shouldPersistHomePageContent(remote)) {
       return {
         content: remote,
         localDraftSupersededByCloud: localValid,
