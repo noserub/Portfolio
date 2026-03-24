@@ -483,6 +483,12 @@ export interface ResolveHomeContentOptions {
    * (e.g. edits in the Supabase dashboard) so the server copy still wins over stale local drafts.
    */
   remoteProfileUpdatedAtMs?: number | null;
+  /**
+   * Only the portfolio owner, signed in via Supabase (real session), may see a newer local draft
+   * over remote. Never set for visitors, bypass-only flags, or non-owner accounts — otherwise
+   * stale `localStorage` can mask published `profiles.hero_text` for everyone on that device.
+   */
+  allowLocalDraftPreference?: boolean;
 }
 
 export interface ResolveHomeContentResult {
@@ -497,14 +503,14 @@ export interface ResolveHomeContentResult {
 }
 
 /**
- * After fetching `profiles.hero_text`, pick what to show.
- * - Signed-out / visitors: never use localStorage — only the published `remote` payload (same as incognito).
- * - Signed in: prefer local when its `_clientSavedAt` beats the remote hero version (editing drafts).
- *   Use `hero_text._clientSavedAt` when set; only if missing, fall back to `profiles.updated_at`.
+ * After fetching `profiles.hero_text`, pick what to show when the row is missing or load failed.
+ * - Default: published `remote` only — visitors and non-owner sessions never read stale `heroText`.
+ * - When `allowLocalDraftPreference` is true (owner signed in via Supabase): prefer local if its
+ *   `_clientSavedAt` beats remote (editing drafts). Use `hero_text._clientSavedAt` when set; if
+ *   missing, fall back to `profiles.updated_at`.
  */
 export function resolveHomeContentAfterLoad(
   rawRemote: unknown,
-  authed: boolean,
   options?: ResolveHomeContentOptions,
 ): ResolveHomeContentResult {
   const remote = parseStoredHomeContent(rawRemote ?? {});
@@ -514,9 +520,10 @@ export function resolveHomeContentAfterLoad(
     typeof profileMs === "number" && !Number.isNaN(profileMs) ? profileMs : 0;
 
   const localValid = Boolean(local && shouldPersistHomePageContent(local));
+  const allowLocal = Boolean(options?.allowLocalDraftPreference);
 
-  if (!authed) {
-    // Public / incognito: DB (or empty defaults) only — never blend in localStorage.
+  if (!allowLocal) {
+    // Published remote (or parsed defaults) only — never blend in localStorage.
     return {
       content: remote,
       localDraftSupersededByCloud: false,

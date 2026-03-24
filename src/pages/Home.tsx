@@ -2377,10 +2377,11 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     const loadHomePageContent = async () => {
       const { supabase } = await import('../lib/supabaseClient');
       const { data: { user } } = await supabase.auth.getUser();
-      const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
-      const authed = Boolean(user || isBypassAuth);
       /** Same row for signed-in editor, incognito, and Vercel preview — must match VITE_PUBLIC_PORTFOLIO_OWNER_ID to your auth user id. */
       const portfolioOwnerId = getPortfolioOwnerUserId(user?.id);
+      /** Only real owner session may prefer stale local over remote in fallback paths (not bypass flag). */
+      const allowLocalDraftPreference =
+        Boolean(user?.id) && user.id === portfolioOwnerId;
 
       try {
         console.log('🔄 Loading home page content from Supabase...');
@@ -2437,8 +2438,9 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
             { portfolioOwnerId },
           );
           const { content, localDraftSupersededByCloud, draftAheadOfPublished } =
-            resolveHomeContentAfterLoad(undefined, authed, {
+            resolveHomeContentAfterLoad(undefined, {
               remoteProfileUpdatedAtMs,
+              allowLocalDraftPreference,
             });
           setHeroDraftAheadOfCloud(draftAheadOfPublished);
           if (localDraftSupersededByCloud) setShowHeroCloudNotice(true);
@@ -2477,7 +2479,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
           return JSON.stringify(rest);
         };
         const replacedLocalDraft =
-          authed &&
+          allowLocalDraftPreference &&
           previousLocal &&
           shouldPersistHomePageContent(previousLocal) &&
           fp(previousLocal) !== fp(migratedContent);
@@ -2494,7 +2496,9 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         console.log('✅ Home page content loaded from Supabase (published row is source of truth)');
       } catch (error) {
         console.error('❌ Error loading home page content from Supabase:', error);
-        const { content, draftAheadOfPublished } = resolveHomeContentAfterLoad(undefined, authed);
+        const { content, draftAheadOfPublished } = resolveHomeContentAfterLoad(undefined, {
+          allowLocalDraftPreference,
+        });
         setHeroDraftAheadOfCloud(draftAheadOfPublished);
         const migratedContent = migrateLegacyWelcomeGreeting(content);
 
