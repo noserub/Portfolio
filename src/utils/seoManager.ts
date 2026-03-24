@@ -332,8 +332,8 @@ export function applyPageSEO(pageSEO: SEOData, sitewide: SitewideSEO): void {
     }
   }
 
-  // Update favicon
-  updateFavicon(sitewide);
+  // Favicon is applied once in App.tsx (Supabase + localStorage fallback), not here — applying it
+  // from page SEO would overwrite the server-resolved favicon on every route.
 }
 
 // Function to update favicon dynamically
