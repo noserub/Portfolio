@@ -43,6 +43,8 @@ import {
 } from "./components/ui/dropdown-menu";
 import { Toaster } from "./components/ui/sonner";
 import { migrateResearchInsights, migrateProjectsArray, runSafetyChecks } from "./utils";
+import { FLUSH_HOME_PAGE_CMS_EVENT } from "./lib/homePageContent";
+import { getPortfolioOwnerUserId } from "./lib/portfolioOwner";
 import { useAppSettings } from "./hooks/useAppSettings";
 import { useProjects } from "./hooks/useProjects";
 import { useContactMessages } from "./hooks/useContactMessages";
@@ -416,8 +418,8 @@ export default function App() {
       // Try to load from Supabase (prioritize public access for consistency)
       const { data: { user } } = await supabase.auth.getUser();
       const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
-      const fallbackUserId = '7cd2752f-93c5-46e6-8535-32769fb10055';
-      
+      const fallbackUserId = getPortfolioOwnerUserId();
+
       console.log('📄 Loading page visibility from Supabase (public access):', fallbackUserId);
       console.log('📄 User auth state:', { user: user?.id, isBypassAuth, fallbackUserId });
       
@@ -547,8 +549,8 @@ export default function App() {
         // Try to save to Supabase for shared access (always use fallback user ID for public access)
         const { data: { user } } = await supabase.auth.getUser();
         const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
-        const fallbackUserId = '7cd2752f-93c5-46e6-8535-32769fb10055';
-        
+        const fallbackUserId = getPortfolioOwnerUserId();
+
         console.log('💾 Saving page visibility to Supabase for shared access (public):', fallbackUserId);
         
         // Always save to the fallback user ID so incognito users can access it
@@ -1515,28 +1517,27 @@ export default function App() {
     } else {
       const newMode = !isEditMode;
       
-      // When switching FROM edit mode TO preview mode, check for unsaved changes
       if (isEditMode && !newMode) {
-        // Check if there are any unsaved changes
         const hasUnsavedChanges = checkForUnsavedChanges();
-        
+
         if (hasUnsavedChanges) {
           const confirmed = confirm(
             '⚠️ You have unsaved changes!\n\n' +
             'Are you sure you want to exit edit mode? Your changes will be lost.\n\n' +
             'Click "OK" to discard changes and exit edit mode.\n' +
-            'Click "Cancel" to stay in edit mode and save your changes.'
+            'Click "Cancel" to stay in edit mode and save your changes.',
           );
-          
+
           if (!confirmed) {
             console.log('👁️ User cancelled exit edit mode - staying in edit mode');
-            return; // Don't exit edit mode
-          } else {
-            console.log('⚠️ User confirmed exit edit mode - discarding unsaved changes');
+            return;
           }
+          console.log('⚠️ User confirmed exit edit mode - discarding unsaved changes');
+        } else {
+          window.dispatchEvent(new Event(FLUSH_HOME_PAGE_CMS_EVENT));
         }
       }
-      
+
       setIsEditMode(newMode);
       
       // When switching to preview mode, log current state

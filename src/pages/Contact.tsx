@@ -8,6 +8,7 @@ import { PageLayout } from '../components/layout/PageLayout';
 import { MarkdownRenderer } from '../components/MarkdownRenderer';
 import { useSEO } from '../hooks/useSEO';
 import { useContactMessages } from '../hooks/useContactMessages';
+import { getPortfolioOwnerUserId } from '../lib/portfolioOwner';
 
 interface ContactProps {
   onBack: () => void;
@@ -111,13 +112,13 @@ export function Contact({ onBack, isEditMode = false }: ContactProps) {
         const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
         
         if (user || isBypassAuth) {
-          const userId = user?.id || '7cd2752f-93c5-46e6-8535-32769fb10055'; // Fallback for bypass auth
-          
+          const userId = user?.id || getPortfolioOwnerUserId();
+
           console.log('🔐 Contact: Authentication check:', {
             hasUser: !!user,
             userId: user?.id,
             isBypassAuth,
-            fallbackUserId: '7cd2752f-93c5-46e6-8535-32769fb10055',
+            fallbackUserId: getPortfolioOwnerUserId(),
             finalUserId: userId
           });
           
@@ -197,7 +198,7 @@ export function Contact({ onBack, isEditMode = false }: ContactProps) {
         const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
         
         if (user || isBypassAuth) {
-          const userId = user?.id || '7cd2752f-93c5-46e6-8535-32769fb10055';
+          const userId = user?.id || getPortfolioOwnerUserId();
           
           console.log('💾 Attempting to save email to Supabase:', editedText);
           

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../lib/supabaseClient';
+import { getPortfolioOwnerUserId } from '../lib/portfolioOwner';
 
 export interface Project {
   id: string;
@@ -256,7 +257,7 @@ export function useProjects() {
       console.log('🔄 useProjects: Attempting to update project in Supabase:', { id, updates });
       
       // Use fallback user ID for bypass auth
-      const userId = user?.id || '7cd2752f-93c5-46e6-8535-32769fb10055';
+      const userId = user?.id || getPortfolioOwnerUserId();
       console.log('🔄 useProjects: Using user ID:', userId, 'Auth type:', user ? 'Supabase' : 'Bypass');
       
       // Filter to valid DB columns only and drop undefined
@@ -329,7 +330,7 @@ export function useProjects() {
         
         // Get the current user or use fallback
         const { data: { user: currentUser } } = await supabase.auth.getUser();
-        const fallbackUserId = '7cd2752f-93c5-46e6-8535-32769fb10055';
+        const fallbackUserId = getPortfolioOwnerUserId();
         const effectiveUserId = currentUser?.id || fallbackUserId;
         
         console.log('🔄 useProjects: Transfer ownership using user ID:', effectiveUserId);

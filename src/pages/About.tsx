@@ -10,6 +10,7 @@ import { Sparkles, Target, Users, Rocket, Zap, Award, Lightbulb, TrendingUp, Box
 import { MarkdownRenderer } from "../components/MarkdownRenderer";
 import { useSEO } from "../hooks/useSEO";
 import { useProfiles } from "../hooks/useProfiles";
+import { getPortfolioOwnerUserId } from "../lib/portfolioOwner";
 
 interface AboutProps {
   onBack: () => void;
@@ -248,7 +249,7 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
         
         if (user || isBypassAuth) {
           // Authenticated user - load user-specific data
-          const userId = user?.id || '7cd2752f-93c5-46e6-8535-32769fb10055';
+          const userId = user?.id || getPortfolioOwnerUserId();
           console.log('📥 About page: Loading profile for authenticated user:', userId);
           profile = await getCurrentUserProfile();
         } else {

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabaseClient';
+import { getPortfolioOwnerUserId } from '../lib/portfolioOwner';
 
 export interface Profile {
   id: string;
@@ -197,8 +198,8 @@ export function useProfiles() {
       }
       
       // Use bypass user ID if no real user
-      const userId = user?.id || '7cd2752f-93c5-46e6-8535-32769fb10055';
-      
+      const userId = user?.id || getPortfolioOwnerUserId();
+
       return await getProfile(userId);
     } catch (err: any) {
       setError(err.message);
@@ -217,8 +218,8 @@ export function useProfiles() {
       }
       
       // Use bypass user ID if no real user
-      const userId = user?.id || '7cd2752f-93c5-46e6-8535-32769fb10055';
-      
+      const userId = user?.id || getPortfolioOwnerUserId();
+
       // Try to update existing profile first
       let result = await updateProfile(userId, updates);
       

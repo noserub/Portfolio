@@ -1,5 +1,6 @@
 // SEO Manager - Manages SEO metadata for all pages
 import { supabase } from '../lib/supabaseClient';
+import { getPortfolioOwnerUserId } from '../lib/portfolioOwner';
 
 export interface SEOData {
   title: string;
@@ -434,6 +435,19 @@ export async function uploadFaviconToSupabase(file: File): Promise<string | null
 // Get favicon from Supabase Storage
 export async function getFaviconFromSupabase(): Promise<string | null> {
   try {
+    const ownerId = getPortfolioOwnerUserId();
+    const { data: ownerSettings, error: ownerErr } = await supabase
+      .from('app_settings')
+      .select('favicon_url')
+      .eq('user_id', ownerId)
+      .not('favicon_url', 'is', null)
+      .maybeSingle();
+
+    if (!ownerErr && ownerSettings?.favicon_url) {
+      console.log('✅ Using favicon from app_settings (portfolio owner row)');
+      return ownerSettings.favicon_url;
+    }
+
     // First, let's check if there are ANY records in app_settings
     console.log('🔍 Checking for ANY records in app_settings...');
     const { data: allRecords, error: allRecordsError } = await supabase
@@ -487,6 +501,19 @@ export async function getFaviconFromSupabase(): Promise<string | null> {
       console.log('❌ No public favicon found:', { publicError, publicSettings });
     }
 
+    const { data: seoRow, error: seoErr } = await supabase
+      .from('seo_data')
+      .select('favicon_image')
+      .not('favicon_image', 'is', null)
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!seoErr && seoRow?.favicon_image) {
+      console.log('✅ Using favicon from seo_data (fallback)');
+      return seoRow.favicon_image;
+    }
+
     return null;
   } catch (error) {
     console.error('Error getting favicon from Supabase:', error);
@@ -514,7 +541,7 @@ export async function saveFaviconToSupabase(faviconUrl: string): Promise<boolean
     }
 
     // Use user ID or fallback for bypass auth
-    const userId = user?.id || '7cd2752f-93c5-46e6-8535-32769fb10055'; // Fallback for bypass auth
+    const userId = user?.id || getPortfolioOwnerUserId();
     console.log('Saving favicon for user:', userId, 'Auth type:', user ? 'Supabase' : 'Bypass');
 
     // Update or create app settings with favicon URL for user and mark as public

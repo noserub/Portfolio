@@ -45,6 +45,8 @@ A modern, interactive portfolio application built with React, TypeScript, and Su
    ```env
    VITE_SUPABASE_URL=your_supabase_url
    VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+   # Same UUID as your user in Supabase Auth (so Vercel preview matches what you edit signed-in):
+   VITE_PUBLIC_PORTFOLIO_OWNER_ID=your-auth-user-uuid
    ```
 
 4. **Run the development server**
@@ -99,7 +101,7 @@ src/
 
 ### Vercel (Recommended)
 1. Connect your GitHub repository to Vercel
-2. Add environment variables in Vercel dashboard
+2. Add environment variables in Vercel dashboard (include `VITE_PUBLIC_PORTFOLIO_OWNER_ID` for Preview + Production)
 3. Deploy automatically on push to main branch
 
 ### Other Platforms
@@ -119,6 +121,7 @@ src/
 |----------|-------------|----------|
 | `VITE_SUPABASE_URL` | Your Supabase project URL | Yes |
 | `VITE_SUPABASE_ANON_KEY` | Your Supabase anonymous key | Yes |
+| `VITE_PUBLIC_PORTFOLIO_OWNER_ID` | Your Auth user UUID; public site + preview read this profile row | Strongly recommended |
 
 ## 🤝 Contributing
 

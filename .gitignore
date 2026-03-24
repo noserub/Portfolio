@@ -99,3 +99,4 @@ temp/
 
 # Supabase
 .supabase/
+.vercel

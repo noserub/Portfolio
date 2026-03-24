@@ -41,9 +41,11 @@ import {
   toPersistedPayload,
   shouldPersistHomePageContent,
   persistHomePageToLocalStorageSync,
+  FLUSH_HOME_PAGE_CMS_EVENT,
   classicBioDocumentFromHero,
   healDegenerateHeroBio,
 } from "../lib/homePageContent";
+import { getPortfolioOwnerUserId } from "../lib/portfolioOwner";
 import { BioDocumentRenderer, HomeBioDocumentEditor } from "../components/HomeBioDocument";
 
 interface HomeProps {
@@ -2376,7 +2378,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
           let data: { hero_text: unknown; updated_at: string | null } | null;
           let error: unknown = null;
           /** Same id used across the app for bypass auth and public portfolio reads. */
-          const portfolioOwnerId = '7cd2752f-93c5-46e6-8535-32769fb10055';
+          const portfolioOwnerId = getPortfolioOwnerUserId();
 
           if (user || isBypassAuth) {
             const userId = user?.id || portfolioOwnerId;
@@ -2482,7 +2484,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
       const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
 
       if (user || isBypassAuth) {
-        const userId = user?.id || '7cd2752f-93c5-46e6-8535-32769fb10055';
+        const userId = user?.id || getPortfolioOwnerUserId();
         console.log(
           '💾 Home page: localStorage ✓ · syncing profiles.hero_text to Supabase for',
           userId,
@@ -2597,6 +2599,15 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
       window.removeEventListener('pagehide', onPageHide);
       window.removeEventListener('beforeunload', onBeforeUnload);
     };
+  }, [flushPendingHomePage]);
+
+  useEffect(() => {
+    const onFlushHomeCms = () => {
+      persistHomePageToLocalStorageSync(homePageContentRef.current);
+      flushPendingHomePage();
+    };
+    window.addEventListener(FLUSH_HOME_PAGE_CMS_EVENT, onFlushHomeCms);
+    return () => window.removeEventListener(FLUSH_HOME_PAGE_CMS_EVENT, onFlushHomeCms);
   }, [flushPendingHomePage]);
 
   useEffect(() => {
@@ -3120,8 +3131,8 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
       // Get current user for the project (with bypass auth support)
       const { data: { user } } = await supabase.auth.getUser();
       const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
-      const fallbackUserId = '7cd2752f-93c5-46e6-8535-32769fb10055';
-      
+      const fallbackUserId = getPortfolioOwnerUserId();
+
       let userId = user?.id;
       if (!userId && isBypassAuth) {
         console.log('🔄 Using fallback user ID for project creation');

@@ -5,6 +5,9 @@
 
 export const HOME_PAGE_CONTENT_VERSION = 2 as const;
 
+/** Dispatched when leaving edit → preview so the home hero flushes any pending debounced save. */
+export const FLUSH_HOME_PAGE_CMS_EVENT = "portfolio-flush-home-cms";
+
 export type BioRunType = "text" | "bold" | "gradient";
 
 export interface BioRun {
@@ -289,23 +292,36 @@ export function parseStoredHomeContent(raw: unknown): HomePageContentV2 {
 
   const obj = raw as Record<string, unknown>;
 
-  if (obj._version === HOME_PAGE_CONTENT_VERSION && obj.hero && typeof obj.hero === "object") {
-    const ts = obj._clientSavedAt;
+  const ts = obj._clientSavedAt;
+  const tsOpt =
+    typeof ts === "number" && !Number.isNaN(ts) ? { _clientSavedAt: ts } : {};
+
+  // Nested hero (v2) — include when _version was omitted by older saves
+  if (obj.hero && typeof obj.hero === "object") {
     return {
       _version: HOME_PAGE_CONTENT_VERSION,
       hero: mergeHero(obj.hero as Record<string, unknown>),
       stats: mergeStats(obj.stats),
       ui: mergeUI(obj.ui),
-      ...(typeof ts === "number" && !Number.isNaN(ts) ? { _clientSavedAt: ts } : {}),
+      ...tsOpt,
     };
   }
 
-  // Legacy: entire blob was hero fields only
+  // Legacy flat: greeting/subtitle/… at root — often had stats/ui added later; do not drop them
+  const {
+    stats: rawStats,
+    ui: rawUi,
+    _version: _ignoredVersion,
+    _clientSavedAt: _ignoredSavedAt,
+    ...heroFlat
+  } = obj;
+
   return {
     _version: HOME_PAGE_CONTENT_VERSION,
-    hero: mergeHero(obj),
-    stats: DEFAULT_STATS.map((s) => ({ ...s })),
-    ui: { ...DEFAULT_UI },
+    hero: mergeHero(heroFlat as Record<string, unknown>),
+    stats: mergeStats(rawStats),
+    ui: mergeUI(rawUi),
+    ...tsOpt,
   };
 }
 
@@ -382,7 +398,9 @@ export interface ResolveHomeContentResult {
 /**
  * After fetching `profiles.hero_text`, pick what to show.
  * - Signed-out: published Supabase row is authoritative when it has valid hero content.
- * - Signed in: prefer local only when its `_clientSavedAt` is newer than remote (JSON or profile row).
+ * - Signed in: prefer local when its `_clientSavedAt` beats the remote hero version.
+ *   Use `hero_text._clientSavedAt` when set; only if missing, fall back to `profiles.updated_at`
+ *   (do not mix both — unrelated profile updates must not look “newer” than the hero JSON).
  */
 export function resolveHomeContentAfterLoad(
   rawRemote: unknown,
@@ -413,7 +431,12 @@ export function resolveHomeContentAfterLoad(
   if (localValid) {
     const lt = local!._clientSavedAt ?? 0;
     const rtFromJson = remote._clientSavedAt ?? 0;
-    const rt = Math.max(rtFromJson, remoteProfileAt);
+    const rt =
+      rtFromJson > 0
+        ? rtFromJson
+        : remoteProfileAt > 0
+          ? remoteProfileAt
+          : 0;
     if (lt > rt) {
       return { content: local!, localDraftSupersededByCloud: false };
     }

@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabaseClient';
+import { getPortfolioOwnerUserId } from '../lib/portfolioOwner';
 
 interface ImportOptions {
   overwriteExisting?: boolean;
@@ -32,7 +33,7 @@ export async function importAllData(
       throw new Error('Not authenticated. Please sign in first.');
     }
     
-    const userId = user?.id || '7cd2752f-93c5-46e6-8535-32769fb10055';
+    const userId = user?.id || getPortfolioOwnerUserId();
     
     // 1. Import Projects
     onProgress('\n📦 Importing projects...');
@@ -207,7 +208,7 @@ export async function importProjectsFromBackup(
       throw new Error('Not authenticated. Please sign in first.');
     }
     
-    const userId = user?.id || '7cd2752f-93c5-46e6-8535-32769fb10055'; // Use current user or fallback
+    const userId = user?.id || getPortfolioOwnerUserId(); // Use current user or fallback
     
     // Import case studies
     if (jsonData.caseStudies && Array.isArray(jsonData.caseStudies)) {
