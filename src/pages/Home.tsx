@@ -860,7 +860,8 @@ export function Home({ onStartClick, isEditMode, onProjectClick, currentPage }: 
   
   // State for unified project creator
   const [showUnifiedProjectCreator, setShowUnifiedProjectCreator] = useState(false);
-  
+  const closeUnifiedProjectCreator = useCallback(() => setShowUnifiedProjectCreator(false), []);
+
   // Function to clean up blank/invalid case studies
   const cleanupBlankCaseStudies = () => {
     const caseStudiesStorage = localStorage.getItem('caseStudies');
@@ -4359,7 +4360,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         >
           <UnifiedProjectCreator
             isOpen={showUnifiedProjectCreator}
-            onClose={useCallback(() => setShowUnifiedProjectCreator(false), [])}
+            onClose={closeUnifiedProjectCreator}
             onCreateProject={handleCreateUnifiedProject}
             isEditMode={isEditMode}
           />
