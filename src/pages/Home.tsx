@@ -2949,13 +2949,9 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
           result_projectType: (result as any).projectType
         });
         
-        // Only refetch if not skipping (for minor updates like zoom/position)
-        if (!skipRefetch) {
-          console.log('🔄 Refetching projects after update...');
-          await refetch();
-          console.log('✅ Projects refetched');
-        }
-        
+        // updateProject() already merges the returned DB row into `projects` in useProjects.
+        // Avoid full-table refetch here: it can race with replication and briefly show older content.
+
         // CRITICAL: Also update localStorage to keep it in sync
         try {
           const storageKey = type === 'caseStudies' ? 'caseStudies' : 'designProjects';
@@ -2976,6 +2972,8 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
               description: updatedProject.description,
               projectType: updatedProject.projectType,
               project_type: updatedProject.projectType || (updatedProject as any).project_type,
+              caseStudyContent: updatedProject.caseStudyContent,
+              case_study_content: updatedProject.caseStudyContent,
               caseStudyImages: updatedProject.caseStudyImages,
               flowDiagramImages: updatedProject.flowDiagramImages,
               videoItems: updatedProject.videoItems,
@@ -2989,6 +2987,14 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
               videosPosition: updatedProject.videosPosition,
               flowDiagramsPosition: updatedProject.flowDiagramsPosition,
               solutionCardsPosition: updatedProject.solutionCardsPosition,
+              sectionPositions: updatedProject.sectionPositions,
+              caseStudySidebars: (updatedProject as any).caseStudySidebars,
+              case_study_sidebars:
+                (updatedProject as any).caseStudySidebars ?? (updatedProject as any).case_study_sidebars,
+              keyFeaturesColumns: (updatedProject as any).keyFeaturesColumns,
+              key_features_columns: (updatedProject as any).key_features_columns,
+              researchInsightsColumns: (updatedProject as any).researchInsightsColumns,
+              research_insights_columns: (updatedProject as any).research_insights_columns,
               lastModified: new Date().toISOString()
             };
             
