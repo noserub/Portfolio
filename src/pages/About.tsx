@@ -12,7 +12,7 @@ import { Sparkles, Target, Users, Rocket, Zap, Award, Lightbulb, TrendingUp, Box
 import { MarkdownRenderer } from "../components/MarkdownRenderer";
 import { useSEO } from "../hooks/useSEO";
 import { useProfiles, type ProfileUpdate } from "../hooks/useProfiles";
-import { getPortfolioOwnerUserId } from "../lib/portfolioOwner";
+import { getProfileWriterUserId } from "../lib/portfolioOwner";
 
 interface AboutProps {
   onBack: () => void;
@@ -355,15 +355,15 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
         
         let profile = null;
 
-        // One path for everyone (signed-in, bypass, incognito): same profiles row the CMS updates.
-        // getPortfolioOwnerUserId uses VITE_PUBLIC_PORTFOLIO_OWNER_ID when set, else the signed-in user id.
-        const ownerId = getPortfolioOwnerUserId(user?.id);
-        console.log('📥 About page: Loading profile for owner id:', ownerId);
+        // Same row id as profile writes (getProfileWriterUserId): session user when signed in, else published owner (env/default).
+        // Using getPortfolioOwnerUserId here broke CMS: env beat session id, so we read row A while saves went to row B — resume_url never appeared.
+        const profileRowId = getProfileWriterUserId(user?.id);
+        console.log('📥 About page: Loading profile row id:', profileRowId);
 
         const { data: ownerRow, error: ownerErr } = await supabase
           .from('profiles')
           .select('*')
-          .eq('id', ownerId)
+          .eq('id', profileRowId)
           .maybeSingle();
 
         if (ownerErr) {
@@ -854,8 +854,12 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
     }
   };
 
+  /** URL used when opening Resume: saved value, or default PDF for visitors if DB is still empty. */
+  const resumeOpenUrl =
+    resumeUrl.trim() || (!isEditMode ? DEFAULT_RESUME_URL : "");
+
   const handleResumeClick = () => {
-    const url = resumeUrl.trim();
+    const url = resumeOpenUrl.trim();
     if (!url) return;
     window.open(url, "_blank");
   };
@@ -935,7 +939,7 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
     >
       <button
         type="button"
-        disabled={!resumeUrl.trim()}
+        disabled={!resumeOpenUrl.trim()}
         onClick={(e) => {
           handleResumeClick();
           e.currentTarget.blur(); // Remove focus after click
