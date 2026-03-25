@@ -350,16 +350,16 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
           console.log('📥 About page: Loading profile for authenticated user:', userId);
           profile = await getCurrentUserProfile();
         } else {
-          // Not authenticated - load public data (most recent profile with data)
-          console.log('📥 About page: Loading public profile data...');
+          // Not authenticated: load the published portfolio owner's row (same id as CMS saves).
+          // Do NOT use "latest updated profile" — that can be a different user and have no resume_url.
+          const ownerId = getPortfolioOwnerUserId(null);
+          console.log('📥 About page: Loading public profile by owner id:', ownerId);
           const { data, error } = await supabase
             .from('profiles')
             .select('*')
-            .not('bio_paragraph_1', 'is', null)
-            .order('updated_at', { ascending: false })
-            .limit(1)
+            .eq('id', ownerId)
             .maybeSingle();
-            
+
           if (error) {
             console.log('⚠️ About page: Error loading public profile:', error);
           } else {
