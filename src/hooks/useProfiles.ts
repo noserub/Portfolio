@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabaseClient';
-import { getPortfolioOwnerUserId } from '../lib/portfolioOwner';
+import { getPortfolioOwnerUserId, getProfileWriterUserId } from '../lib/portfolioOwner';
 
 export interface Profile {
   id: string;
@@ -224,18 +224,18 @@ export function useProfiles() {
       if (!user && !isBypassAuth) {
         throw new Error('No authenticated user');
       }
-      
-      // Use bypass user ID if no real user
-      const userId = getPortfolioOwnerUserId(user?.id);
+
+      // Session id for writes — not env-first — or owner id when anon + bypass (see portfolioOwner).
+      const writerUserId = getProfileWriterUserId(user?.id);
 
       // Try to update existing profile first
-      let result = await updateProfile(userId, updates);
+      let result = await updateProfile(writerUserId, updates);
       
       // If no existing profile, create one
       if (!result) {
         console.log('📝 Profile not found, creating new profile...');
         const newProfile = {
-          id: userId,
+          id: writerUserId,
           email: user?.email || 'brian.bureson@gmail.com',
           full_name: 'Brian Bureson',
           ...updates

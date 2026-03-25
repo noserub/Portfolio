@@ -20,3 +20,22 @@ export function getPortfolioOwnerUserId(authenticatedUserId?: string | null): st
   }
   return DEFAULT_PORTFOLIO_OWNER_ID;
 }
+
+/**
+ * ID to use for Supabase `profiles` UPDATE/INSERT so RLS passes.
+ *
+ * `getPortfolioOwnerUserId` prefers `VITE_PUBLIC_PORTFOLIO_OWNER_ID` over the session id.
+ * For **writes**, PostgREST requires `auth.uid() = profiles.id`. If env points at UUID B but
+ * you are signed in as UUID A, updates targeting B fail silently (0 rows) — e.g. `resume_url`
+ * never persists while other UI still “works” from local drafts.
+ *
+ * When a session exists, always use that user id for profile mutations. When there is no
+ * session (anon + site password bypass), use the published owner id from env / legacy default
+ * (requires matching RLS policy for that row).
+ */
+export function getProfileWriterUserId(authenticatedUserId?: string | null): string {
+  if (typeof authenticatedUserId === "string" && authenticatedUserId.trim().length > 0) {
+    return authenticatedUserId.trim();
+  }
+  return getPortfolioOwnerUserId(null);
+}

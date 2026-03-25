@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { motion } from "motion/react";
 import { PageLayout } from "../components/layout/PageLayout";
 import { Badge } from "../components/ui/badge";
@@ -11,7 +11,7 @@ import { Label } from "../components/ui/label";
 import { Sparkles, Target, Users, Rocket, Zap, Award, Lightbulb, TrendingUp, Boxes, BarChart3, PenTool, BrainCircuit, GraduationCap, Wrench, FileText, Edit2, Save, X, ChevronDown, ChevronUp, ArrowUp, ArrowDown, Handshake, Layers } from "lucide-react";
 import { MarkdownRenderer } from "../components/MarkdownRenderer";
 import { useSEO } from "../hooks/useSEO";
-import { useProfiles } from "../hooks/useProfiles";
+import { useProfiles, type ProfileUpdate } from "../hooks/useProfiles";
 import { getPortfolioOwnerUserId } from "../lib/portfolioOwner";
 
 interface AboutProps {
@@ -246,6 +246,13 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
 
   /** Empty until Supabase/localStorage load; never default to the legacy Drive URL (that hid null DB). */
   const [resumeUrl, setResumeUrl] = useState("");
+
+  /**
+   * When true, `resume_url` may be written on autosave. Without this, autosave would send
+   * `resume_url: null` whenever other fields changed while state still had an empty resume,
+   * wiping a valid URL in the database.
+   */
+  const resumeTouchedRef = useRef(false);
 
   /** Applies `aboutPageProfile` JSON from localStorage (same shape as save). */
   /**
@@ -500,10 +507,28 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
               }
             }
           }
-          // Resume link: exactly what's in profiles.resume_url (same row CMS saves). No localStorage/default override.
+          // Resume link: profiles.resume_url first; if empty, recover from aboutPageProfile local draft.
           {
             const r = profile.resume_url;
-            const nextResume = r != null && String(r).trim() ? String(r).trim() : "";
+            let nextResume = r != null && String(r).trim() ? String(r).trim() : "";
+            if (!nextResume && typeof window !== "undefined") {
+              try {
+                const savedProfile = localStorage.getItem("aboutPageProfile");
+                if (savedProfile) {
+                  const profileData = JSON.parse(savedProfile) as Record<string, unknown>;
+                  const ls =
+                    profileData.resume_url != null && String(profileData.resume_url).trim()
+                      ? String(profileData.resume_url).trim()
+                      : "";
+                  if (ls) {
+                    nextResume = ls;
+                    resumeTouchedRef.current = true;
+                  }
+                }
+              } catch {
+                /* ignore */
+              }
+            }
             if (!cancelled) setResumeUrl(nextResume);
           }
           if (!cancelled) {
@@ -603,8 +628,7 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
     try {
       console.log('💾 About page: Attempting to save profile data to Supabase...');
       
-      // Try to save to Supabase first
-      const result = await updateCurrentUserProfile({
+      const payload: ProfileUpdate = {
         bio_paragraph_1: bioParagraph1,
         bio_paragraph_2: bioParagraph2,
         super_powers_title: superPowersTitle,
@@ -626,8 +650,12 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
         tools_categories: toolsCategories,
         section_order: sectionOrder,
         about_highlights_leadership_decorative_icons: aboutHighlightsLeadershipDecorativeIcons,
-        resume_url: resumeUrl.trim() || null,
-      });
+      };
+      if (resumeTouchedRef.current) {
+        payload.resume_url = resumeUrl.trim() || null;
+      }
+
+      const result = await updateCurrentUserProfile(payload);
       
       if (result) {
         console.log('✅ About page: Successfully saved to Supabase');
@@ -1229,7 +1257,10 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
                     inputMode="url"
                     autoComplete="url"
                     value={resumeUrl}
-                    onChange={(e) => setResumeUrl(e.target.value)}
+                    onChange={(e) => {
+                      resumeTouchedRef.current = true;
+                      setResumeUrl(e.target.value);
+                    }}
                     placeholder={DEFAULT_RESUME_URL}
                     className="font-mono text-sm"
                   />
