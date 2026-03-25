@@ -271,8 +271,8 @@ export function useProfiles() {
         console.log('📝 Profile not found, creating new profile...');
         const newProfile = {
           id: writerUserId,
-          email: user?.email || 'brian.bureson@gmail.com',
-          full_name: 'Brian Bureson',
+          email: user?.email?.trim() || import.meta.env.VITE_SITE_OWNER_SIGNIN_EMAIL?.trim() || "",
+          full_name: "Brian Bureson",
           ...updates,
         } as ProfileInsert;
         return await createProfile(newProfile);

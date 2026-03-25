@@ -1417,51 +1417,12 @@ function AppShell() {
     }
   };
 
-  const handleSignIn = async (password: string) => {
-    console.log('🔐 handleSignIn called with password:', password);
-    
-    if (password === 'brian2025') {
-      // Real authentication with your account
-      try {
-        console.log('🔐 REAL AUTH: Signing in with brian.bureson@gmail.com...');
-        
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: 'brian.bureson@gmail.com',
-          password: 'brian2025'
-        });
-        
-        if (error) {
-          console.error('❌ REAL AUTH: Failed to sign in:', error);
-          // Try to create the account if it doesn't exist
-          console.log('🔄 REAL AUTH: Trying to create account...');
-          const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-            email: 'brian.bureson@gmail.com',
-            password: 'brian2025'
-          });
-          
-          if (signUpError) {
-            console.error('❌ REAL AUTH: Failed to create account:', signUpError);
-            throw new Error('Failed to authenticate or create account');
-          } else {
-            console.log('✅ REAL AUTH: Account created successfully');
-          }
-        } else {
-          console.log('✅ REAL AUTH: Successfully signed in with real account');
-        }
-      } catch (err) {
-        console.error('❌ REAL AUTH: Authentication failed:', err);
-        throw new Error('Authentication failed');
-      }
-    }
-    
+  /** Called after `SignIn` succeeds (`signInWithPassword`); no credentials handled here. */
+  const handleSignIn = () => {
     setIsAuthenticated(true);
-    // Persist authentication to localStorage
-    localStorage.setItem('isAuthenticated', 'true');
+    localStorage.setItem("isAuthenticated", "true");
     setShowSignIn(false);
-    // Automatically enable edit mode after signing in
     setIsEditMode(true);
-    console.log('✅ Signed in - authentication persisted to localStorage');
-    console.log('✅ Authentication state updated:', { isAuthenticated: true, isEditMode: true });
   };
 
   const handleSignOut = async () => {

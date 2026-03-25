@@ -8,6 +8,7 @@ import {
 } from "../ui/tooltip";
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import { cn } from "../ui/utils";
+import { getPublicContactEmail } from "../../lib/publicContactEmail";
 
 // Custom TooltipContent without arrow for footer - matches home page tooltip styling
 function FooterTooltipContent({
@@ -46,6 +47,7 @@ function FooterTooltipContent({
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
+  const contactEmail = getPublicContactEmail();
 
   return (
     <TooltipProvider delayDuration={300}>
@@ -130,30 +132,27 @@ export function Footer() {
                 </FooterTooltipContent>
               </Tooltip>
 
-              {/* Email */}
-              <Tooltip delayDuration={300}>
-                <TooltipTrigger asChild>
-                  <motion.a
-                    href="mailto:brian.bureson@gmail.com"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    transition={{ duration: 0.3 }}
-                    className="group relative flex items-center justify-center w-12 h-12 rounded-full transition-all duration-300"
-                    aria-label="Send Email"
-                  >
-                    {/* Inverted background on hover - matches home page exactly */}
-                    <div className="absolute inset-0 rounded-full bg-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-300 shadow-lg" />
-                    
-                    {/* Icon */}
-                    <Mail className="relative z-10 w-5 h-5 text-foreground group-hover:text-background transition-colors duration-300" />
-                  </motion.a>
-                </TooltipTrigger>
-                <FooterTooltipContent 
-                  sideOffset={8}
-                >
-                  <p>Send me an email</p>
-                </FooterTooltipContent>
-              </Tooltip>
+              {/* Email — hidden until VITE_PUBLIC_CONTACT_EMAIL or VITE_SITE_OWNER_SIGNIN_EMAIL is set */}
+              {contactEmail ? (
+                <Tooltip delayDuration={300}>
+                  <TooltipTrigger asChild>
+                    <motion.a
+                      href={`mailto:${contactEmail}`}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      transition={{ duration: 0.3 }}
+                      className="group relative flex items-center justify-center w-12 h-12 rounded-full transition-all duration-300"
+                      aria-label="Send Email"
+                    >
+                      <div className="absolute inset-0 rounded-full bg-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-300 shadow-lg" />
+                      <Mail className="relative z-10 w-5 h-5 text-foreground group-hover:text-background transition-colors duration-300" />
+                    </motion.a>
+                  </TooltipTrigger>
+                  <FooterTooltipContent sideOffset={8}>
+                    <p>Send me an email</p>
+                  </FooterTooltipContent>
+                </Tooltip>
+              ) : null}
             </motion.div>
 
             {/* Copyright Text */}

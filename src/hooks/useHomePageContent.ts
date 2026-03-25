@@ -294,7 +294,7 @@ export function useHomePageContent(options: UseHomePageContentOptions) {
             .from("profiles")
             .insert({
               id: ownerId,
-              email: user?.email || "brian.bureson@gmail.com",
+              email: user?.email?.trim() || import.meta.env.VITE_SITE_OWNER_SIGNIN_EMAIL?.trim() || "",
               full_name: "Brian Bureson",
               hero_text: payload,
             })
