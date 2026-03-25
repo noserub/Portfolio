@@ -105,7 +105,11 @@ export function SidebarExpandableContent({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.2 }}
-          onClick={() => setExpanded((e) => !e)}
+          onMouseDown={(e) => {
+            // Keep focus ring from sticking after mouse click (keyboard focus unchanged)
+            e.preventDefault();
+          }}
+          onClick={() => setExpanded((v) => !v)}
           aria-expanded={expanded}
           className={cn(
             "mt-1 flex w-full items-center justify-center gap-1 py-1 text-xs font-medium",
