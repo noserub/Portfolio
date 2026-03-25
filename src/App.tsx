@@ -158,14 +158,16 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
                 </Button>
               </div>
 
-              <details className="mt-6">
-                <summary className="cursor-pointer text-sm text-muted-foreground hover:text-foreground">
-                  View technical details
-                </summary>
-                <pre className="mt-4 p-4 bg-muted rounded-lg text-xs overflow-auto">
-                  {this.state.error?.stack}
-                </pre>
-              </details>
+              {import.meta.env.DEV && (
+                <details className="mt-6">
+                  <summary className="cursor-pointer text-sm text-muted-foreground hover:text-foreground">
+                    View technical details
+                  </summary>
+                  <pre className="mt-4 p-4 bg-muted rounded-lg text-xs overflow-auto">
+                    {this.state.error?.stack}
+                  </pre>
+                </details>
+              )}
             </div>
           </div>
         </div>
@@ -1265,8 +1267,8 @@ function AppShell() {
     setTimeout(forceScrollToTop, 0);
   };
 
-  const handlePasswordCorrect = async (passwordFromPrompt: string) => {
-    if (!pendingProtectedProject) return;
+  const handleUnlockCaseStudy = async (passwordFromPrompt: string): Promise<boolean> => {
+    if (!pendingProtectedProject) return false;
     const { project, updateCallback } = pendingProtectedProject;
     const { data, error } = await supabase.rpc("unlock_project_with_password", {
       p_project_id: project.id,
@@ -1274,12 +1276,11 @@ function AppShell() {
     });
     if (error) {
       console.error("unlock_project_with_password failed:", error);
-      return;
+      return false;
     }
     const row = Array.isArray(data) ? data[0] : data;
     if (!row) {
-      console.warn("Unlock returned no row");
-      return;
+      return false;
     }
     const mapped = mapSupabaseProjectRowToProjectData(row as Record<string, unknown>);
     setPendingProtectedProject(null);
@@ -1290,6 +1291,7 @@ function AppShell() {
     setProjectUpdateCallback({ fn: updateCallback });
     setCurrentPage("project-detail");
     setTimeout(forceScrollToTop, 0);
+    return true;
   };
 
   const handlePasswordCancel = () => {
