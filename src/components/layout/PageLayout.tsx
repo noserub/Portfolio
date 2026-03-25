@@ -22,13 +22,13 @@ export function PageLayout({ title, children, onBack, overline, actionButton, su
       {/* 
         TOOLBAR LAYOUT:
         - Global toolbar (top-24): Logo, theme toggle, sign in, back button (left), tabs (center)
-        - Contextual toolbar (top-[6.5rem]): Page-specific action buttons can be placed in the right area
+        - Contextual toolbar (portfolio-sticky-below-chrome): Page-specific action buttons can be placed in the right area
         - Body content: Starts at pt-44 to leave room for toolbars
       */}
       
       {/* Contextual Action Button Area - Top Right, aligned with tabs and back button */}
       {actionButton && (
-        <div className="fixed top-[6.5rem] right-6 z-40 hidden lg:block">
+        <div className="fixed right-6 z-40 hidden lg:block portfolio-sticky-below-chrome">
           <motion.div
             initial={{ x: 20, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}

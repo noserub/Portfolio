@@ -54,5 +54,15 @@ export function useScrollHideChrome() {
     };
   }, [reduceMotion]);
 
+  /** Keep sticky rails / contextual toolbars aligned with visible chrome (case-study sidebar, PageLayout). */
+  useEffect(() => {
+    const root = document.documentElement;
+    const chromeExpanded = reduceMotion || !offscreen;
+    root.style.setProperty(
+      "--portfolio-sticky-top",
+      chromeExpanded ? "6.5rem" : "calc(env(safe-area-inset-top, 0px) + 0.75rem)"
+    );
+  }, [offscreen, reduceMotion]);
+
   return { chromeOffscreen: !reduceMotion && offscreen };
 }
