@@ -102,12 +102,6 @@ export function CaseStudyPasswordPrompt({
             </Button>
           </div>
         </form>
-
-        <div className="mt-6 pt-6 border-t border-border">
-          <p className="text-xs text-muted-foreground text-center">
-            💡 Password can be reset by the site owner in edit mode
-          </p>
-        </div>
       </motion.div>
     </motion.div>
   );
