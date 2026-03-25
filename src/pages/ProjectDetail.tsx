@@ -29,6 +29,8 @@ import { cleanMarkdownContent, isContentCorrupted } from "../utils/cleanMarkdown
 import { uploadImage } from "../utils/imageHelpers";
 import { Search } from "lucide-react";
 import { Label } from "../components/ui/label";
+import { Checkbox } from "../components/ui/checkbox";
+import { cn } from "../components/ui/utils";
 
 interface ProjectDetailProps {
   project: ProjectData;
@@ -450,10 +452,34 @@ const stripSolutionCardSections = (markdown: string): string => {
     .replace(/\n{3,}/g, '\n\n');
 };
 
-export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: ProjectDetailProps) {
+export function ProjectDetail({ project, onBack, onUpdate: pushProjectUpdate, isEditMode }: ProjectDetailProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [showSaveIndicator, setShowSaveIndicator] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+  const [caseStudyDecorativeIcons, setCaseStudyDecorativeIcons] = useState(
+    () => project.caseStudyDecorativeIcons ?? (project as any).case_study_decorative_icons ?? false
+  );
+  useEffect(() => {
+    setCaseStudyDecorativeIcons(
+      project.caseStudyDecorativeIcons ?? (project as any).case_study_decorative_icons ?? false
+    );
+  }, [project.id, project.caseStudyDecorativeIcons, (project as any).case_study_decorative_icons]);
+
+  const persistUpdate = useCallback(
+    (updated: ProjectData) => {
+      const icons =
+        updated.caseStudyDecorativeIcons ??
+        (updated as any).case_study_decorative_icons ??
+        caseStudyDecorativeIcons;
+      pushProjectUpdate({
+        ...updated,
+        caseStudyDecorativeIcons: icons,
+        case_study_decorative_icons: icons,
+      } as ProjectData);
+    },
+    [pushProjectUpdate, caseStudyDecorativeIcons],
+  );
   
   // Update SEO metadata for case study page
   useCaseStudySEO(project.id, project.title);
@@ -567,7 +593,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
               video_items: dbVideos.length > 0 ? dbVideos : ((project as any).video_items || []),
             } as any;
             
-            onUpdate(updatedProject);
+            persistUpdate(updatedProject);
             console.log('✅ RECOVERY: Persisted restored image/video references to database');
           } else {
             console.log('ℹ️ RECOVERY: No image/video data found in database for this project');
@@ -637,7 +663,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                   const restoreImages = setCaseStudyImages;
                   const restoreFlowDiagrams = setFlowDiagramImages;
                   const restoreVideos = setVideoItems;
-                  const updateProject = onUpdate;
+                  const updateProject = persistUpdate;
                   const currentProject = project;
                   
                   (window as any).autoRestoreFiles = async () => {
@@ -1042,9 +1068,9 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       solutionCardsPosition,
       sectionPositions,
     };
-    onUpdate(updatedProject);
+    persistUpdate(updatedProject);
     console.log('✅ Overview section added');
-  }, [caseStudyContent, project, editedTitle, editedDescription, editedProjectType, galleryAspectRatio, flowDiagramAspectRatio, videoAspectRatio, galleryColumns, flowDiagramColumns, videoColumns, projectImagesPosition, videosPosition, flowDiagramsPosition, solutionCardsPosition, sectionPositions, onUpdate]);
+  }, [caseStudyContent, project, editedTitle, editedDescription, editedProjectType, galleryAspectRatio, flowDiagramAspectRatio, videoAspectRatio, galleryColumns, flowDiagramColumns, videoColumns, projectImagesPosition, videosPosition, flowDiagramsPosition, solutionCardsPosition, sectionPositions, persistUpdate]);
 
   const handleAddVideosSection = useCallback(() => {
     const next = getNextPosition();
@@ -1070,8 +1096,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       solutionCardsPosition,
       sectionPositions,
     };
-    onUpdate(updatedProject);
-  }, [getNextPosition, project, editedTitle, editedDescription, editedProjectType, caseStudyContent, galleryAspectRatio, flowDiagramAspectRatio, videoAspectRatio, galleryColumns, flowDiagramColumns, videoColumns, projectImagesPosition, flowDiagramsPosition, solutionCardsPosition, sectionPositions, onUpdate]);
+    persistUpdate(updatedProject);
+  }, [getNextPosition, project, editedTitle, editedDescription, editedProjectType, caseStudyContent, galleryAspectRatio, flowDiagramAspectRatio, videoAspectRatio, galleryColumns, flowDiagramColumns, videoColumns, projectImagesPosition, flowDiagramsPosition, solutionCardsPosition, sectionPositions, persistUpdate]);
 
   const handleAddImagesSection = useCallback(() => {
     const next = getNextPosition();
@@ -1097,8 +1123,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       solutionCardsPosition,
       sectionPositions,
     };
-    onUpdate(updatedProject);
-  }, [getNextPosition, project, editedTitle, editedDescription, editedProjectType, caseStudyContent, galleryAspectRatio, flowDiagramAspectRatio, videoAspectRatio, galleryColumns, flowDiagramColumns, videoColumns, videosPosition, flowDiagramsPosition, solutionCardsPosition, sectionPositions, onUpdate]);
+    persistUpdate(updatedProject);
+  }, [getNextPosition, project, editedTitle, editedDescription, editedProjectType, caseStudyContent, galleryAspectRatio, flowDiagramAspectRatio, videoAspectRatio, galleryColumns, flowDiagramColumns, videoColumns, videosPosition, flowDiagramsPosition, solutionCardsPosition, sectionPositions, persistUpdate]);
 
   const handleAddFlowsSection = useCallback(() => {
     const next = getNextPosition();
@@ -1124,8 +1150,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       solutionCardsPosition,
       sectionPositions,
     };
-    onUpdate(updatedProject);
-  }, [getNextPosition, project, editedTitle, editedDescription, editedProjectType, caseStudyContent, galleryAspectRatio, flowDiagramAspectRatio, videoAspectRatio, galleryColumns, flowDiagramColumns, videoColumns, projectImagesPosition, videosPosition, solutionCardsPosition, sectionPositions, onUpdate]);
+    persistUpdate(updatedProject);
+  }, [getNextPosition, project, editedTitle, editedDescription, editedProjectType, caseStudyContent, galleryAspectRatio, flowDiagramAspectRatio, videoAspectRatio, galleryColumns, flowDiagramColumns, videoColumns, projectImagesPosition, videosPosition, solutionCardsPosition, sectionPositions, persistUpdate]);
 
   const handleAddSolutionCardsSection = useCallback(() => {
     // Find "The solution" section and position solution cards right after it
@@ -1188,8 +1214,8 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       solutionCardsPosition: position,
       sectionPositions,
     };
-    onUpdate(updatedProject);
-  }, [getNextPosition, project, editedTitle, editedDescription, editedProjectType, caseStudyContent, galleryAspectRatio, flowDiagramAspectRatio, videoAspectRatio, galleryColumns, flowDiagramColumns, videoColumns, projectImagesPosition, videosPosition, flowDiagramsPosition, sectionPositions, onUpdate]);
+    persistUpdate(updatedProject);
+  }, [getNextPosition, project, editedTitle, editedDescription, editedProjectType, caseStudyContent, galleryAspectRatio, flowDiagramAspectRatio, videoAspectRatio, galleryColumns, flowDiagramColumns, videoColumns, projectImagesPosition, videosPosition, flowDiagramsPosition, sectionPositions, persistUpdate]);
 
   // Helpers to detect presence of markdown sections
   const hasMarkdownTitle = useCallback((title: string) => {
@@ -1241,7 +1267,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       const cleaned = stripLegacySidebarBlocks(caseStudyContent || '');
       if (cleaned !== (caseStudyContent || '')) setCaseStudyContent(cleaned);
       
-      onUpdate({
+      persistUpdate({
         ...project,
         sectionPositions: updatedSectionPositions,
         section_positions: updatedSectionPositions,
@@ -1280,7 +1306,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       ...(lowerTitle === 'at a glance' ? { hideAtAGlance: false } : {})
     };
     setSectionPositions(updatedSectionPositions as any);
-  }, [caseStudyContent, project, editedTitle, editedDescription, editedProjectType, galleryAspectRatio, flowDiagramAspectRatio, videoAspectRatio, galleryColumns, flowDiagramColumns, videoColumns, projectImagesPosition, videosPosition, flowDiagramsPosition, solutionCardsPosition, sectionPositions, onUpdate]);
+  }, [caseStudyContent, project, editedTitle, editedDescription, editedProjectType, galleryAspectRatio, flowDiagramAspectRatio, videoAspectRatio, galleryColumns, flowDiagramColumns, videoColumns, projectImagesPosition, videosPosition, flowDiagramsPosition, solutionCardsPosition, sectionPositions, persistUpdate]);
 
   const removeMarkdownSection = useCallback((title: string) => {
     const lines = (caseStudyContent || '').split('\n');
@@ -1300,7 +1326,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     }
     const newContent = newLines.join('\n');
     setCaseStudyContent(newContent);
-    onUpdate({
+    persistUpdate({
       ...project,
       title: editedTitle,
       description: editedDescription,
@@ -1321,7 +1347,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       solutionCardsPosition,
       sectionPositions,
     });
-  }, [caseStudyContent, project, editedTitle, editedDescription, editedProjectType, galleryAspectRatio, flowDiagramAspectRatio, videoAspectRatio, galleryColumns, flowDiagramColumns, videoColumns, projectImagesPosition, videosPosition, flowDiagramsPosition, solutionCardsPosition, sectionPositions, onUpdate]);
+  }, [caseStudyContent, project, editedTitle, editedDescription, editedProjectType, galleryAspectRatio, flowDiagramAspectRatio, videoAspectRatio, galleryColumns, flowDiagramColumns, videoColumns, projectImagesPosition, videosPosition, flowDiagramsPosition, solutionCardsPosition, sectionPositions, persistUpdate]);
   // Hero image positioning - completely independent from home screen
   // Case study detail screen has its own positioning that doesn't affect home screen
   const [heroScale, setHeroScale] = useState(1);
@@ -1444,8 +1470,10 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       key_features_columns: d.keyFeaturesColumns,
       researchInsightsColumns: d.researchInsightsColumns,
       research_insights_columns: d.researchInsightsColumns,
+      caseStudyDecorativeIcons,
+      case_study_decorative_icons: caseStudyDecorativeIcons,
     } as ProjectData;
-  }, [project]);
+  }, [project, caseStudyDecorativeIcons]);
 
   // Clean up corrupted content on mount and use cleaned content for parsing
   // ALSO strip legacy sidebar blocks on LOAD if JSON sidebars exist
@@ -2034,7 +2062,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
           videosCount: (project.videoItems || (project as any).video_items || []).length,
           flowDiagramsCount: (project.flowDiagramImages || (project as any).flow_diagram_images || []).length
         });
-        onUpdate({
+        persistUpdate({
           ...project,
           caseStudyContent: cleaned,
           case_study_content: cleaned,
@@ -2051,7 +2079,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       } else if (sidebarChanged) {
         // Only sidebar migration happened, no markdown cleaning needed
         console.log('💾 Persisting migrated sidebars only:', Object.keys(preservedSidebars));
-        onUpdate({
+        persistUpdate({
           ...project,
           // CRITICAL: Explicitly preserve images/videos arrays even during sidebar migration
           caseStudyImages: project.caseStudyImages || (project as any).case_study_images || [],
@@ -2068,7 +2096,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       setCleanedContent(cleaned);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [caseStudyContent, caseStudySidebars, project.id, project.caseStudyImages, project.flowDiagramImages, project.videoItems, onUpdate]); // Run when content or JSON sidebars change - project.id ensures we re-run on project change
+  }, [caseStudyContent, caseStudySidebars, project.id, project.caseStudyImages, project.flowDiagramImages, project.videoItems, persistUpdate]); // Run when content or JSON sidebars change - project.id ensures we re-run on project change
 
   
 
@@ -2373,7 +2401,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       prevFlowDiagramsRef.current = JSON.stringify(flowDiagramImagesRef.current);
       prevVideosRef.current = JSON.stringify(videoItemsRef.current);
 
-      onUpdate(buildEditorSavePayload());
+      persistUpdate(buildEditorSavePayload());
     }, 2000);
 
     return () => clearTimeout(timeoutId);
@@ -2384,7 +2412,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     editedProjectType,
     isEditMode,
     project,
-    onUpdate,
+    persistUpdate,
     caseStudyImages,
     galleryAspectRatio,
     flowDiagramAspectRatio,
@@ -2403,13 +2431,13 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
   useEffect(() => {
     if (!isEditMode) return;
     const flush = () => {
-      onUpdate(buildEditorSavePayload());
+      persistUpdate(buildEditorSavePayload());
     };
     window.addEventListener('pagehide', flush);
     return () => {
       window.removeEventListener('pagehide', flush);
     };
-  }, [isEditMode, project, onUpdate, buildEditorSavePayload]);
+  }, [isEditMode, project, persistUpdate, buildEditorSavePayload]);
 
   // Immediate save when user stops typing (onBlur)
   const handleContentBlur = () => {
@@ -2430,7 +2458,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
         contentLength: caseStudyContent?.length || 0
       });
       
-      onUpdate(buildEditorSavePayload());
+      persistUpdate(buildEditorSavePayload());
       } else {
         console.log('❌ Blur save skipped - DETAILED REASON:', {
           isEditMode,
@@ -2483,7 +2511,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       research_insights_columns: researchInsightsColumns,
     } as any;
     console.log('💾 [handleSave] Saving with', caseStudyImagesRef.current.length, 'project images,', videoItemsRef.current.length, 'videos and', flowDiagramImagesRef.current.length, 'flow diagrams');
-    onUpdate(updatedProject);
+    persistUpdate(updatedProject);
     setIsEditing(false);
     // Clear unsaved flag
     try { 
@@ -2556,7 +2584,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
           
           // Force immediate save
           console.log('📸 FORCING IMMEDIATE SAVE due to image upload');
-          onUpdate(updatedProject);
+          persistUpdate(updatedProject);
           
           // Clear the unsaved flag after a longer delay to ensure auto-save catches it
           setTimeout(() => {
@@ -2595,7 +2623,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       solutionCardsPosition,
     };
     console.log('🗑️ [handleRemoveImage] Removing image, saving with', updatedImages.length, 'project images');
-    onUpdate(updatedProject);
+    persistUpdate(updatedProject);
   };
 
   const handleChangeHeroImage = async () => {
@@ -2659,7 +2687,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
             scale: updatedProject.scale,
             position: updatedProject.position
           });
-          onUpdate(updatedProject);
+          persistUpdate(updatedProject);
           
           // Clear the unsaved flag after a delay
           setTimeout(() => {
@@ -2747,7 +2775,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     }
     
     // Also call onUpdate for React state updates (but don't wait for it)
-    onUpdate(updatedProject);
+    persistUpdate(updatedProject);
     
     // Navigate immediately (localStorage write is already complete)
     onBack();
@@ -2872,7 +2900,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       flowDiagramsPosition: newFlowDiagramsPos,
       solutionCardsPosition: newSolutionCardsPos,
     };
-    onUpdate(updatedProject);
+    persistUpdate(updatedProject);
   };
 
   const handleMoveVideos = (direction: 'up' | 'down') => {
@@ -2958,7 +2986,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       flowDiagramsPosition: newFlowDiagramsPos,
       solutionCardsPosition: newSolutionCardsPos,
     };
-    onUpdate(updatedProject);
+    persistUpdate(updatedProject);
   };
 
   const handleMoveFlowDiagrams = (direction: 'up' | 'down') => {
@@ -3021,7 +3049,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       flowDiagramsPosition: newFlowDiagramsPos,
       solutionCardsPosition: newSolutionCardsPos,
     };
-    onUpdate(updatedProject);
+    persistUpdate(updatedProject);
   };
 
   const handleMoveSolutionCards = (direction: 'up' | 'down') => {
@@ -3100,7 +3128,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       flowDiagramsPosition: newFlowDiagramsPos,
       solutionCardsPosition: newSolutionCardsPos,
     };
-    onUpdate(updatedProject);
+    persistUpdate(updatedProject);
     
     // Reset flag after a delay to allow state to update
     setTimeout(() => {
@@ -3288,7 +3316,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
             caseStudySidebars: cleanSidebars,
             case_study_sidebars: cleanSidebars,
           } as any;
-          onUpdate(updatedProject);
+          persistUpdate(updatedProject);
         
         // Reset flag after a delay
         setTimeout(() => {
@@ -3322,7 +3350,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
           solutionCardsPosition,
           sectionPositions,
         };
-        onUpdate(updatedProject);
+        persistUpdate(updatedProject);
         return;
       } else if (target.title === '__FLOW_DIAGRAMS__') {
         // When markdown section moves past Flow Diagrams, swap positions directly
@@ -3388,7 +3416,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
           caseStudySidebars: cleanSidebars,
           case_study_sidebars: cleanSidebars,
         } as any;
-        onUpdate(updatedProject);
+        persistUpdate(updatedProject);
         return;
       } else if (target.title === '__VIDEOS__') {
         // Move videos to the next available position
@@ -3447,7 +3475,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
           caseStudySidebars: cleanSidebars,
           case_study_sidebars: cleanSidebars,
         } as any;
-        onUpdate(updatedProject);
+        persistUpdate(updatedProject);
         return;
       }
       
@@ -3510,7 +3538,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
           caseStudySidebars: cleanSidebars,
           case_study_sidebars: cleanSidebars,
         } as any;
-        onUpdate(updatedProject);
+        persistUpdate(updatedProject);
         return;
       }
       
@@ -3644,7 +3672,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
         caseStudySidebars: cleanSidebars,
         case_study_sidebars: cleanSidebars,
       } as any;
-      onUpdate(updatedProject);
+      persistUpdate(updatedProject);
       // Clear unsaved flag after section movement is saved
       try { 
         document.body.removeAttribute('data-unsaved');
@@ -3712,7 +3740,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       solutionCardsPosition,
       sectionPositions: newPositions,
     };
-    onUpdate(updatedProject);
+    persistUpdate(updatedProject);
   };
 
   // Handler for updating first sidebar section (At a glance)
@@ -3733,7 +3761,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
     } as any;
 
     // Persist immediately with both camelCase and snake_case for compatibility
-    onUpdate({
+    persistUpdate({
       ...project,
       sectionPositions: updatedSectionPositions,
       section_positions: updatedSectionPositions,
@@ -3765,7 +3793,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
 
     // Persist immediately with both camelCase and snake_case for compatibility
     // DO NOT modify caseStudyContent here - let cleanup handle markdown removal
-    onUpdate({
+    persistUpdate({
       ...project,
       sectionPositions: updatedSectionPositions,
       section_positions: updatedSectionPositions,
@@ -3809,7 +3837,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
 
     // Persist immediately with both camelCase and snake_case for compatibility
     // Include cleaned markdown to ensure it's persisted
-    onUpdate({
+    persistUpdate({
       ...project,
       caseStudyContent: cleaned,
       case_study_content: cleaned,
@@ -3856,7 +3884,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
 
     // Persist immediately with both camelCase and snake_case for compatibility
     // Include cleaned markdown to ensure it's persisted
-    onUpdate({
+    persistUpdate({
       ...project,
       caseStudyContent: cleaned,
       case_study_content: cleaned,
@@ -4171,7 +4199,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
             solutionCardsPosition: correctPosition,
             sectionPositions,
           };
-          onUpdate(updatedProject);
+          persistUpdate(updatedProject);
           
           // Reset flag after a delay to allow state to update
           setTimeout(() => {
@@ -4202,7 +4230,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                 {hasUnsavedTitleDescription && (
                   <Button
                     onClick={() => {
-                      onUpdate({
+                      persistUpdate({
                         ...project,
                         title: editedTitle,
                         description: editedDescription,
@@ -4256,7 +4284,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                   onClick={() => {
                     setEditedProjectType(null);
                     // Immediately save the change
-                    onUpdate({
+                    persistUpdate({
                       ...project,
                       title: editedTitle,
                       description: editedDescription,
@@ -4293,7 +4321,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                   onClick={() => {
                     setEditedProjectType('product-design');
                     // Immediately save the change
-                    onUpdate({
+                    persistUpdate({
                       ...project,
                       title: editedTitle,
                       description: editedDescription,
@@ -4330,7 +4358,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                   onClick={() => {
                     setEditedProjectType('development');
                     // Immediately save the change
-                    onUpdate({
+                    persistUpdate({
                       ...project,
                       title: editedTitle,
                       description: editedDescription,
@@ -4367,7 +4395,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                   onClick={() => {
                     setEditedProjectType('branding');
                     // Immediately save the change
-                    onUpdate({
+                    persistUpdate({
                       ...project,
                       title: editedTitle,
                       description: editedDescription,
@@ -4399,6 +4427,30 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                 >
                   Branding
                 </button>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3 pt-6 mt-6 border-t border-border">
+              <Checkbox
+                id="case-study-decorative-icons"
+                checked={caseStudyDecorativeIcons}
+                onCheckedChange={(v) => {
+                  const next = v === true;
+                  setCaseStudyDecorativeIcons(next);
+                  persistUpdate({
+                    ...project,
+                    caseStudyDecorativeIcons: next,
+                    case_study_decorative_icons: next,
+                  } as ProjectData);
+                }}
+              />
+              <div className="space-y-1">
+                <Label htmlFor="case-study-decorative-icons" className="text-sm font-medium cursor-pointer">
+                  Show decorative icons
+                </Label>
+                <p className="text-xs text-muted-foreground leading-snug">
+                  At a glance / Impact sidebars, Project Images, Videos, Flow Diagrams, and Leadership / Design / Research cards under My role. Off by default.
+                </p>
               </div>
             </div>
             
@@ -4558,7 +4610,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
         className={(atGlanceContent || impactContent) ? "space-y-16 lg:grid lg:grid-cols-[1fr_320px] lg:gap-16 lg:space-y-0" : "space-y-16"}
         style={{
           ...((atGlanceContent || impactContent) && {
-            display: 'block',
+            // Do not set display here — it overrides Tailwind `lg:grid` and breaks the desktop two-column layout.
             maxWidth: '100%',
             margin: '0 auto',
             paddingLeft: '24px',
@@ -4575,7 +4627,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       >
         
         {/* Main Content Container */}
-        <div className="space-y-16 lg:col-start-1 lg:col-end-1">
+        <div className="space-y-16 lg:col-start-1 lg:col-end-2">
         {/* Hero Image Section - Order 2 on mobile (after sidebars) */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -4753,7 +4805,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                     };
                     
                     console.log('💾 Saving reordered content to localStorage');
-                    onUpdate(updatedProject);
+                    persistUpdate(updatedProject);
                     
                     setShowSaveIndicator(true);
                     setTimeout(() => setShowSaveIndicator(false), 3000);
@@ -4787,6 +4839,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                       isEditMode={isEditMode}
                       onUpdate={handleUpdateAtAGlance}
                       onRemove={handleRemoveAtAGlance}
+                      showDecorativeIcons={caseStudyDecorativeIcons}
                     />
                   )}
                   {impactContent && (
@@ -4796,6 +4849,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                       isEditMode={isEditMode}
                       onUpdate={handleUpdateImpact}
                       onRemove={handleRemoveImpact}
+                      showDecorativeIcons={caseStudyDecorativeIcons}
                     />
                   )}
                 </div>
@@ -4923,7 +4977,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                 solutionCardsPosition,
               };
               
-              onUpdate(updatedProject);
+              persistUpdate(updatedProject);
             }}
             atAGlanceSidebar={undefined}
             impactSidebar={undefined}
@@ -4938,7 +4992,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
             onRemoveProjectImages={() => {
               setCaseStudyImages([]);
               setProjectImagesPosition(undefined);
-              onUpdate({
+              persistUpdate({
                 ...project,
                 title: editedTitle,
                 description: editedDescription,
@@ -4963,7 +5017,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
             onRemoveVideos={() => {
               setVideoItems([]);
               setVideosPosition(undefined);
-              onUpdate({
+              persistUpdate({
                 ...project,
                 title: editedTitle,
                 description: editedDescription,
@@ -4988,7 +5042,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
             onRemoveFlowDiagrams={() => {
               setFlowDiagramImages([]);
               setFlowDiagramsPosition(undefined);
-              onUpdate({
+              persistUpdate({
                 ...project,
                 title: editedTitle,
                 description: editedDescription,
@@ -5063,7 +5117,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                 solution_cards_position: (updatedProject as any).solution_cards_position,
                 removedSections: Object.keys(updatedSectionPositions || {}).filter(key => key === '__SOLUTION_CARDS__')
               });
-              onUpdate(updatedProject);
+              persistUpdate(updatedProject);
             }}
             onMoveMarkdownSection={handleMoveMarkdownSection}
             actualPositions={actualPositions}
@@ -5076,11 +5130,20 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                   transition={{ delay: 0.6 }}
                 >
                   <div className="p-8 bg-gradient-to-br from-slate-50/10 via-white/15 to-gray-50/8 dark:from-slate-800/30 dark:via-slate-900/25 dark:to-slate-800/20 backdrop-blur-md rounded-2xl border border-border/30 shadow-lg">
-                    <div className="flex items-center gap-3 mb-8">
-                      <div className="p-3 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl text-purple-600 dark:text-purple-400 shadow-md">
-                        <ImageIcon className="w-6 h-6" />
-                      </div>
-                      <h3>Project Images</h3>
+                    <div
+                      className={cn(
+                        "flex items-center mb-8 min-w-0",
+                        caseStudyDecorativeIcons && "gap-3"
+                      )}
+                    >
+                      {caseStudyDecorativeIcons && (
+                        <div className="p-3 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl text-purple-600 dark:text-purple-400 shadow-md flex-shrink-0">
+                          <ImageIcon className="w-6 h-6" />
+                        </div>
+                      )}
+                      <h3 className="m-0 min-w-0 flex-1 text-left text-xl font-semibold leading-tight">
+                        Project Images
+                      </h3>
                     </div>
 
                     <FlowDiagramGallery
@@ -5120,7 +5183,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                           solutionCardsPosition,
                         };
                         console.log('💾 [ProjectDetail] Calling onUpdate with', newImages.length, 'project images and', flowDiagramImagesRef.current.length, 'flow diagrams');
-                        onUpdate(updatedProject);
+                        persistUpdate(updatedProject);
                         console.log('✅ [ProjectDetail] onUpdate callback completed');
                       }}
                       onImageClick={(image) => setLightboxImage(image)}
@@ -5146,7 +5209,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                           flowDiagramsPosition,
                           solutionCardsPosition,
                         };
-                        onUpdate(updatedProject);
+                        persistUpdate(updatedProject);
                       }}
                       columns={galleryColumns}
                       onColumnsChange={(newColumns) => {
@@ -5169,7 +5232,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                           flowDiagramsPosition,
                           solutionCardsPosition,
                         };
-                        onUpdate(updatedProject);
+                        persistUpdate(updatedProject);
                       }}
                     />
                   </div>
@@ -5184,11 +5247,20 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                   transition={{ delay: 0.65 }}
                 >
                   <div className="p-8 bg-gradient-to-br from-slate-50/10 via-white/15 to-gray-50/8 dark:from-slate-800/30 dark:via-slate-900/25 dark:to-slate-800/20 backdrop-blur-md rounded-2xl border border-border/30 shadow-lg">
-                    <div className="flex items-center gap-3 mb-8">
-                      <div className="p-3 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl text-red-600 dark:text-red-400 shadow-md">
-                        <VideoIcon className="w-6 h-6" />
-                      </div>
-                      <h3>Videos</h3>
+                    <div
+                      className={cn(
+                        "flex items-center mb-8 min-w-0",
+                        caseStudyDecorativeIcons && "gap-3"
+                      )}
+                    >
+                      {caseStudyDecorativeIcons && (
+                        <div className="p-3 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl text-red-600 dark:text-red-400 shadow-md flex-shrink-0">
+                          <VideoIcon className="w-6 h-6" />
+                        </div>
+                      )}
+                      <h3 className="m-0 min-w-0 flex-1 text-left text-xl font-semibold leading-tight">
+                        Videos
+                      </h3>
                     </div>
 
                     <VideoGallery
@@ -5236,7 +5308,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                           flowDiagramsPosition,
                           solutionCardsPosition,
                         };
-                        onUpdate(updatedProject);
+                        persistUpdate(updatedProject);
                       }}
                       isEditMode={isEditMode}
                       aspectRatio={videoAspectRatio}
@@ -5263,7 +5335,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                           flowDiagramsPosition,
                           solutionCardsPosition,
                         };
-                        onUpdate(updatedProject);
+                        persistUpdate(updatedProject);
                       }}
                       columns={videoColumns}
                       onColumnsChange={(newColumns) => {
@@ -5289,7 +5361,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                           flowDiagramsPosition,
                           solutionCardsPosition,
                         };
-                        onUpdate(updatedProject);
+                        persistUpdate(updatedProject);
                       }}
                     />
                   </div>
@@ -5304,11 +5376,20 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                   transition={{ delay: 0.7 }}
                 >
                   <div className="p-8 bg-gradient-to-br from-slate-50/10 via-white/15 to-gray-50/8 dark:from-slate-800/30 dark:via-slate-900/25 dark:to-slate-800/20 backdrop-blur-md rounded-2xl border border-border/30 shadow-lg">
-                    <div className="flex items-center gap-3 mb-8">
-                      <div className="p-3 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl text-blue-600 dark:text-blue-400 shadow-md">
-                        <ImageIcon className="w-6 h-6" />
-                      </div>
-                      <h3>Flow Diagrams</h3>
+                    <div
+                      className={cn(
+                        "flex items-center mb-8 min-w-0",
+                        caseStudyDecorativeIcons && "gap-3"
+                      )}
+                    >
+                      {caseStudyDecorativeIcons && (
+                        <div className="p-3 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl text-blue-600 dark:text-blue-400 shadow-md flex-shrink-0">
+                          <ImageIcon className="w-6 h-6" />
+                        </div>
+                      )}
+                      <h3 className="m-0 min-w-0 flex-1 text-left text-xl font-semibold leading-tight">
+                        Flow Diagrams
+                      </h3>
                     </div>
 
                     <FlowDiagramGallery
@@ -5343,7 +5424,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                           solutionCardsPosition,
                         };
                         console.log('💾 Saving project with', caseStudyImagesRef.current.length, 'project images and', newImages.length, 'flow diagrams');
-                        onUpdate(updatedProject);
+                        persistUpdate(updatedProject);
                       }}
                       onImageClick={(image) => setFlowDiagramLightboxImage(image)}
                       isEditMode={isEditMode}
@@ -5372,7 +5453,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                           flowDiagramsPosition,
                           solutionCardsPosition,
                         };
-                        onUpdate(updatedProject);
+                        persistUpdate(updatedProject);
                       }}
                       columns={flowDiagramColumns}
                       onColumnsChange={(newColumns) => {
@@ -5399,7 +5480,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                           flowDiagramsPosition,
                           solutionCardsPosition,
                         };
-                        onUpdate(updatedProject);
+                        persistUpdate(updatedProject);
                       }}
                     />
                   </div>
@@ -5432,7 +5513,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                 keyFeaturesColumns: columns,
                 key_features_columns: columns,
               } as any;
-              onUpdate(updatedProject);
+              persistUpdate(updatedProject);
             }}
             researchInsightsColumns={researchInsightsColumns}
             onResearchInsightsColumnsChange={(columns) => {
@@ -5469,8 +5550,9 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                 sectionPositions: updatedSectionPositions,
                 section_positions: updatedSectionPositions,
               } as any;
-              onUpdate(updatedProject);
+              persistUpdate(updatedProject);
             }}
+            caseStudyDecorativeIcons={caseStudyDecorativeIcons}
           />
           </div>
         )}
@@ -5522,7 +5604,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
                     caseStudySidebars: persistedSidebars,
                     case_study_sidebars: persistedSidebars,
                   } as any;
-                  onUpdate(updatedProject);
+                  persistUpdate(updatedProject);
                   // Clear unsaved flag
                   try { 
                     document.body.removeAttribute('data-unsaved');
@@ -5538,29 +5620,32 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
         )}
         </div>
 
-        {/* Desktop Sidebar - Show when content exists, hidden on mobile */}
+        {/* Desktop Sidebar — sticky rail is pinned via index.css [data-sidebar-rail] (document overflow must not break sticky). */}
         {(atGlanceContent || impactContent) && (
-          <div className="hidden lg:block lg:col-start-2 lg:col-end-2">
-            <div className="lg:sticky lg:top-24 space-y-12" style={{ marginTop: '60px' }}>
-              {atGlanceContent && (
-                <AtAGlanceSidebar 
-                  content={atGlanceContent.content}
-                  title={atGlanceContent.title}
-                  isEditMode={isEditMode}
-                  onUpdate={handleUpdateAtAGlance}
-                  onRemove={handleRemoveAtAGlance}
-                />
-              )}
-              {impactContent && (
-                <ImpactSidebar 
-                  content={impactContent.content}
-                  title={impactContent.title}
-                  isEditMode={isEditMode}
-                  onUpdate={handleUpdateImpact}
-                  onRemove={handleRemoveImpact}
-                />
-              )}
-            </div>
+          <div
+            data-sidebar-rail
+            className="hidden min-h-0 space-y-12 lg:mt-[60px] lg:block lg:col-start-2 lg:col-end-3"
+          >
+            {atGlanceContent && (
+              <AtAGlanceSidebar 
+                content={atGlanceContent.content}
+                title={atGlanceContent.title}
+                isEditMode={isEditMode}
+                onUpdate={handleUpdateAtAGlance}
+                onRemove={handleRemoveAtAGlance}
+                showDecorativeIcons={caseStudyDecorativeIcons}
+              />
+            )}
+            {impactContent && (
+              <ImpactSidebar 
+                content={impactContent.content}
+                title={impactContent.title}
+                isEditMode={isEditMode}
+                onUpdate={handleUpdateImpact}
+                onRemove={handleRemoveImpact}
+                showDecorativeIcons={caseStudyDecorativeIcons}
+              />
+            )}
           </div>
         )}
 

@@ -48,18 +48,29 @@ export interface HeroTextState {
   accentMarginTopRem?: number;
 }
 
+/** Pause after each hero greeting finishes typing (before backspace or cycle wait). Not CMS-editable by design. */
+export const HERO_SEQUENCE_PAUSE_MS = 2000;
+
 export interface HomePageStat {
   number: string;
   label: string;
   description: string;
 }
 
+/** Slugs match `projects.project_type` / `ProjectData.projectType`. */
+export const CASE_STUDY_FILTER_TYPE_IDS = ["product-design", "development", "branding"] as const;
+export type CaseStudyFilterTypeId = (typeof CASE_STUDY_FILTER_TYPE_IDS)[number];
+
+export interface CaseStudyFilterEntry {
+  id: CaseStudyFilterTypeId;
+  label: string;
+}
+
 export interface HomePageUI {
   caseStudiesTitle: string;
   filterAll: string;
-  filterProductDesign: string;
-  filterDevelopment: string;
-  filterBranding: string;
+  /** Which category filters appear on the home case studies row (subset/order/labels). */
+  caseStudyFilters: CaseStudyFilterEntry[];
 }
 
 export interface HomePageContentV2 {
@@ -80,12 +91,16 @@ export const DEFAULT_STATS: HomePageStat[] = [
   { number: "9", label: "US patents", description: "Innovation and IP contribution" },
 ];
 
+export const DEFAULT_CASE_STUDY_FILTERS: CaseStudyFilterEntry[] = [
+  { id: "product-design", label: "Product design" },
+  { id: "development", label: "Development" },
+  { id: "branding", label: "Branding" },
+];
+
 export const DEFAULT_UI: HomePageUI = {
   caseStudiesTitle: "Case studies",
   filterAll: "All",
-  filterProductDesign: "Product design",
-  filterDevelopment: "Development",
-  filterBranding: "Branding",
+  caseStudyFilters: DEFAULT_CASE_STUDY_FILTERS.map((f) => ({ ...f })),
 };
 
 /** Default segment strings for initial hero state and legacy migration when building bioDocument. */
@@ -376,11 +391,47 @@ function pickStatsArrayFromStored(obj: Record<string, unknown>): unknown {
   return obj.stats;
 }
 
+const KNOWN_FILTER_ID = new Set<string>(CASE_STUDY_FILTER_TYPE_IDS);
+
+function normalizeCaseStudyFilters(raw: unknown): CaseStudyFilterEntry[] {
+  if (!Array.isArray(raw)) return [];
+  const out: CaseStudyFilterEntry[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const r = item as Record<string, unknown>;
+    const id = String(r.id ?? "").trim();
+    const label = String(r.label ?? "").trim();
+    if (!id || !label || !KNOWN_FILTER_ID.has(id)) continue;
+    out.push({ id: id as CaseStudyFilterTypeId, label });
+  }
+  return out;
+}
+
+/** Legacy payloads stored three separate label strings before `caseStudyFilters` existed. */
 function mergeUI(raw: unknown): HomePageUI {
-  const o = (raw && typeof raw === "object" ? raw : {}) as Partial<HomePageUI>;
+  const o = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  const hasCaseStudyFiltersKey = Object.prototype.hasOwnProperty.call(o, "caseStudyFilters");
+
+  let caseStudyFilters: CaseStudyFilterEntry[];
+  if (hasCaseStudyFiltersKey) {
+    caseStudyFilters = normalizeCaseStudyFilters(o.caseStudyFilters);
+  } else {
+    const legacy = o as Partial<{
+      filterProductDesign?: string;
+      filterDevelopment?: string;
+      filterBranding?: string;
+    }>;
+    caseStudyFilters = [
+      { id: "product-design", label: String(legacy.filterProductDesign ?? "Product design") },
+      { id: "development", label: String(legacy.filterDevelopment ?? "Development") },
+      { id: "branding", label: String(legacy.filterBranding ?? "Branding") },
+    ];
+  }
+
   return {
-    ...DEFAULT_UI,
-    ...o,
+    caseStudiesTitle: String(o.caseStudiesTitle ?? DEFAULT_UI.caseStudiesTitle),
+    filterAll: String(o.filterAll ?? DEFAULT_UI.filterAll),
+    caseStudyFilters,
   };
 }
 

@@ -1,6 +1,5 @@
 import React from "react";
-import { motion, useScroll, useTransform } from "motion/react";
-import { Button } from "../ui/button";
+import { motion } from "motion/react";
 
 interface PageLayoutProps {
   title: string;
@@ -11,20 +10,13 @@ interface PageLayoutProps {
   subtitle?: string;
 }
 
+/**
+ * Plain divs for the main shell — motion/transform ancestors break position:sticky
+ * in case study sidebars (see ProjectDetail right column).
+ */
 export function PageLayout({ title, children, onBack, overline, actionButton, subtitle }: PageLayoutProps) {
-  const { scrollY } = useScroll();
-  
-  // Transform scroll position to background opacity (blur is constant like header)
-  const backgroundOpacity = useTransform(scrollY, [0, 50], [0, 0.6]);
-  const borderOpacity = useTransform(scrollY, [0, 50], [0, 0.5]);
-
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.5 }}
-      className="min-h-screen pt-44 pb-32 relative"
-    >
+    <div className="min-h-screen pt-44 pb-32 relative">
       {/* Back button moved to main header - see App.tsx */}
 
       {/* 
@@ -93,15 +85,9 @@ export function PageLayout({ title, children, onBack, overline, actionButton, su
             </motion.div>
           )}
         </div>
-        <motion.div
-          initial={{ y: 30, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.4 }}
-        >
-          {children}
-        </motion.div>
+        <div>{children}</div>
       </div>
-    </motion.div>
+    </div>
   );
 }
 

@@ -67,6 +67,7 @@
       },
       "scripts": {
             "dev": "vite",
+            "dev:3011": "vite --port 3011",
             "prebuild": "node scripts/inject-seo-html.cjs",
             "build": "vite build && npm run generate:sitemap",
             "analyze": "node scripts/analyze-bundle.js",

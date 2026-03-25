@@ -61,6 +61,8 @@ export interface ProjectData {
   solutionCardsPosition?: number; // Index position in sections array (default: after Flow Diagrams)
   sectionPositions?: Record<string, number>; // Position tracking for ALL sections (markdown + special)
   projectType?: 'product-design' | 'development' | 'branding'; // Project type for filtering
+  /** When true, show icons on case study sidebars, media blocks, and My role subsection cards. Default off. */
+  caseStudyDecorativeIcons?: boolean;
 }
 
 interface ProjectImageProps {

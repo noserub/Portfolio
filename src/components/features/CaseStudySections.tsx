@@ -4,6 +4,7 @@ import { MarkdownRenderer } from "../MarkdownRenderer";
 import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
 import { Input } from "../ui/input";
+import { cn } from "../ui/utils";
 import { 
   Target, 
   Award, 
@@ -19,9 +20,6 @@ import {
   Users,
   Key,
   User,
-  Compass,
-  Camera,
-  MessageSquare,
   CheckCircle,
   AlertCircle,
   Info,
@@ -73,6 +71,8 @@ interface CaseStudySectionsProps {
   onKeyFeaturesColumnsChange?: (columns: 2 | 3) => void;
   researchInsightsColumns?: 1 | 2 | 3;
   onResearchInsightsColumnsChange?: (columns: 1 | 2 | 3) => void;
+  /** Lucide icons on My role subsection cards and similar. Off by default. */
+  caseStudyDecorativeIcons?: boolean;
 }
 
 // Map section titles to icons and gradients
@@ -309,7 +309,8 @@ export function CaseStudySections({
   keyFeaturesColumns = 3,
   onKeyFeaturesColumnsChange,
   researchInsightsColumns = 3,
-  onResearchInsightsColumnsChange
+  onResearchInsightsColumnsChange,
+  caseStudyDecorativeIcons = false,
 }: CaseStudySectionsProps) {
   const [expandedCards, setExpandedCards] = useState<Set<number>>(new Set());
   const [editingSection, setEditingSection] = useState<string | null>(null);
@@ -2272,8 +2273,6 @@ export function CaseStudySections({
         
         const config = getSectionConfig(section.title);
 
-        const Icon = config?.icon;
-
         // Special handling for My role & impact section (also matches "My role")
         if (section.title.toLowerCase().includes("my role")) {
           
@@ -2418,14 +2417,23 @@ export function CaseStudySections({
                 {/* Content with z-depth */}
                 <div className="relative z-10 flex flex-col">
                   {/* Header */}
-                  <div className="flex items-center gap-3 mb-4">
-                    <motion.div 
-                      className={`p-2.5 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl ${iconColor} shadow-md transition-all duration-300 group-hover:shadow-xl flex-shrink-0`}
-                      style={{ transform: 'translateZ(10px)' }}
-                    >
-                      <SubIcon className="w-5 h-5" />
-                    </motion.div>
-                    <h3 className="text-lg">{subsection.title}</h3>
+                  <div
+                    className={cn(
+                      "flex items-center mb-4 min-w-0",
+                      caseStudyDecorativeIcons && "gap-3"
+                    )}
+                  >
+                    {caseStudyDecorativeIcons && (
+                      <motion.div 
+                        className={`p-2.5 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl ${iconColor} shadow-md transition-all duration-300 group-hover:shadow-xl flex-shrink-0`}
+                        style={{ transform: 'translateZ(10px)' }}
+                      >
+                        <SubIcon className="w-5 h-5" />
+                      </motion.div>
+                    )}
+                    <h3 className="m-0 min-w-0 flex-1 text-left text-lg font-semibold leading-tight">
+                      {subsection.title}
+                    </h3>
                   </div>
                   
                   {/* Full content - always visible */}
@@ -2575,8 +2583,6 @@ export function CaseStudySections({
             return null;
           }
 
-
-          const insightIcons = [Compass, Camera, MessageSquare, CheckCircle, AlertCircle];
 
           const insightGradients = [
             "linear-gradient(135deg, #ec4899, #fbbf24)",
@@ -2736,7 +2742,6 @@ export function CaseStudySections({
                     previewSample: fullContent.substring(0, 160)
                   });
                   
-                  const InsightIcon = insightIcons[insightIndex % insightIcons.length];
                   const gradient = insightGradients[insightIndex % insightGradients.length];
                   
                   return (

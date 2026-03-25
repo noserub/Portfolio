@@ -8,12 +8,15 @@ const DEFAULT_PASSWORD = "0p3n";
 
 interface CaseStudyPasswordPromptProps {
   projectTitle: string;
+  /** Per-project password from DB; when empty, falls back to site default / localStorage. */
+  expectedPassword?: string | null;
   onCorrectPassword: () => void;
   onCancel: () => void;
 }
 
 export function CaseStudyPasswordPrompt({ 
-  projectTitle, 
+  projectTitle,
+  expectedPassword,
   onCorrectPassword, 
   onCancel 
 }: CaseStudyPasswordPromptProps) {
@@ -23,10 +26,14 @@ export function CaseStudyPasswordPrompt({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Get stored password or use default
-    const storedPassword = localStorage.getItem('caseStudyPassword') || DEFAULT_PASSWORD;
+    const trimmedProject = (expectedPassword ?? '').trim();
+    const storedGlobal = localStorage.getItem('caseStudyPassword');
+    const effectiveExpected =
+      trimmedProject !== ''
+        ? trimmedProject
+        : (storedGlobal || DEFAULT_PASSWORD);
     
-    if (password === storedPassword) {
+    if (password === effectiveExpected) {
       onCorrectPassword();
     } else {
       setError("Incorrect password");
@@ -95,12 +102,6 @@ export function CaseStudyPasswordPrompt({
             </Button>
           </div>
         </form>
-
-        <div className="mt-6 pt-6 border-t border-border">
-          <p className="text-xs text-muted-foreground text-center">
-            💡 Password can be reset by the site owner in edit mode
-          </p>
-        </div>
       </motion.div>
     </motion.div>
   );

@@ -952,13 +952,12 @@ export default function App() {
         setCurrentPage("home");
         setSelectedProject(null);
       } else if (pathname.startsWith('/project/')) {
-        // Project detail page
+        // Project detail page — use same password gate + Supabase refresh as Home card clicks
         const projectSlug = pathname.split('/project/')[1];
         if (projectSlug) {
           const project = await findProjectBySlug(projectSlug);
           if (project) {
-            setSelectedProject(project);
-            setCurrentPage("project-detail");
+            await navigateToProject(project as ProjectData, () => {});
           } else {
             console.warn('Project not found:', projectSlug);
             setCurrentPage("home");
@@ -1142,6 +1141,12 @@ export default function App() {
   };
 
   const navigateToProject = async (project: ProjectData, updateCallback: (project: ProjectData) => void) => {
+    const raw = project as any;
+    const projectNav = {
+      ...project,
+      requiresPassword: Boolean(raw.requiresPassword ?? raw.requires_password),
+    } as ProjectData;
+
     // Try to load fresh data from Supabase first
     let freshProject: ProjectData | null = null;
     
@@ -1150,7 +1155,7 @@ export default function App() {
       const { data, error } = await supabase
         .from('projects')
         .select('*')
-        .eq('id', project.id)
+        .eq('id', projectNav.id)
         .single();
       
       if (data && !error) {
@@ -1193,6 +1198,7 @@ export default function App() {
           solutionCardsPosition: data.solution_cards_position,
           requiresPassword: data.requires_password,
           projectType: data.project_type || null,
+          caseStudyDecorativeIcons: Boolean((data as any).case_study_decorative_icons),
           // Remove snake_case fields to avoid confusion
           position_x: undefined,
           position_y: undefined,
@@ -1213,7 +1219,8 @@ export default function App() {
           flow_diagrams_position: undefined,
           solution_cards_position: undefined,
           section_positions: undefined,
-          requires_password: undefined
+          requires_password: undefined,
+          case_study_decorative_icons: undefined
         };
         
         if (freshProject) {
@@ -1246,8 +1253,8 @@ export default function App() {
       if (caseStudiesData) {
         const caseStudies = JSON.parse(caseStudiesData);
         if (Array.isArray(caseStudies)) {
-          console.log('🔄 Searching caseStudies for project:', project.id);
-          freshProject = caseStudies.find((p: ProjectData) => p.id === project.id);
+          console.log('🔄 Searching caseStudies for project:', projectNav.id);
+          freshProject = caseStudies.find((p: ProjectData) => p.id === projectNav.id);
           console.log('🔄 Found in caseStudies:', freshProject ? 'yes' : 'no');
         }
       }
@@ -1259,8 +1266,8 @@ export default function App() {
         if (designProjectsData) {
           const designProjects = JSON.parse(designProjectsData);
           if (Array.isArray(designProjects)) {
-            console.log('🔄 Searching designProjects for project:', project.id);
-            freshProject = designProjects.find((p: ProjectData) => p.id === project.id);
+            console.log('🔄 Searching designProjects for project:', projectNav.id);
+            freshProject = designProjects.find((p: ProjectData) => p.id === projectNav.id);
             console.log('🔄 Found in designProjects:', freshProject ? 'yes' : 'no');
           }
         }
@@ -1279,11 +1286,13 @@ export default function App() {
     }
     
     // Use fresh data if found, otherwise use the project passed in
-    const projectToSet = freshProject || project;
+    const projectToSet = freshProject || projectNav;
     
     // Ensure requiresPassword field is properly set even when using original project
     if (!freshProject) {
-      projectToSet.requiresPassword = projectToSet.requiresPassword || projectToSet.requires_password || false;
+      projectToSet.requiresPassword = Boolean(
+        projectToSet.requiresPassword ?? (projectToSet as any).requires_password
+      );
       console.log('🔄 Using original project - ensuring requiresPassword field:', projectToSet.requiresPassword);
     }
     
@@ -1444,6 +1453,10 @@ export default function App() {
         if ((sanitizedProject as any).solutionCardsPosition !== undefined) {
           projectData.solution_cards_position = sanitizedProject.solutionCardsPosition;
         }
+
+        projectData.case_study_decorative_icons = Boolean(
+          sanitizedProject.caseStudyDecorativeIcons ?? (sanitizedProject as any).case_study_decorative_icons
+        );
         
         await updateProject(sanitizedProject.id, projectData);
         console.log('✅ Project persisted directly to Supabase:', { id: sanitizedProject.id, hasSidebars: !!projectData.case_study_sidebars });
@@ -1663,6 +1676,7 @@ export default function App() {
         {pendingProtectedProject && (
           <CaseStudyPasswordPrompt
             projectTitle={pendingProtectedProject.project.title}
+            expectedPassword={(pendingProtectedProject.project as any).password}
             onCorrectPassword={handlePasswordCorrect}
             onCancel={handlePasswordCancel}
           />
