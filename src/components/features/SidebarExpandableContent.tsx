@@ -1,11 +1,16 @@
-import React, { useLayoutEffect, useRef, useState } from "react";
+import React, { useCallback, useLayoutEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "../ui/utils";
 
-/** Collapsed cap: 2/3 of prior 13rem (~1/3 shorter) — must match max-h below */
-const COLLAPSED_MAX_REM = (13 * 2) / 3;
-const COLLAPSED_MAX_PX = COLLAPSED_MAX_REM * 16;
+/** Preview height = 2/3 of 13rem — must match measurement threshold */
+const COLLAPSED_REM = (13 * 2) / 3;
+
+function getCollapsedMaxPx(): number {
+  if (typeof document === "undefined") return 139;
+  const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+  return COLLAPSED_REM * rem;
+}
 
 interface SidebarExpandableContentProps {
   children: React.ReactNode;
@@ -15,7 +20,7 @@ interface SidebarExpandableContentProps {
 
 /**
  * Collapsed preview + show more/less for long markdown sidebars.
- * Keeps sticky case-study rails short without an outer scroll trap.
+ * Uses inline max-height so clipping always applies (Tailwind arbitrary calc was unreliable).
  */
 export function SidebarExpandableContent({
   children,
@@ -25,35 +30,62 @@ export function SidebarExpandableContent({
   const [expanded, setExpanded] = useState(false);
   const [overflowing, setOverflowing] = useState(false);
 
+  const measure = useCallback(() => {
+    const el = measureRef.current;
+    if (!el) return;
+
+    const collapsedPx = getCollapsedMaxPx();
+
+    // Measure natural content height without our clip (React may have applied maxHeight from last commit)
+    const prevMax = el.style.maxHeight;
+    const prevOv = el.style.overflow;
+    el.style.maxHeight = "none";
+    el.style.overflow = "visible";
+    const natural = el.scrollHeight;
+    el.style.maxHeight = prevMax;
+    el.style.overflow = prevOv;
+
+    setOverflowing(natural > collapsedPx + 1);
+  }, []);
+
   useLayoutEffect(() => {
     setExpanded(false);
   }, [contentVersion]);
 
   useLayoutEffect(() => {
+    measure();
     const el = measureRef.current;
     if (!el) return;
-
-    const measure = () => {
-      setOverflowing(el.scrollHeight > COLLAPSED_MAX_PX + 2);
-    };
-
-    measure();
-    const ro = new ResizeObserver(measure);
+    const ro = new ResizeObserver(() => measure());
     ro.observe(el);
     return () => ro.disconnect();
-  }, [contentVersion]);
+  }, [contentVersion, measure]);
+
+  const collapsedPx = typeof document !== "undefined" ? getCollapsedMaxPx() : 139;
+
+  const clipStyle: React.CSSProperties | undefined =
+    overflowing && !expanded
+      ? {
+          maxHeight: `${collapsedPx}px`,
+          overflow: "hidden",
+        }
+      : overflowing && expanded
+        ? {
+            maxHeight: "min(70vh, 48rem)",
+            overflowY: "auto",
+            scrollbarWidth: "thin",
+          }
+        : undefined;
 
   return (
     <div>
       <div className="relative">
         <div
           ref={measureRef}
+          style={clipStyle}
           className={cn(
             "transition-[max-height] duration-300 ease-out",
-            overflowing && !expanded && "max-h-[calc(13rem*2/3)] overflow-hidden",
-            overflowing &&
-              expanded &&
-              "max-h-[min(70vh,48rem)] overflow-y-auto [scrollbar-width:thin]"
+            overflowing && expanded && "[&::-webkit-scrollbar]:w-2"
           )}
         >
           {children}
@@ -97,4 +129,3 @@ export function SidebarExpandableContent({
     </div>
   );
 }
-
