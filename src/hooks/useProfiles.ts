@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '../lib/supabaseClient';
+import { getPostgrestErrorMessage, supabase } from '../lib/supabaseClient';
 import { getPortfolioOwnerUserId, getProfileWriterUserId } from '../lib/portfolioOwner';
 
 export interface Profile {
@@ -94,6 +94,31 @@ export interface ProfileUpdate {
   resume_url?: string | null;
 }
 
+function stripUndefined<T extends Record<string, unknown>>(obj: T): Partial<T> {
+  return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined)) as Partial<T>;
+}
+
+/** Drop top-level undefined, JSON-roundtrip (fixes nested undefined / non-JSON values PostgREST rejects), clean arrays. */
+function prepareProfileWritePayload<T extends Record<string, unknown>>(raw: T): T {
+  const cleaned = stripUndefined(raw);
+  try {
+    const body = JSON.parse(JSON.stringify(cleaned)) as T;
+    const b = body as {
+      super_powers?: unknown[];
+      section_order?: unknown[];
+    };
+    if (Array.isArray(b.super_powers)) {
+      b.super_powers = b.super_powers.filter((x): x is string => typeof x === 'string');
+    }
+    if (Array.isArray(b.section_order)) {
+      b.section_order = b.section_order.filter((x): x is string => typeof x === 'string');
+    }
+    return body;
+  } catch {
+    return cleaned as T;
+  }
+}
+
 export function useProfiles() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -136,44 +161,40 @@ export function useProfiles() {
   }, []);
 
   // Create profile
-  const createProfile = async (profile: ProfileInsert): Promise<Profile | null> => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .insert(profile)
-        .select()
-        .single();
+  const createProfile = async (profile: ProfileInsert): Promise<Profile> => {
+    const payload = prepareProfileWritePayload(profile as Record<string, unknown>) as ProfileInsert;
+    const { data, error } = await supabase
+      .from('profiles')
+      .insert(payload)
+      .select()
+      .single();
 
-      if (error) throw error;
-      
-      // Update local state
-      setProfiles(prev => [data, ...prev]);
-      return data;
-    } catch (err: any) {
-      setError(err.message);
-      return null;
+    if (error) {
+      setError(getPostgrestErrorMessage(error));
+      throw error;
     }
+
+    setProfiles((prev) => [data, ...prev]);
+    return data;
   };
 
-  // Update profile
-  const updateProfile = async (id: string, updates: ProfileUpdate): Promise<Profile | null> => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
+  // Update profile (throws on PostgREST/RLS errors so callers can surface messages)
+  const updateProfile = async (id: string, updates: ProfileUpdate): Promise<Profile> => {
+    const payload = prepareProfileWritePayload(updates as Record<string, unknown>) as ProfileUpdate;
+    const { data, error } = await supabase
+      .from('profiles')
+      .update(payload)
+      .eq('id', id)
+      .select()
+      .single();
 
-      if (error) throw error;
-      
-      // Update local state
-      setProfiles(prev => prev.map(p => p.id === id ? data : p));
-      return data;
-    } catch (err: any) {
-      setError(err.message);
-      return null;
+    if (error) {
+      setError(getPostgrestErrorMessage(error));
+      throw error;
     }
+
+    setProfiles((prev) => prev.map((p) => (p.id === id ? data : p)));
+    return data;
   };
 
   // Delete profile
@@ -215,12 +236,23 @@ export function useProfiles() {
     }
   }, [getProfile]);
 
+  function isPostgrestNoRowsError(err: unknown): boolean {
+    const e = err as { code?: string; message?: string; details?: string };
+    if (e?.code === 'PGRST116') return true;
+    const combined = `${e?.message ?? ''} ${e?.details ?? ''}`;
+    return /PGRST116|0 rows|contains 0 rows|no rows returned|multiple \(or no\) rows returned/i.test(
+      combined,
+    );
+  }
+
   // Update current user's profile
-  const updateCurrentUserProfile = async (updates: ProfileUpdate): Promise<Profile | null> => {
+  const updateCurrentUserProfile = async (updates: ProfileUpdate): Promise<Profile> => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
-      
+
       if (!user && !isBypassAuth) {
         throw new Error('No authenticated user');
       }
@@ -228,25 +260,27 @@ export function useProfiles() {
       // Session id for writes — not env-first — or owner id when anon + bypass (see portfolioOwner).
       const writerUserId = getProfileWriterUserId(user?.id);
 
-      // Try to update existing profile first
-      let result = await updateProfile(writerUserId, updates);
-      
-      // If no existing profile, create one
-      if (!result) {
+      try {
+        return await updateProfile(writerUserId, updates);
+      } catch (err: unknown) {
+        if (!isPostgrestNoRowsError(err)) {
+          const msg = getPostgrestErrorMessage(err);
+          setError(msg);
+          throw new Error(msg);
+        }
         console.log('📝 Profile not found, creating new profile...');
         const newProfile = {
           id: writerUserId,
           email: user?.email || 'brian.bureson@gmail.com',
           full_name: 'Brian Bureson',
-          ...updates
-        };
-        result = await createProfile(newProfile);
+          ...updates,
+        } as ProfileInsert;
+        return await createProfile(newProfile);
       }
-      
-      return result;
-    } catch (err: any) {
-      setError(err.message);
-      return null;
+    } catch (err: unknown) {
+      const message = getPostgrestErrorMessage(err);
+      setError(message);
+      throw new Error(message);
     }
   };
 

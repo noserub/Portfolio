@@ -13,6 +13,7 @@ import { MarkdownRenderer } from "../components/MarkdownRenderer";
 import { toast } from "sonner";
 import { useSEO } from "../hooks/useSEO";
 import { useProfiles, type ProfileUpdate } from "../hooks/useProfiles";
+import { getPostgrestErrorMessage } from "../lib/supabaseClient";
 import { getProfileWriterUserId } from "../lib/portfolioOwner";
 
 interface AboutProps {
@@ -20,9 +21,6 @@ interface AboutProps {
   onHoverChange?: (isHovering: boolean) => void;
   isEditMode?: boolean;
 }
-
-const DEFAULT_RESUME_URL =
-  "https://drive.google.com/file/d/1v6xDfL9LEO9o2kECo2qy9WZ6b_OTqo9d/view?usp=sharing";
 
 function getProfileUpdatedAtMs(profile: { updated_at?: string | null } | null): number {
   if (!profile?.updated_at) return 0;
@@ -245,7 +243,7 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
   const [aboutHighlightsLeadershipDecorativeIcons, setAboutHighlightsLeadershipDecorativeIcons] =
     useState(false);
 
-  /** Empty until Supabase/localStorage load; never default to the legacy Drive URL (that hid null DB). */
+  /** Empty until Supabase/localStorage load; Resume button has no fallback URL. */
   const [resumeUrl, setResumeUrl] = useState("");
 
   /**
@@ -628,7 +626,7 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
   const saveToSupabase = async () => {
     try {
       console.log('💾 About page: Attempting to save profile data to Supabase...');
-      
+
       const payload: ProfileUpdate = {
         bio_paragraph_1: bioParagraph1,
         bio_paragraph_2: bioParagraph2,
@@ -651,27 +649,19 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
         tools_categories: toolsCategories,
         section_order: sectionOrder,
         about_highlights_leadership_decorative_icons: aboutHighlightsLeadershipDecorativeIcons,
+        // Full snapshot: after load, resumeUrl mirrors DB; omitting this let stale conditions skip the column so resume_url never persisted.
+        resume_url: resumeUrl.trim() || null,
       };
-      // Include resume when user edited the field OR when state has a URL (covers paste/autofill
-      // without reliable onChange, and avoids only sending when resumeTouchedRef was missed).
-      // Omit only when empty and never touched — avoids wiping DB with null on unrelated autosaves.
-      if (resumeTouchedRef.current || resumeUrl.trim()) {
-        payload.resume_url = resumeUrl.trim() || null;
-      }
 
-      const result = await updateCurrentUserProfile(payload);
-      
-      if (result) {
-        console.log('✅ About page: Successfully saved to Supabase');
-      } else {
-        throw new Error('Supabase save failed');
-      }
+      await updateCurrentUserProfile(payload);
+      console.log('✅ About page: Successfully saved to Supabase');
     } catch (error) {
       console.log('⚠️ About page: Supabase save failed, saving to localStorage instead:', error);
       persistAboutPageDraftToLocalStorage();
+      const msg = getPostgrestErrorMessage(error);
       toast.error(
-        "Could not save to Supabase (check you are signed in with your account, or RLS policies). Draft saved in this browser only.",
-        { duration: 8000 },
+        `Could not save to Supabase: ${msg}. Draft saved in this browser only.`,
+        { duration: 10000 },
       );
     }
   };
@@ -862,9 +852,8 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
     }
   };
 
-  /** URL used when opening Resume: saved value, or default PDF for visitors if DB is still empty. */
-  const resumeOpenUrl =
-    resumeUrl.trim() || (!isEditMode ? DEFAULT_RESUME_URL : "");
+  /** URL for Resume button: `profiles.resume_url` only (state mirrors DB after load). No client default. */
+  const resumeOpenUrl = resumeUrl.trim();
 
   const handleResumeClick = () => {
     const url = resumeOpenUrl.trim();
@@ -1281,7 +1270,7 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
                         persistAboutPageDraftToLocalStorage();
                       }
                     }}
-                    placeholder={DEFAULT_RESUME_URL}
+                    placeholder="https://example.com/your-resume.pdf"
                     className="font-mono text-sm"
                   />
                   <p className="text-xs text-muted-foreground">

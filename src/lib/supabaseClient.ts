@@ -82,3 +82,33 @@ export const supabase: SupabaseClient<Database> = _supabase ?? (
 
 // Export the same client with a typed alias for backward compatibility
 export const typedSupabase = supabase
+
+/** PostgREST errors are often plain objects; never use `String(err)` or you get "[object Object]". */
+export function getPostgrestErrorMessage(err: unknown): string {
+  if (err instanceof Error && typeof err.message === 'string' && err.message.length > 0) {
+    const details = (err as { details?: string }).details
+    const hint = (err as { hint?: string }).hint
+    const code = (err as { code?: string }).code
+    const parts = [
+      err.message,
+      details ? `Details: ${details}` : '',
+      hint ? `Hint: ${hint}` : '',
+      code ? `[${code}]` : '',
+    ].filter(Boolean)
+    return parts.join(' ')
+  }
+  if (typeof err === 'object' && err !== null) {
+    const o = err as Record<string, unknown>
+    if (typeof o.message === 'string') {
+      const details = typeof o.details === 'string' ? o.details : ''
+      const hint = typeof o.hint === 'string' ? o.hint : ''
+      const code = typeof o.code === 'string' ? o.code : ''
+      return [o.message, details, hint, code].filter(Boolean).join(' ')
+    }
+  }
+  try {
+    return JSON.stringify(err)
+  } catch {
+    return String(err)
+  }
+}
