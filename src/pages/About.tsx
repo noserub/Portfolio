@@ -42,7 +42,7 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
   useSEO('about');
   
   // Supabase profile hook
-  const { getCurrentUserProfile, updateCurrentUserProfile, loading: profileLoading } = useProfiles();
+  const { updateCurrentUserProfile, loading: profileLoading } = useProfiles();
   
   // Track if data has been loaded from Supabase - prevents saving defaults
   const [dataLoadedFromSupabase, setDataLoadedFromSupabase] = useState(false);
@@ -337,7 +337,6 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
 
     const loadProfile = async () => {
       let user: { id: string } | null = null;
-      let isBypassAuth = false;
       try {
         console.log('📥 Loading profile data from Supabase...');
         
@@ -346,47 +345,38 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
         const { data: { user: authUser } } = await supabase.auth.getUser();
         user = authUser ?? null;
         if (cancelled) return;
-
-        isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
         
         let profile = null;
-        
-        if (user || isBypassAuth) {
-          // Authenticated user - load user-specific data
-          const userId = getPortfolioOwnerUserId(user?.id);
-          console.log('📥 About page: Loading profile for authenticated user:', userId);
-          profile = await getCurrentUserProfile();
+
+        // One path for everyone (signed-in, bypass, incognito): same profiles row the CMS updates.
+        // getPortfolioOwnerUserId uses VITE_PUBLIC_PORTFOLIO_OWNER_ID when set, else the signed-in user id.
+        const ownerId = getPortfolioOwnerUserId(user?.id);
+        console.log('📥 About page: Loading profile for owner id:', ownerId);
+
+        const { data: ownerRow, error: ownerErr } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', ownerId)
+          .maybeSingle();
+
+        if (ownerErr) {
+          console.log('⚠️ About page: Error loading profile:', ownerErr);
         } else {
-          // Not authenticated: load the published portfolio owner's row (same id as CMS saves).
-          const ownerId = getPortfolioOwnerUserId(null);
-          console.log('📥 About page: Loading public profile by owner id:', ownerId);
-          const { data, error } = await supabase
+          profile = ownerRow;
+        }
+
+        if (!profile && !ownerErr) {
+          console.log('📥 About page: No row for owner id; trying latest profile with bio');
+          const { data: legacy, error: legacyErr } = await supabase
             .from('profiles')
             .select('*')
-            .eq('id', ownerId)
+            .not('bio_paragraph_1', 'is', null)
+            .order('updated_at', { ascending: false })
+            .limit(1)
             .maybeSingle();
-
-          if (error) {
-            console.log('⚠️ About page: Error loading public profile:', error);
-          } else {
-            profile = data;
-            console.log('📥 About page: Public profile data received:', profile);
-          }
-          // Incognito / misconfigured VITE_PUBLIC_PORTFOLIO_OWNER_ID: no row for default UUID.
-          // Fall back to the most recently updated published profile so visitors still see content + resume.
-          if (!profile && !error) {
-            console.log('📥 About page: No row for owner id; loading latest profile with bio as fallback');
-            const { data: legacy, error: legacyErr } = await supabase
-              .from('profiles')
-              .select('*')
-              .not('bio_paragraph_1', 'is', null)
-              .order('updated_at', { ascending: false })
-              .limit(1)
-              .maybeSingle();
-            if (!legacyErr) {
-              profile = legacy;
-              console.log('📥 About page: Fallback public profile:', profile?.id);
-            }
+          if (!legacyErr) {
+            profile = legacy;
+            console.log('📥 About page: Fallback profile id:', profile?.id);
           }
         }
 
@@ -510,33 +500,11 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
               }
             }
           }
-          // Resume: server first; if column is empty, use aboutPageProfile draft (dev / not yet synced).
+          // Resume link: exactly what's in profiles.resume_url (same row CMS saves). No localStorage/default override.
           {
-            let nextResume = "";
             const r = profile.resume_url;
-            if (r != null && String(r).trim()) {
-              nextResume = String(r).trim();
-            } else {
-              const saved = localStorage.getItem("aboutPageProfile");
-              if (saved) {
-                try {
-                  const p = JSON.parse(saved) as Record<string, unknown>;
-                  const lr = p.resume_url;
-                  if (lr != null && String(lr).trim()) {
-                    nextResume = String(lr).trim();
-                  }
-                } catch {
-                  /* ignore */
-                }
-              }
-            }
-            // Public / incognito: no localStorage — keep button usable when DB has no resume_url yet.
-            if (!nextResume && !user && !isBypassAuth) {
-              nextResume = DEFAULT_RESUME_URL;
-            }
-            if (!cancelled) {
-              setResumeUrl(nextResume);
-            }
+            const nextResume = r != null && String(r).trim() ? String(r).trim() : "";
+            if (!cancelled) setResumeUrl(nextResume);
           }
           if (!cancelled) {
             setDataLoadedFromSupabase(true); // Mark data as loaded, safe to save now
@@ -563,9 +531,6 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
             // If no data exists anywhere, allow saves (for first-time setup)
             if (!cancelled) setDataLoadedFromSupabase(true);
           }
-          if (!cancelled && !user && !isBypassAuth) {
-            setResumeUrl((prev) => (prev.trim() ? prev : DEFAULT_RESUME_URL));
-          }
         }
       } catch (error) {
         if (cancelled) return;
@@ -590,9 +555,6 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
           // If no data exists anywhere, allow saves (for first-time setup)
           if (!cancelled) setDataLoadedFromSupabase(true);
         }
-        if (!cancelled && !user && !isBypassAuth) {
-          setResumeUrl((prev) => (prev.trim() ? prev : DEFAULT_RESUME_URL));
-        }
       }
     };
     
@@ -600,7 +562,7 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
     return () => {
       cancelled = true;
     };
-  }, [getCurrentUserProfile, applyAboutPageFromStorageDraft]); // Now safe to include getCurrentUserProfile since it's memoized
+  }, [applyAboutPageFromStorageDraft]);
 
   // Auto-save when state changes (debounced)
   // IMPORTANT: Only save if:
