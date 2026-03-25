@@ -23,6 +23,20 @@ interface AboutProps {
 const DEFAULT_RESUME_URL =
   "https://drive.google.com/file/d/1v6xDfL9LEO9o2kECo2qy9WZ6b_OTqo9d/view?usp=sharing";
 
+function getProfileUpdatedAtMs(profile: { updated_at?: string | null } | null): number {
+  if (!profile?.updated_at) return 0;
+  const t = Date.parse(profile.updated_at);
+  return Number.isNaN(t) ? 0 : t;
+}
+
+/** `lastModified` on aboutPageProfile local draft (ISO string). Missing or invalid → treat as infinitely old. */
+function getLocalAboutDraftMs(profileData: Record<string, unknown>): number {
+  const lm = profileData.lastModified;
+  if (typeof lm !== "string" || !lm.trim()) return 0;
+  const t = Date.parse(lm);
+  return Number.isNaN(t) ? 0 : t;
+}
+
 export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
   // Apply SEO for about page
   useSEO('about');
@@ -230,37 +244,49 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
   const [aboutHighlightsLeadershipDecorativeIcons, setAboutHighlightsLeadershipDecorativeIcons] =
     useState(false);
 
-  const [resumeUrl, setResumeUrl] = useState(DEFAULT_RESUME_URL);
+  /** Empty until Supabase/localStorage load; never default to the legacy Drive URL (that hid null DB). */
+  const [resumeUrl, setResumeUrl] = useState("");
 
   /** Applies `aboutPageProfile` JSON from localStorage (same shape as save). */
-  const applyAboutPageFromStorageDraft = useCallback((profileData: Record<string, unknown>) => {
-    if (profileData.bio_paragraph_1) setBioParagraph1(profileData.bio_paragraph_1 as string);
-    if (profileData.bio_paragraph_2) setBioParagraph2(profileData.bio_paragraph_2 as string);
-    if (profileData.super_powers_title) setSuperPowersTitle(profileData.super_powers_title as string);
-    if (profileData.super_powers) setSuperPowers(profileData.super_powers as string[]);
-    if (profileData.highlights_title) setHighlightsTitle(profileData.highlights_title as string);
-    if (profileData.highlights) setHighlights(profileData.highlights as typeof highlights);
-    if (profileData.leadership_title) setLeadershipTitle(profileData.leadership_title as string);
-    if (profileData.leadership_items) setLeadershipItems(profileData.leadership_items as typeof leadershipItems);
-    if (profileData.expertise_title) setExpertiseTitle(profileData.expertise_title as string);
-    if (profileData.expertise_items) setExpertiseItems(profileData.expertise_items as typeof expertiseItems);
-    if (profileData.how_i_use_ai_title) setHowIUseAITitle(profileData.how_i_use_ai_title as string);
-    if (profileData.how_i_use_ai_items) setHowIUseAIItems(profileData.how_i_use_ai_items as typeof howIUseAIItems);
-    if (profileData.process_title) setProcessTitle(profileData.process_title as string);
-    if (profileData.process_subheading) setProcessSubheading(profileData.process_subheading as string);
-    if (profileData.process_items) setProcessItems(profileData.process_items as typeof processItems);
-    if (profileData.certifications_title) setCertificationsTitle(profileData.certifications_title as string);
-    if (profileData.certifications_items) setCertificationsItems(profileData.certifications_items as typeof certificationsItems);
-    if (profileData.tools_title) setToolsTitle(profileData.tools_title as string);
-    if (profileData.tools_categories) setToolsCategories(profileData.tools_categories as typeof toolsCategories);
-    if (profileData.section_order) setSectionOrder(profileData.section_order as string[]);
-    if (typeof profileData.about_highlights_leadership_decorative_icons === "boolean") {
-      setAboutHighlightsLeadershipDecorativeIcons(profileData.about_highlights_leadership_decorative_icons);
-    }
-    if (profileData.resume_url && String(profileData.resume_url).trim()) {
-      setResumeUrl(String(profileData.resume_url).trim());
-    }
-  }, []);
+  /**
+   * Applies localStorage draft. When `applyResume` is false (Supabase profile exists), skip resume_url so
+   * the server row is the only source for the Resume link — avoids stale local drafts showing an old file.
+   */
+  const applyAboutPageFromStorageDraft = useCallback(
+    (profileData: Record<string, unknown>, applyResume = true) => {
+      if (profileData.bio_paragraph_1) setBioParagraph1(profileData.bio_paragraph_1 as string);
+      if (profileData.bio_paragraph_2) setBioParagraph2(profileData.bio_paragraph_2 as string);
+      if (profileData.super_powers_title) setSuperPowersTitle(profileData.super_powers_title as string);
+      if (profileData.super_powers) setSuperPowers(profileData.super_powers as string[]);
+      if (profileData.highlights_title) setHighlightsTitle(profileData.highlights_title as string);
+      if (profileData.highlights) setHighlights(profileData.highlights as typeof highlights);
+      if (profileData.leadership_title) setLeadershipTitle(profileData.leadership_title as string);
+      if (profileData.leadership_items) setLeadershipItems(profileData.leadership_items as typeof leadershipItems);
+      if (profileData.expertise_title) setExpertiseTitle(profileData.expertise_title as string);
+      if (profileData.expertise_items) setExpertiseItems(profileData.expertise_items as typeof expertiseItems);
+      if (profileData.how_i_use_ai_title) setHowIUseAITitle(profileData.how_i_use_ai_title as string);
+      if (profileData.how_i_use_ai_items) setHowIUseAIItems(profileData.how_i_use_ai_items as typeof howIUseAIItems);
+      if (profileData.process_title) setProcessTitle(profileData.process_title as string);
+      if (profileData.process_subheading) setProcessSubheading(profileData.process_subheading as string);
+      if (profileData.process_items) setProcessItems(profileData.process_items as typeof processItems);
+      if (profileData.certifications_title) setCertificationsTitle(profileData.certifications_title as string);
+      if (profileData.certifications_items) setCertificationsItems(profileData.certifications_items as typeof certificationsItems);
+      if (profileData.tools_title) setToolsTitle(profileData.tools_title as string);
+      if (profileData.tools_categories) setToolsCategories(profileData.tools_categories as typeof toolsCategories);
+      if (profileData.section_order) setSectionOrder(profileData.section_order as string[]);
+      if (typeof profileData.about_highlights_leadership_decorative_icons === "boolean") {
+        setAboutHighlightsLeadershipDecorativeIcons(profileData.about_highlights_leadership_decorative_icons);
+      }
+      if (
+        applyResume &&
+        profileData.resume_url &&
+        String(profileData.resume_url).trim()
+      ) {
+        setResumeUrl(String(profileData.resume_url).trim());
+      }
+    },
+    []
+  );
 
   const persistAboutPageDraftToLocalStorage = () => {
     const profileData = {
@@ -307,6 +333,8 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
 
   // Load profile data from Supabase (with fallback to hardcoded content)
   useEffect(() => {
+    let cancelled = false;
+
     const loadProfile = async () => {
       try {
         console.log('📥 Loading profile data from Supabase...');
@@ -314,6 +342,8 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
         // Check authentication status
         const { supabase } = await import('../lib/supabaseClient');
         const { data: { user } } = await supabase.auth.getUser();
+        if (cancelled) return;
+
         const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
         
         let profile = null;
@@ -324,16 +354,16 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
           console.log('📥 About page: Loading profile for authenticated user:', userId);
           profile = await getCurrentUserProfile();
         } else {
-          // Not authenticated - load public data (most recent profile with data)
-          console.log('📥 About page: Loading public profile data...');
+          // Not authenticated: load the published portfolio owner's row (same id as CMS saves).
+          // Do NOT use "latest updated profile" — that can be a different user and have no resume_url.
+          const ownerId = getPortfolioOwnerUserId(null);
+          console.log('📥 About page: Loading public profile by owner id:', ownerId);
           const { data, error } = await supabase
             .from('profiles')
             .select('*')
-            .not('bio_paragraph_1', 'is', null)
-            .order('updated_at', { ascending: false })
-            .limit(1)
+            .eq('id', ownerId)
             .maybeSingle();
-            
+
           if (error) {
             console.log('⚠️ About page: Error loading public profile:', error);
           } else {
@@ -341,10 +371,13 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
             console.log('📥 About page: Public profile data received:', profile);
           }
         }
+
+        if (cancelled) return;
         
         console.log('📥 Profile data received:', profile);
         
         if (profile) {
+          if (cancelled) return;
           console.log('✅ Profile found, updating state...');
           
           // Only update fields that have meaningful data (not empty strings or null)
@@ -384,10 +417,6 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
 
           if (typeof profile.about_highlights_leadership_decorative_icons === "boolean") {
             setAboutHighlightsLeadershipDecorativeIcons(profile.about_highlights_leadership_decorative_icons);
-          }
-
-          if (profile.resume_url && String(profile.resume_url).trim()) {
-            setResumeUrl(String(profile.resume_url).trim());
           }
           
           if (profile.expertise_title && profile.expertise_title.trim()) {
@@ -439,20 +468,57 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
           }
           
           console.log('✅ Profile state updated from Supabase');
-          // In dev, auto-save does not write to Supabase; overlay local draft so edits survive refresh.
+          // In dev, overlay localStorage only if that draft is newer than Supabase; otherwise stale drafts
+          // would overwrite a fresh resume_url (and other fields) from the server.
           if (import.meta.env.DEV) {
             const savedProfile = localStorage.getItem("aboutPageProfile");
             if (savedProfile) {
               try {
                 const profileData = JSON.parse(savedProfile) as Record<string, unknown>;
-                console.log("📥 Dev: overlaying aboutPageProfile from localStorage");
-                applyAboutPageFromStorageDraft(profileData);
+                const localMs = getLocalAboutDraftMs(profileData);
+                const remoteMs = getProfileUpdatedAtMs(profile);
+                if (localMs > remoteMs) {
+                  console.log(
+                    "📥 Dev: overlaying aboutPageProfile from localStorage (draft newer than Supabase)"
+                  );
+                  applyAboutPageFromStorageDraft(profileData, false);
+                } else {
+                  console.log(
+                    "📥 Dev: keeping Supabase profile; local aboutPageProfile is older or same as remote updated_at"
+                  );
+                }
               } catch (e) {
                 console.log("⚠️ Dev: failed to parse aboutPageProfile", e);
               }
             }
           }
-          setDataLoadedFromSupabase(true); // Mark data as loaded, safe to save now
+          // Resume: server first; if column is empty, use aboutPageProfile draft (dev / not yet synced).
+          {
+            let nextResume = "";
+            const r = profile.resume_url;
+            if (r != null && String(r).trim()) {
+              nextResume = String(r).trim();
+            } else {
+              const saved = localStorage.getItem("aboutPageProfile");
+              if (saved) {
+                try {
+                  const p = JSON.parse(saved) as Record<string, unknown>;
+                  const lr = p.resume_url;
+                  if (lr != null && String(lr).trim()) {
+                    nextResume = String(lr).trim();
+                  }
+                } catch {
+                  /* ignore */
+                }
+              }
+            }
+            if (!cancelled) {
+              setResumeUrl(nextResume);
+            }
+          }
+          if (!cancelled) {
+            setDataLoadedFromSupabase(true); // Mark data as loaded, safe to save now
+          }
         } else {
           console.log('ℹ️ No profile found in Supabase, checking localStorage...');
           
@@ -465,18 +531,19 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
               applyAboutPageFromStorageDraft(profileData);
               
               console.log('✅ Loaded from localStorage');
-              setDataLoadedFromSupabase(true); // Mark data as loaded (from localStorage), safe to save now
+              if (!cancelled) setDataLoadedFromSupabase(true); // Mark data as loaded (from localStorage), safe to save now
             } catch (parseError) {
               console.log('❌ Error parsing localStorage data:', parseError);
-              setDataLoadedFromSupabase(true); // Even if parse fails, don't save defaults
+              if (!cancelled) setDataLoadedFromSupabase(true); // Even if parse fails, don't save defaults
             }
           } else {
             console.log('ℹ️ No localStorage data found, using hardcoded defaults');
             // If no data exists anywhere, allow saves (for first-time setup)
-            setDataLoadedFromSupabase(true);
+            if (!cancelled) setDataLoadedFromSupabase(true);
           }
         }
       } catch (error) {
+        if (cancelled) return;
         console.log('ℹ️ Error loading from Supabase, checking localStorage...', error);
         
         // Try to load from localStorage as fallback
@@ -488,20 +555,23 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
             applyAboutPageFromStorageDraft(profileData);
             
             console.log('✅ Loaded from localStorage');
-            setDataLoadedFromSupabase(true); // Mark data as loaded (from localStorage), safe to save now
+            if (!cancelled) setDataLoadedFromSupabase(true); // Mark data as loaded (from localStorage), safe to save now
           } catch (parseError) {
             console.log('❌ Error parsing localStorage data:', parseError);
-            setDataLoadedFromSupabase(true); // Even if parse fails, don't save defaults
+            if (!cancelled) setDataLoadedFromSupabase(true); // Even if parse fails, don't save defaults
           }
         } else {
           console.log('ℹ️ No localStorage data found, using hardcoded defaults');
           // If no data exists anywhere, allow saves (for first-time setup)
-          setDataLoadedFromSupabase(true);
+          if (!cancelled) setDataLoadedFromSupabase(true);
         }
       }
     };
     
     loadProfile();
+    return () => {
+      cancelled = true;
+    };
   }, [getCurrentUserProfile, applyAboutPageFromStorageDraft]); // Now safe to include getCurrentUserProfile since it's memoized
 
   // Auto-save when state changes (debounced)
@@ -1170,7 +1240,7 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
                     autoComplete="url"
                     value={resumeUrl}
                     onChange={(e) => setResumeUrl(e.target.value)}
-                    placeholder="https://…"
+                    placeholder={DEFAULT_RESUME_URL}
                     className="font-mono text-sm"
                   />
                   <p className="text-xs text-muted-foreground">
