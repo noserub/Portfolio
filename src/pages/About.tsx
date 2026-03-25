@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { motion } from "motion/react";
 import { PageLayout } from "../components/layout/PageLayout";
 import { Badge } from "../components/ui/badge";
@@ -19,6 +19,9 @@ interface AboutProps {
   onHoverChange?: (isHovering: boolean) => void;
   isEditMode?: boolean;
 }
+
+const DEFAULT_RESUME_URL =
+  "https://drive.google.com/file/d/1v6xDfL9LEO9o2kECo2qy9WZ6b_OTqo9d/view?usp=sharing";
 
 export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
   // Apply SEO for about page
@@ -227,6 +230,68 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
   const [aboutHighlightsLeadershipDecorativeIcons, setAboutHighlightsLeadershipDecorativeIcons] =
     useState(false);
 
+  const [resumeUrl, setResumeUrl] = useState(DEFAULT_RESUME_URL);
+
+  /** Applies `aboutPageProfile` JSON from localStorage (same shape as save). */
+  const applyAboutPageFromStorageDraft = useCallback((profileData: Record<string, unknown>) => {
+    if (profileData.bio_paragraph_1) setBioParagraph1(profileData.bio_paragraph_1 as string);
+    if (profileData.bio_paragraph_2) setBioParagraph2(profileData.bio_paragraph_2 as string);
+    if (profileData.super_powers_title) setSuperPowersTitle(profileData.super_powers_title as string);
+    if (profileData.super_powers) setSuperPowers(profileData.super_powers as string[]);
+    if (profileData.highlights_title) setHighlightsTitle(profileData.highlights_title as string);
+    if (profileData.highlights) setHighlights(profileData.highlights as typeof highlights);
+    if (profileData.leadership_title) setLeadershipTitle(profileData.leadership_title as string);
+    if (profileData.leadership_items) setLeadershipItems(profileData.leadership_items as typeof leadershipItems);
+    if (profileData.expertise_title) setExpertiseTitle(profileData.expertise_title as string);
+    if (profileData.expertise_items) setExpertiseItems(profileData.expertise_items as typeof expertiseItems);
+    if (profileData.how_i_use_ai_title) setHowIUseAITitle(profileData.how_i_use_ai_title as string);
+    if (profileData.how_i_use_ai_items) setHowIUseAIItems(profileData.how_i_use_ai_items as typeof howIUseAIItems);
+    if (profileData.process_title) setProcessTitle(profileData.process_title as string);
+    if (profileData.process_subheading) setProcessSubheading(profileData.process_subheading as string);
+    if (profileData.process_items) setProcessItems(profileData.process_items as typeof processItems);
+    if (profileData.certifications_title) setCertificationsTitle(profileData.certifications_title as string);
+    if (profileData.certifications_items) setCertificationsItems(profileData.certifications_items as typeof certificationsItems);
+    if (profileData.tools_title) setToolsTitle(profileData.tools_title as string);
+    if (profileData.tools_categories) setToolsCategories(profileData.tools_categories as typeof toolsCategories);
+    if (profileData.section_order) setSectionOrder(profileData.section_order as string[]);
+    if (typeof profileData.about_highlights_leadership_decorative_icons === "boolean") {
+      setAboutHighlightsLeadershipDecorativeIcons(profileData.about_highlights_leadership_decorative_icons);
+    }
+    if (profileData.resume_url && String(profileData.resume_url).trim()) {
+      setResumeUrl(String(profileData.resume_url).trim());
+    }
+  }, []);
+
+  const persistAboutPageDraftToLocalStorage = () => {
+    const profileData = {
+      bio_paragraph_1: bioParagraph1,
+      bio_paragraph_2: bioParagraph2,
+      super_powers_title: superPowersTitle,
+      super_powers: superPowers,
+      highlights_title: highlightsTitle,
+      highlights: highlights,
+      leadership_title: leadershipTitle,
+      leadership_items: leadershipItems,
+      expertise_title: expertiseTitle,
+      expertise_items: expertiseItems,
+      how_i_use_ai_title: howIUseAITitle,
+      how_i_use_ai_items: howIUseAIItems,
+      process_title: processTitle,
+      process_subheading: processSubheading,
+      process_items: processItems,
+      certifications_title: certificationsTitle,
+      certifications_items: certificationsItems,
+      tools_title: toolsTitle,
+      tools_categories: toolsCategories,
+      section_order: sectionOrder,
+      about_highlights_leadership_decorative_icons: aboutHighlightsLeadershipDecorativeIcons,
+      resume_url: resumeUrl.trim() || null,
+      lastModified: new Date().toISOString(),
+    };
+    localStorage.setItem("aboutPageProfile", JSON.stringify(profileData));
+    console.log("✅ About page: Saved draft to localStorage");
+  };
+
   // Debug logging for About page state
   useEffect(() => {
     console.log('📄 About page state check:');
@@ -320,6 +385,10 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
           if (typeof profile.about_highlights_leadership_decorative_icons === "boolean") {
             setAboutHighlightsLeadershipDecorativeIcons(profile.about_highlights_leadership_decorative_icons);
           }
+
+          if (profile.resume_url && String(profile.resume_url).trim()) {
+            setResumeUrl(String(profile.resume_url).trim());
+          }
           
           if (profile.expertise_title && profile.expertise_title.trim()) {
             setExpertiseTitle(profile.expertise_title);
@@ -370,6 +439,19 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
           }
           
           console.log('✅ Profile state updated from Supabase');
+          // In dev, auto-save does not write to Supabase; overlay local draft so edits survive refresh.
+          if (import.meta.env.DEV) {
+            const savedProfile = localStorage.getItem("aboutPageProfile");
+            if (savedProfile) {
+              try {
+                const profileData = JSON.parse(savedProfile) as Record<string, unknown>;
+                console.log("📥 Dev: overlaying aboutPageProfile from localStorage");
+                applyAboutPageFromStorageDraft(profileData);
+              } catch (e) {
+                console.log("⚠️ Dev: failed to parse aboutPageProfile", e);
+              }
+            }
+          }
           setDataLoadedFromSupabase(true); // Mark data as loaded, safe to save now
         } else {
           console.log('ℹ️ No profile found in Supabase, checking localStorage...');
@@ -378,33 +460,9 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
           const savedProfile = localStorage.getItem('aboutPageProfile');
           if (savedProfile) {
             try {
-              const profileData = JSON.parse(savedProfile);
+              const profileData = JSON.parse(savedProfile) as Record<string, unknown>;
               console.log('📥 Loading from localStorage:', profileData);
-              
-              // Update state with saved data
-              if (profileData.bio_paragraph_1) setBioParagraph1(profileData.bio_paragraph_1);
-              if (profileData.bio_paragraph_2) setBioParagraph2(profileData.bio_paragraph_2);
-              if (profileData.super_powers_title) setSuperPowersTitle(profileData.super_powers_title);
-              if (profileData.super_powers) setSuperPowers(profileData.super_powers);
-              if (profileData.highlights_title) setHighlightsTitle(profileData.highlights_title);
-              if (profileData.highlights) setHighlights(profileData.highlights);
-              if (profileData.leadership_title) setLeadershipTitle(profileData.leadership_title);
-              if (profileData.leadership_items) setLeadershipItems(profileData.leadership_items);
-              if (profileData.expertise_title) setExpertiseTitle(profileData.expertise_title);
-              if (profileData.expertise_items) setExpertiseItems(profileData.expertise_items);
-              if (profileData.how_i_use_ai_title) setHowIUseAITitle(profileData.how_i_use_ai_title);
-              if (profileData.how_i_use_ai_items) setHowIUseAIItems(profileData.how_i_use_ai_items);
-              if (profileData.process_title) setProcessTitle(profileData.process_title);
-              if (profileData.process_subheading) setProcessSubheading(profileData.process_subheading);
-              if (profileData.process_items) setProcessItems(profileData.process_items);
-              if (profileData.certifications_title) setCertificationsTitle(profileData.certifications_title);
-              if (profileData.certifications_items) setCertificationsItems(profileData.certifications_items);
-              if (profileData.tools_title) setToolsTitle(profileData.tools_title);
-              if (profileData.tools_categories) setToolsCategories(profileData.tools_categories);
-              if (profileData.section_order) setSectionOrder(profileData.section_order);
-              if (typeof profileData.about_highlights_leadership_decorative_icons === "boolean") {
-                setAboutHighlightsLeadershipDecorativeIcons(profileData.about_highlights_leadership_decorative_icons);
-              }
+              applyAboutPageFromStorageDraft(profileData);
               
               console.log('✅ Loaded from localStorage');
               setDataLoadedFromSupabase(true); // Mark data as loaded (from localStorage), safe to save now
@@ -425,33 +483,9 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
         const savedProfile = localStorage.getItem('aboutPageProfile');
         if (savedProfile) {
           try {
-            const profileData = JSON.parse(savedProfile);
+            const profileData = JSON.parse(savedProfile) as Record<string, unknown>;
             console.log('📥 Loading from localStorage:', profileData);
-            
-            // Update state with saved data
-            if (profileData.bio_paragraph_1) setBioParagraph1(profileData.bio_paragraph_1);
-            if (profileData.bio_paragraph_2) setBioParagraph2(profileData.bio_paragraph_2);
-            if (profileData.super_powers_title) setSuperPowersTitle(profileData.super_powers_title);
-            if (profileData.super_powers) setSuperPowers(profileData.super_powers);
-            if (profileData.highlights_title) setHighlightsTitle(profileData.highlights_title);
-            if (profileData.highlights) setHighlights(profileData.highlights);
-            if (profileData.leadership_title) setLeadershipTitle(profileData.leadership_title);
-            if (profileData.leadership_items) setLeadershipItems(profileData.leadership_items);
-            if (profileData.expertise_title) setExpertiseTitle(profileData.expertise_title);
-            if (profileData.expertise_items) setExpertiseItems(profileData.expertise_items);
-            if (profileData.how_i_use_ai_title) setHowIUseAITitle(profileData.how_i_use_ai_title);
-            if (profileData.how_i_use_ai_items) setHowIUseAIItems(profileData.how_i_use_ai_items);
-            if (profileData.process_title) setProcessTitle(profileData.process_title);
-            if (profileData.process_subheading) setProcessSubheading(profileData.process_subheading);
-            if (profileData.process_items) setProcessItems(profileData.process_items);
-            if (profileData.certifications_title) setCertificationsTitle(profileData.certifications_title);
-            if (profileData.certifications_items) setCertificationsItems(profileData.certifications_items);
-            if (profileData.tools_title) setToolsTitle(profileData.tools_title);
-            if (profileData.tools_categories) setToolsCategories(profileData.tools_categories);
-            if (profileData.section_order) setSectionOrder(profileData.section_order);
-            if (typeof profileData.about_highlights_leadership_decorative_icons === "boolean") {
-              setAboutHighlightsLeadershipDecorativeIcons(profileData.about_highlights_leadership_decorative_icons);
-            }
+            applyAboutPageFromStorageDraft(profileData);
             
             console.log('✅ Loaded from localStorage');
             setDataLoadedFromSupabase(true); // Mark data as loaded (from localStorage), safe to save now
@@ -468,7 +502,7 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
     };
     
     loadProfile();
-  }, [getCurrentUserProfile]); // Now safe to include getCurrentUserProfile since it's memoized
+  }, [getCurrentUserProfile, applyAboutPageFromStorageDraft]); // Now safe to include getCurrentUserProfile since it's memoized
 
   // Auto-save when state changes (debounced)
   // IMPORTANT: Only save if:
@@ -481,16 +515,15 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
       return;
     }
     
-    // Only auto-save in production mode - prevents branch work from affecting database
-    // In development/branch mode, changes won't be saved to Supabase until merged to main
     const isProduction = import.meta.env.MODE === 'production';
-    if (!isProduction) {
-      console.log('⏸️ Auto-save disabled: Not in production mode. Changes on branches won\'t affect Supabase.');
-      return;
-    }
-    
+
     const timeoutId = setTimeout(() => {
-      saveToSupabase();
+      if (isProduction) {
+        saveToSupabase();
+      } else {
+        // Dev: persist to localStorage only so CMS edits survive refresh without writing to Supabase.
+        persistAboutPageDraftToLocalStorage();
+      }
     }, 1000); // Save 1 second after last change
 
     return () => clearTimeout(timeoutId);
@@ -500,8 +533,9 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
     highlightsTitle, highlights, leadershipTitle, leadershipItems,
     expertiseTitle, expertiseItems, howIUseAITitle, howIUseAIItems,
     processTitle, processSubheading, processItems, certificationsTitle,
-    certificationsItems, toolsTitle, toolsCategories, sectionOrder,
-    aboutHighlightsLeadershipDecorativeIcons
+    certificationsItems, toolsTitle, toolsCategories,     sectionOrder,
+    aboutHighlightsLeadershipDecorativeIcons,
+    resumeUrl
   ]);
 
   // Save to Supabase
@@ -532,6 +566,7 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
         tools_categories: toolsCategories,
         section_order: sectionOrder,
         about_highlights_leadership_decorative_icons: aboutHighlightsLeadershipDecorativeIcons,
+        resume_url: resumeUrl.trim() || null,
       });
       
       if (result) {
@@ -541,35 +576,7 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
       }
     } catch (error) {
       console.log('⚠️ About page: Supabase save failed, saving to localStorage instead:', error);
-      
-      // Fallback to localStorage
-      const profileData = {
-        bio_paragraph_1: bioParagraph1,
-        bio_paragraph_2: bioParagraph2,
-        super_powers_title: superPowersTitle,
-        super_powers: superPowers,
-        highlights_title: highlightsTitle,
-        highlights: highlights,
-        leadership_title: leadershipTitle,
-        leadership_items: leadershipItems,
-        expertise_title: expertiseTitle,
-        expertise_items: expertiseItems,
-        how_i_use_ai_title: howIUseAITitle,
-        how_i_use_ai_items: howIUseAIItems,
-        process_title: processTitle,
-        process_subheading: processSubheading,
-        process_items: processItems,
-        certifications_title: certificationsTitle,
-        certifications_items: certificationsItems,
-        tools_title: toolsTitle,
-        tools_categories: toolsCategories,
-        section_order: sectionOrder,
-        about_highlights_leadership_decorative_icons: aboutHighlightsLeadershipDecorativeIcons,
-      lastModified: new Date().toISOString()
-    };
-      
-      localStorage.setItem('aboutPageProfile', JSON.stringify(profileData));
-      console.log('✅ About page: Saved to localStorage as fallback');
+      persistAboutPageDraftToLocalStorage();
     }
   };
 
@@ -760,7 +767,9 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
   };
 
   const handleResumeClick = () => {
-    window.open('https://drive.google.com/file/d/1v6xDfL9LEO9o2kECo2qy9WZ6b_OTqo9d/view?usp=sharing', '_blank');
+    const url = resumeUrl.trim();
+    if (!url) return;
+    window.open(url, "_blank");
   };
 
   // Section Reorder Controls Component
@@ -837,11 +846,13 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
       }}
     >
       <button
+        type="button"
+        disabled={!resumeUrl.trim()}
         onClick={(e) => {
           handleResumeClick();
           e.currentTarget.blur(); // Remove focus after click
         }}
-        className="relative rounded-full px-6 py-3 shadow-lg hover:shadow-xl transition-all duration-300 bg-background/80 backdrop-blur-sm hover:bg-background/60 cursor-pointer w-full lg:w-auto h-[52px] flex items-center justify-center"
+        className="relative rounded-full px-6 py-3 shadow-lg hover:shadow-xl transition-all duration-300 bg-background/80 backdrop-blur-sm hover:bg-background/60 w-full lg:w-auto h-[52px] flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-lg cursor-pointer enabled:hover:bg-background/60"
       >
         <span className="relative z-10 text-foreground font-bold flex items-center justify-center gap-2">
           <FileText className="w-4 h-4" />
@@ -1145,8 +1156,28 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
             )}
             
             {/* Resume Button - All screen sizes, below text */}
-            <div className="mt-8 flex justify-start">
+            <div className="mt-8 flex flex-col gap-3 items-start">
               {resumeButton}
+              {isEditMode && (
+                <div className="w-full max-w-xl space-y-2">
+                  <Label htmlFor="about-resume-url" className="text-sm font-medium">
+                    Resume link
+                  </Label>
+                  <Input
+                    id="about-resume-url"
+                    type="url"
+                    inputMode="url"
+                    autoComplete="url"
+                    value={resumeUrl}
+                    onChange={(e) => setResumeUrl(e.target.value)}
+                    placeholder="https://…"
+                    className="font-mono text-sm"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Opens in a new tab. Leave empty to disable the button.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </motion.div>
