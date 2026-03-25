@@ -4634,7 +4634,7 @@ export function ProjectDetail({ project, onBack, onUpdate: pushProjectUpdate, is
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
           className="relative px-4 py-2 sm:px-6 sm:py-3 lg:px-8 lg:py-4 bg-gradient-to-br from-slate-50/80 via-blue-50/60 to-purple-50/40 dark:from-slate-900/20 dark:via-blue-900/10 dark:to-purple-900/10 backdrop-blur-sm rounded-3xl border border-border shadow-2xl overflow-hidden group order-2 lg:order-none"
-          style={{ marginTop: '60px' }}
+          style={{ marginTop: 'var(--project-detail-hero-margin-top)' }}
         >
           <div 
             ref={heroImageRef}
@@ -5620,11 +5620,11 @@ export function ProjectDetail({ project, onBack, onUpdate: pushProjectUpdate, is
         )}
         </div>
 
-        {/* Desktop Sidebar — align top with hero *image* (hero has marginTop 60px + lg:py-4 before aspect-video). Sticky: index.css [data-sidebar-rail]. */}
+        {/* Desktop Sidebar — top offset via index.css (hero margin + lg pad); sticky rules on [data-sidebar-rail]. */}
         {(atGlanceContent || impactContent) && (
           <div
             data-sidebar-rail
-            className="hidden min-h-0 space-y-12 lg:mt-[calc(60px+1rem)] lg:block lg:col-start-2 lg:col-end-3"
+            className="hidden min-h-0 space-y-12 lg:block lg:col-start-2 lg:col-end-3"
           >
             {atGlanceContent && (
               <AtAGlanceSidebar 

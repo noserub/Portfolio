@@ -16,6 +16,9 @@ body {
  */
 :root {
   --portfolio-sticky-top: 6.5rem;
+  /* Project detail hero: outer margin + lg top padding before aspect-video — rail margin-top uses the sum */
+  --project-detail-hero-margin-top: 60px;
+  --project-detail-hero-pad-top-lg: 1rem; /* keep in sync with hero card lg:py-4 */
 }
 
 /* Fixed blocks that sit below the same chrome as the case-study rail (e.g. PageLayout action area). */
@@ -69,6 +72,10 @@ body {
    * Declared here so Tailwind order or other utilities cannot drop stickiness.
    */
   [data-desktop-grid="true"] > [data-sidebar-rail] {
+    /* Flush with top of aspect-video (hero margin + padding above image) */
+    margin-top: calc(
+      var(--project-detail-hero-margin-top) + var(--project-detail-hero-pad-top-lg)
+    );
     position: sticky;
     top: var(--portfolio-sticky-top, 6.5rem);
     z-index: 30;
