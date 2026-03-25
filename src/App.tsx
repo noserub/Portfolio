@@ -47,7 +47,7 @@ import { migrateResearchInsights, migrateProjectsArray, runSafetyChecks } from "
 import { FLUSH_HOME_PAGE_CMS_EVENT } from "./lib/homePageContent";
 import { getPortfolioOwnerUserId } from "./lib/portfolioOwner";
 import { useAppSettings } from "./hooks/useAppSettings";
-import { useProjects } from "./hooks/useProjects";
+import { ProjectsProvider, useProjects } from "./contexts/ProjectsContext";
 import { useContactMessages } from "./hooks/useContactMessages";
 import { useScrollHideChrome } from "./hooks/useScrollHideChrome";
 
@@ -181,6 +181,14 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
 }
 
 export default function App() {
+  return (
+    <ProjectsProvider>
+      <AppShell />
+    </ProjectsProvider>
+  );
+}
+
+function AppShell() {
   const [isDiagnosticMode, setIsDiagnosticMode] = useState(false);
   const [isEmergencyMode, setIsEmergencyMode] = useState(false);
   

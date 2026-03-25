@@ -99,7 +99,8 @@ export interface ProjectUpdate {
   case_study_decorative_icons?: boolean;
 }
 
-export function useProjects() {
+/** Shared project list + mutations. Prefer consuming via `ProjectsProvider` + `useProjects` from `contexts/ProjectsContext` so the app only mounts one instance (avoids duplicate full-table fetches). */
+export function useProjectsState() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

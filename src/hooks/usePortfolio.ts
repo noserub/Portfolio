@@ -1,5 +1,5 @@
 import { useProfiles } from './useProfiles';
-import { useProjects } from './useProjects';
+import { useProjectsState } from './useProjects';
 import { useContactMessages } from './useContactMessages';
 import { useSEOData } from './useSEOData';
 import { usePageVisibility } from './usePageVisibility';
@@ -12,7 +12,7 @@ import { useAppSettings } from './useAppSettings';
 export function usePortfolio() {
   // Initialize all hooks
   const profiles = useProfiles();
-  const projects = useProjects();
+  const projects = useProjectsState();
   const contactMessages = useContactMessages();
   const seoData = useSEOData();
   const pageVisibility = usePageVisibility();

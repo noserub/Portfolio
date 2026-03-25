@@ -8,7 +8,7 @@ import { ProjectCardSkeleton } from "../components/ProjectCardSkeleton";
 // Removed performance optimizations that were causing slowdown
 import { useSEO } from "../hooks/useSEO";
 import { useHomePageContent } from "../hooks/useHomePageContent";
-import { useProjects } from "../hooks/useProjects";
+import { useProjects } from "../contexts/ProjectsContext";
 import { supabase } from "../lib/supabaseClient";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";

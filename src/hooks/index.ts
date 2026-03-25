@@ -6,7 +6,8 @@ export { useDebounce } from './useDebounce';
 
 // Export all Supabase CRUD hooks
 export { useProfiles } from './useProfiles';
-export { useProjects } from './useProjects';
+export { useProjectsState } from './useProjects';
+export { ProjectsProvider, useProjects } from '../contexts/ProjectsContext';
 export { useHomePageContent } from './useHomePageContent';
 export { useContactMessages } from './useContactMessages';
 export { useSEOData } from './useSEOData';
