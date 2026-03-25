@@ -2195,6 +2195,9 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
       requiresPassword: project.requiresPassword !== undefined ? project.requiresPassword : project.requires_password,
       // Map project_type from snake_case to camelCase (handle null explicitly)
       projectType: project.projectType !== undefined ? project.projectType : (project.project_type !== undefined ? project.project_type : null),
+      caseStudyDecorativeIcons: Boolean(
+        project.caseStudyDecorativeIcons ?? project.case_study_decorative_icons
+      ),
       // Ensure position is an object
       position: project.position || { x: project.position_x || 50, y: project.position_y || 50 }
     };
@@ -2649,6 +2652,9 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         case_study_sidebars: (updatedProject as any).caseStudySidebars || (updatedProject as any).case_study_sidebars || undefined,
         sort_order: (updatedProject as any).sortOrder || 0,
         project_type: updatedProject.projectType || (updatedProject as any).project_type || null,
+        case_study_decorative_icons: Boolean(
+          updatedProject.caseStudyDecorativeIcons ?? (updatedProject as any).case_study_decorative_icons
+        ),
       };
 
       const rawKeyFeaturesColumns = (updatedProject as any).keyFeaturesColumns ?? (updatedProject as any).key_features_columns;
@@ -2745,6 +2751,8 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
               key_features_columns: (updatedProject as any).key_features_columns,
               researchInsightsColumns: (updatedProject as any).researchInsightsColumns,
               research_insights_columns: (updatedProject as any).research_insights_columns,
+              caseStudyDecorativeIcons: updatedProject.caseStudyDecorativeIcons,
+              case_study_decorative_icons: updatedProject.caseStudyDecorativeIcons,
               lastModified: new Date().toISOString()
             };
             

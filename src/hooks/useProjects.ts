@@ -34,6 +34,7 @@ export interface Project {
   section_positions?: any;
   sort_order: number;
   project_type?: 'product-design' | 'development' | 'branding';
+  case_study_decorative_icons?: boolean;
 }
 
 export interface ProjectInsert {
@@ -95,6 +96,7 @@ export interface ProjectUpdate {
   section_positions?: any;
   sort_order?: number;
   project_type?: 'product-design' | 'development' | 'branding';
+  case_study_decorative_icons?: boolean;
 }
 
 export function useProjects() {
@@ -265,7 +267,8 @@ export function useProjects() {
         'title','description','url','position_x','position_y','scale','published','requires_password','password',
         'case_study_content','case_study_images','flow_diagram_images','video_items','gallery_aspect_ratio',
         'flow_diagram_aspect_ratio','video_aspect_ratio','gallery_columns','flow_diagram_columns','video_columns','key_features_columns',
-        'project_images_position','videos_position','flow_diagrams_position','solution_cards_position','section_positions','sort_order','project_type'
+        'project_images_position','videos_position','flow_diagrams_position','solution_cards_position','section_positions','sort_order','project_type',
+        'case_study_decorative_icons'
       ];
       const payload: Record<string, any> = {};
       for (const key of allowedKeys) {

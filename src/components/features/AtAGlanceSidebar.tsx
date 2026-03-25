@@ -6,6 +6,7 @@ import { SidebarExpandableContent } from "./SidebarExpandableContent";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Textarea } from "../ui/textarea";
+import { cn } from "../ui/utils";
 
 interface AtAGlanceSidebarProps {
   content: string;
@@ -13,9 +14,11 @@ interface AtAGlanceSidebarProps {
   isEditMode?: boolean;
   onUpdate?: (title: string, content: string) => void;
   onRemove?: () => void;
+  /** Lucide icon in header. Off by default (controlled by project setting). */
+  showDecorativeIcons?: boolean;
 }
 
-export function AtAGlanceSidebar({ content, title, isEditMode, onUpdate, onRemove }: AtAGlanceSidebarProps) {
+export function AtAGlanceSidebar({ content, title, isEditMode, onUpdate, onRemove, showDecorativeIcons = false }: AtAGlanceSidebarProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [hasUserChanges, setHasUserChanges] = useState(false);
   
@@ -115,16 +118,23 @@ export function AtAGlanceSidebar({ content, title, isEditMode, onUpdate, onRemov
         />
 
         {/* Icon and Title */}
-        <div className="flex items-center gap-3 mb-4 relative z-10">
-          <motion.div
-            whileHover={{ scale: 1.1, rotate: 5 }}
-            className="p-3 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl text-cyan-600 dark:text-cyan-400 shadow-md flex-shrink-0 transition-all duration-300 group-hover:shadow-xl"
-          >
-            <Info className="w-6 h-6" />
-          </motion.div>
+        <div
+          className={cn(
+            "flex items-center mb-4 relative z-10 min-w-0",
+            showDecorativeIcons && "gap-3"
+          )}
+        >
+          {showDecorativeIcons && (
+            <motion.div
+              whileHover={{ scale: 1.1, rotate: 5 }}
+              className="p-3 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl text-cyan-600 dark:text-cyan-400 shadow-md flex-shrink-0 transition-all duration-300 group-hover:shadow-xl"
+            >
+              <Info className="w-6 h-6" />
+            </motion.div>
+          )}
           
           {isEditing ? (
-            <div className="flex-1">
+            <div className="min-w-0 flex-1">
               <Input
                 value={editedTitle}
                 onChange={(e) => { setEditedTitle(e.target.value); setHasUserChanges(true); }}
@@ -133,7 +143,9 @@ export function AtAGlanceSidebar({ content, title, isEditMode, onUpdate, onRemov
               />
             </div>
           ) : (
-            <h3 className="text-xl flex-1">{editedTitle}</h3>
+            <h3 className="m-0 min-w-0 flex-1 text-left text-xl font-semibold leading-tight">
+              {editedTitle}
+            </h3>
           )}
           
           {isEditMode && !isEditing && (

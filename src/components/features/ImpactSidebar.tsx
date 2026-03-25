@@ -6,6 +6,7 @@ import { SidebarExpandableContent } from "./SidebarExpandableContent";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Textarea } from "../ui/textarea";
+import { cn } from "../ui/utils";
 
 interface ImpactSidebarProps {
   content: string;
@@ -13,9 +14,10 @@ interface ImpactSidebarProps {
   isEditMode?: boolean;
   onUpdate?: (title: string, content: string) => void;
   onRemove?: () => void;
+  showDecorativeIcons?: boolean;
 }
 
-export function ImpactSidebar({ content, title, isEditMode, onUpdate, onRemove }: ImpactSidebarProps) {
+export function ImpactSidebar({ content, title, isEditMode, onUpdate, onRemove, showDecorativeIcons = false }: ImpactSidebarProps) {
   const [isEditing, setIsEditing] = useState(false);
   
   // Extract title from content (first line starting with #)
@@ -100,16 +102,23 @@ export function ImpactSidebar({ content, title, isEditMode, onUpdate, onRemove }
         />
 
         {/* Icon and Title */}
-        <div className="flex items-center gap-3 mb-4 relative z-10">
-          <motion.div
-            whileHover={{ scale: 1.1, rotate: 5 }}
-            className="p-3 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl text-green-600 dark:text-green-400 shadow-md flex-shrink-0 transition-all duration-300 group-hover:shadow-xl"
-          >
-            <TrendingUp className="w-6 h-6" />
-          </motion.div>
+        <div
+          className={cn(
+            "flex items-center mb-4 relative z-10 min-w-0",
+            showDecorativeIcons && "gap-3"
+          )}
+        >
+          {showDecorativeIcons && (
+            <motion.div
+              whileHover={{ scale: 1.1, rotate: 5 }}
+              className="p-3 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl text-green-600 dark:text-green-400 shadow-md flex-shrink-0 transition-all duration-300 group-hover:shadow-xl"
+            >
+              <TrendingUp className="w-6 h-6" />
+            </motion.div>
+          )}
           
           {isEditing ? (
-            <div className="flex-1">
+            <div className="min-w-0 flex-1">
               <Input
                 value={editedTitle}
                 onChange={(e) => setEditedTitle(e.target.value)}
@@ -118,7 +127,9 @@ export function ImpactSidebar({ content, title, isEditMode, onUpdate, onRemove }
               />
             </div>
           ) : (
-            <h3 className="text-xl flex-1">{editedTitle}</h3>
+            <h3 className="m-0 min-w-0 flex-1 text-left text-xl font-semibold leading-tight">
+              {editedTitle}
+            </h3>
           )}
           
           {isEditMode && !isEditing && (
