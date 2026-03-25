@@ -1,9 +1,16 @@
 /* Fonts load via <link> in index.html (avoids render-blocking @import chain) */
 
-/* Fix scrolling issues when console is open */
+/* Horizontal overflow: `hidden` on html/body breaks `position: sticky` site-wide; `clip` clips without that scroll containment. */
 html, body {
   overflow-x: hidden;
   height: 100%;
+}
+
+@supports (overflow-x: clip) {
+  html,
+  body {
+    overflow-x: clip;
+  }
 }
 
 /* Ensure proper scrolling behavior */

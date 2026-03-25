@@ -5542,7 +5542,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
         {(atGlanceContent || impactContent) && (
           <div className="hidden min-h-0 lg:mt-[60px] lg:block lg:col-start-2 lg:col-end-3 lg:self-start">
             {/* Sticky must be on a wrapper WITHOUT overflow; overflow on same node breaks viewport stickiness. */}
-            <div className="w-full lg:sticky lg:top-24">
+            <div className="w-full lg:sticky lg:top-24 lg:z-10">
               <div className="min-h-0 space-y-12">
                 {atGlanceContent && (
                   <AtAGlanceSidebar 

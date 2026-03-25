@@ -67,11 +67,7 @@ export function ImpactSidebar({ content, title, isEditMode, onUpdate, onRemove }
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.5 }}
-    >
+    <div>
       <style>{`
         /* Override MarkdownRenderer spacing for compact layout */
         .impact-sidebar-content.markdown-content p {
@@ -182,7 +178,7 @@ export function ImpactSidebar({ content, title, isEditMode, onUpdate, onRemove }
           )}
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }
 

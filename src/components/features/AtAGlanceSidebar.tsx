@@ -82,11 +82,7 @@ export function AtAGlanceSidebar({ content, title, isEditMode, onUpdate, onRemov
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.4 }}
-    >
+    <div>
       <style>{`
         /* Override MarkdownRenderer spacing for compact layout */
         .at-a-glance-content.markdown-content p {
@@ -197,7 +193,7 @@ export function AtAGlanceSidebar({ content, title, isEditMode, onUpdate, onRemov
           )}
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
