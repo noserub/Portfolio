@@ -1,16 +1,13 @@
 /* Fonts load via <link> in index.html (avoids render-blocking @import chain) */
 
-/* Horizontal overflow: `hidden` on html/body breaks `position: sticky` site-wide; `clip` clips without that scroll containment. */
-html, body {
-  overflow-x: hidden;
-  height: 100%;
-}
-
-@supports (overflow-x: clip) {
-  html,
-  body {
-    overflow-x: clip;
-  }
+/*
+ * Never use overflow-x: hidden on html/body — it breaks position:sticky for the whole app.
+ * clip prevents horizontal bleed without the sticky-breaking scroll containment of hidden.
+ */
+html,
+body {
+  overflow-x: clip;
+  min-height: 100vh;
 }
 
 /* Ensure proper scrolling behavior */
@@ -50,6 +47,19 @@ html, body {
     padding-left: 24px !important;
     padding-right: 24px !important;
     align-items: start !important;
+  }
+
+  /*
+   * Pin the right rail below the fixed header (~6.5rem matches App contextual toolbar / safe clearance).
+   * Declared here so Tailwind order or other utilities cannot drop stickiness.
+   */
+  [data-desktop-grid="true"] > [data-sidebar-rail] {
+    position: sticky;
+    top: 6.5rem;
+    z-index: 30;
+    align-self: start;
+    width: 320px;
+    box-sizing: border-box;
   }
 }
 
