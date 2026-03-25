@@ -4779,7 +4779,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
             {/* Mobile Sidebar Summary - Show on mobile, hidden on desktop */}
             {(atGlanceContent || impactContent) && (
               <div className="lg:hidden w-full mb-8">
-                <div className="case-study-sidebar-rail max-h-[min(70vh,calc(100dvh-10rem))] space-y-8 overflow-y-auto overflow-x-hidden overscroll-y-contain pr-1">
+                <div className="case-study-sidebar-rail case-study-sidebar-rail--mobile space-y-8 pr-1">
                   {atGlanceContent && (
                     <AtAGlanceSidebar 
                       content={atGlanceContent.content}
@@ -5540,12 +5540,9 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
 
         {/* Desktop Sidebar - Show when content exists, hidden on mobile */}
         {(atGlanceContent || impactContent) && (
-          <div className="hidden min-h-0 lg:block lg:col-start-2 lg:col-end-2 lg:self-start">
-            {/* Fixed viewport height + native overflow so tall cards scroll inside the rail (ScrollArea did not reliably constrain). Grid align-items:start via index.css prevents stretch fighting sticky. */}
-            <div
-              className="case-study-sidebar-rail w-full min-h-0 space-y-12 lg:sticky lg:top-24 lg:h-[calc(100dvh-6rem-1.5rem)] lg:max-h-[calc(100dvh-6rem-1.5rem)] lg:overflow-y-auto lg:overflow-x-hidden lg:overscroll-y-contain lg:pb-2 lg:pr-1"
-              style={{ marginTop: '60px' }}
-            >
+          <div className="hidden min-h-0 lg:mt-[60px] lg:block lg:col-start-2 lg:col-end-2 lg:self-start">
+            {/* Height + overflow forced in index.css (.case-study-sidebar-rail--desktop) so utilities cannot be overridden. */}
+            <div className="case-study-sidebar-rail case-study-sidebar-rail--desktop w-full min-h-0 space-y-12 pb-2 pr-1 lg:sticky lg:top-24">
               {atGlanceContent && (
                 <AtAGlanceSidebar 
                   content={atGlanceContent.content}
