@@ -5971,6 +5971,11 @@ body {
   --sidebar-accent-foreground: oklch(.205 0 0);
   --sidebar-border: oklch(.922 0 0);
   --sidebar-ring: oklch(.708 0 0);
+  /* Case study rail sidebars: subtle primary-hue tint + transparency (pair with backdrop-blur) */
+  --case-study-sidebar-glass-from: oklch(0.96 0.018 264 / 0.52);
+  --case-study-sidebar-glass-via: oklch(0.99 0.012 264 / 0.38);
+  --case-study-sidebar-glass-to: oklch(0.935 0.02 255 / 0.48);
+  --case-study-sidebar-border: oklch(0.78 0.035 264 / 0.22);
 }
 
 .dark {
@@ -6010,6 +6015,10 @@ body {
   --sidebar-accent-foreground: oklch(.985 0 0);
   --sidebar-border: oklch(.32 0 0);
   --sidebar-ring: oklch(.5 0 0);
+  --case-study-sidebar-glass-from: oklch(0.3 0.04 264 / 0.55);
+  --case-study-sidebar-glass-via: oklch(0.24 0.028 264 / 0.42);
+  --case-study-sidebar-glass-to: oklch(0.28 0.035 264 / 0.5);
+  --case-study-sidebar-border: oklch(0.42 0.05 264 / 0.4);
 }
 
 html {
@@ -6601,4 +6610,18 @@ body.dialog-open {
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+}
+
+/* At a glance / Impact rails — tinted glass; vars switch in .dark */
+.bg-case-study-sidebar-glass {
+  background-image: linear-gradient(
+    to bottom right,
+    var(--case-study-sidebar-glass-from),
+    var(--case-study-sidebar-glass-via),
+    var(--case-study-sidebar-glass-to)
+  );
+}
+
+.border-case-study-sidebar-glass {
+  border-color: var(--case-study-sidebar-border);
 }
