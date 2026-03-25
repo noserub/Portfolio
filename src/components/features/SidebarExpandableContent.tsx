@@ -3,11 +3,11 @@ import { motion } from "motion/react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "../ui/utils";
 
-/** Preview height = 2/3 of 13rem — must match measurement threshold */
-const COLLAPSED_REM = (13 * 2) / 3;
+/** Collapsed preview height (rem) — larger = more text before truncation */
+const COLLAPSED_REM = 14;
 
 function getCollapsedMaxPx(): number {
-  if (typeof document === "undefined") return 139;
+  if (typeof document === "undefined") return 224;
   const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
   return COLLAPSED_REM * rem;
 }
@@ -61,7 +61,7 @@ export function SidebarExpandableContent({
     return () => ro.disconnect();
   }, [contentVersion, measure]);
 
-  const collapsedPx = typeof document !== "undefined" ? getCollapsedMaxPx() : 139;
+  const collapsedPx = typeof document !== "undefined" ? getCollapsedMaxPx() : 224;
 
   const clipStyle: React.CSSProperties | undefined =
     overflowing && !expanded
@@ -93,7 +93,7 @@ export function SidebarExpandableContent({
 
         {overflowing && !expanded && (
           <div
-            className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-white/95 via-white/50 to-transparent dark:from-slate-950/90 dark:via-slate-950/45"
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-white/95 via-white/50 to-transparent dark:from-slate-950/90 dark:via-slate-950/45"
             aria-hidden
           />
         )}
@@ -108,7 +108,7 @@ export function SidebarExpandableContent({
           onClick={() => setExpanded((e) => !e)}
           aria-expanded={expanded}
           className={cn(
-            "mt-1 flex w-full items-center justify-center gap-1.5 rounded-xl border-t border-border/30 py-3 text-sm font-medium",
+            "mt-0.5 flex w-full items-center justify-center gap-1 rounded-lg border-t border-border/25 py-1.5 text-xs font-medium",
             "text-muted-foreground transition-colors hover:bg-black/[0.03] hover:text-foreground dark:hover:bg-white/[0.06]",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           )}
@@ -116,12 +116,12 @@ export function SidebarExpandableContent({
           {expanded ? (
             <>
               Show less
-              <ChevronUp className="h-4 w-4 opacity-70" strokeWidth={2} />
+              <ChevronUp className="h-3.5 w-3.5 opacity-70" strokeWidth={2} />
             </>
           ) : (
             <>
               Show more
-              <ChevronDown className="h-4 w-4 opacity-70" strokeWidth={2} />
+              <ChevronDown className="h-3.5 w-3.5 opacity-70" strokeWidth={2} />
             </>
           )}
         </motion.button>
