@@ -3,8 +3,9 @@ import { motion } from "motion/react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "../ui/utils";
 
-/** ~13rem — enough for a preview without dominating the column */
-const COLLAPSED_MAX_PX = 208;
+/** Collapsed cap: 2/3 of prior 13rem (~1/3 shorter) — must match max-h below */
+const COLLAPSED_MAX_REM = (13 * 2) / 3;
+const COLLAPSED_MAX_PX = COLLAPSED_MAX_REM * 16;
 
 interface SidebarExpandableContentProps {
   children: React.ReactNode;
@@ -49,7 +50,7 @@ export function SidebarExpandableContent({
           ref={measureRef}
           className={cn(
             "transition-[max-height] duration-300 ease-out",
-            overflowing && !expanded && "max-h-[13rem] overflow-hidden",
+            overflowing && !expanded && "max-h-[calc(13rem*2/3)] overflow-hidden",
             overflowing &&
               expanded &&
               "max-h-[min(70vh,48rem)] overflow-y-auto [scrollbar-width:thin]"
@@ -60,7 +61,7 @@ export function SidebarExpandableContent({
 
         {overflowing && !expanded && (
           <div
-            className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-white/95 via-white/50 to-transparent dark:from-slate-950/90 dark:via-slate-950/45"
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-white/95 via-white/50 to-transparent dark:from-slate-950/90 dark:via-slate-950/45"
             aria-hidden
           />
         )}
