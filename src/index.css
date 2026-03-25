@@ -5971,11 +5971,28 @@ body {
   --sidebar-accent-foreground: oklch(.205 0 0);
   --sidebar-border: oklch(.922 0 0);
   --sidebar-ring: oklch(.708 0 0);
-  /* Case study rail sidebars: subtle primary-hue tint + transparency (pair with backdrop-blur) */
-  --case-study-sidebar-glass-from: oklch(0.96 0.018 264 / 0.52);
-  --case-study-sidebar-glass-via: oklch(0.99 0.012 264 / 0.38);
-  --case-study-sidebar-glass-to: oklch(0.935 0.02 255 / 0.48);
-  --case-study-sidebar-border: oklch(0.78 0.035 264 / 0.22);
+  /* Case study rail: ~3% tonal tint (violet) into neutral glass — keeps glass read, shifts temperature */
+  --case-study-sidebar-tonal: oklch(0.7 0.1 264);
+  --case-study-sidebar-glass-from: color-mix(
+    in oklch,
+    var(--case-study-sidebar-tonal) 3%,
+    oklch(0.965 0 0 / 0.52) 97%
+  );
+  --case-study-sidebar-glass-via: color-mix(
+    in oklch,
+    var(--case-study-sidebar-tonal) 3%,
+    oklch(0.995 0 0 / 0.38) 97%
+  );
+  --case-study-sidebar-glass-to: color-mix(
+    in oklch,
+    var(--case-study-sidebar-tonal) 3%,
+    oklch(0.94 0 0 / 0.48) 97%
+  );
+  --case-study-sidebar-border: color-mix(
+    in oklch,
+    var(--case-study-sidebar-tonal) 3%,
+    oklch(0.78 0 0 / 0.22) 97%
+  );
 }
 
 .dark {
@@ -6015,10 +6032,28 @@ body {
   --sidebar-accent-foreground: oklch(.985 0 0);
   --sidebar-border: oklch(.32 0 0);
   --sidebar-ring: oklch(.5 0 0);
-  --case-study-sidebar-glass-from: oklch(0.3 0.04 264 / 0.55);
-  --case-study-sidebar-glass-via: oklch(0.24 0.028 264 / 0.42);
-  --case-study-sidebar-glass-to: oklch(0.28 0.035 264 / 0.5);
-  --case-study-sidebar-border: oklch(0.42 0.05 264 / 0.4);
+  /* Dark: same 3% mix into neutral dark glass (slight lift reads as separate rail) */
+  --case-study-sidebar-tonal: oklch(0.72 0.12 264);
+  --case-study-sidebar-glass-from: color-mix(
+    in oklch,
+    var(--case-study-sidebar-tonal) 3%,
+    oklch(0.26 0 0 / 0.55) 97%
+  );
+  --case-study-sidebar-glass-via: color-mix(
+    in oklch,
+    var(--case-study-sidebar-tonal) 3%,
+    oklch(0.22 0 0 / 0.42) 97%
+  );
+  --case-study-sidebar-glass-to: color-mix(
+    in oklch,
+    var(--case-study-sidebar-tonal) 3%,
+    oklch(0.25 0 0 / 0.5) 97%
+  );
+  --case-study-sidebar-border: color-mix(
+    in oklch,
+    var(--case-study-sidebar-tonal) 3%,
+    oklch(0.4 0 0 / 0.4) 97%
+  );
 }
 
 html {
@@ -6612,7 +6647,7 @@ body.dialog-open {
   -webkit-text-fill-color: transparent;
 }
 
-/* At a glance / Impact rails — tinted glass; vars switch in .dark */
+/* At a glance / Impact rails — 3% violet tonal mix + glass gradient; vars switch in .dark */
 .bg-case-study-sidebar-glass {
   background-image: linear-gradient(
     to bottom right,
