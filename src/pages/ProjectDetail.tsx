@@ -4575,7 +4575,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       >
         
         {/* Main Content Container */}
-        <div className="space-y-16 lg:col-start-1 lg:col-end-1">
+        <div className="space-y-16 lg:col-start-1 lg:col-end-2">
         {/* Hero Image Section - Order 2 on mobile (after sidebars) */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -5540,7 +5540,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
 
         {/* Desktop Sidebar - Show when content exists, hidden on mobile */}
         {(atGlanceContent || impactContent) && (
-          <div className="hidden min-h-0 lg:mt-[60px] lg:block lg:col-start-2 lg:col-end-2 lg:self-start">
+          <div className="hidden min-h-0 lg:mt-[60px] lg:block lg:col-start-2 lg:col-end-3 lg:self-start">
             {/* Sticky must be on a wrapper WITHOUT overflow; overflow on same node breaks viewport stickiness. */}
             <div className="w-full lg:sticky lg:top-24">
               <div className="min-h-0 space-y-12">
