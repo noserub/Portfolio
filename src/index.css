@@ -46,46 +46,6 @@ html, body {
   }
 }
 
-/* Case study sidebar rail: must scroll inside viewport (tall At a glance + Impact) */
-.case-study-sidebar-rail {
-  scrollbar-width: thin;
-}
-.case-study-sidebar-rail::-webkit-scrollbar {
-  width: 8px;
-}
-.case-study-sidebar-rail::-webkit-scrollbar-thumb {
-  border-radius: 9999px;
-  background: color-mix(in oklab, var(--foreground) 28%, transparent);
-}
-.case-study-sidebar-rail::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-/*
-  Inner scroll only (parent is lg:sticky). overflow on the sticky node breaks sticking
-  to the page viewport. Force dimensions so the rail stays short; content scrolls inside.
-*/
-@media (min-width: 1024px) {
-  .case-study-sidebar-rail--desktop {
-    height: calc(100dvh - 6rem - 1.5rem) !important;
-    max-height: calc(100dvh - 6rem - 1.5rem) !important;
-    min-height: 0 !important;
-    overflow-y: auto !important;
-    overflow-x: hidden !important;
-    overscroll-behavior-y: contain !important;
-    box-sizing: border-box !important;
-  }
-}
-
-@media (max-width: 1023px) {
-  .case-study-sidebar-rail--mobile {
-    max-height: min(70vh, calc(100dvh - 10rem)) !important;
-    overflow-y: auto !important;
-    overflow-x: hidden !important;
-    overscroll-behavior-y: contain !important;
-  }
-}
-
 /* Disable visual transitions in Edit mode but preserve functionality */
 .no-transitions {
   transition: none !important;

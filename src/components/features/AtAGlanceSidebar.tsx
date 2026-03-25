@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { motion } from "motion/react";
 import { Info, Edit2, Save, X, Trash2 } from "lucide-react";
 import { MarkdownRenderer } from "../MarkdownRenderer";
+import { SidebarExpandableContent } from "./SidebarExpandableContent";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Textarea } from "../ui/textarea";
@@ -188,9 +189,11 @@ export function AtAGlanceSidebar({ content, title, isEditMode, onUpdate, onRemov
               </div>
             </div>
           ) : (
-            <div className="at-a-glance-content markdown-content">
-              <MarkdownRenderer content={editedContent.trim()} />
-            </div>
+            <SidebarExpandableContent contentVersion={editedContent}>
+              <div className="at-a-glance-content markdown-content">
+                <MarkdownRenderer content={editedContent.trim()} />
+              </div>
+            </SidebarExpandableContent>
           )}
         </div>
       </div>

@@ -4779,7 +4779,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
             {/* Mobile Sidebar Summary - Show on mobile, hidden on desktop */}
             {(atGlanceContent || impactContent) && (
               <div className="lg:hidden w-full mb-8">
-                <div className="case-study-sidebar-rail case-study-sidebar-rail--mobile space-y-8 pr-1">
+                <div className="space-y-8">
                   {atGlanceContent && (
                     <AtAGlanceSidebar 
                       content={atGlanceContent.content}
@@ -5543,7 +5543,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
           <div className="hidden min-h-0 lg:mt-[60px] lg:block lg:col-start-2 lg:col-end-2 lg:self-start">
             {/* Sticky must be on a wrapper WITHOUT overflow; overflow on same node breaks viewport stickiness. */}
             <div className="w-full lg:sticky lg:top-24">
-              <div className="case-study-sidebar-rail case-study-sidebar-rail--desktop min-h-0 space-y-12 pb-2 pr-1">
+              <div className="min-h-0 space-y-12">
                 {atGlanceContent && (
                   <AtAGlanceSidebar 
                     content={atGlanceContent.content}

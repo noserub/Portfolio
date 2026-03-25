@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { motion } from "motion/react";
 import { TrendingUp, Edit2, Save, X, Trash2 } from "lucide-react";
 import { MarkdownRenderer } from "../MarkdownRenderer";
+import { SidebarExpandableContent } from "./SidebarExpandableContent";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Textarea } from "../ui/textarea";
@@ -173,9 +174,11 @@ export function ImpactSidebar({ content, title, isEditMode, onUpdate, onRemove }
               </div>
             </div>
           ) : (
-            <div className="impact-sidebar-content markdown-content">
-              <MarkdownRenderer content={editedContent.trim()} />
-            </div>
+            <SidebarExpandableContent contentVersion={editedContent}>
+              <div className="impact-sidebar-content markdown-content">
+                <MarkdownRenderer content={editedContent.trim()} />
+              </div>
+            </SidebarExpandableContent>
           )}
         </div>
       </div>
