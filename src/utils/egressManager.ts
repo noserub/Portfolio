@@ -37,12 +37,8 @@ class EgressManager {
       
       // Test multiple endpoints to get a better picture
       const tests = await Promise.allSettled([
-        // Test 1: Simple profile query
-        supabase.from('profiles').select('id').limit(1),
-        // Test 2: App settings query
-        supabase.from('app_settings').select('id').limit(1),
-        // Test 3: Projects query
-        supabase.from('projects').select('id').limit(1)
+        supabase.from("profiles").select("id").limit(1),
+        supabase.from("app_settings").select("id").limit(1),
       ]);
 
       let errorCount = 0;
@@ -287,9 +283,8 @@ class EgressManager {
       const { supabase } = await import('../lib/supabaseClient');
       
       const tests = await Promise.allSettled([
-        supabase.from('profiles').select('id').limit(1),
-        supabase.from('app_settings').select('id').limit(1),
-        supabase.from('projects').select('id').limit(1)
+        supabase.from("profiles").select("id").limit(1),
+        supabase.from("app_settings").select("id").limit(1),
       ]);
 
       const errorTypes: string[] = [];

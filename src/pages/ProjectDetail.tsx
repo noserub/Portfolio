@@ -536,15 +536,36 @@ export function ProjectDetail({ project, onBack, onUpdate: pushProjectUpdate, is
       console.log('🔍 RECOVERY: Checking database for missing image/video references...');
       
       try {
-        // Query Supabase directly for the project with all image/video fields
-        const { data: dbProject, error } = await supabase
-          .from('projects')
-          .select('case_study_images, flow_diagram_images, video_items')
-          .eq('id', project.id)
-          .single();
-        
-        if (error) {
-          console.log('⚠️ RECOVERY: Could not query database:', error.message);
+        const { data: authUser } = await supabase.auth.getUser();
+        let dbProject: {
+          case_study_images?: unknown;
+          flow_diagram_images?: unknown;
+          video_items?: unknown;
+        } | null = null;
+
+        if (authUser.user) {
+          const { data, error } = await supabase
+            .from("projects")
+            .select("case_study_images, flow_diagram_images, video_items")
+            .eq("id", project.id)
+            .single();
+          if (error) {
+            console.log("⚠️ RECOVERY: Could not query database:", error.message);
+            return;
+          }
+          dbProject = data as typeof dbProject;
+        } else {
+          const { data, error } = await supabase.rpc("get_project_by_id_public", { p_id: project.id });
+          if (error) {
+            console.log("⚠️ RECOVERY: Could not query database:", error.message);
+            return;
+          }
+          const row = Array.isArray(data) ? data[0] : data;
+          if (!row) return;
+          dbProject = row as typeof dbProject;
+        }
+
+        if (!dbProject) {
           return;
         }
         

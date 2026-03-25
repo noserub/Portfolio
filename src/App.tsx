@@ -46,15 +46,11 @@ import { Toaster } from "./components/ui/sonner";
 import { migrateResearchInsights, migrateProjectsArray, runSafetyChecks } from "./utils";
 import { FLUSH_HOME_PAGE_CMS_EVENT } from "./lib/homePageContent";
 import { getPortfolioOwnerUserId } from "./lib/portfolioOwner";
+import { mapSupabaseProjectRowToProjectData, parseColumnsValue } from "./lib/mapSupabaseProjectRowToProjectData";
 import { useAppSettings } from "./hooks/useAppSettings";
 import { ProjectsProvider, useProjects } from "./contexts/ProjectsContext";
 import { useContactMessages } from "./hooks/useContactMessages";
 import { useScrollHideChrome } from "./hooks/useScrollHideChrome";
-
-const parseColumnsValue = (value: any, allowed: number[], fallback: number) => {
-  const num = Number(value);
-  return allowed.includes(num) ? num : fallback;
-};
 
 /** Shown while lazy route chunks load — keeps layout stable vs a blank flash */
 function RouteFallback() {
@@ -194,22 +190,20 @@ function AppShell() {
   
   // Check URL parameters in useEffect
   useEffect(() => {
-  const urlParams = new URLSearchParams(window.location.search);
-    const diagnostic = urlParams.get('diagnostic') === 'true';
-    const emergency = urlParams.get('emergency') === 'true';
-    const supabase = urlParams.get('supabase') === 'true';
-    
-    console.log('🔍 URL params:', {
-      search: window.location.search,
-      diagnostic,
-      emergency,
-      supabase
-    });
-    
+    const urlParams = new URLSearchParams(window.location.search);
+    const allowDevRoutes = import.meta.env.DEV;
+    const diagnostic = allowDevRoutes && urlParams.get("diagnostic") === "true";
+    const emergency = allowDevRoutes && urlParams.get("emergency") === "true";
+    const supabaseTest = allowDevRoutes && urlParams.get("supabase") === "true";
+
+    if (import.meta.env.DEV) {
+      console.log("URL params:", { search: window.location.search, diagnostic, emergency, supabaseTest });
+    }
+
     setIsDiagnosticMode(diagnostic);
     setIsEmergencyMode(emergency);
-    if (supabase) {
-      setCurrentPage('supabase-test');
+    if (supabaseTest) {
+      setCurrentPage("supabase-test");
     }
   }, []);
   
@@ -920,14 +914,20 @@ function AppShell() {
   // Function to find project by friendly slug
   const findProjectBySlug = async (slug: string): Promise<ProjectData | null> => {
     try {
-      // First try Supabase
-      const { data, error } = await supabase
-        .from('projects')
-        .select('*');
-      
-      if (data && !error) {
-        const project = data.find((p: any) => createSlug(p.title) === slug);
-        if (project) return project as ProjectData;
+      const { data: authUser } = await supabase.auth.getUser();
+      let rows: Record<string, unknown>[] | null = null;
+
+      if (authUser.user) {
+        const { data, error } = await supabase.from("projects").select("*");
+        if (data && !error) rows = data as Record<string, unknown>[];
+      } else {
+        const { data, error } = await supabase.rpc("get_projects_public");
+        if (data && !error) rows = data as Record<string, unknown>[];
+      }
+
+      if (rows?.length) {
+        const raw = rows.find((p) => createSlug(String(p.title ?? "")) === slug);
+        if (raw) return mapSupabaseProjectRowToProjectData(raw);
       }
       
       // If not found in Supabase, try localStorage
@@ -1063,49 +1063,34 @@ function AppShell() {
         
         // Also try to save to database (for other devices)
         try {
-          // Get the main user's profile
-          const { data: mainProfile } = await supabase
-            .from('profiles')
-            .select('id')
-            .eq('email', 'brian.bureson@gmail.com')
-            .single();
-            
-          if (mainProfile) {
-            // Try to update existing settings
-            const { error: updateError } = await supabase
-              .from('app_settings')
-              .update({ logo_url: logoUrl })
-              .eq('user_id', mainProfile.id);
-              
-            if (updateError) {
-              console.log('📝 No existing settings, creating new ones...');
-              console.log('🔍 Update error:', updateError);
-              // If update fails, try to insert new settings
-              const { error: insertError } = await supabase
-                .from('app_settings')
-                .insert({
-                  user_id: mainProfile.id,
-                  logo_url: logoUrl,
-                  theme: 'dark',
-                  is_authenticated: false,
-                  show_debug_panel: false
-                });
-                
-              if (insertError) {
-                console.log('⚠️ Could not save to database (RLS issue), but localStorage works');
-                console.log('🔍 Insert error:', insertError);
-                alert(`Logo saved locally but failed to save to database: ${insertError.message}`);
-        } else {
-                console.log('✅ Logo saved to database');
-                alert('✅ Logo saved to database successfully!');
-              }
+          const { data: { user } } = await supabase.auth.getUser();
+          const ownerId = getPortfolioOwnerUserId(user?.id);
+
+          const { error: updateError } = await supabase
+            .from("app_settings")
+            .update({ logo_url: logoUrl })
+            .eq("user_id", ownerId);
+
+          if (updateError) {
+            const { error: insertError } = await supabase.from("app_settings").insert({
+              user_id: ownerId,
+              logo_url: logoUrl,
+              theme: "dark",
+              is_authenticated: false,
+              show_debug_panel: false,
+            });
+
+            if (insertError) {
+              console.log("⚠️ Could not save logo to database (RLS issue), localStorage still works:", insertError);
+              alert(`Logo saved locally but failed to save to database: ${insertError.message}`);
             } else {
-              console.log('✅ Logo updated in database');
-              alert('✅ Logo updated in database successfully!');
+              alert("✅ Logo saved to database successfully!");
             }
+          } else {
+            alert("✅ Logo updated in database successfully!");
           }
         } catch (dbError) {
-          console.log('⚠️ Database save failed, but localStorage works:', dbError);
+          console.log("⚠️ Database save failed, but localStorage works:", dbError);
         }
         
         console.log('🔄 Logo saved to localStorage, will be loaded on next render');
@@ -1161,95 +1146,35 @@ function AppShell() {
     let freshProject: ProjectData | null = null;
     
     try {
-      console.log('🔄 Loading fresh project data from Supabase...');
-      const { data, error } = await supabase
-        .from('projects')
-        .select('*')
-        .eq('id', projectNav.id)
-        .single();
-      
+      const { data: authUser } = await supabase.auth.getUser();
+      let data: Record<string, unknown> | null = null;
+      let error: { message?: string } | null = null;
+
+      if (authUser.user) {
+        const res = await supabase
+          .from("projects")
+          .select("*")
+          .eq("id", projectNav.id)
+          .single();
+        data = res.data as Record<string, unknown> | null;
+        error = res.error;
+      } else {
+        const res = await supabase.rpc("get_project_by_id_public", { p_id: projectNav.id });
+        const rows = res.data as Record<string, unknown>[] | null;
+        data = rows?.[0] ?? null;
+        error = res.error;
+      }
+
       if (data && !error) {
-        console.log('✅ Loaded fresh data from Supabase:', data.id);
-        
-        // Convert Supabase snake_case format to UI camelCase format
-        freshProject = {
-          ...data,
-          // Convert position fields
-          position: { x: data.position_x || 50, y: data.position_y || 50 },
-          // Convert content fields
-          caseStudyContent: data.case_study_content,
-          caseStudyImages: data.case_study_images || [],
-          flowDiagramImages: data.flow_diagram_images || [],
-          videoItems: data.video_items || [],
-          // Convert sidebars JSON
-          caseStudySidebars: (data as any).case_study_sidebars || {},
-          // Convert aspect ratio fields
-          galleryAspectRatio: data.gallery_aspect_ratio,
-          flowDiagramAspectRatio: data.flow_diagram_aspect_ratio,
-          videoAspectRatio: data.video_aspect_ratio,
-          // Convert column fields
-          galleryColumns: data.gallery_columns,
-          flowDiagramColumns: data.flow_diagram_columns,
-          videoColumns: data.video_columns,
-          keyFeaturesColumns: parseColumnsValue(data.key_features_columns, [2, 3], 3) as 2 | 3,
-          // Convert other fields first so we can use section_positions
-          sectionPositions: data.section_positions || {},
-          // Read researchInsightsColumns from section_positions.__RESEARCH_COLUMNS__ if available
-          researchInsightsColumns: parseColumnsValue(
-            (data as any).research_insights_columns ?? 
-            (data.section_positions as any)?.__RESEARCH_COLUMNS__,
-            [1, 2, 3], 
-            3
-          ) as 1 | 2 | 3,
-          // Convert position fields
-          projectImagesPosition: data.project_images_position,
-          videosPosition: data.videos_position,
-          flowDiagramsPosition: data.flow_diagrams_position,
-          solutionCardsPosition: data.solution_cards_position,
-          requiresPassword: data.requires_password,
-          projectType: data.project_type || null,
-          caseStudyDecorativeIcons: Boolean((data as any).case_study_decorative_icons),
-          // Remove snake_case fields to avoid confusion
-          position_x: undefined,
-          position_y: undefined,
-          case_study_content: undefined,
-          case_study_images: undefined,
-          flow_diagram_images: undefined,
-          video_items: undefined,
-          case_study_sidebars: undefined,
-          gallery_aspect_ratio: undefined,
-          flow_diagram_aspect_ratio: undefined,
-          video_aspect_ratio: undefined,
-          gallery_columns: undefined,
-          flow_diagram_columns: undefined,
-          video_columns: undefined,
-          key_features_columns: undefined,
-          project_images_position: undefined,
-          videos_position: undefined,
-          flow_diagrams_position: undefined,
-          solution_cards_position: undefined,
-          section_positions: undefined,
-          requires_password: undefined,
-          case_study_decorative_icons: undefined
-        };
-        
-        if (freshProject) {
-          console.log('🔄 Converted Supabase data to UI format:', {
-            id: freshProject.id,
-            imageCount: freshProject.caseStudyImages?.length || 0,
-            hasImages: (freshProject.caseStudyImages?.length || 0) > 0,
-            originalImages: data.case_study_images?.length || 0,
-            convertedImages: freshProject.caseStudyImages?.length || 0,
-            project_type_from_db: data.project_type,
-            projectType_in_fresh: freshProject.projectType,
-            imageData: freshProject.caseStudyImages
-          });
+        freshProject = mapSupabaseProjectRowToProjectData(data);
+        if (import.meta.env.DEV) {
+          console.log("Loaded project from Supabase:", freshProject.id);
         }
       } else {
-        console.log('⚠️ Supabase load failed, falling back to localStorage');
+        console.log("⚠️ Supabase load failed, falling back to localStorage");
       }
     } catch (e) {
-      console.error('Error loading from Supabase:', e);
+      console.error("Error loading from Supabase:", e);
     }
     
     // If Supabase failed, try localStorage as fallback
@@ -1340,17 +1265,31 @@ function AppShell() {
     setTimeout(forceScrollToTop, 0);
   };
 
-  const handlePasswordCorrect = () => {
-    if (pendingProtectedProject) {
-      const { project, updateCallback } = pendingProtectedProject;
-      setSelectedProject({
-        ...project,
-        _navTimestamp: Date.now()
-      } as any);
-      setProjectUpdateCallback({ fn: updateCallback });
-      setCurrentPage("project-detail");
-      setPendingProtectedProject(null);
+  const handlePasswordCorrect = async (passwordFromPrompt: string) => {
+    if (!pendingProtectedProject) return;
+    const { project, updateCallback } = pendingProtectedProject;
+    const { data, error } = await supabase.rpc("unlock_project_with_password", {
+      p_project_id: project.id,
+      p_password: passwordFromPrompt.trim(),
+    });
+    if (error) {
+      console.error("unlock_project_with_password failed:", error);
+      return;
     }
+    const row = Array.isArray(data) ? data[0] : data;
+    if (!row) {
+      console.warn("Unlock returned no row");
+      return;
+    }
+    const mapped = mapSupabaseProjectRowToProjectData(row as Record<string, unknown>);
+    setPendingProtectedProject(null);
+    setSelectedProject({
+      ...mapped,
+      _navTimestamp: Date.now(),
+    } as any);
+    setProjectUpdateCallback({ fn: updateCallback });
+    setCurrentPage("project-detail");
+    setTimeout(forceScrollToTop, 0);
   };
 
   const handlePasswordCancel = () => {
@@ -1693,8 +1632,7 @@ function AppShell() {
         {pendingProtectedProject && (
           <CaseStudyPasswordPrompt
             projectTitle={pendingProtectedProject.project.title}
-            expectedPassword={(pendingProtectedProject.project as any).password}
-            onCorrectPassword={handlePasswordCorrect}
+            onUnlock={handleUnlockCaseStudy}
             onCancel={handlePasswordCancel}
           />
         )}

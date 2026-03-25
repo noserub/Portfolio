@@ -6,7 +6,7 @@ import { Lock } from "lucide-react";
 import { supabase } from "../lib/supabaseClient";
 
 interface SignInProps {
-  onSignIn: (password: string) => void;
+  onSignIn: () => void;
   onCancel: () => void;
 }
 
@@ -16,21 +16,20 @@ export function SignIn({ onSignIn, onCancel }: SignInProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    console.log('🔐 Attempting sign-in with email: brian.bureson@gmail.com');
-    
+
+    const ownerEmail = import.meta.env.VITE_SITE_OWNER_SIGNIN_EMAIL?.trim();
+    if (!ownerEmail) {
+      setError(true);
+      return;
+    }
+
     try {
-      // Try to sign in with your email and the password
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: 'brian.bureson@gmail.com',
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email: ownerEmail,
         password: password,
       });
 
-      console.log('🔍 Supabase response:', { data, error });
-
-      if (error) {
-        console.log('❌ Supabase sign-in failed:', error.message);
-        console.log('❌ Full error object:', error);
+      if (signInError) {
         setError(true);
         setPassword("");
         setTimeout(() => setError(false), 3000);
@@ -38,14 +37,11 @@ export function SignIn({ onSignIn, onCancel }: SignInProps) {
       }
 
       if (data.user) {
-        console.log('✅ Supabase sign-in successful:', data.user.email);
-        console.log('✅ User data:', data.user);
-        onSignIn(password);
+        onSignIn();
         setError(false);
         setPassword("");
       }
-    } catch (err) {
-      console.log('❌ Sign-in error:', err);
+    } catch {
       setError(true);
       setPassword("");
       setTimeout(() => setError(false), 3000);
@@ -68,7 +64,6 @@ export function SignIn({ onSignIn, onCancel }: SignInProps) {
           <p className="text-sm text-muted-foreground text-center">
             Enter your password to access edit mode
           </p>
-          
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -89,7 +84,9 @@ export function SignIn({ onSignIn, onCancel }: SignInProps) {
               animate={{ opacity: 1, y: 0 }}
               className="text-sm text-red-500 text-center"
             >
-              Incorrect password. Please try again.
+              {!import.meta.env.VITE_SITE_OWNER_SIGNIN_EMAIL?.trim()
+                ? "Sign-in email is not configured (VITE_SITE_OWNER_SIGNIN_EMAIL)."
+                : "Incorrect password. Please try again."}
             </motion.p>
           )}
 
@@ -97,16 +94,10 @@ export function SignIn({ onSignIn, onCancel }: SignInProps) {
             <Button type="submit" className="flex-1">
               Sign In
             </Button>
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={onCancel}
-              className="flex-1"
-            >
+            <Button type="button" variant="outline" onClick={onCancel} className="flex-1">
               Cancel
             </Button>
           </div>
-          
         </form>
 
         <p className="text-xs text-muted-foreground text-center mt-6">

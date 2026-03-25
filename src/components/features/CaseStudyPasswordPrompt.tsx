@@ -4,40 +4,39 @@ import { Lock, X } from "lucide-react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 
-const DEFAULT_PASSWORD = "0p3n";
-
 interface CaseStudyPasswordPromptProps {
   projectTitle: string;
-  /** Per-project password from DB; when empty, falls back to site default / localStorage. */
-  expectedPassword?: string | null;
-  onCorrectPassword: () => void;
+  /** Server-side verification (e.g. unlock RPC); return true to close the modal. */
+  onUnlock: (password: string) => Promise<boolean>;
   onCancel: () => void;
 }
 
-export function CaseStudyPasswordPrompt({ 
+export function CaseStudyPasswordPrompt({
   projectTitle,
-  expectedPassword,
-  onCorrectPassword, 
-  onCancel 
+  onUnlock,
+  onCancel,
 }: CaseStudyPasswordPromptProps) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    const trimmedProject = (expectedPassword ?? '').trim();
-    const storedGlobal = localStorage.getItem('caseStudyPassword');
-    const effectiveExpected =
-      trimmedProject !== ''
-        ? trimmedProject
-        : (storedGlobal || DEFAULT_PASSWORD);
-    
-    if (password === effectiveExpected) {
-      onCorrectPassword();
-    } else {
-      setError("Incorrect password");
+    setError("");
+    setSubmitting(true);
+    try {
+      const ok = await onUnlock(password);
+      if (ok) {
+        setPassword("");
+      } else {
+        setError("Incorrect password");
+        setPassword("");
+      }
+    } catch {
+      setError("Could not verify password. Try again.");
       setPassword("");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -58,10 +57,11 @@ export function CaseStudyPasswordPrompt({
         onClick={(e) => e.stopPropagation()}
       >
         <button
+          type="button"
           onClick={onCancel}
           className="absolute top-4 right-4 p-2 hover:bg-accent rounded-full transition-colors"
         >
-          <X className="w-5 h-5" />
+          <X className="w-4 h-4" />
         </button>
 
         <div className="flex items-center gap-3 mb-6">
@@ -86,18 +86,17 @@ export function CaseStudyPasswordPrompt({
               }}
               placeholder="Enter password"
               autoFocus
+              disabled={submitting}
               className={error ? "border-red-500" : ""}
             />
-            {error && (
-              <p className="text-red-500 text-sm mt-2">{error}</p>
-            )}
+            {error ? <p className="text-red-500 text-sm mt-2">{error}</p> : null}
           </div>
 
           <div className="flex gap-3">
-            <Button type="submit" className="flex-1">
-              Unlock
+            <Button type="submit" className="flex-1" disabled={submitting}>
+              {submitting ? "Checking…" : "Unlock"}
             </Button>
-            <Button type="button" variant="outline" onClick={onCancel} className="flex-1">
+            <Button type="button" variant="outline" onClick={onCancel} className="flex-1" disabled={submitting}>
               Cancel
             </Button>
           </div>

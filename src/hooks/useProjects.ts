@@ -105,29 +105,26 @@ export function useProjectsState() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch all projects
+  // Fetch all projects (signed-in owner: full rows; anonymous: RPC strips password-gated payloads)
   const fetchProjects = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const { data, error } = await supabase
-        .from('projects')
-        .select('*')
-        .order('sort_order', { ascending: true })
-        .order('created_at', { ascending: false });
+      const { data: { user } } = await supabase.auth.getUser();
 
-      if (error) throw error;
-      console.log('🔍 DEBUG: useProjects loaded projects:', data?.map(p => ({ 
-        id: p.id, 
-        title: p.title, 
-        sort_order: p.sort_order,
-        requires_password: p.requires_password, 
-        project_type: (p as any).project_type,
-        project_type_type: typeof (p as any).project_type,
-        has_project_type: (p as any).project_type !== undefined && (p as any).project_type !== null
-      })));
-
-      setProjects(data || []);
+      if (user) {
+        const { data, error } = await supabase
+          .from("projects")
+          .select("*")
+          .order("sort_order", { ascending: true })
+          .order("created_at", { ascending: false });
+        if (error) throw error;
+        setProjects(data || []);
+      } else {
+        const { data, error } = await supabase.rpc("get_projects_public");
+        if (error) throw error;
+        setProjects((data as Project[]) || []);
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -140,15 +137,22 @@ export function useProjectsState() {
     try {
       setLoading(true);
       setError(null);
-      const { data, error } = await supabase
-        .from('projects')
-        .select('*')
-        .eq('published', true)
-        .order('sort_order', { ascending: true })
-        .order('created_at', { ascending: false });
+      const { data: { user } } = await supabase.auth.getUser();
 
-      if (error) throw error;
-      setProjects(data || []);
+      if (user) {
+        const { data, error } = await supabase
+          .from("projects")
+          .select("*")
+          .eq("published", true)
+          .order("sort_order", { ascending: true })
+          .order("created_at", { ascending: false });
+        if (error) throw error;
+        setProjects(data || []);
+      } else {
+        const { data, error } = await supabase.rpc("get_projects_public");
+        if (error) throw error;
+        setProjects((data as Project[]) || []);
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -159,14 +163,18 @@ export function useProjectsState() {
   // Get project by ID
   const getProject = useCallback(async (id: string): Promise<Project | null> => {
     try {
-      const { data, error } = await supabase
-        .from('projects')
-        .select('*')
-        .eq('id', id)
-        .single();
+      const { data: { user } } = await supabase.auth.getUser();
 
+      if (user) {
+        const { data, error } = await supabase.from("projects").select("*").eq("id", id).single();
+        if (error) throw error;
+        return data;
+      }
+
+      const { data, error } = await supabase.rpc("get_project_by_id_public", { p_id: id });
       if (error) throw error;
-      return data;
+      const rows = data as Project[] | null;
+      return rows?.[0] ?? null;
     } catch (err: any) {
       setError(err.message);
       return null;
