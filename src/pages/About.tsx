@@ -6,7 +6,9 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Textarea } from "../components/ui/textarea";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../components/ui/accordion";
-import { Sparkles, Target, Users, Rocket, Zap, Award, Lightbulb, TrendingUp, Boxes, BarChart3, PenTool, BrainCircuit, GraduationCap, Wrench, FileText, Edit2, Save, X, ChevronDown, ChevronUp, ArrowUp, ArrowDown } from "lucide-react";
+import { Checkbox } from "../components/ui/checkbox";
+import { Label } from "../components/ui/label";
+import { Sparkles, Target, Users, Rocket, Zap, Award, Lightbulb, TrendingUp, Boxes, BarChart3, PenTool, BrainCircuit, GraduationCap, Wrench, FileText, Edit2, Save, X, ChevronDown, ChevronUp, ArrowUp, ArrowDown, Handshake, Layers } from "lucide-react";
 import { MarkdownRenderer } from "../components/MarkdownRenderer";
 import { useSEO } from "../hooks/useSEO";
 import { useProfiles } from "../hooks/useProfiles";
@@ -221,6 +223,10 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
   // Show more/less state for Highlights cards
   const [expandedHighlights, setExpandedHighlights] = useState<Set<number>>(new Set());
 
+  /** When true, show Lucide icons on Highlights and Leadership & Impact cards (off by default; stored in profiles). */
+  const [aboutHighlightsLeadershipDecorativeIcons, setAboutHighlightsLeadershipDecorativeIcons] =
+    useState(false);
+
   // Debug logging for About page state
   useEffect(() => {
     console.log('📄 About page state check:');
@@ -310,6 +316,10 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
           if (profile.leadership_items && Array.isArray(profile.leadership_items) && profile.leadership_items.length > 0) {
             setLeadershipItems(profile.leadership_items);
           }
+
+          if (typeof profile.about_highlights_leadership_decorative_icons === "boolean") {
+            setAboutHighlightsLeadershipDecorativeIcons(profile.about_highlights_leadership_decorative_icons);
+          }
           
           if (profile.expertise_title && profile.expertise_title.trim()) {
             setExpertiseTitle(profile.expertise_title);
@@ -392,6 +402,9 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
               if (profileData.tools_title) setToolsTitle(profileData.tools_title);
               if (profileData.tools_categories) setToolsCategories(profileData.tools_categories);
               if (profileData.section_order) setSectionOrder(profileData.section_order);
+              if (typeof profileData.about_highlights_leadership_decorative_icons === "boolean") {
+                setAboutHighlightsLeadershipDecorativeIcons(profileData.about_highlights_leadership_decorative_icons);
+              }
               
               console.log('✅ Loaded from localStorage');
               setDataLoadedFromSupabase(true); // Mark data as loaded (from localStorage), safe to save now
@@ -436,6 +449,9 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
             if (profileData.tools_title) setToolsTitle(profileData.tools_title);
             if (profileData.tools_categories) setToolsCategories(profileData.tools_categories);
             if (profileData.section_order) setSectionOrder(profileData.section_order);
+            if (typeof profileData.about_highlights_leadership_decorative_icons === "boolean") {
+              setAboutHighlightsLeadershipDecorativeIcons(profileData.about_highlights_leadership_decorative_icons);
+            }
             
             console.log('✅ Loaded from localStorage');
             setDataLoadedFromSupabase(true); // Mark data as loaded (from localStorage), safe to save now
@@ -484,7 +500,8 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
     highlightsTitle, highlights, leadershipTitle, leadershipItems,
     expertiseTitle, expertiseItems, howIUseAITitle, howIUseAIItems,
     processTitle, processSubheading, processItems, certificationsTitle,
-    certificationsItems, toolsTitle, toolsCategories, sectionOrder
+    certificationsItems, toolsTitle, toolsCategories, sectionOrder,
+    aboutHighlightsLeadershipDecorativeIcons
   ]);
 
   // Save to Supabase
@@ -513,7 +530,8 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
         certifications_items: certificationsItems,
         tools_title: toolsTitle,
         tools_categories: toolsCategories,
-        section_order: sectionOrder
+        section_order: sectionOrder,
+        about_highlights_leadership_decorative_icons: aboutHighlightsLeadershipDecorativeIcons,
       });
       
       if (result) {
@@ -546,6 +564,7 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
         tools_title: toolsTitle,
         tools_categories: toolsCategories,
         section_order: sectionOrder,
+        about_highlights_leadership_decorative_icons: aboutHighlightsLeadershipDecorativeIcons,
       lastModified: new Date().toISOString()
     };
       
@@ -1345,6 +1364,24 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
           style={{ order: sectionOrder?.indexOf('highlights') ?? 2 }}
         >
           <SectionControls sectionId="highlights" label="Highlights" />
+
+          {isEditMode && (
+            <div className="flex items-start gap-3 mb-4 p-3 rounded-lg border border-border/40 bg-muted/30">
+              <Checkbox
+                id="about-highlights-leadership-decorative-icons"
+                checked={aboutHighlightsLeadershipDecorativeIcons}
+                onCheckedChange={(v) => setAboutHighlightsLeadershipDecorativeIcons(v === true)}
+              />
+              <div className="space-y-1">
+                <Label htmlFor="about-highlights-leadership-decorative-icons" className="text-sm font-medium cursor-pointer">
+                  Show decorative icons
+                </Label>
+                <p className="text-xs text-muted-foreground leading-snug">
+                  Highlights and Leadership &amp; Impact card icons. Off by default.
+                </p>
+              </div>
+            </div>
+          )}
           
           <style>{`
           /* Hide list items beyond the 3rd when collapsed */
@@ -1524,10 +1561,12 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
                       </div>
                     </div>
                   ) : (
-                    <div className="flex items-start gap-3">
-                      <div className={`p-2 rounded-lg bg-white/70 dark:bg-slate-800/70 ${idx === 0 ? 'text-yellow-600 dark:text-yellow-400' : 'text-blue-600 dark:text-blue-400'} flex-shrink-0`}>
-                        {idx === 0 ? <Award className="w-5 h-5" /> : <Rocket className="w-5 h-5" />}
-                      </div>
+                    <div className={`flex items-start ${aboutHighlightsLeadershipDecorativeIcons ? "gap-3" : ""}`}>
+                      {aboutHighlightsLeadershipDecorativeIcons && (
+                        <div className={`p-2 rounded-lg bg-white/70 dark:bg-slate-800/70 ${idx === 0 ? 'text-yellow-600 dark:text-yellow-400' : 'text-blue-600 dark:text-blue-400'} flex-shrink-0`}>
+                          {idx === 0 ? <Award className="w-5 h-5" /> : <Rocket className="w-5 h-5" />}
+                        </div>
+                      )}
                       <div className="flex-1 min-w-0">
                         <h4 className="mb-2">{item.title}</h4>
                         <div className={`text-muted-foreground leading-relaxed highlight-content ${needsExpansion && !isExpanded ? 'highlight-collapsed' : ''}`}>
@@ -1712,7 +1751,8 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
                 {/* Cards Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {leadershipItems?.map((item, idx) => {
-                    const icons = [TrendingUp, Lightbulb, Boxes];
+                    // Distinct from "How I use AI" (Lightbulb, TrendingUp, Boxes, …) to avoid repeated metaphors.
+                    const icons = [TrendingUp, Handshake, Layers];
                     const colors = [
                       "text-green-600 dark:text-green-400",
                       "text-yellow-600 dark:text-yellow-400",
@@ -1763,10 +1803,12 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
                           </div>
                         </div>
                       ) : (
-                        <div className="flex items-start gap-3">
-                          <div className={`p-2 rounded-lg bg-white/70 dark:bg-slate-800/70 ${colorClass} flex-shrink-0`}>
-                            <Icon className="w-5 h-5" />
-                          </div>
+                        <div className={`flex items-start ${aboutHighlightsLeadershipDecorativeIcons ? "gap-3" : ""}`}>
+                          {aboutHighlightsLeadershipDecorativeIcons && (
+                            <div className={`p-2 rounded-lg bg-white/70 dark:bg-slate-800/70 ${colorClass} flex-shrink-0`}>
+                              <Icon className="w-5 h-5" />
+                            </div>
+                          )}
                           <div className="flex-1">
                             <h4 className="mb-2">{item.title}</h4>
                             <div className="text-muted-foreground leading-relaxed">

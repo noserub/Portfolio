@@ -30,6 +30,8 @@ export interface Profile {
   tools_categories?: any[];
   section_order?: string[];
   research_insights?: any[];
+  /** When true, show icons on Highlights and Leadership & Impact cards. Default off. */
+  about_highlights_leadership_decorative_icons?: boolean;
 }
 
 export interface ProfileInsert {
@@ -58,6 +60,7 @@ export interface ProfileInsert {
   tools_categories?: any[];
   section_order?: string[];
   research_insights?: any[];
+  about_highlights_leadership_decorative_icons?: boolean;
 }
 
 export interface ProfileUpdate {
@@ -84,6 +87,7 @@ export interface ProfileUpdate {
   tools_categories?: any[];
   section_order?: string[];
   research_insights?: any[];
+  about_highlights_leadership_decorative_icons?: boolean;
 }
 
 export function useProfiles() {
