@@ -5620,11 +5620,11 @@ export function ProjectDetail({ project, onBack, onUpdate: pushProjectUpdate, is
         )}
         </div>
 
-        {/* Desktop Sidebar — sticky rail is pinned via index.css [data-sidebar-rail] (document overflow must not break sticky). */}
+        {/* Desktop Sidebar — align top with hero *image* (hero has marginTop 60px + lg:py-4 before aspect-video). Sticky: index.css [data-sidebar-rail]. */}
         {(atGlanceContent || impactContent) && (
           <div
             data-sidebar-rail
-            className="hidden min-h-0 space-y-12 lg:mt-[60px] lg:block lg:col-start-2 lg:col-end-3"
+            className="hidden min-h-0 space-y-12 lg:mt-[calc(60px+1rem)] lg:block lg:col-start-2 lg:col-end-3"
           >
             {atGlanceContent && (
               <AtAGlanceSidebar 
