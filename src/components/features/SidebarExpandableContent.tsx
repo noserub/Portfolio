@@ -3,11 +3,11 @@ import { motion } from "motion/react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "../ui/utils";
 
-/** ~14rem base + ~6.5rem (~4 body lines at sidebar line-height) before truncation */
-const COLLAPSED_REM = 14 + 6.5;
+/** ~14rem base + ~3.25rem (~2 body lines at sidebar line-height) before truncation */
+const COLLAPSED_REM = 14 + 3.25;
 
 function getCollapsedMaxPx(): number {
-  if (typeof document === "undefined") return 328;
+  if (typeof document === "undefined") return 276;
   const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
   return COLLAPSED_REM * rem;
 }
@@ -16,6 +16,11 @@ interface SidebarExpandableContentProps {
   children: React.ReactNode;
   /** Bumps measurement when markdown changes */
   contentVersion: string;
+  /**
+   * When expanding, pass to scrollIntoView. Use `end` for the lower sidebar so the expanded
+   * block aligns toward the viewport bottom inside the sticky rail.
+   */
+  scrollIntoViewBlock?: ScrollLogicalPosition;
 }
 
 /**
@@ -25,7 +30,9 @@ interface SidebarExpandableContentProps {
 export function SidebarExpandableContent({
   children,
   contentVersion,
+  scrollIntoViewBlock = "nearest",
 }: SidebarExpandableContentProps) {
+  const rootRef = useRef<HTMLDivElement>(null);
   const measureRef = useRef<HTMLDivElement>(null);
   const [expanded, setExpanded] = useState(false);
   const [overflowing, setOverflowing] = useState(false);
@@ -61,7 +68,26 @@ export function SidebarExpandableContent({
     return () => ro.disconnect();
   }, [contentVersion, measure]);
 
-  const collapsedPx = typeof document !== "undefined" ? getCollapsedMaxPx() : 328;
+  // After expanding, scroll the rail (or page) so the opened block is visible — especially the lower sidebar.
+  useLayoutEffect(() => {
+    if (!expanded || !overflowing || !rootRef.current) return;
+    const el = rootRef.current;
+    const prefersReduced =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const id = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        el.scrollIntoView({
+          block: scrollIntoViewBlock,
+          behavior: prefersReduced ? "auto" : "smooth",
+          inline: "nearest",
+        });
+      });
+    });
+    return () => cancelAnimationFrame(id);
+  }, [expanded, overflowing, scrollIntoViewBlock]);
+
+  const collapsedPx = typeof document !== "undefined" ? getCollapsedMaxPx() : 276;
 
   const clipStyle: React.CSSProperties | undefined =
     overflowing && !expanded
@@ -71,21 +97,21 @@ export function SidebarExpandableContent({
         }
       : overflowing && expanded
         ? {
-            maxHeight: "min(70vh, 48rem)",
-            overflowY: "auto",
-            scrollbarWidth: "thin",
+            /* Full height: desktop rail is max-height + overflow-y auto; avoids nested scroll + hidden content */
+            maxHeight: "none",
+            overflow: "visible",
           }
         : undefined;
 
   return (
-    <div>
+    <div ref={rootRef}>
       <div className="relative">
         <div
           ref={measureRef}
           style={clipStyle}
           className={cn(
             "transition-[max-height] duration-300 ease-out",
-            overflowing && expanded && "[&::-webkit-scrollbar]:w-2"
+            overflowing && expanded && "transition-none"
           )}
         >
           {children}

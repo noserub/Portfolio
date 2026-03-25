@@ -170,7 +170,7 @@ export function ImpactSidebar({ content, title, isEditMode, onUpdate, onRemove }
               </div>
             </div>
           ) : (
-            <SidebarExpandableContent contentVersion={editedContent}>
+            <SidebarExpandableContent contentVersion={editedContent} scrollIntoViewBlock="end">
               <div className="impact-sidebar-content markdown-content">
                 <MarkdownRenderer content={editedContent.trim()} />
               </div>

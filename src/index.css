@@ -60,6 +60,15 @@ body {
     align-self: start;
     width: 320px;
     box-sizing: border-box;
+    /* Cap rail to viewport so stacked sidebars scroll inside the column instead of only below the fold */
+    max-height: calc(100svh - 6.5rem);
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    scrollbar-width: thin;
+    scrollbar-gutter: stable;
+    padding-bottom: 1rem;
   }
 }
 
