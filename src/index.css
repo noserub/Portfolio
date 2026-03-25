@@ -5988,11 +5988,6 @@ body {
     var(--case-study-sidebar-tonal) 3%,
     oklch(0.94 0 0 / 0.48) 97%
   );
-  --case-study-sidebar-border: color-mix(
-    in oklch,
-    var(--case-study-sidebar-tonal) 3%,
-    oklch(0.78 0 0 / 0.22) 97%
-  );
 }
 
 .dark {
@@ -6655,8 +6650,4 @@ body.dialog-open {
     var(--case-study-sidebar-glass-via),
     var(--case-study-sidebar-glass-to)
   );
-}
-
-.border-case-study-sidebar-glass {
-  border-color: var(--case-study-sidebar-border);
 }

@@ -108,7 +108,7 @@ export function AtAGlanceSidebar({ content, title, isEditMode, onUpdate, onRemov
           margin-top: 0 !important;
         }
       `}</style>
-      <div className="p-6 bg-case-study-sidebar-glass backdrop-blur-md rounded-2xl border border-case-study-sidebar-glass shadow-lg overflow-hidden group hover:shadow-xl transition-all duration-300">
+      <div className="p-6 bg-case-study-sidebar-glass backdrop-blur-md rounded-2xl shadow-lg overflow-hidden group hover:shadow-xl transition-all duration-300">
         {/* Gradient glow on hover */}
         <motion.div
           className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
