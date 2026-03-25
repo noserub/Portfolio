@@ -3,11 +3,11 @@ import { motion } from "motion/react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "../ui/utils";
 
-/** Collapsed preview height (rem) — larger = more text before truncation */
-const COLLAPSED_REM = 14;
+/** ~14rem base + ~6.5rem (~4 body lines at sidebar line-height) before truncation */
+const COLLAPSED_REM = 14 + 6.5;
 
 function getCollapsedMaxPx(): number {
-  if (typeof document === "undefined") return 224;
+  if (typeof document === "undefined") return 328;
   const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
   return COLLAPSED_REM * rem;
 }
@@ -61,7 +61,7 @@ export function SidebarExpandableContent({
     return () => ro.disconnect();
   }, [contentVersion, measure]);
 
-  const collapsedPx = typeof document !== "undefined" ? getCollapsedMaxPx() : 224;
+  const collapsedPx = typeof document !== "undefined" ? getCollapsedMaxPx() : 328;
 
   const clipStyle: React.CSSProperties | undefined =
     overflowing && !expanded
@@ -108,7 +108,7 @@ export function SidebarExpandableContent({
           onClick={() => setExpanded((e) => !e)}
           aria-expanded={expanded}
           className={cn(
-            "mt-0.5 flex w-full items-center justify-center gap-1 rounded-lg border-t border-border/25 py-1.5 text-xs font-medium",
+            "mt-1 flex w-full items-center justify-center gap-1 py-1 text-xs font-medium",
             "text-muted-foreground transition-colors hover:bg-black/[0.03] hover:text-foreground dark:hover:bg-white/[0.06]",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           )}
