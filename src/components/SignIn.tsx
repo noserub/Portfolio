@@ -12,14 +12,17 @@ interface SignInProps {
 
 export function SignIn({ onSignIn, onCancel }: SignInProps) {
   const [password, setPassword] = useState("");
-  const [error, setError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMessage(null);
 
     const ownerEmail = import.meta.env.VITE_SITE_OWNER_SIGNIN_EMAIL?.trim();
     if (!ownerEmail) {
-      setError(true);
+      setErrorMessage(
+        "Sign-in email is not configured (set VITE_SITE_OWNER_SIGNIN_EMAIL).",
+      );
       return;
     }
 
@@ -30,21 +33,23 @@ export function SignIn({ onSignIn, onCancel }: SignInProps) {
       });
 
       if (signInError) {
-        setError(true);
         setPassword("");
-        setTimeout(() => setError(false), 3000);
+        setErrorMessage(signInError.message || "Sign-in failed. Please try again.");
         return;
       }
 
-      if (data.user) {
+      // Prefer session (always set on success); user can be omitted in edge cases.
+      if (data.session ?? data.user) {
         onSignIn();
-        setError(false);
         setPassword("");
+        return;
       }
-    } catch {
-      setError(true);
+
       setPassword("");
-      setTimeout(() => setError(false), 3000);
+      setErrorMessage("Could not establish a session. Try again or check Supabase Auth settings.");
+    } catch {
+      setPassword("");
+      setErrorMessage("Something went wrong. Please try again.");
     }
   };
 
@@ -72,21 +77,22 @@ export function SignIn({ onSignIn, onCancel }: SignInProps) {
               type="password"
               placeholder="Enter password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className={`text-center ${error ? "border-red-500 dark:border-red-500" : ""}`}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                setErrorMessage(null);
+              }}
+              className={`text-center ${errorMessage ? "border-red-500 dark:border-red-500" : ""}`}
               autoFocus
             />
           </div>
 
-          {error && (
+          {errorMessage && (
             <motion.p
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               className="text-sm text-red-500 text-center"
             >
-              {!import.meta.env.VITE_SITE_OWNER_SIGNIN_EMAIL?.trim()
-                ? "Sign-in email is not configured (VITE_SITE_OWNER_SIGNIN_EMAIL)."
-                : "Incorrect password. Please try again."}
+              {errorMessage}
             </motion.p>
           )}
 
