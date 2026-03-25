@@ -5541,26 +5541,28 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
         {/* Desktop Sidebar - Show when content exists, hidden on mobile */}
         {(atGlanceContent || impactContent) && (
           <div className="hidden min-h-0 lg:mt-[60px] lg:block lg:col-start-2 lg:col-end-2 lg:self-start">
-            {/* Height + overflow forced in index.css (.case-study-sidebar-rail--desktop) so utilities cannot be overridden. */}
-            <div className="case-study-sidebar-rail case-study-sidebar-rail--desktop w-full min-h-0 space-y-12 pb-2 pr-1 lg:sticky lg:top-24">
-              {atGlanceContent && (
-                <AtAGlanceSidebar 
-                  content={atGlanceContent.content}
-                  title={atGlanceContent.title}
-                  isEditMode={isEditMode}
-                  onUpdate={handleUpdateAtAGlance}
-                  onRemove={handleRemoveAtAGlance}
-                />
-              )}
-              {impactContent && (
-                <ImpactSidebar 
-                  content={impactContent.content}
-                  title={impactContent.title}
-                  isEditMode={isEditMode}
-                  onUpdate={handleUpdateImpact}
-                  onRemove={handleRemoveImpact}
-                />
-              )}
+            {/* Sticky must be on a wrapper WITHOUT overflow; overflow on same node breaks viewport stickiness. */}
+            <div className="w-full lg:sticky lg:top-24">
+              <div className="case-study-sidebar-rail case-study-sidebar-rail--desktop min-h-0 space-y-12 pb-2 pr-1">
+                {atGlanceContent && (
+                  <AtAGlanceSidebar 
+                    content={atGlanceContent.content}
+                    title={atGlanceContent.title}
+                    isEditMode={isEditMode}
+                    onUpdate={handleUpdateAtAGlance}
+                    onRemove={handleRemoveAtAGlance}
+                  />
+                )}
+                {impactContent && (
+                  <ImpactSidebar 
+                    content={impactContent.content}
+                    title={impactContent.title}
+                    isEditMode={isEditMode}
+                    onUpdate={handleUpdateImpact}
+                    onRemove={handleRemoveImpact}
+                  />
+                )}
+              </div>
             </div>
           </div>
         )}

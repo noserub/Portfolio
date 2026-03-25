@@ -62,8 +62,8 @@ html, body {
 }
 
 /*
-  Tailwind utilities were not reliably winning; without a definite height the sticky
-  box grows with content and the rail looks full-tall. Force dimensions here.
+  Inner scroll only (parent is lg:sticky). overflow on the sticky node breaks sticking
+  to the page viewport. Force dimensions so the rail stays short; content scrolls inside.
 */
 @media (min-width: 1024px) {
   .case-study-sidebar-rail--desktop {
