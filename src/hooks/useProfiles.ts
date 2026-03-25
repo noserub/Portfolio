@@ -32,6 +32,8 @@ export interface Profile {
   research_insights?: any[];
   /** When true, show icons on Highlights and Leadership & Impact cards. Default off. */
   about_highlights_leadership_decorative_icons?: boolean;
+  /** URL opened by the Resume button on the About page */
+  resume_url?: string | null;
 }
 
 export interface ProfileInsert {
@@ -61,6 +63,7 @@ export interface ProfileInsert {
   section_order?: string[];
   research_insights?: any[];
   about_highlights_leadership_decorative_icons?: boolean;
+  resume_url?: string | null;
 }
 
 export interface ProfileUpdate {
@@ -88,6 +91,7 @@ export interface ProfileUpdate {
   section_order?: string[];
   research_insights?: any[];
   about_highlights_leadership_decorative_icons?: boolean;
+  resume_url?: string | null;
 }
 
 export function useProfiles() {

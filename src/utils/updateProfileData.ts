@@ -111,7 +111,9 @@ export async function populateProfileWithHardcodedData() {
       "process",
       "certifications",
       "tools"
-    ]
+    ],
+    resume_url:
+      "https://drive.google.com/file/d/1v6xDfL9LEO9o2kECo2qy9WZ6b_OTqo9d/view?usp=sharing"
   };
 
   return await updateCurrentUserProfile(hardcodedProfileData);

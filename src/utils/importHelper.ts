@@ -117,6 +117,7 @@ export async function importAllData(
           tools_categories: profile.tools_categories,
           section_order: profile.section_order,
           about_highlights_leadership_decorative_icons: profile.about_highlights_leadership_decorative_icons,
+          resume_url: profile.resume_url,
         };
         
         if (existingProfile) {

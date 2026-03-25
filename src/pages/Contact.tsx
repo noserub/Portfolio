@@ -365,7 +365,10 @@ export function Contact({ onBack, isEditMode = false }: ContactProps) {
                         tools_title: targetProfile.tools_title,
                         tools_categories: targetProfile.tools_categories,
                         section_order: targetProfile.section_order,
-                        research_insights: targetProfile.research_insights
+                        research_insights: targetProfile.research_insights,
+                        about_highlights_leadership_decorative_icons:
+                          targetProfile.about_highlights_leadership_decorative_icons,
+                        resume_url: targetProfile.resume_url
                       })
                       .eq('id', userId);
                       
