@@ -244,37 +244,49 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
   const [aboutHighlightsLeadershipDecorativeIcons, setAboutHighlightsLeadershipDecorativeIcons] =
     useState(false);
 
-  const [resumeUrl, setResumeUrl] = useState(DEFAULT_RESUME_URL);
+  /** Empty until Supabase/localStorage load; never default to the legacy Drive URL (that hid null DB). */
+  const [resumeUrl, setResumeUrl] = useState("");
 
   /** Applies `aboutPageProfile` JSON from localStorage (same shape as save). */
-  const applyAboutPageFromStorageDraft = useCallback((profileData: Record<string, unknown>) => {
-    if (profileData.bio_paragraph_1) setBioParagraph1(profileData.bio_paragraph_1 as string);
-    if (profileData.bio_paragraph_2) setBioParagraph2(profileData.bio_paragraph_2 as string);
-    if (profileData.super_powers_title) setSuperPowersTitle(profileData.super_powers_title as string);
-    if (profileData.super_powers) setSuperPowers(profileData.super_powers as string[]);
-    if (profileData.highlights_title) setHighlightsTitle(profileData.highlights_title as string);
-    if (profileData.highlights) setHighlights(profileData.highlights as typeof highlights);
-    if (profileData.leadership_title) setLeadershipTitle(profileData.leadership_title as string);
-    if (profileData.leadership_items) setLeadershipItems(profileData.leadership_items as typeof leadershipItems);
-    if (profileData.expertise_title) setExpertiseTitle(profileData.expertise_title as string);
-    if (profileData.expertise_items) setExpertiseItems(profileData.expertise_items as typeof expertiseItems);
-    if (profileData.how_i_use_ai_title) setHowIUseAITitle(profileData.how_i_use_ai_title as string);
-    if (profileData.how_i_use_ai_items) setHowIUseAIItems(profileData.how_i_use_ai_items as typeof howIUseAIItems);
-    if (profileData.process_title) setProcessTitle(profileData.process_title as string);
-    if (profileData.process_subheading) setProcessSubheading(profileData.process_subheading as string);
-    if (profileData.process_items) setProcessItems(profileData.process_items as typeof processItems);
-    if (profileData.certifications_title) setCertificationsTitle(profileData.certifications_title as string);
-    if (profileData.certifications_items) setCertificationsItems(profileData.certifications_items as typeof certificationsItems);
-    if (profileData.tools_title) setToolsTitle(profileData.tools_title as string);
-    if (profileData.tools_categories) setToolsCategories(profileData.tools_categories as typeof toolsCategories);
-    if (profileData.section_order) setSectionOrder(profileData.section_order as string[]);
-    if (typeof profileData.about_highlights_leadership_decorative_icons === "boolean") {
-      setAboutHighlightsLeadershipDecorativeIcons(profileData.about_highlights_leadership_decorative_icons);
-    }
-    if (profileData.resume_url && String(profileData.resume_url).trim()) {
-      setResumeUrl(String(profileData.resume_url).trim());
-    }
-  }, []);
+  /**
+   * Applies localStorage draft. When `applyResume` is false (Supabase profile exists), skip resume_url so
+   * the server row is the only source for the Resume link — avoids stale local drafts showing an old file.
+   */
+  const applyAboutPageFromStorageDraft = useCallback(
+    (profileData: Record<string, unknown>, applyResume = true) => {
+      if (profileData.bio_paragraph_1) setBioParagraph1(profileData.bio_paragraph_1 as string);
+      if (profileData.bio_paragraph_2) setBioParagraph2(profileData.bio_paragraph_2 as string);
+      if (profileData.super_powers_title) setSuperPowersTitle(profileData.super_powers_title as string);
+      if (profileData.super_powers) setSuperPowers(profileData.super_powers as string[]);
+      if (profileData.highlights_title) setHighlightsTitle(profileData.highlights_title as string);
+      if (profileData.highlights) setHighlights(profileData.highlights as typeof highlights);
+      if (profileData.leadership_title) setLeadershipTitle(profileData.leadership_title as string);
+      if (profileData.leadership_items) setLeadershipItems(profileData.leadership_items as typeof leadershipItems);
+      if (profileData.expertise_title) setExpertiseTitle(profileData.expertise_title as string);
+      if (profileData.expertise_items) setExpertiseItems(profileData.expertise_items as typeof expertiseItems);
+      if (profileData.how_i_use_ai_title) setHowIUseAITitle(profileData.how_i_use_ai_title as string);
+      if (profileData.how_i_use_ai_items) setHowIUseAIItems(profileData.how_i_use_ai_items as typeof howIUseAIItems);
+      if (profileData.process_title) setProcessTitle(profileData.process_title as string);
+      if (profileData.process_subheading) setProcessSubheading(profileData.process_subheading as string);
+      if (profileData.process_items) setProcessItems(profileData.process_items as typeof processItems);
+      if (profileData.certifications_title) setCertificationsTitle(profileData.certifications_title as string);
+      if (profileData.certifications_items) setCertificationsItems(profileData.certifications_items as typeof certificationsItems);
+      if (profileData.tools_title) setToolsTitle(profileData.tools_title as string);
+      if (profileData.tools_categories) setToolsCategories(profileData.tools_categories as typeof toolsCategories);
+      if (profileData.section_order) setSectionOrder(profileData.section_order as string[]);
+      if (typeof profileData.about_highlights_leadership_decorative_icons === "boolean") {
+        setAboutHighlightsLeadershipDecorativeIcons(profileData.about_highlights_leadership_decorative_icons);
+      }
+      if (
+        applyResume &&
+        profileData.resume_url &&
+        String(profileData.resume_url).trim()
+      ) {
+        setResumeUrl(String(profileData.resume_url).trim());
+      }
+    },
+    []
+  );
 
   const persistAboutPageDraftToLocalStorage = () => {
     const profileData = {
@@ -399,10 +411,6 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
           if (typeof profile.about_highlights_leadership_decorative_icons === "boolean") {
             setAboutHighlightsLeadershipDecorativeIcons(profile.about_highlights_leadership_decorative_icons);
           }
-
-          if (profile.resume_url && String(profile.resume_url).trim()) {
-            setResumeUrl(String(profile.resume_url).trim());
-          }
           
           if (profile.expertise_title && profile.expertise_title.trim()) {
             setExpertiseTitle(profile.expertise_title);
@@ -466,7 +474,7 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
                   console.log(
                     "📥 Dev: overlaying aboutPageProfile from localStorage (draft newer than Supabase)"
                   );
-                  applyAboutPageFromStorageDraft(profileData);
+                  applyAboutPageFromStorageDraft(profileData, false);
                 } else {
                   console.log(
                     "📥 Dev: keeping Supabase profile; local aboutPageProfile is older or same as remote updated_at"
@@ -475,6 +483,15 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
               } catch (e) {
                 console.log("⚠️ Dev: failed to parse aboutPageProfile", e);
               }
+            }
+          }
+          // Resume URL always follows this Supabase row — never let a local draft keep an old link.
+          {
+            const r = profile.resume_url;
+            if (r != null && String(r).trim()) {
+              setResumeUrl(String(r).trim());
+            } else {
+              setResumeUrl("");
             }
           }
           setDataLoadedFromSupabase(true); // Mark data as loaded, safe to save now
@@ -1195,7 +1212,7 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
                     autoComplete="url"
                     value={resumeUrl}
                     onChange={(e) => setResumeUrl(e.target.value)}
-                    placeholder="https://…"
+                    placeholder={DEFAULT_RESUME_URL}
                     className="font-mono text-sm"
                   />
                   <p className="text-xs text-muted-foreground">
