@@ -31,6 +31,9 @@ import {
 import { Label } from "../components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
 import {
+  type CaseStudyFilterEntry,
+  CASE_STUDY_FILTER_TYPE_IDS,
+  DEFAULT_CASE_STUDY_FILTERS,
   type HeroTextState,
   type HomePageContentV2,
   type HomePageStat,
@@ -2369,6 +2372,59 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     setHomePageContent((c) => ({ ...c, ui: { ...c.ui, ...patch } }));
   }, []);
 
+  const addCaseStudyFilter = useCallback(() => {
+    const used = new Set(homePageContent.ui.caseStudyFilters.map((f) => f.id));
+    const nextId = CASE_STUDY_FILTER_TYPE_IDS.find((id) => !used.has(id));
+    if (!nextId) {
+      toast.info("All category types are already in the list.");
+      return;
+    }
+    const defaultLabel =
+      DEFAULT_CASE_STUDY_FILTERS.find((f) => f.id === nextId)?.label ?? nextId;
+    patchUi({
+      caseStudyFilters: [...homePageContent.ui.caseStudyFilters, { id: nextId, label: defaultLabel }],
+    });
+  }, [homePageContent.ui.caseStudyFilters, patchUi]);
+
+  const updateCaseStudyFilter = useCallback(
+    (index: number, patch: Partial<CaseStudyFilterEntry>) => {
+      const row = homePageContent.ui.caseStudyFilters[index];
+      if (!row) return;
+      const next = [...homePageContent.ui.caseStudyFilters];
+      const merged = { ...row, ...patch } as CaseStudyFilterEntry;
+      if (patch.id !== undefined && patch.id !== row.id) {
+        if (next.some((f, i) => i !== index && f.id === merged.id)) {
+          toast.error("That category is already in the list.");
+          return;
+        }
+      }
+      next[index] = merged;
+      patchUi({ caseStudyFilters: next });
+    },
+    [homePageContent.ui.caseStudyFilters, patchUi],
+  );
+
+  const removeCaseStudyFilter = useCallback(
+    (index: number) => {
+      patchUi({
+        caseStudyFilters: homePageContent.ui.caseStudyFilters.filter((_, i) => i !== index),
+      });
+    },
+    [homePageContent.ui.caseStudyFilters, patchUi],
+  );
+
+  const moveCaseStudyFilter = useCallback(
+    (index: number, dir: "up" | "down") => {
+      const list = homePageContent.ui.caseStudyFilters;
+      const j = dir === "up" ? index - 1 : index + 1;
+      if (j < 0 || j >= list.length) return;
+      const next = [...list];
+      [next[index], next[j]] = [next[j], next[index]];
+      patchUi({ caseStudyFilters: next });
+    },
+    [homePageContent.ui.caseStudyFilters, patchUi],
+  );
+
   const heroText = homePageContent.hero;
   const resolvedHeroBio = useMemo(() => healDegenerateHeroBio(heroText), [heroText]);
   const bioDocumentForUi =
@@ -2475,7 +2531,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     }
   }, [heroText.lastGreetingPauseDuration]);
   
-  const [selectedProjectType, setSelectedProjectType] = useState<'product-design' | 'development' | 'branding' | null>(null);
+  const [selectedProjectType, setSelectedProjectType] = useState<string | null>(null);
   const [lightboxProject, setLightboxProject] = useState(null);
   const designProjectsScrollRef = useRef(null);
   const quickStatsScrollRef = useRef<HTMLDivElement>(null);
@@ -3195,6 +3251,22 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     });
     return result;
     }, [localCaseStudiesOrder, sortedCaseStudies]);
+
+  const visibleCaseStudyFilters = useMemo(() => {
+    return homePageContent.ui.caseStudyFilters.filter((f) =>
+      availableProjectTypes.includes(f.id),
+    );
+  }, [homePageContent.ui.caseStudyFilters, availableProjectTypes]);
+
+  useEffect(() => {
+    if (
+      selectedProjectType !== null &&
+      !visibleCaseStudyFilters.some((f) => f.id === selectedProjectType)
+    ) {
+      setSelectedProjectType(null);
+    }
+  }, [selectedProjectType, visibleCaseStudyFilters]);
+
   // Reset local order when caseStudies change from Supabase
   // BUT: don't reset if it's just a reorder (same IDs, different order)
   // Only reset if IDs actually changed (new/deleted projects)
@@ -3863,28 +3935,103 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                     onChange={(e) => patchUi({ caseStudiesTitle: e.target.value })}
                     className="mb-2"
                   />
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <Input
-                      value={homePageContent.ui.filterAll}
-                      onChange={(e) => patchUi({ filterAll: e.target.value })}
-                      placeholder="All"
-                    />
-                    <Input
-                      value={homePageContent.ui.filterProductDesign}
-                      onChange={(e) => patchUi({ filterProductDesign: e.target.value })}
-                      placeholder="Product design"
-                    />
-                    <Input
-                      value={homePageContent.ui.filterDevelopment}
-                      onChange={(e) => patchUi({ filterDevelopment: e.target.value })}
-                      placeholder="Development"
-                    />
-                    <Input
-                      value={homePageContent.ui.filterBranding}
-                      onChange={(e) => patchUi({ filterBranding: e.target.value })}
-                      placeholder="Branding"
-                    />
+                  <Label className="text-xs">“All” button label</Label>
+                  <Input
+                    value={homePageContent.ui.filterAll}
+                    onChange={(e) => patchUi({ filterAll: e.target.value })}
+                    placeholder="All"
+                    className="mb-2"
+                  />
+                  <Label className="text-xs">Category filters</Label>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Add, remove, or reorder filters. Only categories you list here can appear (and only if you have published projects in that category).
+                  </p>
+                  <div className="space-y-2">
+                    {homePageContent.ui.caseStudyFilters.map((f, index) => (
+                      <div
+                        key={`${f.id}-${index}`}
+                        className="flex flex-wrap items-end gap-2 rounded-md border border-border p-2"
+                      >
+                        <div className="flex flex-1 flex-wrap gap-2 min-w-[12rem]">
+                          <div className="w-[10rem]">
+                            <Label className="text-[10px] text-muted-foreground">Category</Label>
+                            <Select
+                              value={f.id}
+                              onValueChange={(v) => {
+                                const id = v as CaseStudyFilterEntry["id"];
+                                const defaultLabel =
+                                  DEFAULT_CASE_STUDY_FILTERS.find((d) => d.id === id)?.label ?? id;
+                                updateCaseStudyFilter(index, { id, label: defaultLabel });
+                              }}
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {CASE_STUDY_FILTER_TYPE_IDS.map((id) => (
+                                  <SelectItem key={id} value={id}>
+                                    {DEFAULT_CASE_STUDY_FILTERS.find((d) => d.id === id)?.label ?? id}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="min-w-[8rem] flex-1">
+                            <Label className="text-[10px] text-muted-foreground">Label</Label>
+                            <Input
+                              value={f.label}
+                              onChange={(e) => updateCaseStudyFilter(index, { label: e.target.value })}
+                              placeholder="Button text"
+                            />
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => moveCaseStudyFilter(index, "up")}
+                            disabled={index === 0}
+                            aria-label="Move filter up"
+                          >
+                            <ArrowUp className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => moveCaseStudyFilter(index, "down")}
+                            disabled={index === homePageContent.ui.caseStudyFilters.length - 1}
+                            aria-label="Move filter down"
+                          >
+                            <ArrowDown className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="text-destructive"
+                            onClick={() => removeCaseStudyFilter(index)}
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="mt-1"
+                    onClick={addCaseStudyFilter}
+                    disabled={
+                      homePageContent.ui.caseStudyFilters.length >= CASE_STUDY_FILTER_TYPE_IDS.length
+                    }
+                  >
+                    <Plus className="w-4 h-4 mr-1" />
+                    Add category filter
+                  </Button>
                 </div>
               </div>
             ) : (
@@ -4199,33 +4346,17 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                     >
                       {homePageContent.ui.filterAll}
                     </button>
-                    {availableProjectTypes.includes('product-design') && (
+                    {visibleCaseStudyFilters.map((f) => (
                       <button
-                        onClick={() => setSelectedProjectType('product-design')}
+                        key={f.id}
+                        type="button"
+                        onClick={() => setSelectedProjectType(f.id)}
                         onMouseUp={(e) => e.currentTarget.blur()}
-                        className={getFilterButtonClasses(selectedProjectType === 'product-design')}
+                        className={getFilterButtonClasses(selectedProjectType === f.id)}
                       >
-                        {homePageContent.ui.filterProductDesign}
+                        {f.label}
                       </button>
-                    )}
-                    {availableProjectTypes.includes('development') && (
-                      <button
-                        onClick={() => setSelectedProjectType('development')}
-                        onMouseUp={(e) => e.currentTarget.blur()}
-                        className={getFilterButtonClasses(selectedProjectType === 'development')}
-                      >
-                        {homePageContent.ui.filterDevelopment}
-                      </button>
-                    )}
-                    {availableProjectTypes.includes('branding') && (
-                      <button
-                        onClick={() => setSelectedProjectType('branding')}
-                        onMouseUp={(e) => e.currentTarget.blur()}
-                        className={getFilterButtonClasses(selectedProjectType === 'branding')}
-                      >
-                        {homePageContent.ui.filterBranding}
-                      </button>
-                    )}
+                    ))}
                   </>
                 );
               })()}
