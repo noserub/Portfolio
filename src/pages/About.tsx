@@ -336,15 +336,18 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
     let cancelled = false;
 
     const loadProfile = async () => {
+      let user: { id: string } | null = null;
+      let isBypassAuth = false;
       try {
         console.log('📥 Loading profile data from Supabase...');
         
         // Check authentication status
         const { supabase } = await import('../lib/supabaseClient');
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        user = authUser ?? null;
         if (cancelled) return;
 
-        const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
+        isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
         
         let profile = null;
         
@@ -355,7 +358,6 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
           profile = await getCurrentUserProfile();
         } else {
           // Not authenticated: load the published portfolio owner's row (same id as CMS saves).
-          // Do NOT use "latest updated profile" — that can be a different user and have no resume_url.
           const ownerId = getPortfolioOwnerUserId(null);
           console.log('📥 About page: Loading public profile by owner id:', ownerId);
           const { data, error } = await supabase
@@ -369,6 +371,22 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
           } else {
             profile = data;
             console.log('📥 About page: Public profile data received:', profile);
+          }
+          // Incognito / misconfigured VITE_PUBLIC_PORTFOLIO_OWNER_ID: no row for default UUID.
+          // Fall back to the most recently updated published profile so visitors still see content + resume.
+          if (!profile && !error) {
+            console.log('📥 About page: No row for owner id; loading latest profile with bio as fallback');
+            const { data: legacy, error: legacyErr } = await supabase
+              .from('profiles')
+              .select('*')
+              .not('bio_paragraph_1', 'is', null)
+              .order('updated_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            if (!legacyErr) {
+              profile = legacy;
+              console.log('📥 About page: Fallback public profile:', profile?.id);
+            }
           }
         }
 
@@ -512,6 +530,10 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
                 }
               }
             }
+            // Public / incognito: no localStorage — keep button usable when DB has no resume_url yet.
+            if (!nextResume && !user && !isBypassAuth) {
+              nextResume = DEFAULT_RESUME_URL;
+            }
             if (!cancelled) {
               setResumeUrl(nextResume);
             }
@@ -541,6 +563,9 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
             // If no data exists anywhere, allow saves (for first-time setup)
             if (!cancelled) setDataLoadedFromSupabase(true);
           }
+          if (!cancelled && !user && !isBypassAuth) {
+            setResumeUrl((prev) => (prev.trim() ? prev : DEFAULT_RESUME_URL));
+          }
         }
       } catch (error) {
         if (cancelled) return;
@@ -564,6 +589,9 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
           console.log('ℹ️ No localStorage data found, using hardcoded defaults');
           // If no data exists anywhere, allow saves (for first-time setup)
           if (!cancelled) setDataLoadedFromSupabase(true);
+        }
+        if (!cancelled && !user && !isBypassAuth) {
+          setResumeUrl((prev) => (prev.trim() ? prev : DEFAULT_RESUME_URL));
         }
       }
     };
