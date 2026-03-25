@@ -23,6 +23,20 @@ interface AboutProps {
 const DEFAULT_RESUME_URL =
   "https://drive.google.com/file/d/1v6xDfL9LEO9o2kECo2qy9WZ6b_OTqo9d/view?usp=sharing";
 
+function getProfileUpdatedAtMs(profile: { updated_at?: string | null } | null): number {
+  if (!profile?.updated_at) return 0;
+  const t = Date.parse(profile.updated_at);
+  return Number.isNaN(t) ? 0 : t;
+}
+
+/** `lastModified` on aboutPageProfile local draft (ISO string). Missing or invalid → treat as infinitely old. */
+function getLocalAboutDraftMs(profileData: Record<string, unknown>): number {
+  const lm = profileData.lastModified;
+  if (typeof lm !== "string" || !lm.trim()) return 0;
+  const t = Date.parse(lm);
+  return Number.isNaN(t) ? 0 : t;
+}
+
 export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
   // Apply SEO for about page
   useSEO('about');
@@ -439,14 +453,25 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
           }
           
           console.log('✅ Profile state updated from Supabase');
-          // In dev, auto-save does not write to Supabase; overlay local draft so edits survive refresh.
+          // In dev, overlay localStorage only if that draft is newer than Supabase; otherwise stale drafts
+          // would overwrite a fresh resume_url (and other fields) from the server.
           if (import.meta.env.DEV) {
             const savedProfile = localStorage.getItem("aboutPageProfile");
             if (savedProfile) {
               try {
                 const profileData = JSON.parse(savedProfile) as Record<string, unknown>;
-                console.log("📥 Dev: overlaying aboutPageProfile from localStorage");
-                applyAboutPageFromStorageDraft(profileData);
+                const localMs = getLocalAboutDraftMs(profileData);
+                const remoteMs = getProfileUpdatedAtMs(profile);
+                if (localMs > remoteMs) {
+                  console.log(
+                    "📥 Dev: overlaying aboutPageProfile from localStorage (draft newer than Supabase)"
+                  );
+                  applyAboutPageFromStorageDraft(profileData);
+                } else {
+                  console.log(
+                    "📥 Dev: keeping Supabase profile; local aboutPageProfile is older or same as remote updated_at"
+                  );
+                }
               } catch (e) {
                 console.log("⚠️ Dev: failed to parse aboutPageProfile", e);
               }
