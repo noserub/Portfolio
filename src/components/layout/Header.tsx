@@ -22,7 +22,7 @@ export function Header({ logo, onLogoUpload, onLogoClick, isEditMode = false }: 
       initial={{ y: -100 }}
       animate={{ y: 0 }}
       transition={{ duration: 0.6 }}
-      className="fixed top-0 left-0 right-0 z-50 bg-background/60 backdrop-blur-md border-b border-border/50"
+      className="relative w-full bg-background/60 backdrop-blur-md border-b border-border/50"
     >
       <div className="container mx-auto px-6 py-4 flex items-center justify-center">
         <div 

@@ -49,6 +49,7 @@ import { getPortfolioOwnerUserId } from "./lib/portfolioOwner";
 import { useAppSettings } from "./hooks/useAppSettings";
 import { useProjects } from "./hooks/useProjects";
 import { useContactMessages } from "./hooks/useContactMessages";
+import { useScrollHideChrome } from "./hooks/useScrollHideChrome";
 
 const parseColumnsValue = (value: any, allowed: number[], fallback: number) => {
   const num = Number(value);
@@ -271,7 +272,8 @@ export default function App() {
   // Get contact messages for unread count
   const { getUnreadCount } = useContactMessages();
   const unreadMessageCount = getUnreadCount();
-  
+  const { chromeOffscreen } = useScrollHideChrome();
+
   // Load settings on mount
   useEffect(() => {
     getCurrentUserSettings();
@@ -1655,6 +1657,13 @@ export default function App() {
     );
   }
 
+  const pillNavPages = [
+    { key: "about" as const, label: "About", visible: isEditMode || pageVisibility.about },
+    { key: "contact" as const, label: "Contact", visible: isEditMode || pageVisibility.contact },
+  ].filter((page) => page.visible);
+  const showPillNav =
+    currentPage !== "home" && currentPage !== "project-detail" && pillNavPages.length > 1;
+
   return (
     <ErrorBoundary>
       <div className="min-h-screen relative" data-react-root="true">
@@ -1690,21 +1699,30 @@ export default function App() {
       />
       
       
-      {/* Header - separate from content to avoid z-index stacking context issues */}
-      <Header 
-        logo={logo} 
-        onLogoUpload={handleLogoUpload} 
-        onLogoClick={navigateHome} 
-        isEditMode={isEditMode}
-      />
-
+      {/* Top chrome: slides up on scroll down, returns on scroll up (see useScrollHideChrome).
+          Transform is inline — Tailwind may not emit -translate-y-full in the CSS bundle. */}
+      <div
+        className="fixed top-0 left-0 right-0 z-50 pointer-events-none will-change-transform"
+        style={{
+          transform: chromeOffscreen ? "translateY(-100%)" : "translateY(0)",
+          transition: "transform 300ms cubic-bezier(0.4, 0, 0.2, 1)",
+        }}
+      >
+        <div className="pointer-events-auto">
+          <div className="relative">
+            <Header
+              logo={logo}
+              onLogoUpload={handleLogoUpload}
+              onLogoClick={navigateHome}
+              isEditMode={isEditMode}
+            />
 
       {/* Header Controls - Top Left */}
       <motion.div
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ delay: 0.5 }}
-        className="fixed top-6 left-6 z-50 flex items-center gap-3"
+        className="absolute top-6 left-6 z-50 flex items-center gap-3"
       >
         {/* Back Button - Only show on non-home pages */}
         {currentPage !== "home" && (
@@ -1765,7 +1783,7 @@ export default function App() {
             initial={{ opacity: 0, y: -20, x: 20 }}
             animate={{ opacity: 1, y: 0, x: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed top-24 right-6 z-50 bg-green-500 text-white px-6 py-3 rounded-2xl shadow-2xl backdrop-blur-sm border-2 border-green-400"
+            className="absolute top-24 right-6 z-50 bg-green-500 text-white px-6 py-3 rounded-2xl shadow-2xl backdrop-blur-sm border-2 border-green-400"
           >
             <div className="flex items-center gap-3">
               <Save className="w-5 h-5" />
@@ -1787,7 +1805,7 @@ export default function App() {
         initial={{ opacity: 0, x: 20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ delay: 0.5 }}
-        className="fixed top-6 right-6 z-50 flex flex-col items-end gap-3"
+        className="absolute top-6 right-6 z-50 flex flex-col items-end gap-3"
       >
         <div className="flex items-center gap-2">
           {/* Email icon with badge - only show when authenticated */}
@@ -1967,18 +1985,48 @@ export default function App() {
           </DropdownMenuContent>
         </DropdownMenu>
         </div>
-        {isEditMode && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="fixed left-0 right-0 z-40 bg-pink-400 text-black text-sm font-medium py-2 px-4 text-center"
-            style={{ top: '85px' }}
-          >
-            Editing mode is active
-          </motion.div>
-        )}
       </motion.div>
 
+          </div>
+
+          {isEditMode && (
+            <div className="w-full z-40 bg-pink-400 text-black text-sm font-medium py-2 px-4 text-center">
+              Editing mode is active
+            </div>
+          )}
+
+          {showPillNav && (
+            <motion.nav
+              initial={{ y: 100, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.5, duration: 0.5 }}
+              className="hidden lg:flex justify-center pb-2 pt-1 pointer-events-auto h-[54px] items-center gap-2 bg-card/80 backdrop-blur-lg border border-border rounded-full shadow-2xl px-1 py-1 mx-auto mb-1 w-auto max-w-full"
+            >
+              {pillNavPages.map((page) => (
+                <motion.button
+                  key={page.key}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={(e) => {
+                    setCurrentPage(page.key);
+                    e.currentTarget.blur();
+                  }}
+                  className={`px-6 py-2.5 rounded-full transition-all duration-200 font-bold compact-focus h-[48px] flex items-center justify-center my-0.5 ${
+                    currentPage === page.key
+                      ? "bg-primary text-primary-foreground"
+                      : "hover:bg-accent hover:scale-[1.02]"
+                  } ${isEditMode && !pageVisibility[page.key] ? "opacity-50 border border-dashed border-yellow-500" : ""}`}
+                >
+                  {page.label}
+                  {isEditMode && !pageVisibility[page.key] && (
+                    <span className="ml-2 text-xs">📝</span>
+                  )}
+                </motion.button>
+              ))}
+            </motion.nav>
+          )}
+        </div>
+      </div>
 
       {/* Password Reset Modal */}
       <AnimatePresence>
@@ -2110,47 +2158,36 @@ export default function App() {
       </div>
       </DndProvider>
 
-      {currentPage !== "home" && currentPage !== "project-detail" && (() => {
-        // Filter visible pages based on edit mode and page visibility
-        const visiblePages = [
-          { key: 'about', label: 'About', visible: isEditMode || pageVisibility.about },
-          { key: 'contact', label: 'Contact', visible: isEditMode || pageVisibility.contact }
-        ].filter(page => page.visible);
-
-        // Only show navigation if there are 2 or more visible pages
-        if (visiblePages.length <= 1) return null;
-
-        return (
-          <motion.nav
-            initial={{ y: 100, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.5, duration: 0.5 }}
-            className="fixed bottom-6 left-1/2 -translate-x-1/2 lg:bottom-auto lg:top-[6.5rem] bg-card/80 backdrop-blur-lg border border-border rounded-full shadow-2xl px-1 py-1 flex items-center gap-2 z-40 h-[54px]"
-          >
-            {visiblePages.map(page => (
-              <motion.button
-                key={page.key}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={(e) => {
-                  setCurrentPage(page.key as Page);
-                  e.currentTarget.blur(); // Remove focus after click
-                }}
-                className={`px-6 py-2.5 rounded-full transition-all duration-200 font-bold compact-focus h-[48px] flex items-center justify-center my-0.5 ${
-                  currentPage === page.key
-                    ? "bg-primary text-primary-foreground"
-                    : "hover:bg-accent hover:scale-[1.02]"
-                } ${isEditMode && !pageVisibility[page.key as keyof typeof pageVisibility] ? 'opacity-50 border border-dashed border-yellow-500' : ''}`}
-              >
-                {page.label}
-                {isEditMode && !pageVisibility[page.key as keyof typeof pageVisibility] && (
-                  <span className="ml-2 text-xs">📝</span>
-                )}
-              </motion.button>
-            ))}
-          </motion.nav>
-        );
-      })()}
+      {showPillNav && (
+        <motion.nav
+          initial={{ y: 100, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.5, duration: 0.5 }}
+          className="fixed bottom-6 left-1/2 -translate-x-1/2 lg:hidden bg-card/80 backdrop-blur-lg border border-border rounded-full shadow-2xl px-1 py-1 flex items-center gap-2 z-40 h-[54px]"
+        >
+          {pillNavPages.map((page) => (
+            <motion.button
+              key={page.key}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={(e) => {
+                setCurrentPage(page.key);
+                e.currentTarget.blur();
+              }}
+              className={`px-6 py-2.5 rounded-full transition-all duration-200 font-bold compact-focus h-[48px] flex items-center justify-center my-0.5 ${
+                currentPage === page.key
+                  ? "bg-primary text-primary-foreground"
+                  : "hover:bg-accent hover:scale-[1.02]"
+              } ${isEditMode && !pageVisibility[page.key] ? "opacity-50 border border-dashed border-yellow-500" : ""}`}
+            >
+              {page.label}
+              {isEditMode && !pageVisibility[page.key] && (
+                <span className="ml-2 text-xs">📝</span>
+              )}
+            </motion.button>
+          ))}
+        </motion.nav>
+      )}
       </div>
 
       {/* Footer - shown on all pages */}
