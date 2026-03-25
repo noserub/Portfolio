@@ -333,6 +333,8 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
 
   // Load profile data from Supabase (with fallback to hardcoded content)
   useEffect(() => {
+    let cancelled = false;
+
     const loadProfile = async () => {
       try {
         console.log('📥 Loading profile data from Supabase...');
@@ -340,6 +342,8 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
         // Check authentication status
         const { supabase } = await import('../lib/supabaseClient');
         const { data: { user } } = await supabase.auth.getUser();
+        if (cancelled) return;
+
         const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
         
         let profile = null;
@@ -367,10 +371,13 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
             console.log('📥 About page: Public profile data received:', profile);
           }
         }
+
+        if (cancelled) return;
         
         console.log('📥 Profile data received:', profile);
         
         if (profile) {
+          if (cancelled) return;
           console.log('✅ Profile found, updating state...');
           
           // Only update fields that have meaningful data (not empty strings or null)
@@ -485,16 +492,33 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
               }
             }
           }
-          // Resume URL always follows this Supabase row — never let a local draft keep an old link.
+          // Resume: server first; if column is empty, use aboutPageProfile draft (dev / not yet synced).
           {
+            let nextResume = "";
             const r = profile.resume_url;
             if (r != null && String(r).trim()) {
-              setResumeUrl(String(r).trim());
+              nextResume = String(r).trim();
             } else {
-              setResumeUrl("");
+              const saved = localStorage.getItem("aboutPageProfile");
+              if (saved) {
+                try {
+                  const p = JSON.parse(saved) as Record<string, unknown>;
+                  const lr = p.resume_url;
+                  if (lr != null && String(lr).trim()) {
+                    nextResume = String(lr).trim();
+                  }
+                } catch {
+                  /* ignore */
+                }
+              }
+            }
+            if (!cancelled) {
+              setResumeUrl(nextResume);
             }
           }
-          setDataLoadedFromSupabase(true); // Mark data as loaded, safe to save now
+          if (!cancelled) {
+            setDataLoadedFromSupabase(true); // Mark data as loaded, safe to save now
+          }
         } else {
           console.log('ℹ️ No profile found in Supabase, checking localStorage...');
           
@@ -507,18 +531,19 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
               applyAboutPageFromStorageDraft(profileData);
               
               console.log('✅ Loaded from localStorage');
-              setDataLoadedFromSupabase(true); // Mark data as loaded (from localStorage), safe to save now
+              if (!cancelled) setDataLoadedFromSupabase(true); // Mark data as loaded (from localStorage), safe to save now
             } catch (parseError) {
               console.log('❌ Error parsing localStorage data:', parseError);
-              setDataLoadedFromSupabase(true); // Even if parse fails, don't save defaults
+              if (!cancelled) setDataLoadedFromSupabase(true); // Even if parse fails, don't save defaults
             }
           } else {
             console.log('ℹ️ No localStorage data found, using hardcoded defaults');
             // If no data exists anywhere, allow saves (for first-time setup)
-            setDataLoadedFromSupabase(true);
+            if (!cancelled) setDataLoadedFromSupabase(true);
           }
         }
       } catch (error) {
+        if (cancelled) return;
         console.log('ℹ️ Error loading from Supabase, checking localStorage...', error);
         
         // Try to load from localStorage as fallback
@@ -530,20 +555,23 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
             applyAboutPageFromStorageDraft(profileData);
             
             console.log('✅ Loaded from localStorage');
-            setDataLoadedFromSupabase(true); // Mark data as loaded (from localStorage), safe to save now
+            if (!cancelled) setDataLoadedFromSupabase(true); // Mark data as loaded (from localStorage), safe to save now
           } catch (parseError) {
             console.log('❌ Error parsing localStorage data:', parseError);
-            setDataLoadedFromSupabase(true); // Even if parse fails, don't save defaults
+            if (!cancelled) setDataLoadedFromSupabase(true); // Even if parse fails, don't save defaults
           }
         } else {
           console.log('ℹ️ No localStorage data found, using hardcoded defaults');
           // If no data exists anywhere, allow saves (for first-time setup)
-          setDataLoadedFromSupabase(true);
+          if (!cancelled) setDataLoadedFromSupabase(true);
         }
       }
     };
     
     loadProfile();
+    return () => {
+      cancelled = true;
+    };
   }, [getCurrentUserProfile, applyAboutPageFromStorageDraft]); // Now safe to include getCurrentUserProfile since it's memoized
 
   // Auto-save when state changes (debounced)
