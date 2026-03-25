@@ -1,0 +1,25 @@
+---
+description: Public portfolio content uses owner id — never branch reads on auth session
+alwaysApply: true
+---
+
+# Published content (public visitors + CMS)
+
+This site is a **single published portfolio**. Anything visitors should see (About copy, resume URL, home hero, etc.) must live on **one canonical row** in Supabase, not on “whoever is signed in.”
+
+## Rule
+
+1. **Resolve the portfolio owner once** with `getPortfolioOwnerUserId` from `src/lib/portfolioOwner.ts` (uses `VITE_PUBLIC_PORTFOLIO_OWNER_ID` when set, otherwise the signed-in user id, otherwise a legacy default).
+2. **Read and write** that same `profiles` row (or `app_settings` keyed by `user_id` = owner id) for **both** edit mode and anonymous visitors.
+3. **Do not** use separate code paths like “if authenticated → `getCurrentUserProfile()` else → different query” for **public-facing** pages unless the second path is **identical** (same `id` filter). Prefer **one** query: `.from('profiles').select(...).eq('id', ownerId)`.
+4. **Do not** override server fields with `localStorage` for **production** public display (dev-only drafts are OK if clearly scoped).
+
+## Why
+
+Incognito and logged-out users have **no session**. If CMS saves row A and visitors read row B, content “doesn’t stick” or shows wrong data.
+
+## Checklist for new features
+
+- [ ] Owner id from `getPortfolioOwnerUserId(user?.id)` (pass `user` from `getUser()` when available).
+- [ ] Same id used in `update`/`upsert` as in `select` for published fields.
+- [ ] Env `VITE_PUBLIC_PORTFOLIO_OWNER_ID` documented for Vercel when deploying.
