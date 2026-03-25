@@ -5971,22 +5971,22 @@ body {
   --sidebar-accent-foreground: oklch(.205 0 0);
   --sidebar-border: oklch(.922 0 0);
   --sidebar-ring: oklch(.708 0 0);
-  /* Case study rail: ~3% tonal tint (violet) into neutral glass — keeps glass read, shifts temperature */
-  --case-study-sidebar-tonal: oklch(0.7 0.1 264);
+  /* Case study rail: stronger violet mix vs neutral slate glass in main column (same blur/alpha family) */
+  --case-study-sidebar-tonal: oklch(0.62 0.16 264);
   --case-study-sidebar-glass-from: color-mix(
     in oklch,
-    var(--case-study-sidebar-tonal) 3%,
-    oklch(0.965 0 0 / 0.52) 97%
+    var(--case-study-sidebar-tonal) 12%,
+    oklch(0.965 0 0 / 0.52) 88%
   );
   --case-study-sidebar-glass-via: color-mix(
     in oklch,
-    var(--case-study-sidebar-tonal) 3%,
-    oklch(0.995 0 0 / 0.38) 97%
+    var(--case-study-sidebar-tonal) 12%,
+    oklch(0.995 0 0 / 0.38) 88%
   );
   --case-study-sidebar-glass-to: color-mix(
     in oklch,
-    var(--case-study-sidebar-tonal) 3%,
-    oklch(0.94 0 0 / 0.48) 97%
+    var(--case-study-sidebar-tonal) 12%,
+    oklch(0.935 0 0 / 0.48) 88%
   );
 }
 
@@ -6027,27 +6027,22 @@ body {
   --sidebar-accent-foreground: oklch(.985 0 0);
   --sidebar-border: oklch(.32 0 0);
   --sidebar-ring: oklch(.5 0 0);
-  /* Dark: same 3% mix into neutral dark glass (slight lift reads as separate rail) */
-  --case-study-sidebar-tonal: oklch(0.72 0.12 264);
+  /* Dark: higher chroma mix + slightly lifted L vs slate-800/900 glass cards */
+  --case-study-sidebar-tonal: oklch(0.58 0.2 264);
   --case-study-sidebar-glass-from: color-mix(
     in oklch,
-    var(--case-study-sidebar-tonal) 3%,
-    oklch(0.26 0 0 / 0.55) 97%
+    var(--case-study-sidebar-tonal) 12%,
+    oklch(0.28 0 0 / 0.55) 88%
   );
   --case-study-sidebar-glass-via: color-mix(
     in oklch,
-    var(--case-study-sidebar-tonal) 3%,
-    oklch(0.22 0 0 / 0.42) 97%
+    var(--case-study-sidebar-tonal) 12%,
+    oklch(0.24 0 0 / 0.42) 88%
   );
   --case-study-sidebar-glass-to: color-mix(
     in oklch,
-    var(--case-study-sidebar-tonal) 3%,
-    oklch(0.25 0 0 / 0.5) 97%
-  );
-  --case-study-sidebar-border: color-mix(
-    in oklch,
-    var(--case-study-sidebar-tonal) 3%,
-    oklch(0.4 0 0 / 0.4) 97%
+    var(--case-study-sidebar-tonal) 12%,
+    oklch(0.27 0 0 / 0.5) 88%
   );
 }
 
@@ -6642,7 +6637,7 @@ body.dialog-open {
   -webkit-text-fill-color: transparent;
 }
 
-/* At a glance / Impact rails — 3% violet tonal mix + glass gradient; vars switch in .dark */
+/* At a glance / Impact rails — violet-toned glass (stronger than main column slate glass); vars switch in .dark */
 .bg-case-study-sidebar-glass {
   background-image: linear-gradient(
     to bottom right,
