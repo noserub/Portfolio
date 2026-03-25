@@ -10,6 +10,7 @@ import { Checkbox } from "../components/ui/checkbox";
 import { Label } from "../components/ui/label";
 import { Sparkles, Target, Users, Rocket, Zap, Award, Lightbulb, TrendingUp, Boxes, BarChart3, PenTool, BrainCircuit, GraduationCap, Wrench, FileText, Edit2, Save, X, ChevronDown, ChevronUp, ArrowUp, ArrowDown, Handshake, Layers } from "lucide-react";
 import { MarkdownRenderer } from "../components/MarkdownRenderer";
+import { toast } from "sonner";
 import { useSEO } from "../hooks/useSEO";
 import { useProfiles, type ProfileUpdate } from "../hooks/useProfiles";
 import { getProfileWriterUserId } from "../lib/portfolioOwner";
@@ -651,7 +652,10 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
         section_order: sectionOrder,
         about_highlights_leadership_decorative_icons: aboutHighlightsLeadershipDecorativeIcons,
       };
-      if (resumeTouchedRef.current) {
+      // Include resume when user edited the field OR when state has a URL (covers paste/autofill
+      // without reliable onChange, and avoids only sending when resumeTouchedRef was missed).
+      // Omit only when empty and never touched — avoids wiping DB with null on unrelated autosaves.
+      if (resumeTouchedRef.current || resumeUrl.trim()) {
         payload.resume_url = resumeUrl.trim() || null;
       }
 
@@ -665,6 +669,10 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
     } catch (error) {
       console.log('⚠️ About page: Supabase save failed, saving to localStorage instead:', error);
       persistAboutPageDraftToLocalStorage();
+      toast.error(
+        "Could not save to Supabase (check you are signed in with your account, or RLS policies). Draft saved in this browser only.",
+        { duration: 8000 },
+      );
     }
   };
 
@@ -1264,6 +1272,14 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
                     onChange={(e) => {
                       resumeTouchedRef.current = true;
                       setResumeUrl(e.target.value);
+                    }}
+                    onBlur={() => {
+                      if (!dataLoadedFromSupabase) return;
+                      if (import.meta.env.MODE === "production") {
+                        void saveToSupabase();
+                      } else {
+                        persistAboutPageDraftToLocalStorage();
+                      }
                     }}
                     placeholder={DEFAULT_RESUME_URL}
                     className="font-mono text-sm"

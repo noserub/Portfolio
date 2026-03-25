@@ -33,6 +33,7 @@ export interface Database {
           email: string
           full_name: string | null
           avatar_url: string | null
+          resume_url?: string | null
         }
         Insert: {
           id: string
@@ -41,6 +42,7 @@ export interface Database {
           email: string
           full_name?: string | null
           avatar_url?: string | null
+          resume_url?: string | null
         }
         Update: {
           id?: string
@@ -49,6 +51,7 @@ export interface Database {
           email?: string
           full_name?: string | null
           avatar_url?: string | null
+          resume_url?: string | null
         }
       }
     }
