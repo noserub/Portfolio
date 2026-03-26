@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo, useCallback, memo, Suspense, lazy } from "react";
+import React, { useState, useRef, useEffect, useMemo, useCallback, memo, Suspense } from "react";
 import { flushSync } from "react-dom";
 import { motion } from "motion/react";
 import { useDrag, useDrop } from "react-dnd";
@@ -44,20 +44,21 @@ import {
   mergeHeroGreetingsFromDraftLines,
 } from "../lib/homePageContent";
 import { getPortfolioOwnerUserId } from "../lib/portfolioOwner";
+import { lazyWithRetry } from "../utils/lazyWithRetry";
 import { useSiteAuth } from "../contexts/SiteAuthContext";
 import { BioDocumentRenderer } from "../components/HomeBioDocument";
 
-const UnifiedProjectCreator = lazy(() =>
+const UnifiedProjectCreator = lazyWithRetry(() =>
   import("../components/UnifiedProjectCreator").then((m) => ({
     default: m.UnifiedProjectCreator,
   })),
 );
-const HomeBioDocumentEditor = lazy(() =>
+const HomeBioDocumentEditor = lazyWithRetry(() =>
   import("../components/HomeBioDocumentEditor").then((m) => ({
     default: m.HomeBioDocumentEditor,
   })),
 );
-const Lightbox = lazy(() => import("../components/Lightbox").then((m) => ({ default: m.default })));
+const Lightbox = lazyWithRetry(() => import("../components/Lightbox").then((m) => ({ default: m.default })));
 
 interface HomeProps {
   onStartClick: () => void;

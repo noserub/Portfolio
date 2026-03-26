@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, lazy, Suspense } from "react";
+import React, { useState, useEffect, useRef, Suspense } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
@@ -17,15 +17,15 @@ import {
 } from "./components";
 import Home from "./pages/Home";
 
-const About = lazy(() => import("./pages/About"));
-const Contact = lazy(() => import("./pages/Contact"));
-const ProjectDetail = lazy(() => import("./pages/ProjectDetail"));
-const DiagnosticPage = lazy(() => import("./pages/DiagnosticPage"));
-const EmergencyRecovery = lazy(() => import("./pages/EmergencyRecovery"));
-const Messages = lazy(() =>
+const About = lazyWithRetry(() => import("./pages/About"));
+const Contact = lazyWithRetry(() => import("./pages/Contact"));
+const ProjectDetail = lazyWithRetry(() => import("./pages/ProjectDetail"));
+const DiagnosticPage = lazyWithRetry(() => import("./pages/DiagnosticPage"));
+const EmergencyRecovery = lazyWithRetry(() => import("./pages/EmergencyRecovery"));
+const Messages = lazyWithRetry(() =>
   import("./pages/Messages").then((m) => ({ default: m.Messages })),
 );
-const SupabaseTest = lazy(() => import("./components/SupabaseTest"));
+const SupabaseTest = lazyWithRetry(() => import("./components/SupabaseTest"));
 import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
 import { Switch } from "./components/ui/switch";
@@ -52,6 +52,7 @@ import { useAppSettings } from "./hooks/useAppSettings";
 import { ProjectsProvider, useProjects } from "./contexts/ProjectsContext";
 import { useContactMessages } from "./hooks/useContactMessages";
 import { useScrollHideChrome } from "./hooks/useScrollHideChrome";
+import { isLikelyStaleBuildChunkError, lazyWithRetry } from "./utils/lazyWithRetry";
 
 /** Shown while lazy route chunks load — keeps layout stable vs a blank flash */
 function RouteFallback() {
@@ -115,6 +116,8 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
 
   render() {
     if (this.state.hasError) {
+      const err = this.state.error;
+      const isChunkStale = err ? isLikelyStaleBuildChunkError(err) : false;
       return (
         <div className="min-h-screen bg-background flex items-center justify-center p-6">
           <div className="max-w-2xl w-full bg-card border border-border rounded-2xl p-8 shadow-2xl">
@@ -130,22 +133,25 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
             
             <div className="bg-red-500/5 border border-red-500/20 rounded-lg p-4 mb-6">
               <p className="font-mono text-sm text-red-600 dark:text-red-400">
-                {this.state.error?.message || 'Unknown error'}
+                {err?.message || 'Unknown error'}
               </p>
             </div>
 
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                This might be caused by corrupted data in localStorage. Try one of these options:
+                {isChunkStale
+                  ? "This usually happens after the site was updated while this tab was still open. Reload the page to fetch the latest version."
+                  : "This might be caused by corrupted data in localStorage. Try one of these options:"}
               </p>
               
-              <div className="flex gap-3">
+              <div className="flex flex-wrap gap-3">
                 <Button
                   onClick={() => window.location.reload()}
                   variant="default"
                 >
                   Reload Page
                 </Button>
+                {!isChunkStale && (
                 <Button
                   onClick={() => {
                     if (confirm('This will clear all your data and reset to defaults. Are you sure?')) {
@@ -157,6 +163,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
                 >
                   Reset All Data
                 </Button>
+                )}
               </div>
 
               {import.meta.env.DEV && (
