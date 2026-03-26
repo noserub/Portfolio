@@ -15,7 +15,7 @@ import {
   SEOEditor, 
   ComponentLibrary 
 } from "./components";
-const Home = lazy(() => import("./pages/Home"));
+import Home from "./pages/Home";
 
 const About = lazy(() => import("./pages/About"));
 const Contact = lazy(() => import("./pages/Contact"));
