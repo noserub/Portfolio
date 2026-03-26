@@ -4,8 +4,7 @@ import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { supabase } from "./lib/supabaseClient";
 import { Edit3, Eye, LogOut, Save, AlertTriangle, Moon, Sun, MoreHorizontal, Search, BookOpen, ArrowLeft, Settings, Key, RefreshCw, Mail } from "lucide-react";
-import { Analytics } from "@vercel/analytics/react";
-import { SpeedInsights } from "@vercel/speed-insights/react";
+import { DeferredVercelMonitoring } from "./components/DeferredVercelMonitoring";
 import { 
   Header, 
   Footer,
@@ -16,7 +15,7 @@ import {
   SEOEditor, 
   ComponentLibrary 
 } from "./components";
-import Home from "./pages/Home";
+const Home = lazy(() => import("./pages/Home"));
 
 const About = lazy(() => import("./pages/About"));
 const Contact = lazy(() => import("./pages/Contact"));
@@ -1929,15 +1928,15 @@ function AppShell() {
 
       <DndProvider backend={HTML5Backend}>
         <div className="relative z-10">
-        {currentPage === "home" && (
-          <Home 
-            onStartClick={navigateToStart} 
-            isEditMode={isEditMode}
-            onProjectClick={navigateToProject}
-            currentPage={currentPage}
-          />
-        )}
         <Suspense fallback={<RouteFallback />}>
+          {currentPage === "home" && (
+            <Home 
+              onStartClick={navigateToStart} 
+              isEditMode={isEditMode}
+              onProjectClick={navigateToProject}
+              currentPage={currentPage}
+            />
+          )}
           {currentPage === "about" && (isEditMode || pageVisibility.about) && (
             <About onBack={navigateHome} onHoverChange={setIsBlurringBackground} isEditMode={isEditMode} />
           )}
@@ -2007,14 +2006,7 @@ function AppShell() {
       {/* Toast notifications */}
       <Toaster position="bottom-right" />
       
-      {/* Vercel Analytics - Manual tracking via useEffect for hash-based routing */}
-      <Analytics />
-      
-      {/* Vercel Speed Insights - Tracks Core Web Vitals and performance metrics */}
-      <SpeedInsights 
-        sampleRate={1}
-        route={currentRoute}
-      />
+      <DeferredVercelMonitoring route={currentRoute} />
     </ErrorBoundary>
   );
 }

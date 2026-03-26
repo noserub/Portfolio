@@ -16,6 +16,20 @@
       target: 'esnext',
       outDir: 'dist',
       chunkSizeWarningLimit: 1500,
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (!id.includes('node_modules')) return;
+            if (/[/\\]react-dom[/\\]|[/\\]react[/\\]|[/\\]scheduler[/\\]/.test(id)) {
+              return 'react-vendor';
+            }
+            if (id.includes('motion')) return 'motion';
+            if (id.includes('@supabase')) return 'supabase';
+            if (id.includes('@radix-ui')) return 'radix-ui';
+            if (id.includes('lucide-react')) return 'icons';
+          },
+        },
+      },
     },
     server: {
       port: 3000,

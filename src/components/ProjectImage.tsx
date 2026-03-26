@@ -542,17 +542,6 @@ export function ProjectImage({
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
         >
-          {/* Hidden image to detect load errors */}
-          <img
-            src={editedProject.url}
-            alt=""
-            width={1}
-            height={1}
-            style={{ display: 'none' }}
-            onError={handleImageError}
-            onLoad={() => setImageLoadError(false)}
-          />
-          
           <motion.div
             className="w-full h-full relative"
             style={{
@@ -593,6 +582,8 @@ export function ProjectImage({
                 onError={handleImageError}
                 priority={priority}
                 lazy={!priority}
+                intrinsicWidth={280}
+                intrinsicHeight={374}
                 sizes="(max-width: 768px) min(100vw, 560px), (max-width: 1280px) min(50vw, 640px), min(720px, 40vw)"
               />
               
