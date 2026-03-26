@@ -74,10 +74,11 @@ export function CaseStudyPasswordPrompt({
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
           <div>
             <Input
-              id="password"
+              id="case-study-unlock-password"
+              name="case-study-unlock"
               type="password"
               value={password}
               onChange={(e) => {
@@ -85,6 +86,7 @@ export function CaseStudyPasswordPrompt({
                 setError("");
               }}
               placeholder="Enter password"
+              autoComplete="new-password"
               autoFocus
               disabled={submitting}
               className={error ? "border-red-500" : ""}
