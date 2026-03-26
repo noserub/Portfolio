@@ -591,14 +591,18 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
   // Auto-save when state changes (debounced)
   // IMPORTANT: Only save if:
   // 1. Data has been loaded from Supabase/localStorage (prevents saving defaults)
-  // 2. We're in production mode (prevents branch work from affecting production database)
+  // 2. CMS / edit mode (visitors must never trigger Supabase writes or error toasts)
+  // 3. We're in production mode (prevents branch work from affecting production database)
   useEffect(() => {
     // Don't auto-save until data has been loaded - prevents saving defaults
     if (!dataLoadedFromSupabase) {
       console.log('⏸️ Auto-save paused: Waiting for data to load from Supabase/localStorage');
       return;
     }
-    
+    if (!isEditMode) {
+      return;
+    }
+
     const isProduction = import.meta.env.MODE === 'production';
 
     const timeoutId = setTimeout(() => {
@@ -612,6 +616,7 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
 
     return () => clearTimeout(timeoutId);
   }, [
+    isEditMode,
     dataLoadedFromSupabase, // Include this in dependencies
     bioParagraph1, bioParagraph2, superPowersTitle, superPowers, 
     highlightsTitle, highlights, leadershipTitle, leadershipItems,
@@ -624,6 +629,7 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
 
   // Save to Supabase
   const saveToSupabase = async () => {
+    if (!isEditMode) return;
     try {
       console.log('💾 About page: Attempting to save profile data to Supabase...');
 
