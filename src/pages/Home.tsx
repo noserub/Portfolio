@@ -34,6 +34,7 @@ import {
   type CaseStudyFilterEntry,
   CASE_STUDY_FILTER_TYPE_IDS,
   DEFAULT_CASE_STUDY_FILTERS,
+  type DefaultCaseStudyFilter,
   type HeroTextState,
   type HomePageContentV2,
   type HomePageStat,
@@ -2406,11 +2407,15 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
 
   const removeCaseStudyFilter = useCallback(
     (index: number) => {
-      patchUi({
-        caseStudyFilters: homePageContent.ui.caseStudyFilters.filter((_, i) => i !== index),
-      });
+      const row = homePageContent.ui.caseStudyFilters[index];
+      const nextFilters = homePageContent.ui.caseStudyFilters.filter((_, i) => i !== index);
+      const patch: Partial<HomePageContentV2["ui"]> = { caseStudyFilters: nextFilters };
+      if (row && homePageContent.ui.defaultCaseStudyFilter === row.id) {
+        patch.defaultCaseStudyFilter = "all";
+      }
+      patchUi(patch);
     },
-    [homePageContent.ui.caseStudyFilters, patchUi],
+    [homePageContent.ui.caseStudyFilters, homePageContent.ui.defaultCaseStudyFilter, patchUi],
   );
 
   const moveCaseStudyFilter = useCallback(
@@ -2532,6 +2537,9 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
   }, [heroText.lastGreetingPauseDuration]);
   
   const [selectedProjectType, setSelectedProjectType] = useState<string | null>(null);
+  /** After the visitor changes filters by hand, do not snap back to the CMS default until they change the default in the editor or reload. */
+  const caseStudyFilterUserOverrideRef = useRef(false);
+  const prevDefaultCaseStudyFilterRef = useRef<DefaultCaseStudyFilter | undefined>(undefined);
   const [lightboxProject, setLightboxProject] = useState(null);
   const designProjectsScrollRef = useRef(null);
   const quickStatsScrollRef = useRef<HTMLDivElement>(null);
@@ -3267,6 +3275,28 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     }
   }, [selectedProjectType, visibleCaseStudyFilters]);
 
+  useEffect(() => {
+    if (homeContentLoading) return;
+    const df = homePageContent.ui.defaultCaseStudyFilter ?? "all";
+    if (
+      prevDefaultCaseStudyFilterRef.current !== undefined &&
+      prevDefaultCaseStudyFilterRef.current !== df
+    ) {
+      caseStudyFilterUserOverrideRef.current = false;
+    }
+    prevDefaultCaseStudyFilterRef.current = df;
+
+    if (caseStudyFilterUserOverrideRef.current) {
+      return;
+    }
+
+    let next: string | null = df === "all" ? null : df;
+    if (next !== null && !visibleCaseStudyFilters.some((f) => f.id === next)) {
+      next = null;
+    }
+    setSelectedProjectType(next);
+  }, [homeContentLoading, homePageContent.ui.defaultCaseStudyFilter, visibleCaseStudyFilters]);
+
   // Reset local order when caseStudies change from Supabase
   // BUT: don't reset if it's just a reorder (same IDs, different order)
   // Only reset if IDs actually changed (new/deleted projects)
@@ -3942,6 +3972,28 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                     placeholder="All"
                     className="mb-2"
                   />
+                  <Label className="text-xs">Default filter on load</Label>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Which tab is selected for visitors until they pick another (e.g. Product design or Development instead of All).
+                  </p>
+                  <Select
+                    value={homePageContent.ui.defaultCaseStudyFilter}
+                    onValueChange={(v) =>
+                      patchUi({ defaultCaseStudyFilter: v as DefaultCaseStudyFilter })
+                    }
+                  >
+                    <SelectTrigger className="mb-2">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{homePageContent.ui.filterAll}</SelectItem>
+                      {CASE_STUDY_FILTER_TYPE_IDS.map((id) => (
+                        <SelectItem key={id} value={id}>
+                          {DEFAULT_CASE_STUDY_FILTERS.find((d) => d.id === id)?.label ?? id}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <Label className="text-xs">Category filters</Label>
                   <p className="text-xs text-muted-foreground mb-2">
                     Add, remove, or reorder filters. Only categories you list here can appear (and only if you have published projects in that category).
@@ -4340,7 +4392,10 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                 return (
                   <>
                     <button
-                      onClick={() => setSelectedProjectType(null)}
+                      onClick={() => {
+                        caseStudyFilterUserOverrideRef.current = true;
+                        setSelectedProjectType(null);
+                      }}
                       onMouseUp={(e) => e.currentTarget.blur()}
                       className={getFilterButtonClasses(selectedProjectType === null)}
                     >
@@ -4350,7 +4405,10 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                       <button
                         key={f.id}
                         type="button"
-                        onClick={() => setSelectedProjectType(f.id)}
+                        onClick={() => {
+                          caseStudyFilterUserOverrideRef.current = true;
+                          setSelectedProjectType(f.id);
+                        }}
                         onMouseUp={(e) => e.currentTarget.blur()}
                         className={getFilterButtonClasses(selectedProjectType === f.id)}
                       >

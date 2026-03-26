@@ -66,11 +66,16 @@ export interface CaseStudyFilterEntry {
   label: string;
 }
 
+/** Initial case study filter when the home page loads (`"all"` = show every category). */
+export type DefaultCaseStudyFilter = "all" | CaseStudyFilterTypeId;
+
 export interface HomePageUI {
   caseStudiesTitle: string;
   filterAll: string;
   /** Which category filters appear on the home case studies row (subset/order/labels). */
   caseStudyFilters: CaseStudyFilterEntry[];
+  /** Which filter is selected for visitors until they click another (must match an enabled category or `"all"`). */
+  defaultCaseStudyFilter: DefaultCaseStudyFilter;
 }
 
 export interface HomePageContentV2 {
@@ -101,6 +106,7 @@ export const DEFAULT_UI: HomePageUI = {
   caseStudiesTitle: "Case studies",
   filterAll: "All",
   caseStudyFilters: DEFAULT_CASE_STUDY_FILTERS.map((f) => ({ ...f })),
+  defaultCaseStudyFilter: "all",
 };
 
 /** Default segment strings for initial hero state and legacy migration when building bioDocument. */
@@ -393,6 +399,19 @@ function pickStatsArrayFromStored(obj: Record<string, unknown>): unknown {
 
 const KNOWN_FILTER_ID = new Set<string>(CASE_STUDY_FILTER_TYPE_IDS);
 
+function normalizeDefaultCaseStudyFilter(
+  raw: unknown,
+  caseStudyFilters: CaseStudyFilterEntry[],
+): DefaultCaseStudyFilter {
+  const s = String(raw ?? "all").trim().toLowerCase();
+  if (s === "" || s === "all") return "all";
+  if (!KNOWN_FILTER_ID.has(s)) return "all";
+  const id = s as CaseStudyFilterTypeId;
+  const allowed = new Set(caseStudyFilters.map((f) => f.id));
+  if (allowed.size > 0 && !allowed.has(id)) return "all";
+  return id;
+}
+
 function normalizeCaseStudyFilters(raw: unknown): CaseStudyFilterEntry[] {
   if (!Array.isArray(raw)) return [];
   const out: CaseStudyFilterEntry[] = [];
@@ -428,10 +447,16 @@ function mergeUI(raw: unknown): HomePageUI {
     ];
   }
 
+  const defaultCaseStudyFilter = normalizeDefaultCaseStudyFilter(
+    o.defaultCaseStudyFilter,
+    caseStudyFilters,
+  );
+
   return {
     caseStudiesTitle: String(o.caseStudiesTitle ?? DEFAULT_UI.caseStudiesTitle),
     filterAll: String(o.filterAll ?? DEFAULT_UI.filterAll),
     caseStudyFilters,
+    defaultCaseStudyFilter,
   };
 }
 
