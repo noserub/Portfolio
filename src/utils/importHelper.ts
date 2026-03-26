@@ -25,12 +25,10 @@ export async function importAllData(
   };
   
   try {
-    // Check authentication
     const { data: { user } } = await supabase.auth.getUser();
-    const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
-    
-    if (!user && !isBypassAuth) {
-      throw new Error('Not authenticated. Please sign in first.');
+
+    if (!user?.id) {
+      throw new Error('Sign in with Supabase before importing.');
     }
     
     const userId = getPortfolioOwnerUserId(user?.id);
@@ -202,15 +200,13 @@ export async function importProjectsFromBackup(
   };
   
   try {
-    // Check if user is authenticated
     const { data: { user } } = await supabase.auth.getUser();
-    const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
-    
-    if (!user && !isBypassAuth) {
-      throw new Error('Not authenticated. Please sign in first.');
+
+    if (!user?.id) {
+      throw new Error('Sign in with Supabase before importing.');
     }
-    
-    const userId = getPortfolioOwnerUserId(user?.id); // Use current user or fallback
+
+    const userId = getPortfolioOwnerUserId(user.id);
     
     // Import case studies
     if (jsonData.caseStudies && Array.isArray(jsonData.caseStudies)) {

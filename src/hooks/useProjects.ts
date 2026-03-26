@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { getPortfolioOwnerUserId } from '../lib/portfolioOwner';
+import { devLog } from '../lib/devLog';
 
 export interface Project {
   id: string;
@@ -184,27 +185,13 @@ export function useProjectsState() {
   // Create project
   const createProject = useCallback(async (project: ProjectInsert): Promise<Project | null> => {
     try {
-      console.log('🔄 useProjects: createProject called with:', project);
-      
-      // Check if user is authenticated (either Supabase auth or bypass)
+      devLog('🔄 useProjects: createProject called with:', project);
+
       const { data: { user } } = await supabase.auth.getUser();
-      const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
-      
-      if (!user && !isBypassAuth) {
-        console.log('❌ useProjects: No authenticated user for project creation, attempting to force authentication...');
-        
-        // Try to force authentication by checking if we have bypass auth
-        const storedAuth = localStorage.getItem('isAuthenticated');
-        console.log('🔍 Stored auth value:', storedAuth);
-        
-        if (storedAuth === 'true') {
-          console.log('🔄 Bypass auth detected, proceeding with Supabase save...');
-          // Continue with Supabase save using fallback user ID
-        } else {
-          console.log('❌ useProjects: No authentication found, cannot create project in Supabase');
-          setError('Authentication required to create projects');
-          return null;
-        }
+      if (!user?.id) {
+        devLog('❌ useProjects: No Supabase session — cannot create project');
+        setError('Sign in with Supabase to create projects');
+        return null;
       }
 
       const { data, error } = await supabase
@@ -228,48 +215,23 @@ export function useProjectsState() {
   // Update project
   const updateProject = useCallback(async (id: string, updates: ProjectUpdate): Promise<Project | null> => {
     try {
-      console.log('🔄 useProjects: updateProject called with:', { id, updates });
-      
-      // Check content size to prevent timeouts
+      devLog('🔄 useProjects: updateProject called with:', { id, updates });
+
       if (updates.case_study_content && updates.case_study_content.length > 100000) {
-        console.log('⚠️ Large content detected, truncating to prevent timeout...');
+        devLog('⚠️ Large content detected, truncating to prevent timeout...');
         updates.case_study_content = updates.case_study_content.substring(0, 100000) + '\n\n... [Content truncated to prevent timeout]';
       }
-      
-      // Check if user is authenticated (either Supabase auth or bypass)
+
       const { data: { user } } = await supabase.auth.getUser();
-      const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
-      
-      if (!user && !isBypassAuth) {
-        console.log('❌ useProjects: No authenticated user, attempting to force authentication...');
-        
-        // Try to force authentication by checking if we have bypass auth
-        const storedAuth = localStorage.getItem('isAuthenticated');
-        console.log('🔍 Stored auth value:', storedAuth);
-        
-        if (storedAuth === 'true') {
-          console.log('🔄 Bypass auth detected, proceeding with Supabase save...');
-          // Continue with Supabase save using fallback user ID
-        } else {
-          // Unauthenticated: do not write localStorage here — callers (e.g. Home) persist full
-          // ProjectData and must not trigger a truthy return (that would refetch and wipe edits).
-          console.log('❌ useProjects: No authentication — Supabase save skipped (caller handles local persistence)');
-          return null;
-        }
+      if (!user?.id) {
+        devLog('❌ useProjects: No Supabase session — save skipped (caller may persist locally)');
+        return null;
       }
-      
-      if (isBypassAuth) {
-        console.log('✅ useProjects: Bypass authentication detected');
-      } else {
-        console.log('✅ useProjects: User authenticated:', user.id);
-      }
-      
-      // First, try to update the project normally with timeout handling
-      console.log('🔄 useProjects: Attempting to update project in Supabase:', { id, updates });
-      
-      // Use fallback user ID for bypass auth
-      const userId = getPortfolioOwnerUserId(user?.id);
-      console.log('🔄 useProjects: Using user ID:', userId, 'Auth type:', user ? 'Supabase' : 'Bypass');
+
+      devLog('🔄 useProjects: updating project in Supabase:', { id });
+
+      const userId = getPortfolioOwnerUserId(user.id);
+      devLog('🔄 useProjects: owner id:', userId);
       
       // Filter to valid DB columns only and drop undefined
       const allowedKeys: (keyof ProjectUpdate)[] = [

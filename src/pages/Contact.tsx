@@ -63,30 +63,20 @@ export function Contact({ onBack, isEditMode = false }: ContactProps) {
         }
       }
       
-      // Load email from Supabase profiles table
+      // Published owner profile email (same row visitors see when env owner id is set)
       try {
         const { supabase } = await import('../lib/supabaseClient');
         const { data: { user } } = await supabase.auth.getUser();
-        const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
-        
-        if (user || isBypassAuth) {
-          const userId = getPortfolioOwnerUserId(user?.id);
+        const userId = getPortfolioOwnerUserId(user?.id);
 
-          if (import.meta.env.DEV && isBypassAuth) {
-            console.warn(
-              "Contact: bypass auth active — sign in with Supabase for reliable profile sync.",
-            );
-          }
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("email")
+          .eq("id", userId)
+          .maybeSingle();
 
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("*")
-            .eq("id", userId)
-            .maybeSingle();
-
-          if (profile?.email) {
-            setContactInfo((prev) => ({ ...prev, email: profile.email as string }));
-          }
+        if (profile?.email) {
+          setContactInfo((prev) => ({ ...prev, email: profile.email as string }));
         }
       } catch (error) {
         console.error('❌ Failed to load email from Supabase:', error);
@@ -122,11 +112,10 @@ export function Contact({ onBack, isEditMode = false }: ContactProps) {
       try {
         const { supabase } = await import('../lib/supabaseClient');
         const { data: { user } } = await supabase.auth.getUser();
-        const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
-        
-        if (user || isBypassAuth) {
-          const userId = getPortfolioOwnerUserId(user?.id);
-          
+
+        if (user?.id) {
+          const userId = getPortfolioOwnerUserId(user.id);
+
           devLog('💾 Attempting to save email to Supabase:', editedText);
           
           // First, try to find existing profile

@@ -35,12 +35,10 @@ export function useContactMessages() {
       setLoading(true);
       setError(null);
       
-      // Check if user is authenticated (required to view messages)
       const { data: { user } } = await supabase.auth.getUser();
-      const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
-      
-      if (!user && !isBypassAuth) {
-        setError('Authentication required to view messages');
+
+      if (!user?.id) {
+        setError('Sign in with Supabase to view messages');
         setMessages([]);
         return;
       }

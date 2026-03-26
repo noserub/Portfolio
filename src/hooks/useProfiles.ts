@@ -220,15 +220,7 @@ export function useProfiles() {
   const getCurrentUserProfile = useCallback(async (): Promise<Profile | null> => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
-      
-      if (!user && !isBypassAuth) {
-        return null;
-      }
-      
-      // Use bypass user ID if no real user
       const userId = getPortfolioOwnerUserId(user?.id);
-
       return await getProfile(userId);
     } catch (err: any) {
       setError(err.message);
@@ -251,14 +243,12 @@ export function useProfiles() {
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
 
-      if (!user && !isBypassAuth) {
-        throw new Error('No authenticated user');
+      if (!user?.id) {
+        throw new Error('Sign in with Supabase to update your profile');
       }
 
-      // Session id for writes — not env-first — or owner id when anon + bypass (see portfolioOwner).
-      const writerUserId = getProfileWriterUserId(user?.id);
+      const writerUserId = getProfileWriterUserId(user.id);
 
       try {
         return await updateProfile(writerUserId, updates);

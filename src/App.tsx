@@ -46,6 +46,8 @@ import { Toaster } from "./components/ui/sonner";
 import { migrateResearchInsights, migrateProjectsArray, runSafetyChecks } from "./utils";
 import { FLUSH_HOME_PAGE_CMS_EVENT } from "./lib/homePageContent";
 import { getPortfolioOwnerUserId } from "./lib/portfolioOwner";
+import { devLog } from "./lib/devLog";
+import { useSiteAuth } from "./contexts/SiteAuthContext";
 import { mapSupabaseProjectRowToProjectData, parseColumnsValue } from "./lib/mapSupabaseProjectRowToProjectData";
 import { useAppSettings } from "./hooks/useAppSettings";
 import { ProjectsProvider, useProjects } from "./contexts/ProjectsContext";
@@ -187,6 +189,7 @@ export default function App() {
 }
 
 function AppShell() {
+  const { isSupabaseAuthenticated } = useSiteAuth();
   const [isDiagnosticMode, setIsDiagnosticMode] = useState(false);
   const [isEmergencyMode, setIsEmergencyMode] = useState(false);
   
@@ -357,64 +360,8 @@ function AppShell() {
   
   // Debug background blur state changes
   useEffect(() => {
-    console.log('🌫️ Background blur state changed:', isBlurringBackground);
-    console.log('🎨 CSS classes being applied:', isBlurringBackground 
-      ? 'opacity-100 bg-white/10 dark:bg-black/10' 
-      : 'opacity-0 bg-transparent'
-    );
-    console.log('🔍 Filter styles being applied:', isBlurringBackground 
-      ? 'blur(8px) saturate(120%)' 
-      : 'blur(0px) saturate(100%)'
-    );
+    devLog('🌫️ Background blur state changed:', isBlurringBackground);
   }, [isBlurringBackground]);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-
-  // Check authentication state on mount and listen for changes
-  useEffect(() => {
-    // Check current auth state
-    const checkAuthState = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
-      const isAuth = !!user || isBypassAuth;
-      setIsAuthenticated(isAuth);
-      console.log('🔐 Initial auth check:', { 
-        isAuthenticated: isAuth, 
-        user: user?.email, 
-        bypassAuth: isBypassAuth,
-        authType: user ? 'Supabase' : (isBypassAuth ? 'Bypass' : 'None')
-      });
-    };
-
-    checkAuthState();
-
-  // Listen for Supabase auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('🔐 Supabase auth state changed:', { event, user: session?.user?.email });
-      
-      const isSupabaseAuth = !!session?.user;
-      
-      // Handle localStorage cleanup BEFORE checking bypass auth
-      if (isSupabaseAuth) {
-        localStorage.setItem('isAuthenticated', 'true');
-        console.log('✅ Signed in - authentication persisted to localStorage');
-      } else {
-        // Only clear localStorage if we're actually signing out, not just checking auth state
-        if (event === 'SIGNED_OUT') {
-          localStorage.removeItem('isAuthenticated');
-          console.log('👋 Signed out - authentication cleared from localStorage');
-        } else {
-          console.log('🔍 Auth state changed but not signing out, keeping bypass auth if present');
-        }
-      }
-      
-      // Now check bypass auth AFTER potential localStorage cleanup
-      const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
-      const isAuth = isSupabaseAuth || isBypassAuth;
-      setIsAuthenticated(isAuth);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
   const [showSignIn, setShowSignIn] = useState(false);
   const [showSaveIndicator, setShowSaveIndicator] = useState(false);
   const [pendingProtectedProject, setPendingProtectedProject] = useState(null);
@@ -437,94 +384,63 @@ function AppShell() {
   // Function to load page visibility (can be called manually)
   const loadPageVisibility = async () => {
     try {
-      // Try to load from Supabase (prioritize public access for consistency)
       const { data: { user } } = await supabase.auth.getUser();
-      const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
-      const fallbackUserId = getPortfolioOwnerUserId(user?.id);
+      const ownerUserId = getPortfolioOwnerUserId(user?.id);
 
-      console.log('📄 Loading page visibility from Supabase (public access):', fallbackUserId);
-      console.log('📄 User auth state:', { user: user?.id, isBypassAuth, fallbackUserId });
-      
-      // Try public access first (for consistency between authenticated and incognito users)
+      devLog('📄 Loading page visibility from Supabase:', ownerUserId);
+
       const { data: publicData, error: publicError } = await supabase
         .from('page_visibility')
         .select('*')
-        .eq('user_id', fallbackUserId)
+        .eq('user_id', ownerUserId)
         .single();
-        
-        console.log('📄 Public access query result:', { publicData, publicError });
-          
-        if (publicData && !publicError) {
-          console.log('✅ Page visibility loaded from Supabase (public):', publicData);
-          setPageVisibility({
-            about: publicData.about ?? true,
-            contact: publicData.contact ?? true
-          });
-          return;
-        } else {
-          console.log('❌ Public access failed:', publicError);
-          // If no public record exists, create one with default values
-          if (publicError?.code === 'PGRST116') {
-            console.log('📝 No public page visibility record found, creating default record...');
-            
-            // Create default record in Supabase
-            const { data: insertData, error: insertError } = await supabase
-              .from('page_visibility')
-              .insert({
-                user_id: fallbackUserId,
-                about: true,
-                contact: true
-              })
-              .select()
-              .single();
-              
-            if (insertData && !insertError) {
-              console.log('✅ Default page visibility record created in Supabase:', insertData);
-              setPageVisibility({
-                about: insertData.about ?? true,
-                contact: insertData.contact ?? true
-              });
-              return;
-            } else {
-              console.warn('⚠️ Failed to create default page visibility record:', insertError);
-            }
-          }
-        }
-      
-      // Fallback to authenticated user's data if public data not found
-      if (user || isBypassAuth) {
-        console.log('📄 Trying authenticated user data as fallback...');
-        const { data, error } = await supabase
-          .from('page_visibility')
-          .select('*')
-          .eq('user_id', user?.id || fallbackUserId)
-          .single();
-          
-        if (data && !error) {
-          console.log('✅ Page visibility loaded from Supabase (authenticated):', data);
-          setPageVisibility({
-            about: data.about ?? true,
-            contact: data.contact ?? true
-          });
-          return;
-        }
+
+      devLog('📄 page_visibility query:', { publicData: !!publicData, publicError });
+
+      if (publicData && !publicError) {
+        devLog('✅ Page visibility loaded from Supabase');
+        setPageVisibility({
+          about: publicData.about ?? true,
+          contact: publicData.contact ?? true,
+        });
+        return;
       }
-      
-      // Fallback to localStorage
+
+      if (publicError?.code === 'PGRST116') {
+        const { data: insertData, error: insertError } = await supabase
+          .from('page_visibility')
+          .insert({
+            user_id: ownerUserId,
+            about: true,
+            contact: true,
+          })
+          .select()
+          .single();
+
+        if (insertData && !insertError) {
+          devLog('✅ Default page_visibility row created');
+          setPageVisibility({
+            about: insertData.about ?? true,
+            contact: insertData.contact ?? true,
+          });
+          return;
+        }
+        console.warn('⚠️ Failed to create default page_visibility:', insertError);
+      }
+
       const saved = localStorage.getItem('pageVisibility');
       if (saved) {
         const parsed = JSON.parse(saved);
-        console.log('📄 Page visibility loaded from localStorage:', parsed);
+        devLog('📄 Page visibility loaded from localStorage');
         setPageVisibility({
           about: parsed.about ?? true,
-          contact: parsed.contact ?? true
+          contact: parsed.contact ?? true,
         });
       } else {
-        // Ultimate fallback to defaults
-        console.log('📄 Using default page visibility values');
+        devLog('📄 Using default page visibility');
         setPageVisibility({
-      about: true,
-      contact: true
+          about: true,
+          contact: true,
         });
       }
     } catch (error) {
@@ -555,7 +471,7 @@ function AppShell() {
   // Load page visibility when switching to preview mode
   useEffect(() => {
     if (!isEditMode) {
-      console.log('🔄 Switching to preview mode - reloading page visibility...');
+      devLog('🔄 Preview mode — reloading page visibility');
       loadPageVisibility();
     }
   }, [isEditMode]);
@@ -565,49 +481,44 @@ function AppShell() {
     const savePageVisibility = async () => {
       try {
         // Always save to localStorage first
-    localStorage.setItem('pageVisibility', JSON.stringify(pageVisibility));
-        console.log('💾 Page visibility saved to localStorage');
-        
-        // Try to save to Supabase for shared access (always use fallback user ID for public access)
-        const { data: { user } } = await supabase.auth.getUser();
-        const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
-        const fallbackUserId = getPortfolioOwnerUserId(user?.id);
+        localStorage.setItem('pageVisibility', JSON.stringify(pageVisibility));
+        devLog('💾 Page visibility saved to localStorage');
 
-        console.log('💾 Saving page visibility to Supabase for shared access (public):', fallbackUserId);
-        
-        // Always save to the fallback user ID so incognito users can access it
+        const { data: { user } } = await supabase.auth.getUser();
+        const ownerUserId = getPortfolioOwnerUserId(user?.id);
+
+        devLog('💾 Saving page visibility to Supabase:', ownerUserId);
+
         const { error: updateError } = await supabase
           .from('page_visibility')
           .update({
             about: pageVisibility.about,
             contact: pageVisibility.contact,
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
           })
-          .eq('user_id', fallbackUserId);
-          
+          .eq('user_id', ownerUserId);
+
         if (updateError) {
-          console.log('📝 Page visibility record not found, creating new one...');
-          // If record doesn't exist, create it
           const { error: insertError } = await supabase
             .from('page_visibility')
             .insert({
-              user_id: fallbackUserId,
+              user_id: ownerUserId,
               about: pageVisibility.about,
               contact: pageVisibility.contact,
             });
-            
+
           if (insertError) {
             console.warn('⚠️ Failed to save page visibility to Supabase (RLS issue):', insertError.message);
-            console.log('💾 Page visibility saved to localStorage only due to RLS restrictions');
+            devLog('💾 Page visibility local only (RLS)');
           } else {
-            console.log('✅ Page visibility created in Supabase (public)');
+            devLog('✅ Page visibility created in Supabase');
           }
         } else {
-          console.log('✅ Page visibility updated in Supabase (public)');
+          devLog('✅ Page visibility updated in Supabase');
         }
       } catch (error) {
         console.warn('⚠️ Page visibility save failed:', error);
-        console.log('💾 Page visibility saved to localStorage only');
+        devLog('💾 Page visibility saved to localStorage only');
       }
     };
     
@@ -1233,26 +1144,16 @@ function AppShell() {
       console.log('🔄 Using original project - ensuring requiresPassword field:', projectToSet.requiresPassword);
     }
     
-    console.log('📂 Loading project:', {
+    devLog('📂 Loading project:', {
       id: projectToSet.id,
       title: projectToSet.title,
       imageCount: projectToSet.caseStudyImages?.length || 0,
-      imageIds: projectToSet.caseStudyImages?.map(img => img.id) || [],
-      source: freshProject ? 'Supabase' : 'localStorage',
       requiresPassword: projectToSet.requiresPassword,
-      isAuthenticated: isAuthenticated
+      hasSupabaseSession: isSupabaseAuthenticated,
     });
-    console.log('📂 Loading project (expanded):', JSON.stringify({
-      id: projectToSet.id,
-      title: projectToSet.title,
-      requiresPassword: projectToSet.requiresPassword,
-      isAuthenticated: isAuthenticated
-    }, null, 2));
-    
-        // Check if project requires password and user is not authenticated (site owner)
-        // Site owners can view password-protected projects in both edit and preview modes
-    
-    if (projectToSet.requiresPassword && !isAuthenticated) {
+
+    // Password-protected case studies: visitors must use RPC password unless signed in via Supabase (owner).
+    if (projectToSet.requiresPassword && !isSupabaseAuthenticated) {
       setPendingProtectedProject({ project: projectToSet, updateCallback });
       return;
     }
@@ -1419,33 +1320,28 @@ function AppShell() {
     }
   };
 
-  /** Called after `SignIn` succeeds (`signInWithPassword`); no credentials handled here. */
-  const handleSignIn = () => {
-    setIsAuthenticated(true);
-    localStorage.setItem("isAuthenticated", "true");
+  /** Called after `SignIn` succeeds (`signInWithPassword`); session is established in Supabase. */
+  const handleSignIn = async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     setShowSignIn(false);
-    setIsEditMode(true);
+    if (user) {
+      setIsEditMode(true);
+    }
   };
 
   const handleSignOut = async () => {
     try {
-      // Sign out from Supabase
       const { error } = await supabase.auth.signOut();
       if (error) {
         console.error('Error signing out:', error);
       }
-      
-      // Clear local state
-    setIsAuthenticated(false);
-    setIsEditMode(false);
-    localStorage.removeItem('isAuthenticated');
-      console.log('👋 Signed out - authentication cleared from Supabase and localStorage');
+      setIsEditMode(false);
+      devLog('👋 Signed out');
     } catch (error) {
       console.error('Error during sign out:', error);
-      // Still clear local state even if Supabase sign out fails
-      setIsAuthenticated(false);
       setIsEditMode(false);
-      localStorage.removeItem('isAuthenticated');
     }
   };
 
@@ -1455,13 +1351,13 @@ function AppShell() {
     setPageVisibility(newVisibility);
     
     // The useEffect will handle saving to both localStorage and Supabase
-    console.log(`📄 Page visibility changed: ${String(page)} = ${newVisibility[page]}`);
+    devLog(`📄 Page visibility changed: ${String(page)} = ${newVisibility[page]}`);
   };
 
   // Removed unused import function - data now saved to Supabase automatically
 
   const handleEditModeClick = () => {
-    if (!isAuthenticated) {
+    if (!isSupabaseAuthenticated) {
       setShowSignIn(true);
     } else {
       const newMode = !isEditMode;
@@ -1718,7 +1614,7 @@ function AppShell() {
       >
         <div className="flex items-center gap-2">
           {/* Email icon with badge - only show when authenticated */}
-          {isAuthenticated && (
+          {isSupabaseAuthenticated && (
             <Button
               variant="ghost"
               size="icon"
@@ -1760,11 +1656,11 @@ function AppShell() {
                 setTimeout(() => document.activeElement instanceof HTMLElement && document.activeElement.blur(), 0);
               }}
             >
-              {isEditMode ? "Preview Mode" : (isAuthenticated ? "Edit Mode" : "Sign In")}
+              {isEditMode ? "Preview Mode" : (isSupabaseAuthenticated ? "Edit Mode" : "Sign In")}
             </DropdownMenuItem>
             
             {/* Page Visibility Section - Only in Edit Mode */}
-            {isAuthenticated && isEditMode && (
+            {isSupabaseAuthenticated && isEditMode && (
               <>
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground">Page Visibility</DropdownMenuLabel>
@@ -1818,7 +1714,7 @@ function AppShell() {
             </DropdownMenuItem>
             
             {/* Settings Section - Authenticated users only */}
-            {isAuthenticated && (
+            {isSupabaseAuthenticated && (
               <>
                 <DropdownMenuSeparator />
                 <DropdownMenuSub>
@@ -1876,7 +1772,7 @@ function AppShell() {
             )}
             
             {/* Sign Out */}
-            {isAuthenticated && (
+            {isSupabaseAuthenticated && (
               <>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem 
@@ -2048,7 +1944,7 @@ function AppShell() {
           {currentPage === "contact" && (isEditMode || pageVisibility.contact) && (
             <Contact onBack={navigateHome} isEditMode={isEditMode} />
           )}
-          {currentPage === "messages" && isAuthenticated && (
+          {currentPage === "messages" && isSupabaseAuthenticated && (
             <Messages onBack={navigateHome} isEditMode={isEditMode} />
           )}
           {currentPage === "project-detail" && selectedProject && (

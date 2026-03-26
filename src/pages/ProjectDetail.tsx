@@ -510,13 +510,11 @@ export function ProjectDetail({ project, onBack, onUpdate: pushProjectUpdate, is
       setVideoItems(snakeCaseVideos);
     }
     
-    // Check authentication status
-    const checkAuth = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
-      console.log('📄 ProjectDetail: Current user:', user ? user.email : (isBypassAuth ? 'Bypass authenticated' : 'Not authenticated'));
-    };
-    checkAuth();
+    void supabase.auth.getUser().then(({ data: { user } }) => {
+      if (import.meta.env.DEV) {
+        console.log('📄 ProjectDetail: session:', user?.email ?? 'none');
+      }
+    });
   }, [project.id, project.caseStudyImages, project.flowDiagramImages, project.videoItems]);
   
   // RECOVERY: Attempt to restore missing image/video references from database

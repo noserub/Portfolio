@@ -532,25 +532,14 @@ export async function getFaviconFromSupabase(): Promise<string | null> {
 // Save favicon URL to Supabase database
 export async function saveFaviconToSupabase(faviconUrl: string): Promise<boolean> {
   try {
-    // Check for both Supabase auth and bypass auth
     const { data: { user } } = await supabase.auth.getUser();
-    const isBypassAuth = localStorage.getItem('isAuthenticated') === 'true';
-    
-    // Debug authentication state
-    if (!user && !isBypassAuth) {
-      console.log('🔍 No authentication found - user:', user, 'bypass:', isBypassAuth);
-    } else {
-      console.log('🔍 Authentication found - user:', user?.id, 'bypass:', isBypassAuth);
-    }
-    
-    if (!user && !isBypassAuth) {
-      console.error('No authenticated user found (neither Supabase auth nor bypass auth)');
+
+    if (!user?.id) {
+      console.error('Sign in with Supabase to save favicon');
       return false;
     }
 
-    // Use user ID or fallback for bypass auth
-    const userId = getPortfolioOwnerUserId(user?.id);
-    console.log('Saving favicon for user:', userId, 'Auth type:', user ? 'Supabase' : 'Bypass');
+    const userId = getPortfolioOwnerUserId(user.id);
 
     // Update or create app settings with favicon URL for user and mark as public
     const { data: userData, error: userError } = await supabase

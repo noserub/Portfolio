@@ -260,9 +260,8 @@ export function useHomePageContent(options: UseHomePageContentOptions) {
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      const isBypassAuth = localStorage.getItem("isAuthenticated") === "true";
 
-      if (user || isBypassAuth) {
+      if (user?.id) {
         const ownerId = getPortfolioOwnerUserId(user?.id);
         if (user?.id && user.id !== ownerId) {
           console.warn(
@@ -329,8 +328,7 @@ export function useHomePageContent(options: UseHomePageContentOptions) {
         const {
           data: { user },
         } = await supabase.auth.getUser();
-        const isBypassAuth = localStorage.getItem("isAuthenticated") === "true";
-        if (user || isBypassAuth) {
+        if (user?.id) {
           toast.error(
             "Could not sync the hero section to the cloud. Your text is still saved on this device.",
           );
