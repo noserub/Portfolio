@@ -1995,6 +1995,9 @@ function AppShell() {
               />
             </div>
           )}
+          {currentPage === "project-detail" && !selectedProject && (
+            <RouteFallback />
+          )}
           {currentPage === "supabase-test" && <SupabaseTest />}
         </Suspense>
           {/* Supabase test page removed */}
