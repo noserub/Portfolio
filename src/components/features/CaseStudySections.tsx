@@ -1707,39 +1707,17 @@ export function CaseStudySections({
     hasSolutionCardsSlot: Boolean(hasSolutionCardsSlot),
   };
 
-  const effectiveImagePos = imageGallerySlot
-    ? mapGalleryPositionToBeforeSolutionInsertIndex(
-        regularSections,
-        beforeSolution,
-        "__PROJECT_IMAGES__",
-        galleryPositionOpts,
-      )
+  // Use saved gallery positions directly. These are authored from the editor as the
+  // source-of-truth ordering and should not be remapped through a reduced section list.
+  const clampInsertPos = (pos: number | null | undefined) =>
+    Math.min(Math.max(0, Number(pos ?? 0)), beforeSolution.length);
+
+  const effectiveImagePos = imageGallerySlot ? clampInsertPos(projectImagesPosition ?? 2) : 0;
+  const effectiveVideosPos = videoSlot ? clampInsertPos(videosPosition ?? 998) : 0;
+  const effectiveFlowPos = flowDiagramSlot ? clampInsertPos(flowDiagramsPosition ?? 1000) : 0;
+  const effectiveSolutionCardsPos = hasSolutionCardsSlot
+    ? clampInsertPos(solutionCardsPositionForMerge)
     : 0;
-  const effectiveVideosPos = videoSlot
-    ? mapGalleryPositionToBeforeSolutionInsertIndex(
-        regularSections,
-        beforeSolution,
-        "__VIDEOS__",
-        galleryPositionOpts,
-      )
-    : 0;
-  const effectiveFlowPos = flowDiagramSlot
-    ? mapGalleryPositionToBeforeSolutionInsertIndex(
-        regularSections,
-        beforeSolution,
-        "__FLOW_DIAGRAMS__",
-        galleryPositionOpts,
-      )
-    : 0;
-  const effectiveSolutionCardsPos =
-    hasSolutionCardsSlot
-      ? mapGalleryPositionToBeforeSolutionInsertIndex(
-          regularSections,
-          beforeSolution,
-          "__SOLUTION_CARDS__",
-          galleryPositionOpts,
-        )
-      : 0;
 
   // Collect insertions and apply in DESCENDING position order (matches ProjectDetail)
   const insertions: Array<{

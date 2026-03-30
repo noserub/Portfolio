@@ -194,6 +194,63 @@ export default function App() {
   );
 }
 
+/** Supabase `projects` row payload from UI `ProjectData` (includes gallery section positions + video order). */
+function buildProjectUpdatePayloadForSupabase(
+  sanitizedProject: ProjectData & Record<string, any>,
+): Record<string, any> {
+  const projectData: any = {
+    title: sanitizedProject.title,
+    description: sanitizedProject.description,
+    url: sanitizedProject.url,
+    position_x: sanitizedProject.position?.x || 50,
+    position_y: sanitizedProject.position?.y || 50,
+    scale: sanitizedProject.scale || 1,
+    published: sanitizedProject.published || false,
+    requires_password: sanitizedProject.requiresPassword || false,
+    password: (sanitizedProject as any).password || "",
+    case_study_content: sanitizedProject.caseStudyContent,
+    case_study_images: sanitizedProject.caseStudyImages || [],
+    flow_diagram_images: sanitizedProject.flowDiagramImages || [],
+    video_items: sanitizedProject.videoItems || [],
+    gallery_aspect_ratio: sanitizedProject.galleryAspectRatio || "3x4",
+    flow_diagram_aspect_ratio: sanitizedProject.flowDiagramAspectRatio || "3x4",
+    video_aspect_ratio: sanitizedProject.videoAspectRatio || "3x4",
+    gallery_columns: sanitizedProject.galleryColumns || 1,
+    flow_diagram_columns: sanitizedProject.flowDiagramColumns || 1,
+    video_columns: sanitizedProject.videoColumns || 1,
+    project_images_position: sanitizedProject.projectImagesPosition,
+    videos_position: sanitizedProject.videosPosition,
+    flow_diagrams_position: sanitizedProject.flowDiagramsPosition,
+    section_positions: sanitizedProject.sectionPositions || {},
+    case_study_sidebars:
+      (sanitizedProject as any).caseStudySidebars || (sanitizedProject as any).case_study_sidebars || undefined,
+    sort_order: (sanitizedProject as any).sortOrder || 0,
+    project_type: sanitizedProject.projectType || (sanitizedProject as any).project_type || null,
+  };
+
+  if ((sanitizedProject as any).keyFeaturesColumns !== undefined) {
+    projectData.key_features_columns = parseColumnsValue((sanitizedProject as any).keyFeaturesColumns, [2, 3], 3);
+  }
+
+  if ((sanitizedProject as any).researchInsightsColumns !== undefined) {
+    projectData.research_insights_columns = parseColumnsValue(
+      (sanitizedProject as any).researchInsightsColumns,
+      [1, 2, 3],
+      3,
+    );
+  }
+
+  if ((sanitizedProject as any).solutionCardsPosition !== undefined) {
+    projectData.solution_cards_position = sanitizedProject.solutionCardsPosition;
+  }
+
+  projectData.case_study_decorative_icons = Boolean(
+    sanitizedProject.caseStudyDecorativeIcons ?? (sanitizedProject as any).case_study_decorative_icons,
+  );
+
+  return projectData;
+}
+
 function AppShell() {
   const { isSupabaseAuthenticated } = useSiteAuth();
   const [isDiagnosticMode, setIsDiagnosticMode] = useState(false);
@@ -243,9 +300,10 @@ function AppShell() {
     if (pathname === '/' || pathname === '') {
       return "home";
     } else if (pathname.startsWith('/project/')) {
-      // Set to project-detail immediately for project URLs
-      // The URL parsing will load the project data
-      return "project-detail";
+      // Start on home and resolve deep-link project asynchronously.
+      // Avoid initializing project-detail without selectedProject, which can trap
+      // the app in a loading shell if async route resolution stalls.
+      return "home";
     } else if (pathname.startsWith('/')) {
       const page = pathname.substring(1) as Page;
       if (['about', 'contact', 'messages'].includes(page)) {
@@ -836,22 +894,53 @@ function AppShell() {
       .trim();
   };
 
+  const normalizeRouteSlug = (slug: string): string => {
+    const decoded = decodeURIComponent((slug || "").trim());
+    return decoded.replace(/^\/+|\/+$/g, "").toLowerCase();
+  };
+
   // Function to find project by friendly slug
   const findProjectBySlug = async (slug: string): Promise<ProjectData | null> => {
     try {
+      const targetSlug = normalizeRouteSlug(slug);
+      const withTimeout = async <T,>(p: Promise<T>, ms = 5000): Promise<T> =>
+        await Promise.race([
+          p,
+          new Promise<T>((_, reject) => {
+            window.setTimeout(() => reject(new Error("project-slug-lookup-timeout")), ms);
+          }),
+        ]);
+
       const { data: authUser } = await supabase.auth.getUser();
       let rows: Record<string, unknown>[] | null = null;
 
       if (authUser.user) {
-        const { data, error } = await supabase.from("projects").select("*");
-        if (data && !error) rows = data as Record<string, unknown>[];
+        const { data, error } = await withTimeout(supabase.from("projects").select("*"));
+        if (data && !error) {
+          rows = data as Record<string, unknown>[];
+        }
+        // Signed-in users can still miss rows due ownership/RLS mismatch.
+        // Fall back to the public RPC so deep-link refresh still resolves.
+        if (!rows?.length) {
+          const publicRes = await withTimeout(supabase.rpc("get_projects_public"));
+          if (publicRes.data && !publicRes.error) {
+            rows = publicRes.data as Record<string, unknown>[];
+          }
+        }
       } else {
-        const { data, error } = await supabase.rpc("get_projects_public");
+        const { data, error } = await withTimeout(supabase.rpc("get_projects_public"));
         if (data && !error) rows = data as Record<string, unknown>[];
       }
 
       if (rows?.length) {
-        const raw = rows.find((p) => createSlug(String(p.title ?? "")) === slug);
+        const raw = rows.find((p) => {
+          const projectSlug = createSlug(String(p.title ?? ""));
+          return (
+            projectSlug === targetSlug ||
+            projectSlug.startsWith(targetSlug) ||
+            targetSlug.startsWith(projectSlug)
+          );
+        });
         if (raw) return mapSupabaseProjectRowToProjectData(raw);
       }
       
@@ -859,14 +948,28 @@ function AppShell() {
       const caseStudies = localStorage.getItem('caseStudies');
       if (caseStudies) {
         const projects = JSON.parse(caseStudies);
-        const project = projects.find((p: any) => createSlug(p.title) === slug);
+        const project = projects.find((p: any) => {
+          const projectSlug = createSlug(String(p.title ?? ""));
+          return (
+            projectSlug === targetSlug ||
+            projectSlug.startsWith(targetSlug) ||
+            targetSlug.startsWith(projectSlug)
+          );
+        });
         if (project) return project;
       }
       
       const designProjects = localStorage.getItem('designProjects');
       if (designProjects) {
         const projects = JSON.parse(designProjects);
-        const project = projects.find((p: any) => createSlug(p.title) === slug);
+        const project = projects.find((p: any) => {
+          const projectSlug = createSlug(String(p.title ?? ""));
+          return (
+            projectSlug === targetSlug ||
+            projectSlug.startsWith(targetSlug) ||
+            targetSlug.startsWith(projectSlug)
+          );
+        });
         if (project) return project;
       }
       
@@ -933,6 +1036,39 @@ function AppShell() {
       window.removeEventListener('popstate', handlePopState);
     };
   }, []);
+
+  // Recovery path: if we are on /project/... but no project is selected yet,
+  // retry slug resolution so we don't get stuck on RouteFallback indefinitely.
+  useEffect(() => {
+    if (currentPage !== "project-detail" || selectedProject) return;
+    const pathname = window.location.pathname;
+    if (!pathname.startsWith("/project/")) return;
+
+    let cancelled = false;
+    const retryResolve = async () => {
+      const rawSlug = pathname.split("/project/")[1] || "";
+      const projectSlug = rawSlug.split("?")[0]?.split("#")[0]?.replace(/\/+$/, "");
+      if (!projectSlug) {
+        setCurrentPage("home");
+        setSelectedProject(null);
+        return;
+      }
+      const project = await findProjectBySlug(projectSlug);
+      if (cancelled) return;
+      if (project) {
+        await navigateToProject(project as ProjectData, () => {});
+      } else {
+        console.warn("Project not found during recovery:", projectSlug);
+        setCurrentPage("home");
+        setSelectedProject(null);
+      }
+    };
+
+    void retryResolve();
+    return () => {
+      cancelled = true;
+    };
+  }, [currentPage, selectedProject]);
 
   // NOW ALL HOOKS ARE DECLARED - SAFE TO DO CONDITIONAL RENDERING
   // If in emergency mode, show emergency recovery
@@ -1067,6 +1203,14 @@ function AppShell() {
       requiresPassword: Boolean(raw.requiresPassword ?? raw.requires_password),
     } as ProjectData;
 
+    const withTimeout = async <T,>(p: Promise<T>, ms = 5000): Promise<T> =>
+      await Promise.race([
+        p,
+        new Promise<T>((_, reject) => {
+          window.setTimeout(() => reject(new Error("navigate-to-project-timeout")), ms);
+        }),
+      ]);
+
     // Try to load fresh data from Supabase first
     let freshProject: ProjectData | null = null;
     
@@ -1076,15 +1220,17 @@ function AppShell() {
       let error: { message?: string } | null = null;
 
       if (authUser.user) {
-        const res = await supabase
-          .from("projects")
-          .select("*")
-          .eq("id", projectNav.id)
-          .single();
+        const res = await withTimeout(
+          supabase
+            .from("projects")
+            .select("*")
+            .eq("id", projectNav.id)
+            .single(),
+        );
         data = res.data as Record<string, unknown> | null;
         error = res.error;
       } else {
-        const res = await supabase.rpc("get_project_by_id_public", { p_id: projectNav.id });
+        const res = await withTimeout(supabase.rpc("get_project_by_id_public", { p_id: projectNav.id }));
         const rows = res.data as Record<string, unknown>[] | null;
         data = rows?.[0] ?? null;
         error = res.error;
@@ -1267,93 +1413,55 @@ function AppShell() {
       ...sanitizedProject,
       _navTimestamp: (selectedProject as any)?._navTimestamp || Date.now()
     } as any);
-    
+
+    // Always persist when editing: Home's callback used to be the only DB path, but deep links use a noop
+    // callback — those edits never reached Supabase. Also ensure `videos_position` / gallery indices save.
+    try {
+      const projectData = buildProjectUpdatePayloadForSupabase(sanitizedProject);
+      await updateProject(sanitizedProject.id, projectData);
+      console.log("✅ Project persisted to Supabase:", {
+        id: sanitizedProject.id,
+        hasSidebars: !!projectData.case_study_sidebars,
+      });
+    } catch (error) {
+      console.error("❌ Failed to persist project to Supabase:", error);
+    }
+
     if (projectUpdateCallback) {
-      projectUpdateCallback.fn(sanitizedProject);
-    
+      // Home also calls updateProject unless this flag is set (avoids duplicate writes).
+      projectUpdateCallback.fn({ ...sanitizedProject, _skipDbPersist: true } as any);
+
       // Silent verification - log warnings to console only (no annoying alerts)
       setTimeout(() => {
         try {
-          const caseStudiesData = localStorage.getItem('caseStudies');
+          const caseStudiesData = localStorage.getItem("caseStudies");
           if (caseStudiesData) {
             const caseStudies = JSON.parse(caseStudiesData);
             const savedProject = caseStudies.find((p: ProjectData) => p.id === sanitizedProject.id);
-            
+
             if (!savedProject) {
-              console.warn('⚠️ Save verification: Project not found in localStorage after save');
-            } else if ((sanitizedProject.caseStudyImages?.length || 0) !== (savedProject?.caseStudyImages?.length || 0)) {
-              console.warn('⚠️ Save verification: Image count mismatch', {
+              console.warn("⚠️ Save verification: Project not found in localStorage after save");
+            } else if (
+              (sanitizedProject.caseStudyImages?.length || 0) !== (savedProject?.caseStudyImages?.length || 0)
+            ) {
+              console.warn("⚠️ Save verification: Image count mismatch", {
                 expected: sanitizedProject.caseStudyImages?.length || 0,
-                actual: savedProject?.caseStudyImages?.length || 0
+                actual: savedProject?.caseStudyImages?.length || 0,
               });
             } else {
-              console.log('✅ Save verified successfully');
+              console.log("✅ Save verified successfully");
             }
           }
         } catch (e) {
-          console.warn('Save verification failed:', e);
+          console.warn("Save verification failed:", e);
         }
       }, 100);
-      
+
       setShowSaveIndicator(true);
       setTimeout(() => setShowSaveIndicator(false), 3000);
     } else {
-      // Fallback: persist directly to Supabase if callback isn't available
-      console.log('⚠️ No update callback available, persisting directly to Supabase');
-      try {
-        // Convert camelCase to snake_case for Supabase
-        const projectData: any = {
-          title: sanitizedProject.title,
-          description: sanitizedProject.description,
-          url: sanitizedProject.url,
-          position_x: sanitizedProject.position?.x || 50,
-          position_y: sanitizedProject.position?.y || 50,
-          scale: sanitizedProject.scale || 1,
-          published: sanitizedProject.published || false,
-          requires_password: sanitizedProject.requiresPassword || false,
-          password: (sanitizedProject as any).password || '',
-          case_study_content: sanitizedProject.caseStudyContent,
-          case_study_images: sanitizedProject.caseStudyImages || [],
-          flow_diagram_images: sanitizedProject.flowDiagramImages || [],
-          video_items: sanitizedProject.videoItems || [],
-          gallery_aspect_ratio: sanitizedProject.galleryAspectRatio || '3x4',
-          flow_diagram_aspect_ratio: sanitizedProject.flowDiagramAspectRatio || '3x4',
-          video_aspect_ratio: sanitizedProject.videoAspectRatio || '3x4',
-          gallery_columns: sanitizedProject.galleryColumns || 1,
-          flow_diagram_columns: sanitizedProject.flowDiagramColumns || 1,
-          video_columns: sanitizedProject.videoColumns || 1,
-          project_images_position: sanitizedProject.projectImagesPosition,
-          videos_position: sanitizedProject.videosPosition,
-          flow_diagrams_position: sanitizedProject.flowDiagramsPosition,
-          section_positions: sanitizedProject.sectionPositions || {},
-          case_study_sidebars: (sanitizedProject as any).caseStudySidebars || (sanitizedProject as any).case_study_sidebars || undefined,
-          sort_order: (sanitizedProject as any).sortOrder || 0,
-          project_type: sanitizedProject.projectType || (sanitizedProject as any).project_type || null
-        };
-        
-        if ((sanitizedProject as any).keyFeaturesColumns !== undefined) {
-          projectData.key_features_columns = parseColumnsValue((sanitizedProject as any).keyFeaturesColumns, [2, 3], 3);
-        }
-
-        if ((sanitizedProject as any).researchInsightsColumns !== undefined) {
-          projectData.research_insights_columns = parseColumnsValue((sanitizedProject as any).researchInsightsColumns, [1, 2, 3], 3);
-        }
-
-        if ((sanitizedProject as any).solutionCardsPosition !== undefined) {
-          projectData.solution_cards_position = sanitizedProject.solutionCardsPosition;
-        }
-
-        projectData.case_study_decorative_icons = Boolean(
-          sanitizedProject.caseStudyDecorativeIcons ?? (sanitizedProject as any).case_study_decorative_icons
-        );
-        
-        await updateProject(sanitizedProject.id, projectData);
-        console.log('✅ Project persisted directly to Supabase:', { id: sanitizedProject.id, hasSidebars: !!projectData.case_study_sidebars });
-        setShowSaveIndicator(true);
-        setTimeout(() => setShowSaveIndicator(false), 3000);
-      } catch (error) {
-        console.error('❌ Failed to persist project directly to Supabase:', error);
-      }
+      setShowSaveIndicator(true);
+      setTimeout(() => setShowSaveIndicator(false), 3000);
     }
   };
 
@@ -1993,6 +2101,9 @@ function AppShell() {
                 isEditMode={isEditMode}
               />
             </div>
+          )}
+          {currentPage === "project-detail" && !selectedProject && (
+            <RouteFallback />
           )}
           {currentPage === "supabase-test" && <SupabaseTest />}
         </Suspense>

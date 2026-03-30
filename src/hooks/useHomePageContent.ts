@@ -69,6 +69,10 @@ export function useHomePageContent(options: UseHomePageContentOptions) {
   homePageContentRef.current = homePageContent;
 
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const homeContentFingerprint = useCallback((content: HomePageContentV2): string => {
+    const { _clientSavedAt: _ignored, ...rest } = content;
+    return JSON.stringify(rest);
+  }, []);
 
   useEffect(() => {
     const loadHomePageContent = async () => {
@@ -250,8 +254,14 @@ export function useHomePageContent(options: UseHomePageContentOptions) {
       setShowHeroCloudNotice(false);
       setHeroDraftAheadOfCloud(false);
       if (!isEditingHeroRef.current) {
-        setHomePageContent(next);
-        bumpBio();
+        // Prevent save loops: Supabase echoes can differ only by metadata/timestamp.
+        // Only update React state if meaningful home content actually changed.
+        const currentFp = homeContentFingerprint(homePageContentRef.current);
+        const nextFp = homeContentFingerprint(next);
+        if (currentFp !== nextFp) {
+          setHomePageContent(next);
+          bumpBio();
+        }
       }
     };
 
@@ -337,7 +347,7 @@ export function useHomePageContent(options: UseHomePageContentOptions) {
         /* ignore */
       }
     }
-  }, [bumpBio, isEditingHeroRef]);
+  }, [bumpBio, isEditingHeroRef, homeContentFingerprint]);
 
   const clearDebouncedHeroSave = useCallback(() => {
     if (saveTimeoutRef.current) {
