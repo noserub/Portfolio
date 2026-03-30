@@ -36,6 +36,10 @@ export function mapSupabaseProjectRowToProjectData(data: Record<string, unknown>
     requiresPassword: data.requires_password as boolean | undefined,
     projectType: (data.project_type as ProjectData["projectType"]) || null,
     caseStudyDecorativeIcons: Boolean((data as { case_study_decorative_icons?: unknown }).case_study_decorative_icons),
+    sortOrder:
+      data.sort_order !== undefined && data.sort_order !== null
+        ? Number(data.sort_order)
+        : undefined,
     position_x: undefined,
     position_y: undefined,
     case_study_content: undefined,
@@ -57,5 +61,6 @@ export function mapSupabaseProjectRowToProjectData(data: Record<string, unknown>
     section_positions: undefined,
     requires_password: undefined,
     case_study_decorative_icons: undefined,
+    sort_order: undefined,
   } as ProjectData;
 }

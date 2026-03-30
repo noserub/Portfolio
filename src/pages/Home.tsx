@@ -2703,12 +2703,17 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         section_positions: cleanProject.sectionPositions || {},
         // NEW: persist JSON sidebars if present
         case_study_sidebars: (cleanProject as any).caseStudySidebars || (cleanProject as any).case_study_sidebars || undefined,
-        sort_order: (cleanProject as any).sortOrder || 0,
         project_type: cleanProject.projectType || (cleanProject as any).project_type || null,
         case_study_decorative_icons: Boolean(
           cleanProject.caseStudyDecorativeIcons ?? (cleanProject as any).case_study_decorative_icons
         ),
       };
+
+      const resolvedSortOrder =
+        (cleanProject as any).sortOrder ?? (cleanProject as any).sort_order;
+      if (resolvedSortOrder !== undefined && resolvedSortOrder !== null && !Number.isNaN(Number(resolvedSortOrder))) {
+        (projectData as any).sort_order = Number(resolvedSortOrder);
+      }
 
       const rawKeyFeaturesColumns = (cleanProject as any).keyFeaturesColumns ?? (cleanProject as any).key_features_columns;
       if (rawKeyFeaturesColumns !== undefined && rawKeyFeaturesColumns !== null) {
@@ -3158,7 +3163,10 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         const aOrder = a.sortOrder !== undefined && a.sortOrder !== null ? a.sortOrder : ((a as any).sort_order !== undefined && (a as any).sort_order !== null ? (a as any).sort_order : 0);
         const bOrder = b.sortOrder !== undefined && b.sortOrder !== null ? b.sortOrder : ((b as any).sort_order !== undefined && (b as any).sort_order !== null ? (b as any).sort_order : 0);
 
-        return aOrder - bOrder;
+        const byOrder = aOrder - bOrder;
+        if (byOrder !== 0) return byOrder;
+        // Stable tiebreak so equal sort_order never shuffles when source array order changes
+        return String(a.id).localeCompare(String(b.id));
       });
       console.log('🔍 DEBUG: sortedCaseStudies result:', sorted.length, 'projects');
       return sorted;

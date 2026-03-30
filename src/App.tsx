@@ -224,9 +224,15 @@ function buildProjectUpdatePayloadForSupabase(
     section_positions: sanitizedProject.sectionPositions || {},
     case_study_sidebars:
       (sanitizedProject as any).caseStudySidebars || (sanitizedProject as any).case_study_sidebars || undefined,
-    sort_order: (sanitizedProject as any).sortOrder || 0,
     project_type: sanitizedProject.projectType || (sanitizedProject as any).project_type || null,
   };
+
+  // Never default missing sort to 0 — that overwrites the real grid index and shuffles cards.
+  const resolvedSort =
+    (sanitizedProject as any).sortOrder ?? (sanitizedProject as any).sort_order;
+  if (resolvedSort !== undefined && resolvedSort !== null && !Number.isNaN(Number(resolvedSort))) {
+    projectData.sort_order = Number(resolvedSort);
+  }
 
   if ((sanitizedProject as any).keyFeaturesColumns !== undefined) {
     projectData.key_features_columns = parseColumnsValue((sanitizedProject as any).keyFeaturesColumns, [2, 3], 3);
