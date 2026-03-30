@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /*
-  Generates a minimal sitemap.xml and robots.txt into dist/ after build.
-  Assumes hash routing; includes top-level routes and project slugs from local data if available.
+  Generates sitemap.xml and robots.txt into dist/ after build.
+  Uses pathname-based routes and optionally includes project slugs derived
+  from local backup data so crawlers can discover project detail pages.
 */
 const fs = require('fs');
 const path = require('path');
@@ -15,12 +16,23 @@ function ensureDir(dir) {
 
 function loadLocalProjects() {
   try {
-    const lsPath = path.join(ROOT, 'portfolio-backup-placeholder-2025-10-17T18-02-15.json');
-    if (fs.existsSync(lsPath)) {
-      const raw = fs.readFileSync(lsPath, 'utf8');
+    const candidates = fs
+      .readdirSync(ROOT)
+      .filter((name) => /^portfolio-backup-.*\.json$/i.test(name))
+      .map((name) => ({
+        fullPath: path.join(ROOT, name),
+        mtimeMs: fs.statSync(path.join(ROOT, name)).mtimeMs,
+      }))
+      .sort((a, b) => b.mtimeMs - a.mtimeMs);
+
+    if (candidates.length > 0) {
+      const newest = candidates[0];
+      const raw = fs.readFileSync(newest.fullPath, 'utf8');
       const data = JSON.parse(raw);
       const caseStudies = Array.isArray(data?.caseStudies) ? data.caseStudies : [];
-      return caseStudies.map(p => p.title).filter(Boolean);
+      return caseStudies
+        .map((p) => (p && typeof p.title === 'string' ? p.title : ''))
+        .filter(Boolean);
     }
   } catch (_) {}
   return [];
@@ -36,7 +48,6 @@ function slugify(title) {
 }
 
 function generateSitemap(baseUrl) {
-  // Remove hash fragments - use proper paths for SEO
   const staticPaths = [
     { path: '/', priority: '1.0', changefreq: 'weekly' },
     { path: '/about', priority: '0.8', changefreq: 'monthly' },
@@ -44,8 +55,11 @@ function generateSitemap(baseUrl) {
   ];
   
   const titles = loadLocalProjects();
-  const projectPaths = titles.map(t => ({
-    path: `/project/${slugify(t)}`,
+  const uniqueSlugs = Array.from(
+    new Set(titles.map((t) => slugify(t)).filter(Boolean))
+  );
+  const projectPaths = uniqueSlugs.map((slug) => ({
+    path: `/project/${slug}`,
     priority: '0.9',
     changefreq: 'monthly',
   }));
@@ -75,7 +89,7 @@ function generateRobots(baseUrl) {
 }
 
 function main() {
-  const baseUrl = process.env.SITE_URL || 'https://portfolio-bb.vercel.app';
+  const baseUrl = (process.env.SITE_URL || 'https://brianbureson.com').replace(/\/+$/, '');
   ensureDir(distDir);
   fs.writeFileSync(path.join(distDir, 'sitemap.xml'), generateSitemap(baseUrl));
   fs.writeFileSync(path.join(distDir, 'robots.txt'), generateRobots(baseUrl));

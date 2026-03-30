@@ -1,5 +1,11 @@
 import { useEffect } from 'react';
-import { getSEOData, getCaseStudySEO, applyPageSEO } from '../utils/seoManager';
+import {
+  getSEOData,
+  getCaseStudySEO,
+  applyPageSEO,
+  loadSEODataFromSupabase,
+  loadCaseStudySEOFromSupabase,
+} from '../utils/seoManager';
 import {
   generateWebSiteSchema,
   generateOrganizationSchema,
@@ -11,10 +17,13 @@ import {
 
 export function useSEO(pageKey: 'home' | 'about' | 'caseStudies' | 'contact') {
   useEffect(() => {
+    let isCancelled = false;
+
     // Use setTimeout to ensure DOM is ready
-    const applySEO = () => {
+    const applySEO = async () => {
       try {
-        const seoData = getSEOData();
+        const seoData = await loadSEODataFromSupabase();
+        if (isCancelled) return;
         const pageSEO = seoData.pages[pageKey];
         
         console.log(`🔍 SEO: Applying SEO for page: ${pageKey}`, { pageSEO, sitewide: seoData.sitewide });
@@ -86,6 +95,7 @@ export function useSEO(pageKey: 'home' | 'about' | 'caseStudies' | 'contact') {
     const timeoutId = setTimeout(applySEO, 100);
     
     return () => {
+      isCancelled = true;
       clearTimeout(timeoutId);
     };
   }, [pageKey]);
@@ -94,33 +104,54 @@ export function useSEO(pageKey: 'home' | 'about' | 'caseStudies' | 'contact') {
 // Hook specifically for case study detail pages
 export function useCaseStudySEO(caseStudyId: string, caseStudyTitle?: string) {
   useEffect(() => {
-    const seoData = getSEOData();
-    const caseStudySEO = getCaseStudySEO(caseStudyId, caseStudyTitle);
-    // Apply meta tags for case study page
-    applyPageSEO(caseStudySEO, seoData.sitewide);
+    let isCancelled = false;
 
-    // Inject structured data for case study
-    const schemas: Array<object> = [];
-    
-    // Organization schema
-    schemas.push(generateOrganizationSchema(seoData.sitewide));
-    
-    // Article schema for case study
-    const articleUrl = caseStudySEO.canonicalUrl || `${seoData.sitewide.siteUrl}/project/${caseStudyId}`;
-    schemas.push(generateArticleSchema(caseStudySEO, seoData.sitewide, {
-      headline: caseStudyTitle || caseStudySEO.title,
-      description: caseStudySEO.description,
-      image: caseStudySEO.ogImage || caseStudySEO.twitterImage,
-      url: articleUrl,
-    }));
-    
-    // Breadcrumbs
-    const breadcrumbs = [
-      { name: 'Home', url: '/' },
-      { name: caseStudyTitle || 'Case Study', url: articleUrl },
-    ];
-    schemas.push(generateBreadcrumbListSchema(breadcrumbs, seoData.sitewide.siteUrl));
-    
-    injectMultipleStructuredData(schemas);
+    const applyCaseStudySEO = async () => {
+      try {
+        const seoData = await loadSEODataFromSupabase();
+        if (isCancelled) return;
+        const caseStudySEO = await loadCaseStudySEOFromSupabase(caseStudyId, caseStudyTitle);
+        if (isCancelled) return;
+
+        // Apply meta tags for case study page
+        applyPageSEO(caseStudySEO, seoData.sitewide);
+
+        // Inject structured data for case study
+        const schemas: Array<object> = [];
+        
+        // Organization schema
+        schemas.push(generateOrganizationSchema(seoData.sitewide));
+        
+        // Article schema for case study
+        const articleUrl = caseStudySEO.canonicalUrl || `${seoData.sitewide.siteUrl}/project/${caseStudyId}`;
+        schemas.push(generateArticleSchema(caseStudySEO, seoData.sitewide, {
+          headline: caseStudyTitle || caseStudySEO.title,
+          description: caseStudySEO.description,
+          image: caseStudySEO.ogImage || caseStudySEO.twitterImage,
+          url: articleUrl,
+        }));
+        
+        // Breadcrumbs
+        const breadcrumbs = [
+          { name: 'Home', url: '/' },
+          { name: caseStudyTitle || 'Case Study', url: articleUrl },
+        ];
+        schemas.push(generateBreadcrumbListSchema(breadcrumbs, seoData.sitewide.siteUrl));
+        
+        injectMultipleStructuredData(schemas);
+      } catch (error) {
+        console.error('❌ SEO: Error applying case study SEO:', error);
+        // Final fallback to local data for resilience
+        const localSeoData = getSEOData();
+        const localCaseStudySEO = getCaseStudySEO(caseStudyId, caseStudyTitle);
+        applyPageSEO(localCaseStudySEO, localSeoData.sitewide);
+      }
+    };
+
+    applyCaseStudySEO();
+
+    return () => {
+      isCancelled = true;
+    };
   }, [caseStudyId, caseStudyTitle]);
 }

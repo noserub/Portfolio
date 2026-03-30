@@ -24,7 +24,12 @@ import { FlowDiagramGallery } from "../components/FlowDiagramGallery";
 import { VideoGallery } from "../components/VideoGallery";
 import HeroImage from "../components/HeroImage";
 import { useCaseStudySEO } from "../hooks/useSEO";
-import { getCaseStudySEO, saveCaseStudySEO, type SEOData } from "../utils/seoManager";
+import {
+  getCaseStudySEO,
+  loadCaseStudySEOFromSupabase,
+  saveCaseStudySEO,
+  type SEOData,
+} from "../utils/seoManager";
 import { cleanMarkdownContent, isContentCorrupted } from "../utils/cleanMarkdownContent";
 import { uploadImage } from "../utils/imageHelpers";
 import { Search } from "lucide-react";
@@ -456,6 +461,8 @@ export function ProjectDetail({ project, onBack, onUpdate: pushProjectUpdate, is
   const [isEditing, setIsEditing] = useState(false);
   const [showSaveIndicator, setShowSaveIndicator] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const isEditModeRef = useRef(isEditMode);
+  isEditModeRef.current = isEditMode;
 
   const [caseStudyDecorativeIcons, setCaseStudyDecorativeIcons] = useState(
     () => project.caseStudyDecorativeIcons ?? (project as any).case_study_decorative_icons ?? false
@@ -468,6 +475,10 @@ export function ProjectDetail({ project, onBack, onUpdate: pushProjectUpdate, is
 
   const persistUpdate = useCallback(
     (updated: ProjectData) => {
+      if (!isEditModeRef.current) {
+        console.warn('🛑 Blocked persistUpdate while not in edit mode');
+        return;
+      }
       const icons =
         updated.caseStudyDecorativeIcons ??
         (updated as any).case_study_decorative_icons ??
@@ -486,8 +497,24 @@ export function ProjectDetail({ project, onBack, onUpdate: pushProjectUpdate, is
   
   // Load case study SEO when project changes
   useEffect(() => {
-    const seo = getCaseStudySEO(project.id, project.title);
-    setCaseStudySEO(seo);
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const seo = await loadCaseStudySEOFromSupabase(project.id, project.title);
+        if (!cancelled) {
+          setCaseStudySEO(seo);
+        }
+      } catch {
+        const local = getCaseStudySEO(project.id, project.title);
+        if (!cancelled) {
+          setCaseStudySEO(local);
+        }
+      }
+    };
+    load();
+    return () => {
+      cancelled = true;
+    };
   }, [project.id, project.title]);
   
   // Debug logging for project data
@@ -900,15 +927,15 @@ export function ProjectDetail({ project, onBack, onUpdate: pushProjectUpdate, is
   });
   
   const [projectImagesPosition, setProjectImagesPosition] = useState(
-    project.projectImagesPosition || (project as any).project_images_position || 
+    project.projectImagesPosition ?? (project as any).project_images_position ??
     (caseStudyImages.length > 0 ? 2 : undefined) // Default position 2 if images exist but no position set
   );
   const [videosPosition, setVideosPosition] = useState(
-    project.videosPosition || (project as any).videos_position
+    project.videosPosition ?? (project as any).videos_position
   );
   
   const [flowDiagramsPosition, setFlowDiagramsPosition] = useState(
-    project.flowDiagramsPosition || (project as any).flow_diagrams_position
+    project.flowDiagramsPosition ?? (project as any).flow_diagrams_position
   );
   const [solutionCardsPosition, setSolutionCardsPosition] = useState(() => {
     // Explicitly check for null/undefined - if user removed solution cards, respect that
@@ -1450,9 +1477,6 @@ export function ProjectDetail({ project, onBack, onUpdate: pushProjectUpdate, is
     keyFeaturesColumns,
     researchInsightsColumns,
   };
-
-  const isEditModeRef = useRef(isEditMode);
-  isEditModeRef.current = isEditMode;
 
   const buildEditorSavePayload = useCallback((): ProjectData => {
     const d = editorDraftRef.current;
@@ -2071,45 +2095,52 @@ export function ProjectDetail({ project, onBack, onUpdate: pushProjectUpdate, is
           ? caseStudySidebars 
           : (projectSidebars && Object.keys(projectSidebars).length > 0 ? projectSidebars : {}));
       
-      // Only persist cleaned markdown if we actually cleaned something
-      // AND preserve JSON sidebars (never overwrite them with stale project data)
-      // CRITICAL: Explicitly preserve images/videos arrays to prevent data loss
-      if (cleaned !== src) {
-        console.log('💾 Persisting cleaned markdown, preserving JSON sidebars and images/videos:', {
-          sidebars: Object.keys(preservedSidebars),
-          imagesCount: (project.caseStudyImages || (project as any).case_study_images || []).length,
-          videosCount: (project.videoItems || (project as any).video_items || []).length,
-          flowDiagramsCount: (project.flowDiagramImages || (project as any).flow_diagram_images || []).length
-        });
-        persistUpdate({
-          ...project,
-          caseStudyContent: cleaned,
-          case_study_content: cleaned,
-          // CRITICAL: Explicitly preserve images/videos arrays
-          caseStudyImages: project.caseStudyImages || (project as any).case_study_images || [],
-          case_study_images: project.caseStudyImages || (project as any).case_study_images || [],
-          flowDiagramImages: project.flowDiagramImages || (project as any).flow_diagram_images || [],
-          flow_diagram_images: project.flowDiagramImages || (project as any).flow_diagram_images || [],
-          videoItems: project.videoItems || (project as any).video_items || [],
-          video_items: project.videoItems || (project as any).video_items || [],
-          caseStudySidebars: preservedSidebars,
-          case_study_sidebars: preservedSidebars
-        } as any);
-      } else if (sidebarChanged) {
-        // Only sidebar migration happened, no markdown cleaning needed
-        console.log('💾 Persisting migrated sidebars only:', Object.keys(preservedSidebars));
-        persistUpdate({
-          ...project,
-          // CRITICAL: Explicitly preserve images/videos arrays even during sidebar migration
-          caseStudyImages: project.caseStudyImages || (project as any).case_study_images || [],
-          case_study_images: project.caseStudyImages || (project as any).case_study_images || [],
-          flowDiagramImages: project.flowDiagramImages || (project as any).flow_diagram_images || [],
-          flow_diagram_images: project.flowDiagramImages || (project as any).flow_diagram_images || [],
-          videoItems: project.videoItems || (project as any).video_items || [],
-          video_items: project.videoItems || (project as any).video_items || [],
-          caseStudySidebars: preservedSidebars,
-          case_study_sidebars: preservedSidebars
-        } as any);
+      // Never auto-persist load-time cleanup in preview mode.
+      // This avoids unintentionally overwriting canonical case-study content for public visitors.
+      const shouldPersistLoadCleanup = Boolean(isEditModeRef.current);
+      if (shouldPersistLoadCleanup) {
+        // Only persist cleaned markdown if we actually cleaned something
+        // AND preserve JSON sidebars (never overwrite them with stale project data)
+        // CRITICAL: Explicitly preserve images/videos arrays to prevent data loss
+        if (cleaned !== src) {
+          console.log('💾 Persisting cleaned markdown, preserving JSON sidebars and images/videos:', {
+            sidebars: Object.keys(preservedSidebars),
+            imagesCount: (project.caseStudyImages || (project as any).case_study_images || []).length,
+            videosCount: (project.videoItems || (project as any).video_items || []).length,
+            flowDiagramsCount: (project.flowDiagramImages || (project as any).flow_diagram_images || []).length
+          });
+          persistUpdate({
+            ...project,
+            caseStudyContent: cleaned,
+            case_study_content: cleaned,
+            // CRITICAL: Explicitly preserve images/videos arrays
+            caseStudyImages: project.caseStudyImages || (project as any).case_study_images || [],
+            case_study_images: project.caseStudyImages || (project as any).case_study_images || [],
+            flowDiagramImages: project.flowDiagramImages || (project as any).flow_diagram_images || [],
+            flow_diagram_images: project.flowDiagramImages || (project as any).flow_diagram_images || [],
+            videoItems: project.videoItems || (project as any).video_items || [],
+            video_items: project.videoItems || (project as any).video_items || [],
+            caseStudySidebars: preservedSidebars,
+            case_study_sidebars: preservedSidebars
+          } as any);
+        } else if (sidebarChanged) {
+          // Only sidebar migration happened, no markdown cleaning needed
+          console.log('💾 Persisting migrated sidebars only:', Object.keys(preservedSidebars));
+          persistUpdate({
+            ...project,
+            // CRITICAL: Explicitly preserve images/videos arrays even during sidebar migration
+            caseStudyImages: project.caseStudyImages || (project as any).case_study_images || [],
+            case_study_images: project.caseStudyImages || (project as any).case_study_images || [],
+            flowDiagramImages: project.flowDiagramImages || (project as any).flow_diagram_images || [],
+            flow_diagram_images: project.flowDiagramImages || (project as any).flow_diagram_images || [],
+            videoItems: project.videoItems || (project as any).video_items || [],
+            video_items: project.videoItems || (project as any).video_items || [],
+            caseStudySidebars: preservedSidebars,
+            case_study_sidebars: preservedSidebars
+          } as any);
+        }
+      } else {
+        console.log('🛑 Skipping load-time cleanup persistence in preview mode');
       }
     } else {
       setCleanedContent(cleaned);
@@ -2931,15 +2962,11 @@ export function ProjectDetail({ project, onBack, onUpdate: pushProjectUpdate, is
       currentActualPos = videosPosition;
     }
     
-    // If position is still undefined/null, determine a safe default based on other sections
+    // If position is still undefined/null, default to the end of the current layout.
+    // This avoids unexpected jumps near the top when a saved position is temporarily missing.
     let currentPos: number;
     if (currentActualPos === undefined || currentActualPos === null || isNaN(currentActualPos) || currentActualPos < 0) {
-      // Default: place after project images if they exist, otherwise after Overview
-      if (projectImagesPosition !== undefined && projectImagesPosition !== null && projectImagesPosition >= 0) {
-        currentPos = projectImagesPosition + 1;
-      } else {
-        currentPos = 1; // After Overview (position 0)
-      }
+      currentPos = Math.max(1, getNextPosition() - 1);
     } else {
       currentPos = currentActualPos;
     }
@@ -4546,10 +4573,16 @@ export function ProjectDetail({ project, onBack, onUpdate: pushProjectUpdate, is
                   </div>
                   
                   <Button
-                    onClick={() => {
-                      saveCaseStudySEO(project.id, caseStudySEO);
-                      // Reload page to apply SEO changes
-                      window.location.reload();
+                    onClick={async () => {
+                      try {
+                        await saveCaseStudySEO(project.id, caseStudySEO);
+                        toast.success("Case study SEO saved.");
+                        // Reload page to apply SEO changes
+                        window.location.reload();
+                      } catch (error) {
+                        console.error("Error saving case study SEO:", error);
+                        toast.error("Failed to save case study SEO. Please verify Supabase auth.");
+                      }
                     }}
                     className="w-full"
                   >
@@ -5294,15 +5327,11 @@ export function ProjectDetail({ project, onBack, onUpdate: pushProjectUpdate, is
                         videoItemsRef.current = newVideos;
                         setVideoItems(newVideos);
                         
-                        // If videos are added and no position is set, initialize it
+                        // If videos are added and no position is set, initialize it at the end.
+                        // This preserves user intent (videos often belong last).
                         let updatedVideosPosition = videosPosition;
                         if (newVideos.length > 0 && (videosPosition === undefined || videosPosition === null || isNaN(videosPosition))) {
-                          // Default: place after project images if they exist, otherwise after Overview
-                          if (projectImagesPosition !== undefined && projectImagesPosition !== null) {
-                            updatedVideosPosition = projectImagesPosition + 1;
-                          } else {
-                            updatedVideosPosition = 1; // After Overview (position 0)
-                          }
+                          updatedVideosPosition = Math.max(1, getNextPosition() - 1);
                           setVideosPosition(updatedVideosPosition);
                         }
                         

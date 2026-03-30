@@ -1,7 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Search, Globe, Image, Hash, Link as LinkIcon, Upload, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { getSEOData, saveSEOData, type AllSEOData, type SEOData, uploadFaviconToSupabase, saveFaviconToSupabase, getFaviconFromSupabase } from '../../utils/seoManager';
+import {
+  getSEOData,
+  saveSEOData,
+  loadSEODataFromSupabase,
+  type AllSEOData,
+  type SEOData,
+  uploadFaviconToSupabase,
+  saveFaviconToSupabase,
+  getFaviconFromSupabase,
+} from '../../utils/seoManager';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
@@ -22,10 +31,20 @@ export function SEOEditor({ isOpen, onClose }: SEOEditorProps) {
   useEffect(() => {
     if (isOpen) {
       loadFaviconFromSupabase();
-      setSeoData(getSEOData());
+      loadCanonicalSEOData();
       setHasChanges(false);
     }
   }, [isOpen]);
+
+  const loadCanonicalSEOData = async () => {
+    try {
+      const canonical = await loadSEODataFromSupabase();
+      setSeoData(canonical);
+    } catch (error) {
+      console.error('Error loading SEO data from Supabase:', error);
+      setSeoData(getSEOData());
+    }
+  };
 
   const loadFaviconFromSupabase = async () => {
     try {
@@ -47,11 +66,20 @@ export function SEOEditor({ isOpen, onClose }: SEOEditorProps) {
 
   if (!isOpen) return null;
 
-  const handleSave = () => {
-    saveSEOData(seoData);
-    setHasChanges(false);
-    // Reload the page to apply new SEO settings
-    window.location.reload();
+  const handleSave = async () => {
+    const loadingToast = toast.loading('Saving SEO settings...');
+    try {
+      await saveSEOData(seoData);
+      setHasChanges(false);
+      toast.dismiss(loadingToast);
+      toast.success('SEO settings saved to Supabase and local cache.');
+      // Reload the page to apply new SEO settings
+      window.location.reload();
+    } catch (error) {
+      console.error('Error saving SEO settings:', error);
+      toast.dismiss(loadingToast);
+      toast.error('Failed to save SEO settings. Please verify Supabase auth and try again.');
+    }
   };
 
   const updateSitewide = (field: keyof AllSEOData['sitewide'], value: string) => {

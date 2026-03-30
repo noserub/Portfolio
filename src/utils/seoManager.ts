@@ -82,8 +82,8 @@ const DEFAULT_SEO_DATA: AllSEOData = {
     },
     about: {
       title: 'About - Brian Bureson',
-      description: 'Learn more about Brian Bureson, a product design leader with a passion for creating meaningful user experiences and leading design teams.',
-      keywords: 'about Brian Bureson, design leader, UX designer, product designer',
+      description: 'Learn more about Brian Bureson, a Denver-based product design leader with a passion for creating meaningful user experiences and leading design teams.',
+      keywords: 'about Brian Bureson, Denver product designer, design leader, UX designer, product designer',
       ogTitle: '',
       ogDescription: '',
       ogImage: '',
@@ -136,56 +136,243 @@ const DEFAULT_SEO_DATA: AllSEOData = {
 };
 
 const SEO_STORAGE_KEY = 'portfolio-seo-data';
+const CASE_STUDY_SEO_PREFIX = 'case-study:';
+
+type SeoDataRow = {
+  id: string;
+  user_id?: string | null;
+  page_type: string;
+  title?: string | null;
+  description?: string | null;
+  keywords?: string | null;
+  og_title?: string | null;
+  og_description?: string | null;
+  og_image?: string | null;
+  twitter_card?: string | null;
+  twitter_title?: string | null;
+  twitter_description?: string | null;
+  twitter_image?: string | null;
+  canonical_url?: string | null;
+  site_name?: string | null;
+  site_url?: string | null;
+  default_author?: string | null;
+  default_og_image?: string | null;
+  default_twitter_card?: string | null;
+  favicon_type?: string | null;
+  favicon_text?: string | null;
+  favicon_gradient_start?: string | null;
+  favicon_gradient_end?: string | null;
+  favicon_image?: string | null;
+};
+
+const cloneDefaults = (): AllSEOData => ({
+  sitewide: { ...DEFAULT_SEO_DATA.sitewide },
+  pages: {
+    home: { ...DEFAULT_SEO_DATA.pages.home },
+    about: { ...DEFAULT_SEO_DATA.pages.about },
+    caseStudies: { ...DEFAULT_SEO_DATA.pages.caseStudies },
+    contact: { ...DEFAULT_SEO_DATA.pages.contact },
+  },
+  caseStudyDefaults: { ...DEFAULT_SEO_DATA.caseStudyDefaults },
+});
+
+const withSafeOgFallback = (data: AllSEOData): AllSEOData => {
+  const merged = {
+    ...data,
+    sitewide: { ...data.sitewide },
+    pages: {
+      home: { ...data.pages.home },
+      about: { ...data.pages.about },
+      caseStudies: { ...data.pages.caseStudies },
+      contact: { ...data.pages.contact },
+    },
+    caseStudyDefaults: { ...data.caseStudyDefaults },
+  };
+  if (!merged.sitewide.defaultOGImage || merged.sitewide.defaultOGImage.trim() === '') {
+    merged.sitewide.defaultOGImage = `${merged.sitewide.siteUrl}/api/og?title=${encodeURIComponent(merged.sitewide.siteName)}`;
+  }
+  return merged;
+};
+
+const mapSeoRowToSeoData = (row: SeoDataRow, fallback: SEOData): SEOData => ({
+  ...fallback,
+  title: row.title ?? fallback.title,
+  description: row.description ?? fallback.description,
+  keywords: row.keywords ?? fallback.keywords,
+  ogTitle: row.og_title ?? fallback.ogTitle,
+  ogDescription: row.og_description ?? fallback.ogDescription,
+  ogImage: row.og_image ?? fallback.ogImage,
+  twitterCard: (row.twitter_card as SEOData['twitterCard']) ?? fallback.twitterCard,
+  twitterTitle: row.twitter_title ?? fallback.twitterTitle,
+  twitterDescription: row.twitter_description ?? fallback.twitterDescription,
+  twitterImage: row.twitter_image ?? fallback.twitterImage,
+  canonicalUrl: row.canonical_url ?? fallback.canonicalUrl,
+});
+
+function mergeSEODataFromRows(rows: SeoDataRow[], base?: AllSEOData): AllSEOData {
+  const merged = base
+    ? withSafeOgFallback(base)
+    : withSafeOgFallback(cloneDefaults());
+
+  for (const row of rows) {
+    const key = (row.page_type || '').trim();
+    if (!key) continue;
+
+    if (key === 'sitewide') {
+      merged.sitewide = {
+        ...merged.sitewide,
+        siteName: row.site_name ?? merged.sitewide.siteName,
+        siteUrl: row.site_url ?? merged.sitewide.siteUrl,
+        defaultAuthor: row.default_author ?? merged.sitewide.defaultAuthor,
+        defaultOGImage: row.default_og_image ?? merged.sitewide.defaultOGImage,
+        defaultTwitterCard:
+          (row.default_twitter_card as SitewideSEO['defaultTwitterCard']) ??
+          merged.sitewide.defaultTwitterCard,
+        faviconType: (row.favicon_type as SitewideSEO['faviconType']) ?? merged.sitewide.faviconType,
+        faviconText: row.favicon_text ?? merged.sitewide.faviconText,
+        faviconGradientStart: row.favicon_gradient_start ?? merged.sitewide.faviconGradientStart,
+        faviconGradientEnd: row.favicon_gradient_end ?? merged.sitewide.faviconGradientEnd,
+        faviconImageUrl: row.favicon_image ?? merged.sitewide.faviconImageUrl,
+      };
+      continue;
+    }
+
+    if (key === 'home' || key === 'about' || key === 'caseStudies' || key === 'contact') {
+      merged.pages[key] = mapSeoRowToSeoData(row, merged.pages[key]);
+      continue;
+    }
+
+    if (key === 'caseStudyDefaults' || key === 'case-study-defaults' || key === 'case_study_defaults') {
+      merged.caseStudyDefaults = mapSeoRowToSeoData(row, merged.caseStudyDefaults);
+    }
+  }
+
+  return withSafeOgFallback(merged);
+}
 
 export function getSEOData(): AllSEOData {
   try {
     const stored = localStorage.getItem(SEO_STORAGE_KEY);
     if (stored) {
       const parsed = JSON.parse(stored);
-      // Merge with defaults to ensure all fields exist
+      const base = cloneDefaults();
       const merged = {
-        sitewide: { 
-          ...DEFAULT_SEO_DATA.sitewide, 
+        ...base,
+        sitewide: {
+          ...base.sitewide,
           ...parsed.sitewide,
-          // Ensure siteUrl is always current (in case domain changed)
-          siteUrl: parsed.sitewide?.siteUrl || DEFAULT_SEO_DATA.sitewide.siteUrl,
-          // Ensure defaultOGImage always has a fallback
-          defaultOGImage: parsed.sitewide?.defaultOGImage || DEFAULT_SEO_DATA.sitewide.defaultOGImage,
+          siteUrl: parsed.sitewide?.siteUrl || base.sitewide.siteUrl,
+          defaultOGImage: parsed.sitewide?.defaultOGImage || base.sitewide.defaultOGImage,
         },
         pages: {
-          home: { ...DEFAULT_SEO_DATA.pages.home, ...parsed.pages?.home },
-          about: { ...DEFAULT_SEO_DATA.pages.about, ...parsed.pages?.about },
-          caseStudies: { ...DEFAULT_SEO_DATA.pages.caseStudies, ...parsed.pages?.caseStudies },
-          contact: { ...DEFAULT_SEO_DATA.pages.contact, ...parsed.pages?.contact },
+          home: { ...base.pages.home, ...parsed.pages?.home },
+          about: { ...base.pages.about, ...parsed.pages?.about },
+          caseStudies: { ...base.pages.caseStudies, ...parsed.pages?.caseStudies },
+          contact: { ...base.pages.contact, ...parsed.pages?.contact },
         },
-        caseStudyDefaults: { ...DEFAULT_SEO_DATA.caseStudyDefaults, ...parsed.caseStudyDefaults },
+        caseStudyDefaults: { ...base.caseStudyDefaults, ...parsed.caseStudyDefaults },
       };
-      
-      // Ensure defaultOGImage has a fallback if empty
-      if (!merged.sitewide.defaultOGImage || merged.sitewide.defaultOGImage.trim() === '') {
-        merged.sitewide.defaultOGImage = `${merged.sitewide.siteUrl}/api/og?title=${encodeURIComponent(merged.sitewide.siteName)}`;
-      }
-      
-      return merged;
+      return withSafeOgFallback(merged);
     }
   } catch (error) {
     console.error('Error loading SEO data:', error);
   }
   
-  // Always return defaults with valid OG image fallback
-  const defaults = { ...DEFAULT_SEO_DATA };
-  if (!defaults.sitewide.defaultOGImage || defaults.sitewide.defaultOGImage.trim() === '') {
-    defaults.sitewide.defaultOGImage = `${defaults.sitewide.siteUrl}/api/og?title=${encodeURIComponent(defaults.sitewide.siteName)}`;
-  }
-  
-  return defaults;
+  return withSafeOgFallback(cloneDefaults());
 }
 
-export function saveSEOData(data: AllSEOData): void {
+async function fetchSeoRowsForOwner(ownerId: string): Promise<SeoDataRow[]> {
+  const { data, error } = await supabase
+    .from('seo_data')
+    .select('*')
+    .eq('user_id', ownerId);
+
+  if (error) {
+    throw error;
+  }
+  return (data || []) as SeoDataRow[];
+}
+
+export async function loadSEODataFromSupabase(): Promise<AllSEOData> {
+  const local = getSEOData();
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    const ownerId = getPortfolioOwnerUserId(user?.id);
+    const rows = await fetchSeoRowsForOwner(ownerId);
+    const merged = mergeSEODataFromRows(rows, local);
+    localStorage.setItem(SEO_STORAGE_KEY, JSON.stringify(merged));
+    return merged;
+  } catch (error) {
+    console.warn('⚠️ SEO: Falling back to local SEO data (Supabase unavailable):', error);
+    return local;
+  }
+}
+
+export async function saveSEOData(data: AllSEOData): Promise<void> {
   try {
     localStorage.setItem(SEO_STORAGE_KEY, JSON.stringify(data));
   } catch (error) {
     console.error('Error saving SEO data:', error);
+  }
+
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user?.id) {
+      throw new Error('Sign in with Supabase to save SEO settings.');
+    }
+    const ownerId = getPortfolioOwnerUserId(user.id);
+    const existingRows = await fetchSeoRowsForOwner(ownerId);
+    const existingByType = new Map(existingRows.map((row) => [row.page_type, row]));
+
+    const payloads: Array<{ pageType: string; payload: Record<string, unknown> }> = [
+      {
+        pageType: 'sitewide',
+        payload: {
+          site_name: data.sitewide.siteName,
+          site_url: data.sitewide.siteUrl,
+          default_author: data.sitewide.defaultAuthor,
+          default_og_image: data.sitewide.defaultOGImage,
+          default_twitter_card: data.sitewide.defaultTwitterCard,
+          favicon_type: data.sitewide.faviconType || 'text',
+          favicon_text: data.sitewide.faviconText || 'BB',
+          favicon_gradient_start: data.sitewide.faviconGradientStart || '#8b5cf6',
+          favicon_gradient_end: data.sitewide.faviconGradientEnd || '#3b82f6',
+          favicon_image: data.sitewide.faviconImageUrl || null,
+        },
+      },
+      { pageType: 'home', payload: toSeoRowPayload(data.pages.home) },
+      { pageType: 'about', payload: toSeoRowPayload(data.pages.about) },
+      { pageType: 'caseStudies', payload: toSeoRowPayload(data.pages.caseStudies) },
+      { pageType: 'contact', payload: toSeoRowPayload(data.pages.contact) },
+      { pageType: 'caseStudyDefaults', payload: toSeoRowPayload(data.caseStudyDefaults) },
+    ];
+
+    for (const { pageType, payload } of payloads) {
+      const existing = existingByType.get(pageType);
+      if (existing?.id) {
+        const { error } = await supabase
+          .from('seo_data')
+          .update(payload)
+          .eq('id', existing.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('seo_data')
+          .insert({
+            user_id: ownerId,
+            page_type: pageType,
+            ...payload,
+          });
+        if (error) throw error;
+      }
+    }
+  } catch (error) {
+    console.error('Error saving SEO data to Supabase:', error);
+    throw error;
   }
 }
 
@@ -206,11 +393,94 @@ export function getCaseStudySEO(caseStudyId: string, caseStudyTitle?: string): S
   };
 }
 
-export function saveCaseStudySEO(caseStudyId: string, data: SEOData): void {
+function toSeoRowPayload(seo: SEOData): Record<string, unknown> {
+  return {
+    title: seo.title,
+    description: seo.description,
+    keywords: seo.keywords,
+    og_title: seo.ogTitle || null,
+    og_description: seo.ogDescription || null,
+    og_image: seo.ogImage || null,
+    twitter_card: seo.twitterCard || null,
+    twitter_title: seo.twitterTitle || null,
+    twitter_description: seo.twitterDescription || null,
+    twitter_image: seo.twitterImage || null,
+    canonical_url: seo.canonicalUrl || null,
+  };
+}
+
+export async function loadCaseStudySEOFromSupabase(
+  caseStudyId: string,
+  caseStudyTitle?: string
+): Promise<SEOData> {
+  const local = getCaseStudySEO(caseStudyId, caseStudyTitle);
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    const ownerId = getPortfolioOwnerUserId(user?.id);
+    const pageType = `${CASE_STUDY_SEO_PREFIX}${caseStudyId}`;
+    const { data, error } = await supabase
+      .from('seo_data')
+      .select('*')
+      .eq('user_id', ownerId)
+      .eq('page_type', pageType)
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) return local;
+    const merged = mapSeoRowToSeoData(data as SeoDataRow, local);
+    localStorage.setItem(`seo-case-study-${caseStudyId}`, JSON.stringify(merged));
+    return merged;
+  } catch (error) {
+    console.warn('⚠️ SEO: Falling back to local case study SEO:', error);
+    return local;
+  }
+}
+
+export async function saveCaseStudySEO(caseStudyId: string, data: SEOData): Promise<void> {
   try {
     localStorage.setItem(`seo-case-study-${caseStudyId}`, JSON.stringify(data));
   } catch (error) {
     console.error('Error saving case study SEO:', error);
+  }
+
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user?.id) {
+      throw new Error('Sign in with Supabase to save case study SEO.');
+    }
+    const ownerId = getPortfolioOwnerUserId(user.id);
+    const pageType = `${CASE_STUDY_SEO_PREFIX}${caseStudyId}`;
+    const payload = toSeoRowPayload(data);
+    const { data: existing, error: findErr } = await supabase
+      .from('seo_data')
+      .select('id')
+      .eq('user_id', ownerId)
+      .eq('page_type', pageType)
+      .maybeSingle();
+    if (findErr) throw findErr;
+
+    if (existing?.id) {
+      const { error } = await supabase
+        .from('seo_data')
+        .update(payload)
+        .eq('id', existing.id);
+      if (error) throw error;
+    } else {
+      const { error } = await supabase
+        .from('seo_data')
+        .insert({
+          user_id: ownerId,
+          page_type: pageType,
+          ...payload,
+        });
+      if (error) throw error;
+    }
+  } catch (error) {
+    console.error('Error saving case study SEO to Supabase:', error);
+    throw error;
   }
 }
 
@@ -250,15 +520,23 @@ export function applyPageSEO(pageSEO: SEOData, sitewide: SitewideSEO): void {
   updateMetaTag('meta[property="og:type"]', 'website');
   updateMetaTag('meta[property="og:locale"]', 'en_US');
   
-  // OG URL - use canonical URL if available, otherwise construct from site URL
-  const ogUrl = pageSEO.canonicalUrl || (pageSEO.canonicalUrl === '' ? undefined : `${sitewide.siteUrl}${window.location.pathname}`);
-  if (ogUrl && !ogUrl.includes('#')) {
-    updateMetaTag('meta[property="og:url"]', ogUrl);
-  } else if (!pageSEO.canonicalUrl) {
-    // Fallback: construct URL from current pathname (without hash)
-    const currentUrl = `${sitewide.siteUrl}${window.location.pathname}`;
-    updateMetaTag('meta[property="og:url"]', currentUrl);
-  }
+  const normalizeCanonicalUrl = (urlValue: string): string => {
+    const trimmed = urlValue.trim();
+    const hashIndex = trimmed.indexOf('#');
+    const withoutHash = hashIndex === -1 ? trimmed : trimmed.substring(0, hashIndex);
+    const queryIndex = withoutHash.indexOf('?');
+    return queryIndex === -1 ? withoutHash : withoutHash.substring(0, queryIndex);
+  };
+
+  // Always resolve a canonical URL so crawlers consistently understand the preferred URL.
+  const configuredCanonical = pageSEO.canonicalUrl?.trim()
+    ? normalizeCanonicalUrl(pageSEO.canonicalUrl)
+    : '';
+  const computedCanonical = `${sitewide.siteUrl}${window.location.pathname}`;
+  const effectiveCanonical = configuredCanonical || computedCanonical;
+
+  // OG URL should match the canonical URL whenever possible.
+  updateMetaTag('meta[property="og:url"]', effectiveCanonical);
   
   // OG Image - always provide a fallback using the OG API
   let ogImage = pageSEO.ogImage || sitewide.defaultOGImage;
@@ -291,45 +569,18 @@ export function applyPageSEO(pageSEO: SEOData, sitewide: SitewideSEO): void {
   updateMetaTag('meta[name="twitter:image"]', twitterImage);
   updateMetaTag('meta[name="twitter:image:alt"]', twitterTitle);
 
-  // Canonical URL - only set if explicitly provided (non-empty)
-  // Users can set this manually in SEO settings for each page
-  // IMPORTANT: Canonical URLs should NEVER include hash fragments (#)
-  if (pageSEO.canonicalUrl && pageSEO.canonicalUrl.trim() !== '') {
-    // Strip hash fragments from canonical URL (canonical URLs should never have #)
-    let cleanCanonicalUrl = pageSEO.canonicalUrl.trim();
-    const originalUrl = cleanCanonicalUrl;
-    const hashIndex = cleanCanonicalUrl.indexOf('#');
-    if (hashIndex !== -1) {
-      cleanCanonicalUrl = cleanCanonicalUrl.substring(0, hashIndex);
-      console.warn('🔍 SEO: Stripped hash fragment from canonical URL:', originalUrl, '→', cleanCanonicalUrl);
+  // Canonical URL should always be present.
+  if (effectiveCanonical.startsWith('http://') || effectiveCanonical.startsWith('https://')) {
+    let link = document.querySelector('link[rel="canonical"]') as HTMLLinkElement;
+    if (!link) {
+      link = document.createElement('link');
+      link.rel = 'canonical';
+      document.head.appendChild(link);
     }
-    
-    // Also strip any query parameters that might have been accidentally included
-    const queryIndex = cleanCanonicalUrl.indexOf('?');
-    if (queryIndex !== -1) {
-      cleanCanonicalUrl = cleanCanonicalUrl.substring(0, queryIndex);
-    }
-    
-    // Ensure it's a valid URL (starts with http:// or https://)
-    if (cleanCanonicalUrl && (cleanCanonicalUrl.startsWith('http://') || cleanCanonicalUrl.startsWith('https://'))) {
-      let link = document.querySelector('link[rel="canonical"]') as HTMLLinkElement;
-      if (!link) {
-        link = document.createElement('link');
-        link.rel = 'canonical';
-        document.head.appendChild(link);
-      }
-      link.href = cleanCanonicalUrl;
-      console.log('✅ SEO: Set canonical URL:', cleanCanonicalUrl);
-    } else {
-      console.warn('⚠️ SEO: Invalid canonical URL format (must start with http:// or https://):', cleanCanonicalUrl);
-    }
+    link.href = effectiveCanonical;
+    console.log('✅ SEO: Set canonical URL:', effectiveCanonical);
   } else {
-    // Remove canonical URL if it exists but shouldn't be set
-    const existingLink = document.querySelector('link[rel="canonical"]');
-    if (existingLink) {
-      existingLink.remove();
-      console.log('🗑️ SEO: Removed canonical URL (not set in SEO settings)');
-    }
+    console.warn('⚠️ SEO: Could not set canonical URL due to invalid format:', effectiveCanonical);
   }
 
   // Favicon is applied once in App.tsx (Supabase + localStorage fallback), not here — applying it

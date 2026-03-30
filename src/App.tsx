@@ -297,15 +297,15 @@ function AppShell() {
     const loadGlobalFavicon = async () => {
       try {
         console.log('🔄 Loading global favicon...');
-        const { getFaviconFromSupabase, updateFavicon, getSEOData } = await import('./utils/seoManager');
+        const { getFaviconFromSupabase, updateFavicon, loadSEODataFromSupabase } = await import('./utils/seoManager');
         const faviconUrl = await getFaviconFromSupabase();
+        const seoData = await loadSEODataFromSupabase();
         
         console.log('🔍 Favicon URL from Supabase:', faviconUrl);
         
         if (faviconUrl) {
           console.log('✅ Found favicon, applying to document...');
           // Update the SEO data with the favicon
-          const seoData = getSEOData();
           const updatedSitewide = {
             ...seoData.sitewide,
             faviconType: 'image' as const,
@@ -316,8 +316,7 @@ function AppShell() {
           updateFavicon(updatedSitewide);
           console.log('✅ Favicon applied successfully');
         } else {
-          console.log('❌ No favicon in Supabase; applying sitewide from localStorage (text or image)');
-          const seoData = getSEOData();
+          console.log('❌ No favicon in Supabase; applying sitewide fallback from canonical SEO data');
           updateFavicon(seoData.sitewide);
         }
       } catch (error) {
@@ -375,6 +374,13 @@ function AppShell() {
   const [newPassword, setNewPassword] = useState("");
   const [showSEOEditor, setShowSEOEditor] = useState(false);
   const [showComponentLibrary, setShowComponentLibrary] = useState(false);
+
+  // If owner auth/edit mode becomes active, clear any stale visitor password prompt.
+  useEffect(() => {
+    if ((isSupabaseAuthenticated || isEditMode) && pendingProtectedProject) {
+      setPendingProtectedProject(null);
+    }
+  }, [isSupabaseAuthenticated, isEditMode, pendingProtectedProject]);
   
   const [pageVisibility, setPageVisibility] = useState({
       about: true,
@@ -1158,8 +1164,10 @@ function AppShell() {
       hasSupabaseSession: isSupabaseAuthenticated,
     });
 
-    // Password-protected case studies: visitors must use RPC password unless signed in via Supabase (owner).
-    if (projectToSet.requiresPassword && !isSupabaseAuthenticated) {
+    // Password-protected case studies: visitors must unlock.
+    // Owners in edit mode should never be blocked by visitor password prompts.
+    const shouldRequireProjectPassword = Boolean(projectToSet.requiresPassword) && !isSupabaseAuthenticated && !isEditMode;
+    if (shouldRequireProjectPassword) {
       setPendingProtectedProject({ project: projectToSet, updateCallback });
       return;
     }
@@ -1206,6 +1214,11 @@ function AppShell() {
   };
 
   const handleUpdateProject = async (updatedProject: ProjectData) => {
+    if (!isEditMode) {
+      console.warn('🛑 Ignoring project update while preview mode is active');
+      return;
+    }
+
     const { _navTimestamp, ...cleanProject } = updatedProject as any;
     
     const sanitizedProject = {
@@ -1230,6 +1243,24 @@ function AppShell() {
     if (rawSolutionCardsPosition !== undefined) {
       sanitizedProject.solutionCardsPosition = rawSolutionCardsPosition;
       sanitizedProject.solution_cards_position = rawSolutionCardsPosition;
+    }
+
+    // Keep a small local revision history per project for emergency recovery.
+    // This runs before persistence so we can roll back accidental writes.
+    try {
+      const revisionsKey = `projectRevisions:${sanitizedProject.id}`;
+      const existingRaw = localStorage.getItem(revisionsKey);
+      const existing = existingRaw ? JSON.parse(existingRaw) : [];
+      const nextRevision = {
+        timestamp: new Date().toISOString(),
+        title: sanitizedProject.title,
+        data: sanitizedProject,
+      };
+      const revisions = Array.isArray(existing) ? [...existing, nextRevision] : [nextRevision];
+      const capped = revisions.slice(-20);
+      localStorage.setItem(revisionsKey, JSON.stringify(capped));
+    } catch (revisionError) {
+      console.warn('Failed to store local project revision snapshot:', revisionError);
     }
     
     setSelectedProject({
