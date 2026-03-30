@@ -827,6 +827,17 @@ function AppShell() {
     };
   }, [currentRoute, currentPage, selectedProject]);
 
+  // Guard against getting stuck on project-detail without a resolved project
+  // (e.g., deep-link refresh where slug cannot be resolved quickly).
+  useEffect(() => {
+    if (currentPage !== "project-detail" || selectedProject) return;
+    const timeoutId = window.setTimeout(() => {
+      setCurrentPage("home");
+      setSelectedProject(null);
+    }, 1800);
+    return () => window.clearTimeout(timeoutId);
+  }, [currentPage, selectedProject]);
+
   // Function to create friendly slug from title
   const createSlug = (title: string): string => {
     return title
