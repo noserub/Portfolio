@@ -1146,6 +1146,14 @@ function AppShell() {
       requiresPassword: Boolean(raw.requiresPassword ?? raw.requires_password),
     } as ProjectData;
 
+    const withTimeout = async <T,>(p: Promise<T>, ms = 5000): Promise<T> =>
+      await Promise.race([
+        p,
+        new Promise<T>((_, reject) => {
+          window.setTimeout(() => reject(new Error("navigate-to-project-timeout")), ms);
+        }),
+      ]);
+
     // Try to load fresh data from Supabase first
     let freshProject: ProjectData | null = null;
     
@@ -1155,15 +1163,17 @@ function AppShell() {
       let error: { message?: string } | null = null;
 
       if (authUser.user) {
-        const res = await supabase
-          .from("projects")
-          .select("*")
-          .eq("id", projectNav.id)
-          .single();
+        const res = await withTimeout(
+          supabase
+            .from("projects")
+            .select("*")
+            .eq("id", projectNav.id)
+            .single(),
+        );
         data = res.data as Record<string, unknown> | null;
         error = res.error;
       } else {
-        const res = await supabase.rpc("get_project_by_id_public", { p_id: projectNav.id });
+        const res = await withTimeout(supabase.rpc("get_project_by_id_public", { p_id: projectNav.id }));
         const rows = res.data as Record<string, unknown>[] | null;
         data = rows?.[0] ?? null;
         error = res.error;
