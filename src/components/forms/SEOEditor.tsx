@@ -29,40 +29,34 @@ export function SEOEditor({ isOpen, onClose }: SEOEditorProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (isOpen) {
-      loadFaviconFromSupabase();
-      loadCanonicalSEOData();
-      setHasChanges(false);
-    }
-  }, [isOpen]);
-
-  const loadCanonicalSEOData = async () => {
-    try {
-      const canonical = await loadSEODataFromSupabase();
-      setSeoData(canonical);
-    } catch (error) {
-      console.error('Error loading SEO data from Supabase:', error);
-      setSeoData(getSEOData());
-    }
-  };
-
-  const loadFaviconFromSupabase = async () => {
-    try {
-      const faviconUrl = await getFaviconFromSupabase();
-      if (faviconUrl) {
-        setSeoData(prev => ({
-          ...prev,
-          sitewide: { 
-            ...prev.sitewide, 
-            faviconType: 'image',
-            faviconImageUrl: faviconUrl 
-          },
-        }));
+    if (!isOpen) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const canonical = await loadSEODataFromSupabase();
+        const faviconUrl = await getFaviconFromSupabase();
+        if (cancelled) return;
+        const merged: AllSEOData = faviconUrl
+          ? {
+              ...canonical,
+              sitewide: {
+                ...canonical.sitewide,
+                faviconType: 'image',
+                faviconImageUrl: faviconUrl,
+              },
+            }
+          : canonical;
+        setSeoData(merged);
+      } catch (error) {
+        console.error('Error loading SEO data from Supabase:', error);
+        if (!cancelled) setSeoData(getSEOData());
       }
-    } catch (error) {
-      console.error('Error loading favicon from Supabase:', error);
-    }
-  };
+      if (!cancelled) setHasChanges(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen]);
 
   if (!isOpen) return null;
 

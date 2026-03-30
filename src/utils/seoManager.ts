@@ -293,6 +293,68 @@ async function fetchSeoRowsForOwner(ownerId: string): Promise<SeoDataRow[]> {
   return (data || []) as SeoDataRow[];
 }
 
+/** Keep `seo_data` sitewide favicon columns aligned with Storage URL (same source the app uses at runtime). */
+async function ensureSitewideFaviconInSeoData(ownerId: string, faviconUrl: string): Promise<void> {
+  const existingRows = await fetchSeoRowsForOwner(ownerId);
+  const existing = existingRows.find((r) => r.page_type === 'sitewide');
+  const sw = getSEOData().sitewide;
+  const patch = {
+    favicon_image: faviconUrl,
+    favicon_type: 'image',
+    favicon_text: sw.faviconText || 'BB',
+    favicon_gradient_start: sw.faviconGradientStart || '#8b5cf6',
+    favicon_gradient_end: sw.faviconGradientEnd || '#3b82f6',
+  };
+  if (existing?.id) {
+    const { error } = await supabase.from('seo_data').update(patch).eq('id', existing.id);
+    if (error) throw error;
+  } else {
+    const { error } = await supabase.from('seo_data').insert({
+      user_id: ownerId,
+      page_type: 'sitewide',
+      site_name: sw.siteName,
+      site_url: sw.siteUrl,
+      default_author: sw.defaultAuthor,
+      default_og_image: sw.defaultOGImage,
+      default_twitter_card: sw.defaultTwitterCard,
+      ...patch,
+    });
+    if (error) throw error;
+  }
+  const local = getSEOData();
+  const next: AllSEOData = {
+    ...local,
+    sitewide: {
+      ...local.sitewide,
+      faviconType: 'image',
+      faviconImageUrl: faviconUrl,
+    },
+  };
+  localStorage.setItem(SEO_STORAGE_KEY, JSON.stringify(withSafeOgFallback(next)));
+}
+
+/** Keep `app_settings.favicon_url` aligned when full SEO save changes favicon mode or URL. */
+async function syncAppSettingsFaviconFromSitewide(ownerId: string, sitewide: SitewideSEO): Promise<void> {
+  const url =
+    sitewide.faviconType === 'image' && sitewide.faviconImageUrl?.trim()
+      ? sitewide.faviconImageUrl.trim()
+      : null;
+  const { error } = await supabase.from('app_settings').upsert(
+    {
+      user_id: ownerId,
+      favicon_url: url,
+      theme: 'dark',
+      is_authenticated: true,
+      show_debug_panel: false,
+      is_public: true,
+    },
+    { onConflict: 'user_id', ignoreDuplicates: false },
+  );
+  if (error) {
+    console.warn('⚠️ SEO: Could not sync app_settings favicon (non-fatal):', error);
+  }
+}
+
 export async function loadSEODataFromSupabase(): Promise<AllSEOData> {
   const local = getSEOData();
   try {
@@ -370,6 +432,7 @@ export async function saveSEOData(data: AllSEOData): Promise<void> {
         if (error) throw error;
       }
     }
+    await syncAppSettingsFaviconFromSitewide(ownerId, data.sitewide);
   } catch (error) {
     console.error('Error saving SEO data to Supabase:', error);
     throw error;
@@ -683,18 +746,19 @@ export async function uploadFaviconToSupabase(file: File): Promise<string | null
   }
 }
 
-// Get favicon from Supabase Storage
+// Resolve favicon URL: env override → app_settings (owner) → seo_data sitewide → any public app_settings row.
 export async function getFaviconFromSupabase(): Promise<string | null> {
   try {
-    // Optional: set in Vercel (Preview/Production) to the same public Storage URL as in app_settings
-    // if you need the icon before DB migrations run, or as a fixed override.
     const fromEnv = import.meta.env.VITE_PUBLIC_FAVICON_URL;
     if (typeof fromEnv === 'string' && fromEnv.trim().length > 0) {
       return fromEnv.trim();
     }
 
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     const ownerId = getPortfolioOwnerUserId(user?.id);
+
     const { data: ownerSettings, error: ownerErr } = await supabase
       .from('app_settings')
       .select('favicon_url')
@@ -703,74 +767,31 @@ export async function getFaviconFromSupabase(): Promise<string | null> {
       .maybeSingle();
 
     if (!ownerErr && ownerSettings?.favicon_url) {
-      console.log('✅ Using favicon from app_settings (portfolio owner row)');
       return ownerSettings.favicon_url;
-    }
-
-    // First, let's check if there are ANY records in app_settings
-    console.log('🔍 Checking for ANY records in app_settings...');
-    const { data: allRecords, error: allRecordsError } = await supabase
-      .from('app_settings')
-      .select('*')
-      .limit(5);
-    
-    console.log('🔍 All app_settings records:', { allRecords, allRecordsError });
-    
-    // First try to get any favicon (most permissive query) - works for public access
-    console.log('🔍 Checking for any favicon (public access)...');
-    const { data: anySettings, error: anyError } = await supabase
-      .from('app_settings')
-      .select('favicon_url, is_public')
-      .not('favicon_url', 'is', null)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    console.log('🔍 Any favicon query result:', { anySettings, anyError });
-
-    if (!anyError && anySettings?.favicon_url) {
-      console.log('✅ Using favicon:', anySettings.favicon_url, 'is_public:', anySettings.is_public);
-      return anySettings.favicon_url;
-    } else {
-      console.log('❌ No favicon found:', { anyError, anySettings });
-    console.log('🔍 Debug - anySettings details:', {
-      data: anySettings,
-      hasData: !!anySettings,
-      hasFaviconUrl: !!anySettings?.favicon_url,
-      faviconUrl: anySettings?.favicon_url,
-      isPublic: anySettings?.is_public,
-      fullObject: JSON.stringify(anySettings, null, 2)
-    });
-    }
-
-    // Try to get public favicon as fallback (more restrictive query)
-    console.log('🔍 Checking for public favicon as fallback...');
-    const { data: publicSettings, error: publicError } = await supabase
-      .from('app_settings')
-      .select('favicon_url')
-      .eq('is_public', true)
-      .maybeSingle();
-
-    console.log('🔍 Public favicon query result:', { publicSettings, publicError });
-
-    if (!publicError && publicSettings?.favicon_url) {
-      console.log('✅ Using public favicon:', publicSettings.favicon_url);
-      return publicSettings.favicon_url;
-    } else {
-      console.log('❌ No public favicon found:', { publicError, publicSettings });
     }
 
     const { data: seoRow, error: seoErr } = await supabase
       .from('seo_data')
       .select('favicon_image')
+      .eq('user_id', ownerId)
+      .eq('page_type', 'sitewide')
       .not('favicon_image', 'is', null)
-      .order('updated_at', { ascending: false })
-      .limit(1)
       .maybeSingle();
 
     if (!seoErr && seoRow?.favicon_image) {
-      console.log('✅ Using favicon from seo_data (fallback)');
       return seoRow.favicon_image;
+    }
+
+    const { data: anySettings, error: anyError } = await supabase
+      .from('app_settings')
+      .select('favicon_url')
+      .not('favicon_url', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!anyError && anySettings?.favicon_url) {
+      return anySettings.favicon_url;
     }
 
     return null;
@@ -793,7 +814,7 @@ export async function saveFaviconToSupabase(faviconUrl: string): Promise<boolean
     const userId = getPortfolioOwnerUserId(user.id);
 
     // Update or create app settings with favicon URL for user and mark as public
-    const { data: userData, error: userError } = await supabase
+    const { error: userError } = await supabase
       .from('app_settings')
       .upsert({
         user_id: userId,
@@ -812,13 +833,13 @@ export async function saveFaviconToSupabase(faviconUrl: string): Promise<boolean
       return false;
     }
 
-    console.log('✅ Favicon saved successfully for user and marked as public:', { userData });
-    console.log('🔍 Saved favicon details:', {
-      userId,
-      faviconUrl,
-      isPublic: true,
-      userData
-    });
+    try {
+      await ensureSitewideFaviconInSeoData(userId, faviconUrl);
+    } catch (seoErr) {
+      console.error('Error syncing favicon to seo_data:', seoErr);
+      return false;
+    }
+
     return true;
   } catch (error) {
     console.error('Error saving favicon to Supabase:', error);
