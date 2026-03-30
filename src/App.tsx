@@ -375,6 +375,13 @@ function AppShell() {
   const [newPassword, setNewPassword] = useState("");
   const [showSEOEditor, setShowSEOEditor] = useState(false);
   const [showComponentLibrary, setShowComponentLibrary] = useState(false);
+
+  // If owner auth/edit mode becomes active, clear any stale visitor password prompt.
+  useEffect(() => {
+    if ((isSupabaseAuthenticated || isEditMode) && pendingProtectedProject) {
+      setPendingProtectedProject(null);
+    }
+  }, [isSupabaseAuthenticated, isEditMode, pendingProtectedProject]);
   
   const [pageVisibility, setPageVisibility] = useState({
       about: true,
@@ -1158,8 +1165,10 @@ function AppShell() {
       hasSupabaseSession: isSupabaseAuthenticated,
     });
 
-    // Password-protected case studies: visitors must use RPC password unless signed in via Supabase (owner).
-    if (projectToSet.requiresPassword && !isSupabaseAuthenticated) {
+    // Password-protected case studies: visitors must unlock.
+    // Owners in edit mode should never be blocked by visitor password prompts.
+    const shouldRequireProjectPassword = Boolean(projectToSet.requiresPassword) && !isSupabaseAuthenticated && !isEditMode;
+    if (shouldRequireProjectPassword) {
       setPendingProtectedProject({ project: projectToSet, updateCallback });
       return;
     }

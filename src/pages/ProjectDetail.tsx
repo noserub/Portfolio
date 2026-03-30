@@ -906,15 +906,15 @@ export function ProjectDetail({ project, onBack, onUpdate: pushProjectUpdate, is
   });
   
   const [projectImagesPosition, setProjectImagesPosition] = useState(
-    project.projectImagesPosition || (project as any).project_images_position || 
+    project.projectImagesPosition ?? (project as any).project_images_position ??
     (caseStudyImages.length > 0 ? 2 : undefined) // Default position 2 if images exist but no position set
   );
   const [videosPosition, setVideosPosition] = useState(
-    project.videosPosition || (project as any).videos_position
+    project.videosPosition ?? (project as any).videos_position
   );
   
   const [flowDiagramsPosition, setFlowDiagramsPosition] = useState(
-    project.flowDiagramsPosition || (project as any).flow_diagrams_position
+    project.flowDiagramsPosition ?? (project as any).flow_diagrams_position
   );
   const [solutionCardsPosition, setSolutionCardsPosition] = useState(() => {
     // Explicitly check for null/undefined - if user removed solution cards, respect that
@@ -2941,15 +2941,11 @@ export function ProjectDetail({ project, onBack, onUpdate: pushProjectUpdate, is
       currentActualPos = videosPosition;
     }
     
-    // If position is still undefined/null, determine a safe default based on other sections
+    // If position is still undefined/null, default to the end of the current layout.
+    // This avoids unexpected jumps near the top when a saved position is temporarily missing.
     let currentPos: number;
     if (currentActualPos === undefined || currentActualPos === null || isNaN(currentActualPos) || currentActualPos < 0) {
-      // Default: place after project images if they exist, otherwise after Overview
-      if (projectImagesPosition !== undefined && projectImagesPosition !== null && projectImagesPosition >= 0) {
-        currentPos = projectImagesPosition + 1;
-      } else {
-        currentPos = 1; // After Overview (position 0)
-      }
+      currentPos = Math.max(1, getNextPosition() - 1);
     } else {
       currentPos = currentActualPos;
     }
@@ -5304,15 +5300,11 @@ export function ProjectDetail({ project, onBack, onUpdate: pushProjectUpdate, is
                         videoItemsRef.current = newVideos;
                         setVideoItems(newVideos);
                         
-                        // If videos are added and no position is set, initialize it
+                        // If videos are added and no position is set, initialize it at the end.
+                        // This preserves user intent (videos often belong last).
                         let updatedVideosPosition = videosPosition;
                         if (newVideos.length > 0 && (videosPosition === undefined || videosPosition === null || isNaN(videosPosition))) {
-                          // Default: place after project images if they exist, otherwise after Overview
-                          if (projectImagesPosition !== undefined && projectImagesPosition !== null) {
-                            updatedVideosPosition = projectImagesPosition + 1;
-                          } else {
-                            updatedVideosPosition = 1; // After Overview (position 0)
-                          }
+                          updatedVideosPosition = Math.max(1, getNextPosition() - 1);
                           setVideosPosition(updatedVideosPosition);
                         }
                         
