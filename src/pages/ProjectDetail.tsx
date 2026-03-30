@@ -456,6 +456,8 @@ export function ProjectDetail({ project, onBack, onUpdate: pushProjectUpdate, is
   const [isEditing, setIsEditing] = useState(false);
   const [showSaveIndicator, setShowSaveIndicator] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const isEditModeRef = useRef(isEditMode);
+  isEditModeRef.current = isEditMode;
 
   const [caseStudyDecorativeIcons, setCaseStudyDecorativeIcons] = useState(
     () => project.caseStudyDecorativeIcons ?? (project as any).case_study_decorative_icons ?? false
@@ -468,6 +470,10 @@ export function ProjectDetail({ project, onBack, onUpdate: pushProjectUpdate, is
 
   const persistUpdate = useCallback(
     (updated: ProjectData) => {
+      if (!isEditModeRef.current) {
+        console.warn('🛑 Blocked persistUpdate while not in edit mode');
+        return;
+      }
       const icons =
         updated.caseStudyDecorativeIcons ??
         (updated as any).case_study_decorative_icons ??
@@ -1451,9 +1457,6 @@ export function ProjectDetail({ project, onBack, onUpdate: pushProjectUpdate, is
     researchInsightsColumns,
   };
 
-  const isEditModeRef = useRef(isEditMode);
-  isEditModeRef.current = isEditMode;
-
   const buildEditorSavePayload = useCallback((): ProjectData => {
     const d = editorDraftRef.current;
     const cleanBlobUrls = (content: string): string => {
@@ -2071,45 +2074,52 @@ export function ProjectDetail({ project, onBack, onUpdate: pushProjectUpdate, is
           ? caseStudySidebars 
           : (projectSidebars && Object.keys(projectSidebars).length > 0 ? projectSidebars : {}));
       
-      // Only persist cleaned markdown if we actually cleaned something
-      // AND preserve JSON sidebars (never overwrite them with stale project data)
-      // CRITICAL: Explicitly preserve images/videos arrays to prevent data loss
-      if (cleaned !== src) {
-        console.log('💾 Persisting cleaned markdown, preserving JSON sidebars and images/videos:', {
-          sidebars: Object.keys(preservedSidebars),
-          imagesCount: (project.caseStudyImages || (project as any).case_study_images || []).length,
-          videosCount: (project.videoItems || (project as any).video_items || []).length,
-          flowDiagramsCount: (project.flowDiagramImages || (project as any).flow_diagram_images || []).length
-        });
-        persistUpdate({
-          ...project,
-          caseStudyContent: cleaned,
-          case_study_content: cleaned,
-          // CRITICAL: Explicitly preserve images/videos arrays
-          caseStudyImages: project.caseStudyImages || (project as any).case_study_images || [],
-          case_study_images: project.caseStudyImages || (project as any).case_study_images || [],
-          flowDiagramImages: project.flowDiagramImages || (project as any).flow_diagram_images || [],
-          flow_diagram_images: project.flowDiagramImages || (project as any).flow_diagram_images || [],
-          videoItems: project.videoItems || (project as any).video_items || [],
-          video_items: project.videoItems || (project as any).video_items || [],
-          caseStudySidebars: preservedSidebars,
-          case_study_sidebars: preservedSidebars
-        } as any);
-      } else if (sidebarChanged) {
-        // Only sidebar migration happened, no markdown cleaning needed
-        console.log('💾 Persisting migrated sidebars only:', Object.keys(preservedSidebars));
-        persistUpdate({
-          ...project,
-          // CRITICAL: Explicitly preserve images/videos arrays even during sidebar migration
-          caseStudyImages: project.caseStudyImages || (project as any).case_study_images || [],
-          case_study_images: project.caseStudyImages || (project as any).case_study_images || [],
-          flowDiagramImages: project.flowDiagramImages || (project as any).flow_diagram_images || [],
-          flow_diagram_images: project.flowDiagramImages || (project as any).flow_diagram_images || [],
-          videoItems: project.videoItems || (project as any).video_items || [],
-          video_items: project.videoItems || (project as any).video_items || [],
-          caseStudySidebars: preservedSidebars,
-          case_study_sidebars: preservedSidebars
-        } as any);
+      // Never auto-persist load-time cleanup in preview mode.
+      // This avoids unintentionally overwriting canonical case-study content for public visitors.
+      const shouldPersistLoadCleanup = Boolean(isEditModeRef.current);
+      if (shouldPersistLoadCleanup) {
+        // Only persist cleaned markdown if we actually cleaned something
+        // AND preserve JSON sidebars (never overwrite them with stale project data)
+        // CRITICAL: Explicitly preserve images/videos arrays to prevent data loss
+        if (cleaned !== src) {
+          console.log('💾 Persisting cleaned markdown, preserving JSON sidebars and images/videos:', {
+            sidebars: Object.keys(preservedSidebars),
+            imagesCount: (project.caseStudyImages || (project as any).case_study_images || []).length,
+            videosCount: (project.videoItems || (project as any).video_items || []).length,
+            flowDiagramsCount: (project.flowDiagramImages || (project as any).flow_diagram_images || []).length
+          });
+          persistUpdate({
+            ...project,
+            caseStudyContent: cleaned,
+            case_study_content: cleaned,
+            // CRITICAL: Explicitly preserve images/videos arrays
+            caseStudyImages: project.caseStudyImages || (project as any).case_study_images || [],
+            case_study_images: project.caseStudyImages || (project as any).case_study_images || [],
+            flowDiagramImages: project.flowDiagramImages || (project as any).flow_diagram_images || [],
+            flow_diagram_images: project.flowDiagramImages || (project as any).flow_diagram_images || [],
+            videoItems: project.videoItems || (project as any).video_items || [],
+            video_items: project.videoItems || (project as any).video_items || [],
+            caseStudySidebars: preservedSidebars,
+            case_study_sidebars: preservedSidebars
+          } as any);
+        } else if (sidebarChanged) {
+          // Only sidebar migration happened, no markdown cleaning needed
+          console.log('💾 Persisting migrated sidebars only:', Object.keys(preservedSidebars));
+          persistUpdate({
+            ...project,
+            // CRITICAL: Explicitly preserve images/videos arrays even during sidebar migration
+            caseStudyImages: project.caseStudyImages || (project as any).case_study_images || [],
+            case_study_images: project.caseStudyImages || (project as any).case_study_images || [],
+            flowDiagramImages: project.flowDiagramImages || (project as any).flow_diagram_images || [],
+            flow_diagram_images: project.flowDiagramImages || (project as any).flow_diagram_images || [],
+            videoItems: project.videoItems || (project as any).video_items || [],
+            video_items: project.videoItems || (project as any).video_items || [],
+            caseStudySidebars: preservedSidebars,
+            case_study_sidebars: preservedSidebars
+          } as any);
+        }
+      } else {
+        console.log('🛑 Skipping load-time cleanup persistence in preview mode');
       }
     } else {
       setCleanedContent(cleaned);

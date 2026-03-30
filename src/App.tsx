@@ -1206,6 +1206,11 @@ function AppShell() {
   };
 
   const handleUpdateProject = async (updatedProject: ProjectData) => {
+    if (!isEditMode) {
+      console.warn('🛑 Ignoring project update while preview mode is active');
+      return;
+    }
+
     const { _navTimestamp, ...cleanProject } = updatedProject as any;
     
     const sanitizedProject = {
@@ -1230,6 +1235,24 @@ function AppShell() {
     if (rawSolutionCardsPosition !== undefined) {
       sanitizedProject.solutionCardsPosition = rawSolutionCardsPosition;
       sanitizedProject.solution_cards_position = rawSolutionCardsPosition;
+    }
+
+    // Keep a small local revision history per project for emergency recovery.
+    // This runs before persistence so we can roll back accidental writes.
+    try {
+      const revisionsKey = `projectRevisions:${sanitizedProject.id}`;
+      const existingRaw = localStorage.getItem(revisionsKey);
+      const existing = existingRaw ? JSON.parse(existingRaw) : [];
+      const nextRevision = {
+        timestamp: new Date().toISOString(),
+        title: sanitizedProject.title,
+        data: sanitizedProject,
+      };
+      const revisions = Array.isArray(existing) ? [...existing, nextRevision] : [nextRevision];
+      const capped = revisions.slice(-20);
+      localStorage.setItem(revisionsKey, JSON.stringify(capped));
+    } catch (revisionError) {
+      console.warn('Failed to store local project revision snapshot:', revisionError);
     }
     
     setSelectedProject({

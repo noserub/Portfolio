@@ -1,0 +1,41 @@
+---
+description: Zero data-loss guardrails for all data edits and migrations
+alwaysApply: true
+---
+
+# Zero Data-Loss Policy (Blocker)
+
+Any change that can modify, transform, migrate, deduplicate, or delete persisted data is **high risk**.
+Treat data loss as a release blocker.
+
+## Hard Requirements
+
+- **No destructive writes without backup:** Before any high-risk change, create or verify a restorable backup/snapshot.
+- **No silent transforms:** Never auto-persist cleanup/transformation logic on page load, mount, or read paths.
+- **No delete-before-verify:** Never remove old rows/fields until new data is written and validated.
+- **No overwrite from stale payloads:** Guard writes with edit-mode checks and freshness checks (timestamp/revision/version match).
+- **No hidden failures:** Any persistence error must be surfaced clearly with enough context to recover.
+
+## Required Workflow for High-Risk Changes
+
+1. **Preflight**
+   - Identify affected tables/fields/paths.
+   - Confirm backup/restore path exists and is tested.
+2. **Write safety**
+   - Prefer append-only revisions for content changes.
+   - Use non-destructive migration (copy -> verify -> cutover -> optional cleanup).
+3. **Verification**
+   - Validate row counts, key records, and representative content before and after.
+   - Confirm no null/empty regression in canonical published rows.
+4. **Recovery**
+   - Provide exact rollback steps or SQL before shipping.
+
+## Prohibited Patterns
+
+- Auto-saving transformed content during preview/read mode.
+- Implicit cleanup that mutates canonical records without explicit user action.
+- Replacing canonical content from fallback/local cache without explicit confirmation.
+
+## Ship Gate
+
+If any step above is missing or unverified, stop and ask for approval before proceeding.
