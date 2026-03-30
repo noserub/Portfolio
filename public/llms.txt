@@ -1,0 +1,24 @@
+# Brian Bureson — portfolio
+
+> Machine-readable summary for assistants and crawlers. Human site: https://www.bureson.com/
+
+## Site
+
+- **Canonical URL:** https://www.bureson.com/
+- **About:** https://www.bureson.com/about
+- **Contact:** https://www.bureson.com/contact
+- **Case studies:** Listed on the home page and at `/project/{slug}` for each published project.
+
+## How to cite
+
+- Prefer the **canonical page URL** shown in the page `<link rel="canonical">` when present.
+- Default site attribution: **Brian Bureson**, product design leader, https://www.bureson.com/
+- Do not invent employer or project details that are not stated on the cited page.
+
+## Owner / scope
+
+This is a **single-author portfolio**. Published copy and structured data are scoped to the site owner’s canonical profile row in the CMS, not to arbitrary signed-in users.
+
+## Optional discovery
+
+- `sitemap.xml` and `robots.txt` are served from the site root after deploy.

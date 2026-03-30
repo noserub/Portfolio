@@ -493,7 +493,10 @@ export function ProjectDetail({ project, onBack, onUpdate: pushProjectUpdate, is
   );
   
   // Update SEO metadata for case study page
-  useCaseStudySEO(project.id, project.title);
+  useCaseStudySEO(project.id, project.title, {
+    createdAt: project.createdAt,
+    updatedAt: project.updatedAt,
+  });
   
   // Load case study SEO when project changes
   useEffect(() => {

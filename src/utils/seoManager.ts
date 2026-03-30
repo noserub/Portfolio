@@ -27,6 +27,10 @@ export interface SitewideSEO {
   faviconGradientStart?: string; // Hex color for gradient start (default: "#8b5cf6")
   faviconGradientEnd?: string; // Hex color for gradient end (default: "#3b82f6")
   faviconImageUrl?: string; // Custom favicon image (data URI or URL)
+  /** Newline- or comma-separated profile URLs (LinkedIn, GitHub, etc.) for JSON-LD sameAs */
+  sameAs?: string;
+  /** Optional brand logo URL for Organization schema (falls back to default OG image) */
+  organizationLogoUrl?: string;
 }
 
 export interface AllSEOData {
@@ -86,6 +90,8 @@ const DEFAULT_SEO_DATA: AllSEOData = {
     faviconGradientStart: '#8b5cf6',
     faviconGradientEnd: '#3b82f6',
     faviconImageUrl: '',
+    sameAs: '',
+    organizationLogoUrl: '',
   },
   pages: {
     home: {
@@ -184,6 +190,8 @@ type SeoDataRow = {
   favicon_gradient_start?: string | null;
   favicon_gradient_end?: string | null;
   favicon_image?: string | null;
+  same_as?: string | null;
+  organization_logo_url?: string | null;
 };
 
 const cloneDefaults = (): AllSEOData => ({
@@ -255,6 +263,8 @@ function mergeSEODataFromRows(rows: SeoDataRow[], base?: AllSEOData): AllSEOData
         faviconGradientStart: row.favicon_gradient_start ?? merged.sitewide.faviconGradientStart,
         faviconGradientEnd: row.favicon_gradient_end ?? merged.sitewide.faviconGradientEnd,
         faviconImageUrl: row.favicon_image ?? merged.sitewide.faviconImageUrl,
+        sameAs: row.same_as ?? merged.sitewide.sameAs,
+        organizationLogoUrl: row.organization_logo_url ?? merged.sitewide.organizationLogoUrl,
       };
       continue;
     }
@@ -290,6 +300,9 @@ export function getSEOData(): AllSEOData {
           ...parsed.sitewide,
           siteUrl: parsed.sitewide?.siteUrl || base.sitewide.siteUrl,
           defaultOGImage: parsed.sitewide?.defaultOGImage || base.sitewide.defaultOGImage,
+          sameAs: parsed.sitewide?.sameAs ?? base.sitewide.sameAs,
+          organizationLogoUrl:
+            parsed.sitewide?.organizationLogoUrl ?? base.sitewide.organizationLogoUrl,
         },
         pages: {
           home: { ...base.pages.home, ...parsed.pages?.home },
@@ -443,6 +456,8 @@ export async function saveSEOData(data: AllSEOData): Promise<void> {
           favicon_gradient_start: normalized.sitewide.faviconGradientStart || '#8b5cf6',
           favicon_gradient_end: normalized.sitewide.faviconGradientEnd || '#3b82f6',
           favicon_image: normalized.sitewide.faviconImageUrl || null,
+          same_as: normalized.sitewide.sameAs?.trim() || null,
+          organization_logo_url: normalized.sitewide.organizationLogoUrl?.trim() || null,
         },
       },
       { pageType: 'home', payload: toSeoRowPayload(normalized.pages.home) },

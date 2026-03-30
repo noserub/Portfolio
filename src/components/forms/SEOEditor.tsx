@@ -429,6 +429,29 @@ export function SEOEditor({ isOpen, onClose }: SEOEditorProps) {
                 </div>
 
                 <div className="space-y-2">
+                  <Label htmlFor="org-logo-url" className="text-muted-foreground">Organization logo URL (JSON-LD)</Label>
+                  <Input
+                    id="org-logo-url"
+                    value={seoData.sitewide.organizationLogoUrl || ''}
+                    onChange={(e) => updateSitewide('organizationLogoUrl', e.target.value)}
+                    className="bg-background border-border text-foreground"
+                    placeholder="Optional — square/rect brand logo; defaults to OG image if empty"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="same-as-urls" className="text-muted-foreground">Profile sameAs URLs (JSON-LD)</Label>
+                  <Textarea
+                    id="same-as-urls"
+                    value={seoData.sitewide.sameAs || ''}
+                    onChange={(e) => updateSitewide('sameAs', e.target.value)}
+                    className="bg-background border-border text-foreground min-h-[88px] font-mono text-sm"
+                    placeholder={'https://www.linkedin.com/in/...\nhttps://github.com/...'}
+                  />
+                  <p className="text-xs text-foreground/50">One https URL per line or comma-separated. Merged with VITE_PUBLIC_SAME_AS at build/runtime.</p>
+                </div>
+
+                <div className="space-y-2">
                   <Label htmlFor="default-twitter-card" className="text-muted-foreground">Default Twitter Card Type</Label>
                   <Select
                     value={seoData.sitewide.defaultTwitterCard}
