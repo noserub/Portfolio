@@ -827,17 +827,6 @@ function AppShell() {
     };
   }, [currentRoute, currentPage, selectedProject]);
 
-  // Guard against getting stuck on project-detail without a resolved project
-  // (e.g., deep-link refresh where slug cannot be resolved quickly).
-  useEffect(() => {
-    if (currentPage !== "project-detail" || selectedProject) return;
-    const timeoutId = window.setTimeout(() => {
-      setCurrentPage("home");
-      setSelectedProject(null);
-    }, 1800);
-    return () => window.clearTimeout(timeoutId);
-  }, [currentPage, selectedProject]);
-
   // Function to create friendly slug from title
   const createSlug = (title: string): string => {
     return title
@@ -856,7 +845,17 @@ function AppShell() {
 
       if (authUser.user) {
         const { data, error } = await supabase.from("projects").select("*");
-        if (data && !error) rows = data as Record<string, unknown>[];
+        if (data && !error) {
+          rows = data as Record<string, unknown>[];
+        }
+        // Signed-in users can still miss rows due ownership/RLS mismatch.
+        // Fall back to the public RPC so deep-link refresh still resolves.
+        if (!rows?.length) {
+          const publicRes = await supabase.rpc("get_projects_public");
+          if (publicRes.data && !publicRes.error) {
+            rows = publicRes.data as Record<string, unknown>[];
+          }
+        }
       } else {
         const { data, error } = await supabase.rpc("get_projects_public");
         if (data && !error) rows = data as Record<string, unknown>[];
