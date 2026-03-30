@@ -837,32 +837,53 @@ function AppShell() {
       .trim();
   };
 
+  const normalizeRouteSlug = (slug: string): string => {
+    const decoded = decodeURIComponent((slug || "").trim());
+    return decoded.replace(/^\/+|\/+$/g, "").toLowerCase();
+  };
+
   // Function to find project by friendly slug
   const findProjectBySlug = async (slug: string): Promise<ProjectData | null> => {
     try {
+      const targetSlug = normalizeRouteSlug(slug);
+      const withTimeout = async <T,>(p: Promise<T>, ms = 5000): Promise<T> =>
+        await Promise.race([
+          p,
+          new Promise<T>((_, reject) => {
+            window.setTimeout(() => reject(new Error("project-slug-lookup-timeout")), ms);
+          }),
+        ]);
+
       const { data: authUser } = await supabase.auth.getUser();
       let rows: Record<string, unknown>[] | null = null;
 
       if (authUser.user) {
-        const { data, error } = await supabase.from("projects").select("*");
+        const { data, error } = await withTimeout(supabase.from("projects").select("*"));
         if (data && !error) {
           rows = data as Record<string, unknown>[];
         }
         // Signed-in users can still miss rows due ownership/RLS mismatch.
         // Fall back to the public RPC so deep-link refresh still resolves.
         if (!rows?.length) {
-          const publicRes = await supabase.rpc("get_projects_public");
+          const publicRes = await withTimeout(supabase.rpc("get_projects_public"));
           if (publicRes.data && !publicRes.error) {
             rows = publicRes.data as Record<string, unknown>[];
           }
         }
       } else {
-        const { data, error } = await supabase.rpc("get_projects_public");
+        const { data, error } = await withTimeout(supabase.rpc("get_projects_public"));
         if (data && !error) rows = data as Record<string, unknown>[];
       }
 
       if (rows?.length) {
-        const raw = rows.find((p) => createSlug(String(p.title ?? "")) === slug);
+        const raw = rows.find((p) => {
+          const projectSlug = createSlug(String(p.title ?? ""));
+          return (
+            projectSlug === targetSlug ||
+            projectSlug.startsWith(targetSlug) ||
+            targetSlug.startsWith(projectSlug)
+          );
+        });
         if (raw) return mapSupabaseProjectRowToProjectData(raw);
       }
       
@@ -870,14 +891,28 @@ function AppShell() {
       const caseStudies = localStorage.getItem('caseStudies');
       if (caseStudies) {
         const projects = JSON.parse(caseStudies);
-        const project = projects.find((p: any) => createSlug(p.title) === slug);
+        const project = projects.find((p: any) => {
+          const projectSlug = createSlug(String(p.title ?? ""));
+          return (
+            projectSlug === targetSlug ||
+            projectSlug.startsWith(targetSlug) ||
+            targetSlug.startsWith(projectSlug)
+          );
+        });
         if (project) return project;
       }
       
       const designProjects = localStorage.getItem('designProjects');
       if (designProjects) {
         const projects = JSON.parse(designProjects);
-        const project = projects.find((p: any) => createSlug(p.title) === slug);
+        const project = projects.find((p: any) => {
+          const projectSlug = createSlug(String(p.title ?? ""));
+          return (
+            projectSlug === targetSlug ||
+            projectSlug.startsWith(targetSlug) ||
+            targetSlug.startsWith(projectSlug)
+          );
+        });
         if (project) return project;
       }
       
