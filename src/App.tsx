@@ -243,9 +243,10 @@ function AppShell() {
     if (pathname === '/' || pathname === '') {
       return "home";
     } else if (pathname.startsWith('/project/')) {
-      // Set to project-detail immediately for project URLs
-      // The URL parsing will load the project data
-      return "project-detail";
+      // Start on home and resolve deep-link project asynchronously.
+      // Avoid initializing project-detail without selectedProject, which can trap
+      // the app in a loading shell if async route resolution stalls.
+      return "home";
     } else if (pathname.startsWith('/')) {
       const page = pathname.substring(1) as Page;
       if (['about', 'contact', 'messages'].includes(page)) {
