@@ -10,7 +10,7 @@ const ROOT = process.cwd();
 const indexPath = path.join(ROOT, 'index.html');
 
 // Default SEO data (matches DEFAULT_SEO_DATA in seoManager.ts)
-const defaultSiteUrl = process.env.SITE_URL || 'https://brianbureson.com';
+const defaultSiteUrl = process.env.SITE_URL || 'https://www.bureson.com';
 const defaultAuthor = 'Brian Bureson';
 const siteName = 'Brian Bureson - Product Design Leader';
 

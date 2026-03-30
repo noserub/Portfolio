@@ -402,7 +402,7 @@ export function SEOEditor({ isOpen, onClose }: SEOEditorProps) {
                     value={seoData.sitewide.siteUrl}
                     onChange={(e) => updateSitewide('siteUrl', e.target.value)}
                     className="bg-background border-border text-foreground"
-                    placeholder="https://brianbureson.com"
+                    placeholder="https://www.bureson.com"
                   />
                 </div>
 

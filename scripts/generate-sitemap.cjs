@@ -89,7 +89,7 @@ function generateRobots(baseUrl) {
 }
 
 function main() {
-  const baseUrl = (process.env.SITE_URL || 'https://brianbureson.com').replace(/\/+$/, '');
+  const baseUrl = (process.env.SITE_URL || 'https://www.bureson.com').replace(/\/+$/, '');
   ensureDir(distDir);
   fs.writeFileSync(path.join(distDir, 'sitemap.xml'), generateSitemap(baseUrl));
   fs.writeFileSync(path.join(distDir, 'robots.txt'), generateRobots(baseUrl));

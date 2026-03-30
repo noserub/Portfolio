@@ -8,5 +8,5 @@ Disallow: /*?diagnostic=true
 Disallow: /*?emergency=true
 
 # Sitemap location (will be updated with actual domain)
-Sitemap: https://brianbureson.com/sitemap.xml
+Sitemap: https://www.bureson.com/sitemap.xml
 

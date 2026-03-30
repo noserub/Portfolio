@@ -50,7 +50,7 @@ const getSiteUrl = (): string => {
     }
   }
   // Fallback to default (can be overridden via localStorage or environment variable at build time)
-  return 'https://brianbureson.com';
+  return 'https://www.bureson.com';
 };
 
 const DEFAULT_SEO_DATA: AllSEOData = {
