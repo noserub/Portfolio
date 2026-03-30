@@ -4,7 +4,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
-const DEFAULT_FROM_EMAIL = 'Portfolio <noreply@bureson.com>'
+/** Resend “from” identity (must be verified in Resend). Not your personal contact email. */
+const DEFAULT_FROM_EMAIL = 'Portfolio <noreply@brianbureson.com>'
 
 serve(async (req) => {
   // Handle CORS
