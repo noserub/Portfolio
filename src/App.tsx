@@ -945,6 +945,39 @@ function AppShell() {
     };
   }, []);
 
+  // Recovery path: if we are on /project/... but no project is selected yet,
+  // retry slug resolution so we don't get stuck on RouteFallback indefinitely.
+  useEffect(() => {
+    if (currentPage !== "project-detail" || selectedProject) return;
+    const pathname = window.location.pathname;
+    if (!pathname.startsWith("/project/")) return;
+
+    let cancelled = false;
+    const retryResolve = async () => {
+      const rawSlug = pathname.split("/project/")[1] || "";
+      const projectSlug = rawSlug.split("?")[0]?.split("#")[0]?.replace(/\/+$/, "");
+      if (!projectSlug) {
+        setCurrentPage("home");
+        setSelectedProject(null);
+        return;
+      }
+      const project = await findProjectBySlug(projectSlug);
+      if (cancelled) return;
+      if (project) {
+        await navigateToProject(project as ProjectData, () => {});
+      } else {
+        console.warn("Project not found during recovery:", projectSlug);
+        setCurrentPage("home");
+        setSelectedProject(null);
+      }
+    };
+
+    void retryResolve();
+    return () => {
+      cancelled = true;
+    };
+  }, [currentPage, selectedProject]);
+
   // NOW ALL HOOKS ARE DECLARED - SAFE TO DO CONDITIONAL RENDERING
   // If in emergency mode, show emergency recovery
   if (isEmergencyMode) {
