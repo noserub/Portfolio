@@ -194,6 +194,63 @@ export default function App() {
   );
 }
 
+/** Supabase `projects` row payload from UI `ProjectData` (includes gallery section positions + video order). */
+function buildProjectUpdatePayloadForSupabase(
+  sanitizedProject: ProjectData & Record<string, any>,
+): Record<string, any> {
+  const projectData: any = {
+    title: sanitizedProject.title,
+    description: sanitizedProject.description,
+    url: sanitizedProject.url,
+    position_x: sanitizedProject.position?.x || 50,
+    position_y: sanitizedProject.position?.y || 50,
+    scale: sanitizedProject.scale || 1,
+    published: sanitizedProject.published || false,
+    requires_password: sanitizedProject.requiresPassword || false,
+    password: (sanitizedProject as any).password || "",
+    case_study_content: sanitizedProject.caseStudyContent,
+    case_study_images: sanitizedProject.caseStudyImages || [],
+    flow_diagram_images: sanitizedProject.flowDiagramImages || [],
+    video_items: sanitizedProject.videoItems || [],
+    gallery_aspect_ratio: sanitizedProject.galleryAspectRatio || "3x4",
+    flow_diagram_aspect_ratio: sanitizedProject.flowDiagramAspectRatio || "3x4",
+    video_aspect_ratio: sanitizedProject.videoAspectRatio || "3x4",
+    gallery_columns: sanitizedProject.galleryColumns || 1,
+    flow_diagram_columns: sanitizedProject.flowDiagramColumns || 1,
+    video_columns: sanitizedProject.videoColumns || 1,
+    project_images_position: sanitizedProject.projectImagesPosition,
+    videos_position: sanitizedProject.videosPosition,
+    flow_diagrams_position: sanitizedProject.flowDiagramsPosition,
+    section_positions: sanitizedProject.sectionPositions || {},
+    case_study_sidebars:
+      (sanitizedProject as any).caseStudySidebars || (sanitizedProject as any).case_study_sidebars || undefined,
+    sort_order: (sanitizedProject as any).sortOrder || 0,
+    project_type: sanitizedProject.projectType || (sanitizedProject as any).project_type || null,
+  };
+
+  if ((sanitizedProject as any).keyFeaturesColumns !== undefined) {
+    projectData.key_features_columns = parseColumnsValue((sanitizedProject as any).keyFeaturesColumns, [2, 3], 3);
+  }
+
+  if ((sanitizedProject as any).researchInsightsColumns !== undefined) {
+    projectData.research_insights_columns = parseColumnsValue(
+      (sanitizedProject as any).researchInsightsColumns,
+      [1, 2, 3],
+      3,
+    );
+  }
+
+  if ((sanitizedProject as any).solutionCardsPosition !== undefined) {
+    projectData.solution_cards_position = sanitizedProject.solutionCardsPosition;
+  }
+
+  projectData.case_study_decorative_icons = Boolean(
+    sanitizedProject.caseStudyDecorativeIcons ?? (sanitizedProject as any).case_study_decorative_icons,
+  );
+
+  return projectData;
+}
+
 function AppShell() {
   const { isSupabaseAuthenticated } = useSiteAuth();
   const [isDiagnosticMode, setIsDiagnosticMode] = useState(false);
@@ -1357,93 +1414,55 @@ function AppShell() {
       ...sanitizedProject,
       _navTimestamp: (selectedProject as any)?._navTimestamp || Date.now()
     } as any);
-    
+
+    // Always persist when editing: Home's callback used to be the only DB path, but deep links use a noop
+    // callback — those edits never reached Supabase. Also ensure `videos_position` / gallery indices save.
+    try {
+      const projectData = buildProjectUpdatePayloadForSupabase(sanitizedProject);
+      await updateProject(sanitizedProject.id, projectData);
+      console.log("✅ Project persisted to Supabase:", {
+        id: sanitizedProject.id,
+        hasSidebars: !!projectData.case_study_sidebars,
+      });
+    } catch (error) {
+      console.error("❌ Failed to persist project to Supabase:", error);
+    }
+
     if (projectUpdateCallback) {
-      projectUpdateCallback.fn(sanitizedProject);
-    
+      // Home also calls updateProject unless this flag is set (avoids duplicate writes).
+      projectUpdateCallback.fn({ ...sanitizedProject, _skipDbPersist: true } as any);
+
       // Silent verification - log warnings to console only (no annoying alerts)
       setTimeout(() => {
         try {
-          const caseStudiesData = localStorage.getItem('caseStudies');
+          const caseStudiesData = localStorage.getItem("caseStudies");
           if (caseStudiesData) {
             const caseStudies = JSON.parse(caseStudiesData);
             const savedProject = caseStudies.find((p: ProjectData) => p.id === sanitizedProject.id);
-            
+
             if (!savedProject) {
-              console.warn('⚠️ Save verification: Project not found in localStorage after save');
-            } else if ((sanitizedProject.caseStudyImages?.length || 0) !== (savedProject?.caseStudyImages?.length || 0)) {
-              console.warn('⚠️ Save verification: Image count mismatch', {
+              console.warn("⚠️ Save verification: Project not found in localStorage after save");
+            } else if (
+              (sanitizedProject.caseStudyImages?.length || 0) !== (savedProject?.caseStudyImages?.length || 0)
+            ) {
+              console.warn("⚠️ Save verification: Image count mismatch", {
                 expected: sanitizedProject.caseStudyImages?.length || 0,
-                actual: savedProject?.caseStudyImages?.length || 0
+                actual: savedProject?.caseStudyImages?.length || 0,
               });
             } else {
-              console.log('✅ Save verified successfully');
+              console.log("✅ Save verified successfully");
             }
           }
         } catch (e) {
-          console.warn('Save verification failed:', e);
+          console.warn("Save verification failed:", e);
         }
       }, 100);
-      
+
       setShowSaveIndicator(true);
       setTimeout(() => setShowSaveIndicator(false), 3000);
     } else {
-      // Fallback: persist directly to Supabase if callback isn't available
-      console.log('⚠️ No update callback available, persisting directly to Supabase');
-      try {
-        // Convert camelCase to snake_case for Supabase
-        const projectData: any = {
-          title: sanitizedProject.title,
-          description: sanitizedProject.description,
-          url: sanitizedProject.url,
-          position_x: sanitizedProject.position?.x || 50,
-          position_y: sanitizedProject.position?.y || 50,
-          scale: sanitizedProject.scale || 1,
-          published: sanitizedProject.published || false,
-          requires_password: sanitizedProject.requiresPassword || false,
-          password: (sanitizedProject as any).password || '',
-          case_study_content: sanitizedProject.caseStudyContent,
-          case_study_images: sanitizedProject.caseStudyImages || [],
-          flow_diagram_images: sanitizedProject.flowDiagramImages || [],
-          video_items: sanitizedProject.videoItems || [],
-          gallery_aspect_ratio: sanitizedProject.galleryAspectRatio || '3x4',
-          flow_diagram_aspect_ratio: sanitizedProject.flowDiagramAspectRatio || '3x4',
-          video_aspect_ratio: sanitizedProject.videoAspectRatio || '3x4',
-          gallery_columns: sanitizedProject.galleryColumns || 1,
-          flow_diagram_columns: sanitizedProject.flowDiagramColumns || 1,
-          video_columns: sanitizedProject.videoColumns || 1,
-          project_images_position: sanitizedProject.projectImagesPosition,
-          videos_position: sanitizedProject.videosPosition,
-          flow_diagrams_position: sanitizedProject.flowDiagramsPosition,
-          section_positions: sanitizedProject.sectionPositions || {},
-          case_study_sidebars: (sanitizedProject as any).caseStudySidebars || (sanitizedProject as any).case_study_sidebars || undefined,
-          sort_order: (sanitizedProject as any).sortOrder || 0,
-          project_type: sanitizedProject.projectType || (sanitizedProject as any).project_type || null
-        };
-        
-        if ((sanitizedProject as any).keyFeaturesColumns !== undefined) {
-          projectData.key_features_columns = parseColumnsValue((sanitizedProject as any).keyFeaturesColumns, [2, 3], 3);
-        }
-
-        if ((sanitizedProject as any).researchInsightsColumns !== undefined) {
-          projectData.research_insights_columns = parseColumnsValue((sanitizedProject as any).researchInsightsColumns, [1, 2, 3], 3);
-        }
-
-        if ((sanitizedProject as any).solutionCardsPosition !== undefined) {
-          projectData.solution_cards_position = sanitizedProject.solutionCardsPosition;
-        }
-
-        projectData.case_study_decorative_icons = Boolean(
-          sanitizedProject.caseStudyDecorativeIcons ?? (sanitizedProject as any).case_study_decorative_icons
-        );
-        
-        await updateProject(sanitizedProject.id, projectData);
-        console.log('✅ Project persisted directly to Supabase:', { id: sanitizedProject.id, hasSidebars: !!projectData.case_study_sidebars });
-        setShowSaveIndicator(true);
-        setTimeout(() => setShowSaveIndicator(false), 3000);
-      } catch (error) {
-        console.error('❌ Failed to persist project directly to Supabase:', error);
-      }
+      setShowSaveIndicator(true);
+      setTimeout(() => setShowSaveIndicator(false), 3000);
     }
   };
 

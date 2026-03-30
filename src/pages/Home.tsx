@@ -2658,51 +2658,59 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
   };
 
   const handleUpdateProject = async (updatedProject: ProjectData, type: 'caseStudies' | 'design', skipRefetch = false) => {
+    const skipDbPersist = Boolean((updatedProject as any)._skipDbPersist);
+    const cleanProject = { ...(updatedProject as any) };
+    delete (cleanProject as any)._skipDbPersist;
+
     console.log('🏠 Home: handleUpdateProject called:', {
-      id: updatedProject.id,
-      title: updatedProject.title,
-      contentLength: updatedProject.caseStudyContent?.length || 0,
+      id: cleanProject.id,
+      title: cleanProject.title,
+      contentLength: cleanProject.caseStudyContent?.length || 0,
       type,
       skipRefetch,
-      requiresPassword: updatedProject.requiresPassword,
-      'Full updatedProject': updatedProject
+      skipDbPersist,
+      requiresPassword: cleanProject.requiresPassword,
+      'Full updatedProject': cleanProject
     });
     
     try {
       // Convert to Supabase format
-      const solutionCardsPositionRaw = updatedProject.solutionCardsPosition ?? (updatedProject as any).solution_cards_position;
+      const solutionCardsPositionRaw = cleanProject.solutionCardsPosition ?? (cleanProject as any).solution_cards_position;
  
       const projectData = {
-        title: updatedProject.title,
-        description: updatedProject.description,
-        url: updatedProject.url,
-        position_x: updatedProject.position?.x || 50,
-        position_y: updatedProject.position?.y || 50,
-        scale: updatedProject.scale || 1,
-        published: updatedProject.published || false,
-        requires_password: updatedProject.requiresPassword || false,
-        password: (updatedProject as any).password || '',
-        case_study_content: updatedProject.caseStudyContent,
-        case_study_images: updatedProject.caseStudyImages || [],
-        flow_diagram_images: updatedProject.flowDiagramImages || [],
-        video_items: updatedProject.videoItems || [],
-        gallery_aspect_ratio: updatedProject.galleryAspectRatio || '3x4',
-        flow_diagram_aspect_ratio: updatedProject.flowDiagramAspectRatio || '3x4',
-        video_aspect_ratio: updatedProject.videoAspectRatio || '3x4',
-        gallery_columns: updatedProject.galleryColumns || 1,
-        flow_diagram_columns: updatedProject.flowDiagramColumns || 1,
-        video_columns: updatedProject.videoColumns || 1,
-        section_positions: updatedProject.sectionPositions || {},
+        title: cleanProject.title,
+        description: cleanProject.description,
+        url: cleanProject.url,
+        position_x: cleanProject.position?.x || 50,
+        position_y: cleanProject.position?.y || 50,
+        scale: cleanProject.scale || 1,
+        published: cleanProject.published || false,
+        requires_password: cleanProject.requiresPassword || false,
+        password: (cleanProject as any).password || '',
+        case_study_content: cleanProject.caseStudyContent,
+        case_study_images: cleanProject.caseStudyImages || [],
+        flow_diagram_images: cleanProject.flowDiagramImages || [],
+        video_items: cleanProject.videoItems || [],
+        gallery_aspect_ratio: cleanProject.galleryAspectRatio || '3x4',
+        flow_diagram_aspect_ratio: cleanProject.flowDiagramAspectRatio || '3x4',
+        video_aspect_ratio: cleanProject.videoAspectRatio || '3x4',
+        gallery_columns: cleanProject.galleryColumns || 1,
+        flow_diagram_columns: cleanProject.flowDiagramColumns || 1,
+        video_columns: cleanProject.videoColumns || 1,
+        project_images_position: cleanProject.projectImagesPosition ?? null,
+        videos_position: cleanProject.videosPosition ?? null,
+        flow_diagrams_position: cleanProject.flowDiagramsPosition ?? null,
+        section_positions: cleanProject.sectionPositions || {},
         // NEW: persist JSON sidebars if present
-        case_study_sidebars: (updatedProject as any).caseStudySidebars || (updatedProject as any).case_study_sidebars || undefined,
-        sort_order: (updatedProject as any).sortOrder || 0,
-        project_type: updatedProject.projectType || (updatedProject as any).project_type || null,
+        case_study_sidebars: (cleanProject as any).caseStudySidebars || (cleanProject as any).case_study_sidebars || undefined,
+        sort_order: (cleanProject as any).sortOrder || 0,
+        project_type: cleanProject.projectType || (cleanProject as any).project_type || null,
         case_study_decorative_icons: Boolean(
-          updatedProject.caseStudyDecorativeIcons ?? (updatedProject as any).case_study_decorative_icons
+          cleanProject.caseStudyDecorativeIcons ?? (cleanProject as any).case_study_decorative_icons
         ),
       };
 
-      const rawKeyFeaturesColumns = (updatedProject as any).keyFeaturesColumns ?? (updatedProject as any).key_features_columns;
+      const rawKeyFeaturesColumns = (cleanProject as any).keyFeaturesColumns ?? (cleanProject as any).key_features_columns;
       if (rawKeyFeaturesColumns !== undefined && rawKeyFeaturesColumns !== null) {
         const normalizedKeyFeaturesColumns = Number(rawKeyFeaturesColumns);
         if ([2, 3].includes(normalizedKeyFeaturesColumns)) {
@@ -2710,7 +2718,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         }
       }
 
-      const rawResearchInsightsColumns = (updatedProject as any).researchInsightsColumns ?? (updatedProject as any).research_insights_columns;
+      const rawResearchInsightsColumns = (cleanProject as any).researchInsightsColumns ?? (cleanProject as any).research_insights_columns;
       if (rawResearchInsightsColumns !== undefined && rawResearchInsightsColumns !== null) {
         const normalizedResearchInsightsColumns = Number(rawResearchInsightsColumns);
         if ([1, 2, 3].includes(normalizedResearchInsightsColumns)) {
@@ -2723,29 +2731,29 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
       }
 
       console.log('🔄 Home: Calling updateProject with data:', {
-        id: updatedProject.id,
+        id: cleanProject.id,
         case_study_content_length: projectData.case_study_content?.length || 0,
         requires_password: projectData.requires_password,
         project_type: projectData.project_type,
         project_type_type: typeof projectData.project_type,
-        'updatedProject.projectType': updatedProject.projectType,
-        'updatedProject.project_type': (updatedProject as any).project_type,
+        'updatedProject.projectType': cleanProject.projectType,
+        'updatedProject.project_type': (cleanProject as any).project_type,
         'projectData keys': Object.keys(projectData),
         'has project_type in projectData': 'project_type' in projectData
       });
       
       // DEBUG: Detailed content comparison
       console.log('🔍 DEBUG: Content comparison:', {
-        'updatedProject.caseStudyContent length': updatedProject.caseStudyContent?.length || 0,
-        'updatedProject.caseStudyContent preview': updatedProject.caseStudyContent?.substring(0, 100) + '...',
+        'updatedProject.caseStudyContent length': cleanProject.caseStudyContent?.length || 0,
+        'updatedProject.caseStudyContent preview': cleanProject.caseStudyContent?.substring(0, 100) + '...',
         'projectData.case_study_content length': projectData.case_study_content?.length || 0,
         'projectData.case_study_content preview': projectData.case_study_content?.substring(0, 100) + '...',
-        'Are they equal?': updatedProject.caseStudyContent === projectData.case_study_content
+        'Are they equal?': cleanProject.caseStudyContent === projectData.case_study_content
       });
 
-      const result = await updateProject(updatedProject.id, projectData);
+      const result = skipDbPersist ? (cleanProject as any) : await updateProject(cleanProject.id, projectData);
       if (result) {
-        console.log('✅ Project updated in Supabase:', updatedProject.id, {
+        console.log('✅ Project updated in Supabase:', cleanProject.id, {
           result_project_type: (result as any).project_type,
           result_projectType: (result as any).projectType
         });
@@ -2764,40 +2772,40 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
           }
           
           // Find and update the project
-          const projectIndex = projects.findIndex((p: any) => p.id === updatedProject.id);
+          const projectIndex = projects.findIndex((p: any) => p.id === cleanProject.id);
           if (projectIndex !== -1) {
             // Update the project with new content
             (projects as any)[projectIndex] = {
               ...(projects as any)[projectIndex],
-              title: updatedProject.title,
-              description: updatedProject.description,
-              projectType: updatedProject.projectType,
-              project_type: updatedProject.projectType || (updatedProject as any).project_type,
-              caseStudyContent: updatedProject.caseStudyContent,
-              case_study_content: updatedProject.caseStudyContent,
-              caseStudyImages: updatedProject.caseStudyImages,
-              flowDiagramImages: updatedProject.flowDiagramImages,
-              videoItems: updatedProject.videoItems,
-              galleryAspectRatio: updatedProject.galleryAspectRatio,
-              flowDiagramAspectRatio: updatedProject.flowDiagramAspectRatio,
-              videoAspectRatio: updatedProject.videoAspectRatio,
-              galleryColumns: updatedProject.galleryColumns,
-              flowDiagramColumns: updatedProject.flowDiagramColumns,
-              videoColumns: updatedProject.videoColumns,
-              projectImagesPosition: updatedProject.projectImagesPosition,
-              videosPosition: updatedProject.videosPosition,
-              flowDiagramsPosition: updatedProject.flowDiagramsPosition,
-              solutionCardsPosition: updatedProject.solutionCardsPosition,
-              sectionPositions: updatedProject.sectionPositions,
-              caseStudySidebars: (updatedProject as any).caseStudySidebars,
+              title: cleanProject.title,
+              description: cleanProject.description,
+              projectType: cleanProject.projectType,
+              project_type: cleanProject.projectType || (cleanProject as any).project_type,
+              caseStudyContent: cleanProject.caseStudyContent,
+              case_study_content: cleanProject.caseStudyContent,
+              caseStudyImages: cleanProject.caseStudyImages,
+              flowDiagramImages: cleanProject.flowDiagramImages,
+              videoItems: cleanProject.videoItems,
+              galleryAspectRatio: cleanProject.galleryAspectRatio,
+              flowDiagramAspectRatio: cleanProject.flowDiagramAspectRatio,
+              videoAspectRatio: cleanProject.videoAspectRatio,
+              galleryColumns: cleanProject.galleryColumns,
+              flowDiagramColumns: cleanProject.flowDiagramColumns,
+              videoColumns: cleanProject.videoColumns,
+              projectImagesPosition: cleanProject.projectImagesPosition,
+              videosPosition: cleanProject.videosPosition,
+              flowDiagramsPosition: cleanProject.flowDiagramsPosition,
+              solutionCardsPosition: cleanProject.solutionCardsPosition,
+              sectionPositions: cleanProject.sectionPositions,
+              caseStudySidebars: (cleanProject as any).caseStudySidebars,
               case_study_sidebars:
-                (updatedProject as any).caseStudySidebars ?? (updatedProject as any).case_study_sidebars,
-              keyFeaturesColumns: (updatedProject as any).keyFeaturesColumns,
-              key_features_columns: (updatedProject as any).key_features_columns,
-              researchInsightsColumns: (updatedProject as any).researchInsightsColumns,
-              research_insights_columns: (updatedProject as any).research_insights_columns,
-              caseStudyDecorativeIcons: updatedProject.caseStudyDecorativeIcons,
-              case_study_decorative_icons: updatedProject.caseStudyDecorativeIcons,
+                (cleanProject as any).caseStudySidebars ?? (cleanProject as any).case_study_sidebars,
+              keyFeaturesColumns: (cleanProject as any).keyFeaturesColumns,
+              key_features_columns: (cleanProject as any).key_features_columns,
+              researchInsightsColumns: (cleanProject as any).researchInsightsColumns,
+              research_insights_columns: (cleanProject as any).research_insights_columns,
+              caseStudyDecorativeIcons: cleanProject.caseStudyDecorativeIcons,
+              case_study_decorative_icons: cleanProject.caseStudyDecorativeIcons,
               lastModified: new Date().toISOString()
             };
             
@@ -2824,32 +2832,32 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
           }
           
           // Find and update the project
-          const projectIndex = projects.findIndex((p: any) => p.id === updatedProject.id);
+          const projectIndex = projects.findIndex((p: any) => p.id === cleanProject.id);
           if (projectIndex !== -1) {
             // Update the project with new content
             (projects as any)[projectIndex] = {
               ...(projects as any)[projectIndex],
-              title: updatedProject.title,
-              description: updatedProject.description,
-              caseStudyContent: updatedProject.caseStudyContent,
-              caseStudyImages: updatedProject.caseStudyImages,
-              flowDiagramImages: updatedProject.flowDiagramImages,
-              videoItems: updatedProject.videoItems,
-              galleryAspectRatio: updatedProject.galleryAspectRatio,
-              flowDiagramAspectRatio: updatedProject.flowDiagramAspectRatio,
-              videoAspectRatio: updatedProject.videoAspectRatio,
-              galleryColumns: updatedProject.galleryColumns,
-              flowDiagramColumns: updatedProject.flowDiagramColumns,
-              videoColumns: updatedProject.videoColumns,
-              projectImagesPosition: updatedProject.projectImagesPosition,
-              videosPosition: updatedProject.videosPosition,
-              flowDiagramsPosition: updatedProject.flowDiagramsPosition,
-              solutionCardsPosition: updatedProject.solutionCardsPosition,
+              title: cleanProject.title,
+              description: cleanProject.description,
+              caseStudyContent: cleanProject.caseStudyContent,
+              caseStudyImages: cleanProject.caseStudyImages,
+              flowDiagramImages: cleanProject.flowDiagramImages,
+              videoItems: cleanProject.videoItems,
+              galleryAspectRatio: cleanProject.galleryAspectRatio,
+              flowDiagramAspectRatio: cleanProject.flowDiagramAspectRatio,
+              videoAspectRatio: cleanProject.videoAspectRatio,
+              galleryColumns: cleanProject.galleryColumns,
+              flowDiagramColumns: cleanProject.flowDiagramColumns,
+              videoColumns: cleanProject.videoColumns,
+              projectImagesPosition: cleanProject.projectImagesPosition,
+              videosPosition: cleanProject.videosPosition,
+              flowDiagramsPosition: cleanProject.flowDiagramsPosition,
+              solutionCardsPosition: cleanProject.solutionCardsPosition,
               lastModified: new Date().toISOString()
             };
             
             localStorage.setItem(storageKey, JSON.stringify(projects));
-            console.log('✅ Project updated in localStorage:', updatedProject.id);
+            console.log('✅ Project updated in localStorage:', cleanProject.id);
             
             // Trigger re-render
             setLocalStorageVersion(prev => prev + 1);
@@ -2859,7 +2867,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
           } else {
             console.log('⚠️ Project not in localStorage; upserting full project for offline recovery');
             projects.push({
-              ...updatedProject,
+              ...cleanProject,
               lastModified: new Date().toISOString(),
             });
             localStorage.setItem(storageKey, JSON.stringify(projects));
