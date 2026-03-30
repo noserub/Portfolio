@@ -297,15 +297,15 @@ function AppShell() {
     const loadGlobalFavicon = async () => {
       try {
         console.log('🔄 Loading global favicon...');
-        const { getFaviconFromSupabase, updateFavicon, getSEOData } = await import('./utils/seoManager');
+        const { getFaviconFromSupabase, updateFavicon, loadSEODataFromSupabase } = await import('./utils/seoManager');
         const faviconUrl = await getFaviconFromSupabase();
+        const seoData = await loadSEODataFromSupabase();
         
         console.log('🔍 Favicon URL from Supabase:', faviconUrl);
         
         if (faviconUrl) {
           console.log('✅ Found favicon, applying to document...');
           // Update the SEO data with the favicon
-          const seoData = getSEOData();
           const updatedSitewide = {
             ...seoData.sitewide,
             faviconType: 'image' as const,
@@ -316,8 +316,7 @@ function AppShell() {
           updateFavicon(updatedSitewide);
           console.log('✅ Favicon applied successfully');
         } else {
-          console.log('❌ No favicon in Supabase; applying sitewide from localStorage (text or image)');
-          const seoData = getSEOData();
+          console.log('❌ No favicon in Supabase; applying sitewide fallback from canonical SEO data');
           updateFavicon(seoData.sitewide);
         }
       } catch (error) {

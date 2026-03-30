@@ -24,7 +24,12 @@ import { FlowDiagramGallery } from "../components/FlowDiagramGallery";
 import { VideoGallery } from "../components/VideoGallery";
 import HeroImage from "../components/HeroImage";
 import { useCaseStudySEO } from "../hooks/useSEO";
-import { getCaseStudySEO, saveCaseStudySEO, type SEOData } from "../utils/seoManager";
+import {
+  getCaseStudySEO,
+  loadCaseStudySEOFromSupabase,
+  saveCaseStudySEO,
+  type SEOData,
+} from "../utils/seoManager";
 import { cleanMarkdownContent, isContentCorrupted } from "../utils/cleanMarkdownContent";
 import { uploadImage } from "../utils/imageHelpers";
 import { Search } from "lucide-react";
@@ -492,8 +497,24 @@ export function ProjectDetail({ project, onBack, onUpdate: pushProjectUpdate, is
   
   // Load case study SEO when project changes
   useEffect(() => {
-    const seo = getCaseStudySEO(project.id, project.title);
-    setCaseStudySEO(seo);
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const seo = await loadCaseStudySEOFromSupabase(project.id, project.title);
+        if (!cancelled) {
+          setCaseStudySEO(seo);
+        }
+      } catch {
+        const local = getCaseStudySEO(project.id, project.title);
+        if (!cancelled) {
+          setCaseStudySEO(local);
+        }
+      }
+    };
+    load();
+    return () => {
+      cancelled = true;
+    };
   }, [project.id, project.title]);
   
   // Debug logging for project data
@@ -4552,10 +4573,16 @@ export function ProjectDetail({ project, onBack, onUpdate: pushProjectUpdate, is
                   </div>
                   
                   <Button
-                    onClick={() => {
-                      saveCaseStudySEO(project.id, caseStudySEO);
-                      // Reload page to apply SEO changes
-                      window.location.reload();
+                    onClick={async () => {
+                      try {
+                        await saveCaseStudySEO(project.id, caseStudySEO);
+                        toast.success("Case study SEO saved.");
+                        // Reload page to apply SEO changes
+                        window.location.reload();
+                      } catch (error) {
+                        console.error("Error saving case study SEO:", error);
+                        toast.error("Failed to save case study SEO. Please verify Supabase auth.");
+                      }
                     }}
                     className="w-full"
                   >

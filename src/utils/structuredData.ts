@@ -227,8 +227,9 @@ export function generateBreadcrumbListSchema(
  * Inject structured data into document head
  */
 export function injectStructuredData(schema: object): void {
-  // Remove existing structured data script if it exists
-  const existingScript = document.querySelector('script[type="application/ld+json"]');
+  // Remove only the single dynamic script injected by this helper.
+  // Keep static build-time JSON-LD in place for crawlers.
+  const existingScript = document.querySelector('script#structured-data-single[type="application/ld+json"]');
   if (existingScript) {
     existingScript.remove();
   }
@@ -237,7 +238,7 @@ export function injectStructuredData(schema: object): void {
   const script = document.createElement('script');
   script.type = 'application/ld+json';
   script.textContent = JSON.stringify(schema, null, 2);
-  script.id = 'structured-data';
+  script.id = 'structured-data-single';
   document.head.appendChild(script);
 }
 
@@ -250,8 +251,9 @@ export function injectMultipleStructuredData(schemas: object[]): void {
     return;
   }
 
-  // Remove all existing structured data scripts
-  const existingScripts = document.querySelectorAll('script[type="application/ld+json"]');
+  // Remove only dynamic schema scripts created by this function.
+  // Do not delete static build-time JSON-LD.
+  const existingScripts = document.querySelectorAll('script[type="application/ld+json"][id^="structured-data-dynamic-"]');
   existingScripts.forEach((script) => script.remove());
 
   // Inject all schemas
@@ -276,7 +278,7 @@ export function injectMultipleStructuredData(schemas: object[]): void {
       }
       
       script.textContent = jsonString;
-      script.id = `structured-data-${index}`;
+      script.id = `structured-data-dynamic-${index}`;
       document.head.appendChild(script);
       
       console.log(`✅ SEO: Injected structured data schema ${index + 1}/${schemas.length}:`, (schema as any)['@type'] || 'Unknown');

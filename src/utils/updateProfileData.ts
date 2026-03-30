@@ -35,7 +35,7 @@ export async function updateCurrentUserProfile(profileData: any) {
 // Helper function to populate profile with hardcoded data
 export async function populateProfileWithHardcodedData() {
   const hardcodedProfileData = {
-    bio_paragraph_1: "Brian Bureson is a Colorado-based product designer and strategic design leader with 20+ years of experience delivering 0–1, research-backed digital products across enterprise, mid-size, and startup environments.",
+    bio_paragraph_1: "Brian Bureson is a Denver, Colorado-based product designer and strategic design leader with 20+ years of experience delivering 0–1, research-backed digital products across enterprise, mid-size, and startup environments.",
     bio_paragraph_2: "Currently at Oracle (formerly at Skype, Microsoft, Motorola, NBCUniversal), leading design and research initiatives across complex enterprise systems and AI-powered products. Brian brings deep craft, collaborative leadership, and a proven track record of product innovation.",
     super_powers_title: "Super powers",
     super_powers: [
