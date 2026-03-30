@@ -53,6 +53,27 @@ const getSiteUrl = (): string => {
   return 'https://www.bureson.com';
 };
 
+/** Ensure canonical/OG base URLs always have a scheme (fixes `www.example.com` from CMS). */
+export function normalizeSiteUrlForSeo(url: string): string {
+  let t = (url || '').trim();
+  if (!t) return getSiteUrl();
+  t = t.replace(/\/+$/, '');
+  if (!/^https?:\/\//i.test(t)) {
+    t = `https://${t.replace(/^\/+/, '')}`;
+  }
+  return t;
+}
+
+/** App SEO tab keys → Supabase `seo_data.page_type` (DB CHECK uses snake_case). */
+const SEO_PAGE_TYPE_APP_TO_DB: Record<string, string> = {
+  caseStudies: 'case_studies',
+  caseStudyDefaults: 'case_study_defaults',
+};
+
+function seoPageTypeToDb(appPageType: string): string {
+  return SEO_PAGE_TYPE_APP_TO_DB[appPageType] ?? appPageType;
+}
+
 const DEFAULT_SEO_DATA: AllSEOData = {
   sitewide: {
     siteName: 'Brian Bureson - Product Design Leader',
@@ -188,6 +209,7 @@ const withSafeOgFallback = (data: AllSEOData): AllSEOData => {
     },
     caseStudyDefaults: { ...data.caseStudyDefaults },
   };
+  merged.sitewide.siteUrl = normalizeSiteUrlForSeo(merged.sitewide.siteUrl);
   if (!merged.sitewide.defaultOGImage || merged.sitewide.defaultOGImage.trim() === '') {
     merged.sitewide.defaultOGImage = `${merged.sitewide.siteUrl}/api/og?title=${encodeURIComponent(merged.sitewide.siteName)}`;
   }
@@ -237,8 +259,13 @@ function mergeSEODataFromRows(rows: SeoDataRow[], base?: AllSEOData): AllSEOData
       continue;
     }
 
-    if (key === 'home' || key === 'about' || key === 'caseStudies' || key === 'contact') {
+    if (key === 'home' || key === 'about' || key === 'contact') {
       merged.pages[key] = mapSeoRowToSeoData(row, merged.pages[key]);
+      continue;
+    }
+
+    if (key === 'case_studies' || key === 'caseStudies') {
+      merged.pages.caseStudies = mapSeoRowToSeoData(row, merged.pages.caseStudies);
       continue;
     }
 
@@ -313,7 +340,7 @@ async function ensureSitewideFaviconInSeoData(ownerId: string, faviconUrl: strin
       user_id: ownerId,
       page_type: 'sitewide',
       site_name: sw.siteName,
-      site_url: sw.siteUrl,
+      site_url: normalizeSiteUrlForSeo(sw.siteUrl),
       default_author: sw.defaultAuthor,
       default_og_image: sw.defaultOGImage,
       default_twitter_card: sw.defaultTwitterCard,
@@ -373,8 +400,20 @@ export async function loadSEODataFromSupabase(): Promise<AllSEOData> {
 }
 
 export async function saveSEOData(data: AllSEOData): Promise<void> {
+  const normalized = withSafeOgFallback({
+    ...data,
+    sitewide: { ...data.sitewide },
+    pages: {
+      home: { ...data.pages.home },
+      about: { ...data.pages.about },
+      caseStudies: { ...data.pages.caseStudies },
+      contact: { ...data.pages.contact },
+    },
+    caseStudyDefaults: { ...data.caseStudyDefaults },
+  });
+
   try {
-    localStorage.setItem(SEO_STORAGE_KEY, JSON.stringify(data));
+    localStorage.setItem(SEO_STORAGE_KEY, JSON.stringify(normalized));
   } catch (error) {
     console.error('Error saving SEO data:', error);
   }
@@ -394,27 +433,28 @@ export async function saveSEOData(data: AllSEOData): Promise<void> {
       {
         pageType: 'sitewide',
         payload: {
-          site_name: data.sitewide.siteName,
-          site_url: data.sitewide.siteUrl,
-          default_author: data.sitewide.defaultAuthor,
-          default_og_image: data.sitewide.defaultOGImage,
-          default_twitter_card: data.sitewide.defaultTwitterCard,
-          favicon_type: data.sitewide.faviconType || 'text',
-          favicon_text: data.sitewide.faviconText || 'BB',
-          favicon_gradient_start: data.sitewide.faviconGradientStart || '#8b5cf6',
-          favicon_gradient_end: data.sitewide.faviconGradientEnd || '#3b82f6',
-          favicon_image: data.sitewide.faviconImageUrl || null,
+          site_name: normalized.sitewide.siteName,
+          site_url: normalized.sitewide.siteUrl,
+          default_author: normalized.sitewide.defaultAuthor,
+          default_og_image: normalized.sitewide.defaultOGImage,
+          default_twitter_card: normalized.sitewide.defaultTwitterCard,
+          favicon_type: normalized.sitewide.faviconType || 'text',
+          favicon_text: normalized.sitewide.faviconText || 'BB',
+          favicon_gradient_start: normalized.sitewide.faviconGradientStart || '#8b5cf6',
+          favicon_gradient_end: normalized.sitewide.faviconGradientEnd || '#3b82f6',
+          favicon_image: normalized.sitewide.faviconImageUrl || null,
         },
       },
-      { pageType: 'home', payload: toSeoRowPayload(data.pages.home) },
-      { pageType: 'about', payload: toSeoRowPayload(data.pages.about) },
-      { pageType: 'caseStudies', payload: toSeoRowPayload(data.pages.caseStudies) },
-      { pageType: 'contact', payload: toSeoRowPayload(data.pages.contact) },
-      { pageType: 'caseStudyDefaults', payload: toSeoRowPayload(data.caseStudyDefaults) },
+      { pageType: 'home', payload: toSeoRowPayload(normalized.pages.home) },
+      { pageType: 'about', payload: toSeoRowPayload(normalized.pages.about) },
+      { pageType: 'caseStudies', payload: toSeoRowPayload(normalized.pages.caseStudies) },
+      { pageType: 'contact', payload: toSeoRowPayload(normalized.pages.contact) },
+      { pageType: 'caseStudyDefaults', payload: toSeoRowPayload(normalized.caseStudyDefaults) },
     ];
 
     for (const { pageType, payload } of payloads) {
-      const existing = existingByType.get(pageType);
+      const dbPageType = seoPageTypeToDb(pageType);
+      const existing = existingByType.get(dbPageType);
       if (existing?.id) {
         const { error } = await supabase
           .from('seo_data')
@@ -426,13 +466,13 @@ export async function saveSEOData(data: AllSEOData): Promise<void> {
           .from('seo_data')
           .insert({
             user_id: ownerId,
-            page_type: pageType,
+            page_type: dbPageType,
             ...payload,
           });
         if (error) throw error;
       }
     }
-    await syncAppSettingsFaviconFromSitewide(ownerId, data.sitewide);
+    await syncAppSettingsFaviconFromSitewide(ownerId, normalized.sitewide);
   } catch (error) {
     console.error('Error saving SEO data to Supabase:', error);
     throw error;
@@ -595,7 +635,8 @@ export function applyPageSEO(pageSEO: SEOData, sitewide: SitewideSEO): void {
   const configuredCanonical = pageSEO.canonicalUrl?.trim()
     ? normalizeCanonicalUrl(pageSEO.canonicalUrl)
     : '';
-  const computedCanonical = `${sitewide.siteUrl}${window.location.pathname}`;
+  const siteBase = normalizeSiteUrlForSeo(sitewide.siteUrl);
+  const computedCanonical = `${siteBase}${window.location.pathname}`;
   const effectiveCanonical = configuredCanonical || computedCanonical;
 
   // OG URL should match the canonical URL whenever possible.
@@ -605,7 +646,7 @@ export function applyPageSEO(pageSEO: SEOData, sitewide: SitewideSEO): void {
   let ogImage = pageSEO.ogImage || sitewide.defaultOGImage;
   if (!ogImage || ogImage.trim() === '') {
     // Fallback: use OG image API
-    ogImage = `${sitewide.siteUrl}/api/og?title=${encodeURIComponent(pageSEO.ogTitle || pageSEO.title)}`;
+    ogImage = `${siteBase}/api/og?title=${encodeURIComponent(pageSEO.ogTitle || pageSEO.title)}`;
   }
   
   // Always set OG image (required for proper social sharing)
