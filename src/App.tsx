@@ -48,6 +48,7 @@ import { getPortfolioOwnerUserId } from "./lib/portfolioOwner";
 import { devLog } from "./lib/devLog";
 import { useSiteAuth } from "./contexts/SiteAuthContext";
 import { mapSupabaseProjectRowToProjectData, parseColumnsValue } from "./lib/mapSupabaseProjectRowToProjectData";
+import { slugFromProjectTitle } from "./lib/projectSlug";
 import { useAppSettings } from "./hooks/useAppSettings";
 import { ProjectsProvider, useProjects } from "./contexts/ProjectsContext";
 import { useContactMessages } from "./hooks/useContactMessages";
@@ -890,15 +891,7 @@ function AppShell() {
     };
   }, [currentRoute, currentPage, selectedProject]);
 
-  // Function to create friendly slug from title
-  const createSlug = (title: string): string => {
-    return title
-      .toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
-      .replace(/\s+/g, '-') // Replace spaces with hyphens
-      .replace(/-+/g, '-') // Replace multiple hyphens with single
-      .trim();
-  };
+  const createSlug = slugFromProjectTitle;
 
   const normalizeRouteSlug = (slug: string): string => {
     const decoded = decodeURIComponent((slug || "").trim());

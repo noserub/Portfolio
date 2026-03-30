@@ -40,6 +40,8 @@ export function mapSupabaseProjectRowToProjectData(data: Record<string, unknown>
       data.sort_order !== undefined && data.sort_order !== null
         ? Number(data.sort_order)
         : undefined,
+    createdAt: typeof data.created_at === 'string' ? data.created_at : undefined,
+    updatedAt: typeof data.updated_at === 'string' ? data.updated_at : undefined,
     position_x: undefined,
     position_y: undefined,
     case_study_content: undefined,
@@ -62,5 +64,7 @@ export function mapSupabaseProjectRowToProjectData(data: Record<string, unknown>
     requires_password: undefined,
     case_study_decorative_icons: undefined,
     sort_order: undefined,
+    created_at: undefined,
+    updated_at: undefined,
   } as ProjectData;
 }

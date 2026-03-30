@@ -29,40 +29,34 @@ export function SEOEditor({ isOpen, onClose }: SEOEditorProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (isOpen) {
-      loadFaviconFromSupabase();
-      loadCanonicalSEOData();
-      setHasChanges(false);
-    }
-  }, [isOpen]);
-
-  const loadCanonicalSEOData = async () => {
-    try {
-      const canonical = await loadSEODataFromSupabase();
-      setSeoData(canonical);
-    } catch (error) {
-      console.error('Error loading SEO data from Supabase:', error);
-      setSeoData(getSEOData());
-    }
-  };
-
-  const loadFaviconFromSupabase = async () => {
-    try {
-      const faviconUrl = await getFaviconFromSupabase();
-      if (faviconUrl) {
-        setSeoData(prev => ({
-          ...prev,
-          sitewide: { 
-            ...prev.sitewide, 
-            faviconType: 'image',
-            faviconImageUrl: faviconUrl 
-          },
-        }));
+    if (!isOpen) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const canonical = await loadSEODataFromSupabase();
+        const faviconUrl = await getFaviconFromSupabase();
+        if (cancelled) return;
+        const merged: AllSEOData = faviconUrl
+          ? {
+              ...canonical,
+              sitewide: {
+                ...canonical.sitewide,
+                faviconType: 'image',
+                faviconImageUrl: faviconUrl,
+              },
+            }
+          : canonical;
+        setSeoData(merged);
+      } catch (error) {
+        console.error('Error loading SEO data from Supabase:', error);
+        if (!cancelled) setSeoData(getSEOData());
       }
-    } catch (error) {
-      console.error('Error loading favicon from Supabase:', error);
-    }
-  };
+      if (!cancelled) setHasChanges(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -408,7 +402,7 @@ export function SEOEditor({ isOpen, onClose }: SEOEditorProps) {
                     value={seoData.sitewide.siteUrl}
                     onChange={(e) => updateSitewide('siteUrl', e.target.value)}
                     className="bg-background border-border text-foreground"
-                    placeholder="https://brianbureson.com"
+                    placeholder="https://www.bureson.com"
                   />
                 </div>
 
@@ -432,6 +426,29 @@ export function SEOEditor({ isOpen, onClose }: SEOEditorProps) {
                     placeholder="https://example.com/default-share-image.jpg"
                   />
                   <p className="text-xs text-foreground/50">Used when page doesn't have a specific OG image</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="org-logo-url" className="text-muted-foreground">Organization logo URL (JSON-LD)</Label>
+                  <Input
+                    id="org-logo-url"
+                    value={seoData.sitewide.organizationLogoUrl || ''}
+                    onChange={(e) => updateSitewide('organizationLogoUrl', e.target.value)}
+                    className="bg-background border-border text-foreground"
+                    placeholder="Optional — square/rect brand logo; defaults to OG image if empty"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="same-as-urls" className="text-muted-foreground">Profile sameAs URLs (JSON-LD)</Label>
+                  <Textarea
+                    id="same-as-urls"
+                    value={seoData.sitewide.sameAs || ''}
+                    onChange={(e) => updateSitewide('sameAs', e.target.value)}
+                    className="bg-background border-border text-foreground min-h-[88px] font-mono text-sm"
+                    placeholder={'https://www.linkedin.com/in/...\nhttps://github.com/...'}
+                  />
+                  <p className="text-xs text-foreground/50">One https URL per line or comma-separated. Merged with VITE_PUBLIC_SAME_AS at build/runtime.</p>
                 </div>
 
                 <div className="space-y-2">

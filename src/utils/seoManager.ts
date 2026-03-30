@@ -27,6 +27,10 @@ export interface SitewideSEO {
   faviconGradientStart?: string; // Hex color for gradient start (default: "#8b5cf6")
   faviconGradientEnd?: string; // Hex color for gradient end (default: "#3b82f6")
   faviconImageUrl?: string; // Custom favicon image (data URI or URL)
+  /** Newline- or comma-separated profile URLs (LinkedIn, GitHub, etc.) for JSON-LD sameAs */
+  sameAs?: string;
+  /** Optional brand logo URL for Organization schema (falls back to default OG image) */
+  organizationLogoUrl?: string;
 }
 
 export interface AllSEOData {
@@ -50,8 +54,29 @@ const getSiteUrl = (): string => {
     }
   }
   // Fallback to default (can be overridden via localStorage or environment variable at build time)
-  return 'https://brianbureson.com';
+  return 'https://www.bureson.com';
 };
+
+/** Ensure canonical/OG base URLs always have a scheme (fixes `www.example.com` from CMS). */
+export function normalizeSiteUrlForSeo(url: string): string {
+  let t = (url || '').trim();
+  if (!t) return getSiteUrl();
+  t = t.replace(/\/+$/, '');
+  if (!/^https?:\/\//i.test(t)) {
+    t = `https://${t.replace(/^\/+/, '')}`;
+  }
+  return t;
+}
+
+/** App SEO tab keys → Supabase `seo_data.page_type` (DB CHECK uses snake_case). */
+const SEO_PAGE_TYPE_APP_TO_DB: Record<string, string> = {
+  caseStudies: 'case_studies',
+  caseStudyDefaults: 'case_study_defaults',
+};
+
+function seoPageTypeToDb(appPageType: string): string {
+  return SEO_PAGE_TYPE_APP_TO_DB[appPageType] ?? appPageType;
+}
 
 const DEFAULT_SEO_DATA: AllSEOData = {
   sitewide: {
@@ -65,6 +90,8 @@ const DEFAULT_SEO_DATA: AllSEOData = {
     faviconGradientStart: '#8b5cf6',
     faviconGradientEnd: '#3b82f6',
     faviconImageUrl: '',
+    sameAs: '',
+    organizationLogoUrl: '',
   },
   pages: {
     home: {
@@ -163,6 +190,8 @@ type SeoDataRow = {
   favicon_gradient_start?: string | null;
   favicon_gradient_end?: string | null;
   favicon_image?: string | null;
+  same_as?: string | null;
+  organization_logo_url?: string | null;
 };
 
 const cloneDefaults = (): AllSEOData => ({
@@ -188,6 +217,7 @@ const withSafeOgFallback = (data: AllSEOData): AllSEOData => {
     },
     caseStudyDefaults: { ...data.caseStudyDefaults },
   };
+  merged.sitewide.siteUrl = normalizeSiteUrlForSeo(merged.sitewide.siteUrl);
   if (!merged.sitewide.defaultOGImage || merged.sitewide.defaultOGImage.trim() === '') {
     merged.sitewide.defaultOGImage = `${merged.sitewide.siteUrl}/api/og?title=${encodeURIComponent(merged.sitewide.siteName)}`;
   }
@@ -233,12 +263,19 @@ function mergeSEODataFromRows(rows: SeoDataRow[], base?: AllSEOData): AllSEOData
         faviconGradientStart: row.favicon_gradient_start ?? merged.sitewide.faviconGradientStart,
         faviconGradientEnd: row.favicon_gradient_end ?? merged.sitewide.faviconGradientEnd,
         faviconImageUrl: row.favicon_image ?? merged.sitewide.faviconImageUrl,
+        sameAs: row.same_as ?? merged.sitewide.sameAs,
+        organizationLogoUrl: row.organization_logo_url ?? merged.sitewide.organizationLogoUrl,
       };
       continue;
     }
 
-    if (key === 'home' || key === 'about' || key === 'caseStudies' || key === 'contact') {
+    if (key === 'home' || key === 'about' || key === 'contact') {
       merged.pages[key] = mapSeoRowToSeoData(row, merged.pages[key]);
+      continue;
+    }
+
+    if (key === 'case_studies' || key === 'caseStudies') {
+      merged.pages.caseStudies = mapSeoRowToSeoData(row, merged.pages.caseStudies);
       continue;
     }
 
@@ -263,6 +300,9 @@ export function getSEOData(): AllSEOData {
           ...parsed.sitewide,
           siteUrl: parsed.sitewide?.siteUrl || base.sitewide.siteUrl,
           defaultOGImage: parsed.sitewide?.defaultOGImage || base.sitewide.defaultOGImage,
+          sameAs: parsed.sitewide?.sameAs ?? base.sitewide.sameAs,
+          organizationLogoUrl:
+            parsed.sitewide?.organizationLogoUrl ?? base.sitewide.organizationLogoUrl,
         },
         pages: {
           home: { ...base.pages.home, ...parsed.pages?.home },
@@ -293,6 +333,68 @@ async function fetchSeoRowsForOwner(ownerId: string): Promise<SeoDataRow[]> {
   return (data || []) as SeoDataRow[];
 }
 
+/** Keep `seo_data` sitewide favicon columns aligned with Storage URL (same source the app uses at runtime). */
+async function ensureSitewideFaviconInSeoData(ownerId: string, faviconUrl: string): Promise<void> {
+  const existingRows = await fetchSeoRowsForOwner(ownerId);
+  const existing = existingRows.find((r) => r.page_type === 'sitewide');
+  const sw = getSEOData().sitewide;
+  const patch = {
+    favicon_image: faviconUrl,
+    favicon_type: 'image',
+    favicon_text: sw.faviconText || 'BB',
+    favicon_gradient_start: sw.faviconGradientStart || '#8b5cf6',
+    favicon_gradient_end: sw.faviconGradientEnd || '#3b82f6',
+  };
+  if (existing?.id) {
+    const { error } = await supabase.from('seo_data').update(patch).eq('id', existing.id);
+    if (error) throw error;
+  } else {
+    const { error } = await supabase.from('seo_data').insert({
+      user_id: ownerId,
+      page_type: 'sitewide',
+      site_name: sw.siteName,
+      site_url: normalizeSiteUrlForSeo(sw.siteUrl),
+      default_author: sw.defaultAuthor,
+      default_og_image: sw.defaultOGImage,
+      default_twitter_card: sw.defaultTwitterCard,
+      ...patch,
+    });
+    if (error) throw error;
+  }
+  const local = getSEOData();
+  const next: AllSEOData = {
+    ...local,
+    sitewide: {
+      ...local.sitewide,
+      faviconType: 'image',
+      faviconImageUrl: faviconUrl,
+    },
+  };
+  localStorage.setItem(SEO_STORAGE_KEY, JSON.stringify(withSafeOgFallback(next)));
+}
+
+/** Keep `app_settings.favicon_url` aligned when full SEO save changes favicon mode or URL. */
+async function syncAppSettingsFaviconFromSitewide(ownerId: string, sitewide: SitewideSEO): Promise<void> {
+  const url =
+    sitewide.faviconType === 'image' && sitewide.faviconImageUrl?.trim()
+      ? sitewide.faviconImageUrl.trim()
+      : null;
+  const { error } = await supabase.from('app_settings').upsert(
+    {
+      user_id: ownerId,
+      favicon_url: url,
+      theme: 'dark',
+      is_authenticated: true,
+      show_debug_panel: false,
+      is_public: true,
+    },
+    { onConflict: 'user_id', ignoreDuplicates: false },
+  );
+  if (error) {
+    console.warn('⚠️ SEO: Could not sync app_settings favicon (non-fatal):', error);
+  }
+}
+
 export async function loadSEODataFromSupabase(): Promise<AllSEOData> {
   const local = getSEOData();
   try {
@@ -311,8 +413,20 @@ export async function loadSEODataFromSupabase(): Promise<AllSEOData> {
 }
 
 export async function saveSEOData(data: AllSEOData): Promise<void> {
+  const normalized = withSafeOgFallback({
+    ...data,
+    sitewide: { ...data.sitewide },
+    pages: {
+      home: { ...data.pages.home },
+      about: { ...data.pages.about },
+      caseStudies: { ...data.pages.caseStudies },
+      contact: { ...data.pages.contact },
+    },
+    caseStudyDefaults: { ...data.caseStudyDefaults },
+  });
+
   try {
-    localStorage.setItem(SEO_STORAGE_KEY, JSON.stringify(data));
+    localStorage.setItem(SEO_STORAGE_KEY, JSON.stringify(normalized));
   } catch (error) {
     console.error('Error saving SEO data:', error);
   }
@@ -332,27 +446,30 @@ export async function saveSEOData(data: AllSEOData): Promise<void> {
       {
         pageType: 'sitewide',
         payload: {
-          site_name: data.sitewide.siteName,
-          site_url: data.sitewide.siteUrl,
-          default_author: data.sitewide.defaultAuthor,
-          default_og_image: data.sitewide.defaultOGImage,
-          default_twitter_card: data.sitewide.defaultTwitterCard,
-          favicon_type: data.sitewide.faviconType || 'text',
-          favicon_text: data.sitewide.faviconText || 'BB',
-          favicon_gradient_start: data.sitewide.faviconGradientStart || '#8b5cf6',
-          favicon_gradient_end: data.sitewide.faviconGradientEnd || '#3b82f6',
-          favicon_image: data.sitewide.faviconImageUrl || null,
+          site_name: normalized.sitewide.siteName,
+          site_url: normalized.sitewide.siteUrl,
+          default_author: normalized.sitewide.defaultAuthor,
+          default_og_image: normalized.sitewide.defaultOGImage,
+          default_twitter_card: normalized.sitewide.defaultTwitterCard,
+          favicon_type: normalized.sitewide.faviconType || 'text',
+          favicon_text: normalized.sitewide.faviconText || 'BB',
+          favicon_gradient_start: normalized.sitewide.faviconGradientStart || '#8b5cf6',
+          favicon_gradient_end: normalized.sitewide.faviconGradientEnd || '#3b82f6',
+          favicon_image: normalized.sitewide.faviconImageUrl || null,
+          same_as: normalized.sitewide.sameAs?.trim() || null,
+          organization_logo_url: normalized.sitewide.organizationLogoUrl?.trim() || null,
         },
       },
-      { pageType: 'home', payload: toSeoRowPayload(data.pages.home) },
-      { pageType: 'about', payload: toSeoRowPayload(data.pages.about) },
-      { pageType: 'caseStudies', payload: toSeoRowPayload(data.pages.caseStudies) },
-      { pageType: 'contact', payload: toSeoRowPayload(data.pages.contact) },
-      { pageType: 'caseStudyDefaults', payload: toSeoRowPayload(data.caseStudyDefaults) },
+      { pageType: 'home', payload: toSeoRowPayload(normalized.pages.home) },
+      { pageType: 'about', payload: toSeoRowPayload(normalized.pages.about) },
+      { pageType: 'caseStudies', payload: toSeoRowPayload(normalized.pages.caseStudies) },
+      { pageType: 'contact', payload: toSeoRowPayload(normalized.pages.contact) },
+      { pageType: 'caseStudyDefaults', payload: toSeoRowPayload(normalized.caseStudyDefaults) },
     ];
 
     for (const { pageType, payload } of payloads) {
-      const existing = existingByType.get(pageType);
+      const dbPageType = seoPageTypeToDb(pageType);
+      const existing = existingByType.get(dbPageType);
       if (existing?.id) {
         const { error } = await supabase
           .from('seo_data')
@@ -364,12 +481,13 @@ export async function saveSEOData(data: AllSEOData): Promise<void> {
           .from('seo_data')
           .insert({
             user_id: ownerId,
-            page_type: pageType,
+            page_type: dbPageType,
             ...payload,
           });
         if (error) throw error;
       }
     }
+    await syncAppSettingsFaviconFromSitewide(ownerId, normalized.sitewide);
   } catch (error) {
     console.error('Error saving SEO data to Supabase:', error);
     throw error;
@@ -532,7 +650,8 @@ export function applyPageSEO(pageSEO: SEOData, sitewide: SitewideSEO): void {
   const configuredCanonical = pageSEO.canonicalUrl?.trim()
     ? normalizeCanonicalUrl(pageSEO.canonicalUrl)
     : '';
-  const computedCanonical = `${sitewide.siteUrl}${window.location.pathname}`;
+  const siteBase = normalizeSiteUrlForSeo(sitewide.siteUrl);
+  const computedCanonical = `${siteBase}${window.location.pathname}`;
   const effectiveCanonical = configuredCanonical || computedCanonical;
 
   // OG URL should match the canonical URL whenever possible.
@@ -542,7 +661,7 @@ export function applyPageSEO(pageSEO: SEOData, sitewide: SitewideSEO): void {
   let ogImage = pageSEO.ogImage || sitewide.defaultOGImage;
   if (!ogImage || ogImage.trim() === '') {
     // Fallback: use OG image API
-    ogImage = `${sitewide.siteUrl}/api/og?title=${encodeURIComponent(pageSEO.ogTitle || pageSEO.title)}`;
+    ogImage = `${siteBase}/api/og?title=${encodeURIComponent(pageSEO.ogTitle || pageSEO.title)}`;
   }
   
   // Always set OG image (required for proper social sharing)
@@ -683,18 +802,19 @@ export async function uploadFaviconToSupabase(file: File): Promise<string | null
   }
 }
 
-// Get favicon from Supabase Storage
+// Resolve favicon URL: env override → app_settings (owner) → seo_data sitewide → any public app_settings row.
 export async function getFaviconFromSupabase(): Promise<string | null> {
   try {
-    // Optional: set in Vercel (Preview/Production) to the same public Storage URL as in app_settings
-    // if you need the icon before DB migrations run, or as a fixed override.
     const fromEnv = import.meta.env.VITE_PUBLIC_FAVICON_URL;
     if (typeof fromEnv === 'string' && fromEnv.trim().length > 0) {
       return fromEnv.trim();
     }
 
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     const ownerId = getPortfolioOwnerUserId(user?.id);
+
     const { data: ownerSettings, error: ownerErr } = await supabase
       .from('app_settings')
       .select('favicon_url')
@@ -703,74 +823,31 @@ export async function getFaviconFromSupabase(): Promise<string | null> {
       .maybeSingle();
 
     if (!ownerErr && ownerSettings?.favicon_url) {
-      console.log('✅ Using favicon from app_settings (portfolio owner row)');
       return ownerSettings.favicon_url;
-    }
-
-    // First, let's check if there are ANY records in app_settings
-    console.log('🔍 Checking for ANY records in app_settings...');
-    const { data: allRecords, error: allRecordsError } = await supabase
-      .from('app_settings')
-      .select('*')
-      .limit(5);
-    
-    console.log('🔍 All app_settings records:', { allRecords, allRecordsError });
-    
-    // First try to get any favicon (most permissive query) - works for public access
-    console.log('🔍 Checking for any favicon (public access)...');
-    const { data: anySettings, error: anyError } = await supabase
-      .from('app_settings')
-      .select('favicon_url, is_public')
-      .not('favicon_url', 'is', null)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    console.log('🔍 Any favicon query result:', { anySettings, anyError });
-
-    if (!anyError && anySettings?.favicon_url) {
-      console.log('✅ Using favicon:', anySettings.favicon_url, 'is_public:', anySettings.is_public);
-      return anySettings.favicon_url;
-    } else {
-      console.log('❌ No favicon found:', { anyError, anySettings });
-    console.log('🔍 Debug - anySettings details:', {
-      data: anySettings,
-      hasData: !!anySettings,
-      hasFaviconUrl: !!anySettings?.favicon_url,
-      faviconUrl: anySettings?.favicon_url,
-      isPublic: anySettings?.is_public,
-      fullObject: JSON.stringify(anySettings, null, 2)
-    });
-    }
-
-    // Try to get public favicon as fallback (more restrictive query)
-    console.log('🔍 Checking for public favicon as fallback...');
-    const { data: publicSettings, error: publicError } = await supabase
-      .from('app_settings')
-      .select('favicon_url')
-      .eq('is_public', true)
-      .maybeSingle();
-
-    console.log('🔍 Public favicon query result:', { publicSettings, publicError });
-
-    if (!publicError && publicSettings?.favicon_url) {
-      console.log('✅ Using public favicon:', publicSettings.favicon_url);
-      return publicSettings.favicon_url;
-    } else {
-      console.log('❌ No public favicon found:', { publicError, publicSettings });
     }
 
     const { data: seoRow, error: seoErr } = await supabase
       .from('seo_data')
       .select('favicon_image')
+      .eq('user_id', ownerId)
+      .eq('page_type', 'sitewide')
       .not('favicon_image', 'is', null)
-      .order('updated_at', { ascending: false })
-      .limit(1)
       .maybeSingle();
 
     if (!seoErr && seoRow?.favicon_image) {
-      console.log('✅ Using favicon from seo_data (fallback)');
       return seoRow.favicon_image;
+    }
+
+    const { data: anySettings, error: anyError } = await supabase
+      .from('app_settings')
+      .select('favicon_url')
+      .not('favicon_url', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!anyError && anySettings?.favicon_url) {
+      return anySettings.favicon_url;
     }
 
     return null;
@@ -793,7 +870,7 @@ export async function saveFaviconToSupabase(faviconUrl: string): Promise<boolean
     const userId = getPortfolioOwnerUserId(user.id);
 
     // Update or create app settings with favicon URL for user and mark as public
-    const { data: userData, error: userError } = await supabase
+    const { error: userError } = await supabase
       .from('app_settings')
       .upsert({
         user_id: userId,
@@ -812,13 +889,13 @@ export async function saveFaviconToSupabase(faviconUrl: string): Promise<boolean
       return false;
     }
 
-    console.log('✅ Favicon saved successfully for user and marked as public:', { userData });
-    console.log('🔍 Saved favicon details:', {
-      userId,
-      faviconUrl,
-      isPublic: true,
-      userData
-    });
+    try {
+      await ensureSitewideFaviconInSeoData(userId, faviconUrl);
+    } catch (seoErr) {
+      console.error('Error syncing favicon to seo_data:', seoErr);
+      return false;
+    }
+
     return true;
   } catch (error) {
     console.error('Error saving favicon to Supabase:', error);

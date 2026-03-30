@@ -13,7 +13,9 @@ import {
   generateArticleSchema,
   generatePersonSchema,
   injectMultipleStructuredData,
+  mergeSitewideSameAsUrls,
 } from '../utils/structuredData';
+import { slugFromProjectTitle } from '../lib/projectSlug';
 
 export function useSEO(pageKey: 'home' | 'about' | 'caseStudies' | 'contact') {
   useEffect(() => {
@@ -56,11 +58,16 @@ export function useSEO(pageKey: 'home' | 'about' | 'caseStudies' | 'contact') {
         
         // Add Person schema for About page
         if (pageKey === 'about') {
+          const sameAs = mergeSitewideSameAsUrls(
+            seoData.sitewide.sameAs,
+            import.meta.env.VITE_PUBLIC_SAME_AS
+          );
           const personSchema = generatePersonSchema(seoData.sitewide, {
             name: seoData.sitewide.defaultAuthor,
             jobTitle: 'Product Design Leader',
             description: pageSEO?.description,
             image: pageSEO?.ogImage || seoData.sitewide.defaultOGImage,
+            sameAs: sameAs.length ? sameAs : undefined,
           });
           schemas.push(personSchema);
         }
@@ -101,8 +108,17 @@ export function useSEO(pageKey: 'home' | 'about' | 'caseStudies' | 'contact') {
   }, [pageKey]);
 }
 
+export type CaseStudySeoMeta = {
+  createdAt?: string;
+  updatedAt?: string;
+};
+
 // Hook specifically for case study detail pages
-export function useCaseStudySEO(caseStudyId: string, caseStudyTitle?: string) {
+export function useCaseStudySEO(
+  caseStudyId: string,
+  caseStudyTitle?: string,
+  meta?: CaseStudySeoMeta
+) {
   useEffect(() => {
     let isCancelled = false;
 
@@ -118,23 +134,37 @@ export function useCaseStudySEO(caseStudyId: string, caseStudyTitle?: string) {
 
         // Inject structured data for case study
         const schemas: Array<object> = [];
-        
+
         // Organization schema
         schemas.push(generateOrganizationSchema(seoData.sitewide));
-        
-        // Article schema for case study
-        const articleUrl = caseStudySEO.canonicalUrl || `${seoData.sitewide.siteUrl}/project/${caseStudyId}`;
-        schemas.push(generateArticleSchema(caseStudySEO, seoData.sitewide, {
+
+        const slug = slugFromProjectTitle(caseStudyTitle || '');
+        const articleUrl =
+          caseStudySEO.canonicalUrl ||
+          (slug ? `${seoData.sitewide.siteUrl}/project/${slug}` : undefined);
+
+        const articleExtras: Parameters<typeof generateArticleSchema>[2] = {
           headline: caseStudyTitle || caseStudySEO.title,
           description: caseStudySEO.description,
           image: caseStudySEO.ogImage || caseStudySEO.twitterImage,
           url: articleUrl,
-        }));
+        };
+        if (meta?.createdAt) {
+          articleExtras.datePublished = meta.createdAt;
+        }
+        if (meta?.updatedAt) {
+          articleExtras.dateModified = meta.updatedAt;
+        }
+
+        schemas.push(generateArticleSchema(caseStudySEO, seoData.sitewide, articleExtras));
         
         // Breadcrumbs
         const breadcrumbs = [
           { name: 'Home', url: '/' },
-          { name: caseStudyTitle || 'Case Study', url: articleUrl },
+          {
+            name: caseStudyTitle || 'Case Study',
+            url: articleUrl || (slug ? `/project/${slug}` : '/'),
+          },
         ];
         schemas.push(generateBreadcrumbListSchema(breadcrumbs, seoData.sitewide.siteUrl));
         
@@ -153,5 +183,5 @@ export function useCaseStudySEO(caseStudyId: string, caseStudyTitle?: string) {
     return () => {
       isCancelled = true;
     };
-  }, [caseStudyId, caseStudyTitle]);
+  }, [caseStudyId, caseStudyTitle, meta?.createdAt, meta?.updatedAt]);
 }

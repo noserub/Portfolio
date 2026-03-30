@@ -65,6 +65,9 @@ export interface ProjectData {
   sortOrder?: number;
   /** When true, show icons on case study sidebars, media blocks, and My role subsection cards. Default off. */
   caseStudyDecorativeIcons?: boolean;
+  /** ISO timestamps from Supabase `projects` (for JSON-LD dates when present). */
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 interface ProjectImageProps {

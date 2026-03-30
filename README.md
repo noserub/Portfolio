@@ -103,7 +103,7 @@ src/
 
 ### Vercel (Recommended)
 1. Connect your GitHub repository to Vercel
-2. Add environment variables in Vercel dashboard (include `VITE_PUBLIC_PORTFOLIO_OWNER_ID` for Preview + Production)
+2. Add environment variables in Vercel dashboard (include `VITE_PUBLIC_PORTFOLIO_OWNER_ID` for Preview + Production, and `SITE_URL=https://www.bureson.com` so sitemap + JSON-LD use your canonical domain)
 3. Deploy automatically on push to main branch
 
 ### Other Platforms
@@ -124,6 +124,7 @@ src/
 | `VITE_SUPABASE_URL` | Your Supabase project URL | Yes |
 | `VITE_SUPABASE_ANON_KEY` | Your Supabase anonymous key | Yes |
 | `VITE_PUBLIC_PORTFOLIO_OWNER_ID` | Your Auth user UUID; public site + preview read this profile row | Strongly recommended |
+| `SITE_URL` | Canonical site origin (e.g. `https://www.bureson.com`) for sitemap and build-time SEO injection | Recommended |
 
 ## 🤝 Contributing
 
