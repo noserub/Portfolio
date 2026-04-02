@@ -11,7 +11,7 @@
 
 export interface ImageOptimizationOptions {
   quality?: number; // 1-100, default 80
-  format?: 'webp' | 'jpeg' | 'png' | 'auto';
+  format?: 'webp' | 'jpeg' | 'png' | 'auto' | 'origin';
   width?: number;
   height?: number;
   fit?: 'cover' | 'contain' | 'fill' | 'inside' | 'outside';
@@ -25,9 +25,15 @@ export interface ResponsiveImageSet {
   alt: string;
 }
 
+const OBJECT_PUBLIC_MARKER = '/storage/v1/object/public/';
+const RENDER_PUBLIC_MARKER = '/storage/v1/render/image/public/';
+
 /**
- * Generates optimized image URLs for Supabase Storage
- * Uses Supabase's built-in image transformation API
+ * Supabase image transforms must use `/storage/v1/render/image/public/...`, not `/object/public/...`.
+ * @see https://supabase.com/docs/guides/storage/serving/image-transformations
+ *
+ * Also: never append `?params` to a URL that may already have a query (e.g. `?quality=85` from uploads),
+ * or the browser requests a broken URL (`...?quality=85?width=320`).
  */
 export function generateOptimizedImageUrl(
   originalUrl: string,
@@ -42,26 +48,64 @@ export function generateOptimizedImageUrl(
     blur = 0
   } = options;
 
-  // If it's already a Supabase Storage URL, add transformation parameters
-  if (originalUrl.includes('supabase.co/storage')) {
-    const url = new URL(originalUrl);
+  if (!originalUrl.includes('supabase.co/storage')) {
+    return originalUrl;
+  }
+
+  try {
+    const parsed = new URL(originalUrl);
+    const pathname = parsed.pathname;
+
+    // Signed URLs embed transform options in the token — do not mutate.
+    if (pathname.includes('/object/sign/')) {
+      return originalUrl;
+    }
+
+    let transformPath: string;
+
+    if (pathname.includes(RENDER_PUBLIC_MARKER)) {
+      transformPath = pathname;
+    } else if (pathname.includes(OBJECT_PUBLIC_MARKER)) {
+      const rest = pathname.slice(pathname.indexOf(OBJECT_PUBLIC_MARKER) + OBJECT_PUBLIC_MARKER.length);
+      transformPath = `${RENDER_PUBLIC_MARKER}${rest}`;
+    } else {
+      return originalUrl;
+    }
+
     const params = new URLSearchParams();
-    
-    if (quality !== 80) params.set('quality', quality.toString());
-    if (format !== 'auto') params.set('format', format);
+
     if (width) params.set('width', width.toString());
     if (height) params.set('height', height.toString());
-    if (fit !== 'cover') params.set('fit', fit);
+    if (quality !== 80) params.set('quality', quality.toString());
     if (blur > 0) params.set('blur', blur.toString());
-    
-    // Add transformation parameters to the URL
-    const queryString = params.toString();
-    if (queryString) {
-      return `${originalUrl}?${queryString}`;
+
+    // API uses `resize`, not `fit` (cover | contain | fill).
+    const resizeByFit: Record<string, 'cover' | 'contain' | 'fill'> = {
+      cover: 'cover',
+      contain: 'contain',
+      fill: 'fill',
+      inside: 'contain',
+      outside: 'cover',
+    };
+    const resize = resizeByFit[fit] ?? 'cover';
+    if (resize !== 'cover') {
+      params.set('resize', resize);
     }
+
+    // Let Supabase negotiate WebP; `format=webp|jpeg` is not a documented query value and can break transforms.
+    if (format === 'origin') {
+      params.set('format', 'origin');
+    }
+
+    const queryString = params.toString();
+    if (!queryString) {
+      return originalUrl;
+    }
+
+    return `${parsed.origin}${transformPath}?${queryString}`;
+  } catch {
+    return originalUrl;
   }
-  
-  return originalUrl;
 }
 
 /**
