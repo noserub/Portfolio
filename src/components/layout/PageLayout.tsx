@@ -39,7 +39,7 @@ export function PageLayout({ title, children, onBack, overline, actionButton, su
         </div>
       )}
 
-      <div className="w-full" style={{ maxWidth: '100%' }}>
+      <div className="min-w-0 w-full" style={{ maxWidth: '100%' }}>
         {/* Page Title */}
         <div className="mb-32 px-6" style={{ maxWidth: '1200px', margin: '0 auto' }}>
           <div>

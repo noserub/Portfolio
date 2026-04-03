@@ -44,7 +44,7 @@ import {
 import { Toaster } from "./components/ui/sonner";
 import { migrateResearchInsights, migrateProjectsArray, runSafetyChecks } from "./utils";
 import { FLUSH_HOME_PAGE_CMS_EVENT } from "./lib/homePageContent";
-import { getPortfolioOwnerUserId } from "./lib/portfolioOwner";
+import { getPortfolioOwnerUserId, hasVitePublicPortfolioOwnerId } from "./lib/portfolioOwner";
 import { devLog } from "./lib/devLog";
 import { useSiteAuth } from "./contexts/SiteAuthContext";
 import { mapSupabaseProjectRowToProjectData, parseColumnsValue } from "./lib/mapSupabaseProjectRowToProjectData";
@@ -460,8 +460,10 @@ function AppShell() {
 
   // Function to load page visibility (can be called manually)
   const loadPageVisibility = async () => {
+    let authUser: { id: string } | null = null;
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      authUser = user ?? null;
       const ownerUserId = getPortfolioOwnerUserId(user?.id);
 
       devLog('📄 Loading page visibility from Supabase:', ownerUserId);
@@ -505,6 +507,14 @@ function AppShell() {
         console.warn('⚠️ Failed to create default page_visibility:', insertError);
       }
 
+      // Anonymous: do not use stale localStorage when Supabase has no row (published owner in
+      // env, or local `npm run dev` without a session — same stuck-hidden Contact/About issue).
+      if (!authUser && (hasVitePublicPortfolioOwnerId() || import.meta.env.DEV)) {
+        devLog('📄 Page visibility: no row for anonymous — defaulting pages visible');
+        setPageVisibility({ about: true, contact: true });
+        return;
+      }
+
       const saved = localStorage.getItem('pageVisibility');
       if (saved) {
         const parsed = JSON.parse(saved);
@@ -522,6 +532,11 @@ function AppShell() {
       }
     } catch (error) {
       console.error('❌ Error loading page visibility:', error);
+      if (!authUser && (hasVitePublicPortfolioOwnerId() || import.meta.env.DEV)) {
+        devLog('📄 Page visibility: load error — defaulting pages visible (anonymous)');
+        setPageVisibility({ about: true, contact: true });
+        return;
+      }
       // Fallback to localStorage on error
       const saved = localStorage.getItem('pageVisibility');
       if (saved) {
@@ -1611,8 +1626,12 @@ function AppShell() {
     { key: "about" as const, label: "About", visible: isEditMode || pageVisibility.about },
     { key: "contact" as const, label: "Contact", visible: isEditMode || pageVisibility.contact },
   ].filter((page) => page.visible);
+  /** Pill nav below header (desktop) / fixed bottom (mobile): only after leaving home — not on the landing screen. */
   const showPillNav =
-    currentPage !== "home" && currentPage !== "project-detail" && pillNavPages.length > 1;
+    pillNavPages.length > 0 &&
+    currentPage !== "home" &&
+    currentPage !== "project-detail" &&
+    currentPage !== "supabase-test";
 
   return (
     <ErrorBoundary>
@@ -1657,8 +1676,8 @@ function AppShell() {
           transition: "transform 300ms cubic-bezier(0.4, 0, 0.2, 1)",
         }}
       >
-        <div className="pointer-events-auto">
-          <div className="relative">
+        <div className="pointer-events-auto flex flex-col overflow-visible">
+          <div className="relative shrink-0">
             <Header
               logo={logo}
               onLogoUpload={handleLogoUpload}
@@ -1945,34 +1964,37 @@ function AppShell() {
           )}
 
           {showPillNav && (
-            <motion.nav
-              initial={{ y: 100, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.5, duration: 0.5 }}
-              className="hidden lg:flex justify-center pb-2 pt-1 pointer-events-auto h-[54px] items-center gap-2 bg-card/80 backdrop-blur-lg border border-border rounded-full shadow-2xl px-1 py-1 mx-auto mb-1 w-auto max-w-full"
-            >
-              {pillNavPages.map((page) => (
-                <motion.button
-                  key={page.key}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={(e) => {
-                    setCurrentPage(page.key);
-                    e.currentTarget.blur();
-                  }}
-                  className={`px-6 py-2.5 rounded-full transition-all duration-200 font-bold compact-focus h-[48px] flex items-center justify-center my-0.5 ${
-                    currentPage === page.key
-                      ? "bg-primary text-primary-foreground"
-                      : "hover:bg-accent hover:scale-[1.02]"
-                  } ${isEditMode && !pageVisibility[page.key] ? "opacity-50 border border-dashed border-yellow-500" : ""}`}
+            <div className="mb-2 mt-1 hidden w-full shrink-0 lg:block">
+              <div className="flex w-full justify-center">
+                <nav
+                  className="inline-flex h-[54px] items-center gap-1.5 rounded-full border border-border bg-card/95 px-2 py-1 shadow-lg backdrop-blur-md sm:gap-2 sm:px-2.5"
+                  aria-label="Portfolio sections"
                 >
-                  {page.label}
-                  {isEditMode && !pageVisibility[page.key] && (
-                    <span className="ml-2 text-xs">📝</span>
-                  )}
-                </motion.button>
-              ))}
-            </motion.nav>
+                  {pillNavPages.map((page) => (
+                    <motion.button
+                      key={page.key}
+                      type="button"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={(e) => {
+                        setCurrentPage(page.key);
+                        e.currentTarget.blur();
+                      }}
+                      className={`compact-focus my-0.5 flex h-[48px] items-center justify-center rounded-full px-6 py-2.5 font-bold transition-all duration-200 ${
+                        currentPage === page.key
+                          ? "bg-primary text-primary-foreground"
+                          : "hover:scale-[1.02] hover:bg-accent"
+                      } ${isEditMode && !pageVisibility[page.key] ? "border border-dashed border-yellow-500 opacity-50" : ""}`}
+                    >
+                      {page.label}
+                      {isEditMode && !pageVisibility[page.key] && (
+                        <span className="ml-2 text-xs">📝</span>
+                      )}
+                    </motion.button>
+                  ))}
+                </nav>
+              </div>
+            </div>
           )}
         </div>
       </div>
@@ -2072,7 +2094,7 @@ function AppShell() {
       </AnimatePresence>
 
       <DndProvider backend={HTML5Backend}>
-        <div className="relative z-10">
+        <div className="relative z-10 min-w-0 w-full">
         <Suspense fallback={<RouteFallback />}>
           {currentPage === "home" && (
             <Home 

@@ -10,6 +10,12 @@
  */
 const DEFAULT_PORTFOLIO_OWNER_ID = "7cd2752f-93c5-46e6-8535-32769fb10055";
 
+/** True when the published owner UUID is fixed in env (production / preview deploys). */
+export function hasVitePublicPortfolioOwnerId(): boolean {
+  const v = import.meta.env.VITE_PUBLIC_PORTFOLIO_OWNER_ID;
+  return typeof v === "string" && v.trim().length > 0;
+}
+
 export function getPortfolioOwnerUserId(authenticatedUserId?: string | null): string {
   const fromEnv = import.meta.env.VITE_PUBLIC_PORTFOLIO_OWNER_ID;
   if (typeof fromEnv === "string" && fromEnv.trim().length > 0) {

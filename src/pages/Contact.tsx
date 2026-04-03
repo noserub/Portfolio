@@ -413,7 +413,7 @@ export function Contact({ onBack, isEditMode = false }: ContactProps) {
     <PageLayout title="Get in touch" onBack={onBack} children={
       <>
         <div 
-          className="max-w-7xl mx-auto"
+          className="mx-auto min-w-0 max-w-7xl"
           style={{
             maxWidth: '1200px',
             margin: '0 auto',
@@ -467,19 +467,22 @@ export function Contact({ onBack, isEditMode = false }: ContactProps) {
           )}
         </motion.div>
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Contact Form - Left Column (2/3) */}
+        {/* Flex (not grid) at lg: avoids column sizing quirks with overflow-x: clip on body.
+            No backdrop-blur on large surfaces — Safari/WebKit often fails to paint children over backdrop-filter at desktop widths. */}
+        <div className="flex min-w-0 flex-col gap-8 lg:flex-row lg:items-stretch lg:gap-10">
+          {/* Contact Form — primary column */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
-            className="lg:col-span-2"
+            className="min-w-0 w-full flex-1"
           >
-            <div className="relative p-8 md:p-10 bg-gradient-to-br from-slate-50/10 via-white/15 to-gray-50/8 dark:from-slate-800/30 dark:via-slate-900/25 dark:to-slate-800/20 backdrop-blur-md rounded-2xl border border-border/30 shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden group">
+            <div
+              className="group relative isolate overflow-hidden rounded-2xl border border-border/30 bg-gradient-to-br from-slate-50/95 via-white/92 to-gray-50/90 shadow-lg transition-all duration-300 hover:shadow-2xl dark:from-slate-900/95 dark:via-slate-950/92 dark:to-slate-800/90"
+            >
               {/* Gradient top border */}
               <div 
-                className="absolute top-0 left-0 right-0 h-1 rounded-t-2xl"
+                className="absolute top-0 left-0 right-0 z-[1] h-1 rounded-t-2xl"
                 style={{
                   background: "linear-gradient(90deg, #ec4899, #8b5cf6, #3b82f6)"
                 }}
@@ -487,7 +490,7 @@ export function Contact({ onBack, isEditMode = false }: ContactProps) {
 
               {/* Animated decorative curved line */}
               <svg
-                className="absolute right-0 top-0 h-full w-[25%] pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                className="absolute right-0 top-0 z-[1] h-full w-[25%] pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500"
                 viewBox="0 0 100 200"
                 xmlns="http://www.w3.org/2000/svg"
               >
@@ -514,7 +517,7 @@ export function Contact({ onBack, isEditMode = false }: ContactProps) {
               ].map((dot, dotIndex) => (
                 <motion.div
                   key={dotIndex}
-                  className="absolute rounded-full pointer-events-none opacity-0 scale-0 group-hover:animate-[bounceDot_1.5s_ease-out_forwards]"
+                  className="absolute z-[1] rounded-full pointer-events-none opacity-0 scale-0 group-hover:animate-[bounceDot_1.5s_ease-out_forwards]"
                   style={{
                     left: dot.x,
                     top: dot.y,
@@ -529,7 +532,7 @@ export function Contact({ onBack, isEditMode = false }: ContactProps) {
 
               {/* Gradient glow on hover */}
               <motion.div
-                className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+                className="pointer-events-none absolute inset-0 z-[1] rounded-2xl opacity-0 transition-opacity duration-500 group-hover:opacity-100"
                 style={{
                   background: 'radial-gradient(circle at 50% 50%, #ec489920, transparent 70%)',
                 }}
@@ -537,14 +540,14 @@ export function Contact({ onBack, isEditMode = false }: ContactProps) {
 
               {/* Subtle background pattern */}
               <div 
-                className="absolute inset-0 opacity-[0.02] dark:opacity-[0.05] pointer-events-none rounded-2xl"
+                className="pointer-events-none absolute inset-0 z-[1] rounded-2xl opacity-[0.02] dark:opacity-[0.05]"
                 style={{
                   backgroundImage: `radial-gradient(circle at 2px 2px, currentColor 1px, transparent 1px)`,
                   backgroundSize: '24px 24px'
                 }}
               />
 
-              <div className="relative z-10">
+              <div className="relative z-10 min-w-0 p-8 md:p-10">
                 {!isSubmitted ? (
                   <form 
                     onSubmit={handleSubmit} 
@@ -645,7 +648,7 @@ export function Contact({ onBack, isEditMode = false }: ContactProps) {
                               return false;
                             }
                           }}
-                          className="relative rounded-full px-6 py-3 shadow-lg hover:shadow-xl transition-all duration-300 bg-background/80 backdrop-blur-sm hover:bg-background/60 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed w-full"
+                          className="relative w-full cursor-pointer rounded-full bg-background px-6 py-3 shadow-lg transition-all duration-300 hover:bg-muted hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           {isSubmitting ? (
                             <motion.div
@@ -695,26 +698,26 @@ export function Contact({ onBack, isEditMode = false }: ContactProps) {
             </div>
           </motion.div>
 
-          {/* Sidebar - Right Column (1/3) */}
-          <div className="lg:col-span-1 space-y-6">
+          {/* Sidebar */}
+          <div className="flex min-w-0 w-full flex-col space-y-6 lg:w-80 lg:shrink-0">
             {/* Email Sidebar */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 }}
-              className="p-6 bg-gradient-to-br from-slate-50/10 via-white/15 to-gray-50/8 dark:from-slate-800/30 dark:via-slate-900/25 dark:to-slate-800/20 backdrop-blur-md rounded-2xl border border-border/20 shadow-lg overflow-hidden group hover:shadow-xl transition-all duration-300"
+              className="group relative isolate overflow-hidden rounded-2xl border border-border/20 bg-gradient-to-br from-slate-50/95 via-white/92 to-gray-50/90 shadow-lg transition-all duration-300 hover:shadow-xl dark:from-slate-900/95 dark:via-slate-950/92 dark:to-slate-800/90"
             >
               {/* Gradient glow on hover */}
               <motion.div
-                className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+                className="pointer-events-none absolute inset-0 z-[1] rounded-2xl opacity-0 transition-opacity duration-500 group-hover:opacity-100"
                 style={{
                   background: 'radial-gradient(circle at 50% 50%, #ec489920, transparent 70%)',
                 }}
               />
 
-              <div className="relative z-10">
+              <div className="relative z-10 min-w-0 p-6">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="p-3 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl text-pink-600 dark:text-pink-400 shadow-md">
+                  <div className="rounded-xl bg-white/95 p-3 text-pink-600 shadow-md dark:bg-slate-800/95 dark:text-pink-400">
                     <Mail className="w-5 h-5" />
                   </div>
                   <h3>Email</h3>
@@ -766,19 +769,19 @@ export function Contact({ onBack, isEditMode = false }: ContactProps) {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6 }}
-              className="p-6 bg-gradient-to-br from-slate-50/10 via-white/15 to-gray-50/8 dark:from-slate-800/30 dark:via-slate-900/25 dark:to-slate-800/20 backdrop-blur-md rounded-2xl border border-border/20 shadow-lg overflow-hidden group hover:shadow-xl transition-all duration-300"
+              className="group relative isolate overflow-hidden rounded-2xl border border-border/20 bg-gradient-to-br from-slate-50/95 via-white/92 to-gray-50/90 shadow-lg transition-all duration-300 hover:shadow-xl dark:from-slate-900/95 dark:via-slate-950/92 dark:to-slate-800/90"
             >
               {/* Gradient glow on hover */}
               <motion.div
-                className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+                className="pointer-events-none absolute inset-0 z-[1] rounded-2xl opacity-0 transition-opacity duration-500 group-hover:opacity-100"
                 style={{
                   background: 'radial-gradient(circle at 50% 50%, #3b82f620, transparent 70%)',
                 }}
               />
 
-              <div className="relative z-10">
+              <div className="relative z-10 min-w-0 p-6">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="p-3 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl text-blue-600 dark:text-blue-400 shadow-md">
+                  <div className="rounded-xl bg-white/95 p-3 text-blue-600 shadow-md dark:bg-slate-800/95 dark:text-blue-400">
                     <MapPin className="w-5 h-5" />
                   </div>
                   <h3>Location</h3>
