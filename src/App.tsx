@@ -307,10 +307,9 @@ function AppShell() {
     if (pathname === '/' || pathname === '') {
       return "home";
     } else if (pathname.startsWith('/project/')) {
-      // Start on home and resolve deep-link project asynchronously.
-      // Avoid initializing project-detail without selectedProject, which can trap
-      // the app in a loading shell if async route resolution stalls.
-      return "home";
+      // Initialize directly into project-detail so deep links don't flash home first.
+      // The slug resolver effect will hydrate `selectedProject` asynchronously.
+      return "project-detail";
     } else if (pathname.startsWith('/')) {
       const page = pathname.substring(1) as Page;
       if (['about', 'contact', 'messages'].includes(page)) {
