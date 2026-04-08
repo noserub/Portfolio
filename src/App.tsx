@@ -1228,6 +1228,19 @@ function AppShell() {
       requiresPassword: Boolean(raw.requiresPassword ?? raw.requires_password),
     } as ProjectData;
 
+    // Fast path for locked projects: show unlock immediately instead of waiting on
+    // additional project fetches that can stall deep-link navigation.
+    const shouldRequireProjectPasswordEarly =
+      Boolean(projectNav.requiresPassword) && !isSupabaseAuthenticated && !isEditMode;
+    if (shouldRequireProjectPasswordEarly) {
+      setPendingProtectedProject({ project: projectNav, updateCallback });
+      if (window.location.pathname.startsWith('/project/')) {
+        setCurrentPage("project-detail");
+        setSelectedProject(null);
+      }
+      return;
+    }
+
     const withTimeout = async <T,>(p: Promise<T>, ms = 5000): Promise<T> =>
       await Promise.race([
         p,
@@ -1335,20 +1348,6 @@ function AppShell() {
       hasSupabaseSession: isSupabaseAuthenticated,
     });
 
-    // Password-protected case studies: visitors must unlock.
-    // Owners in edit mode should never be blocked by visitor password prompts.
-    const shouldRequireProjectPassword = Boolean(projectToSet.requiresPassword) && !isSupabaseAuthenticated && !isEditMode;
-    if (shouldRequireProjectPassword) {
-      setPendingProtectedProject({ project: projectToSet, updateCallback });
-      // Preserve deep-link context for locked projects so direct /project/* visits
-      // do not appear to "bounce" to the home screen.
-      if (window.location.pathname.startsWith('/project/')) {
-        setCurrentPage("project-detail");
-        setSelectedProject(null);
-      }
-      return;
-    }
-    
     // Add a navigation timestamp to force remount when coming back to the same project
     setSelectedProject({
       ...projectToSet,
