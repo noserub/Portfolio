@@ -1342,6 +1342,12 @@ function AppShell() {
     const shouldRequireProjectPassword = Boolean(projectToSet.requiresPassword) && !isSupabaseAuthenticated && !isEditMode;
     if (shouldRequireProjectPassword) {
       setPendingProtectedProject({ project: projectToSet, updateCallback });
+      // Preserve deep-link context for locked projects so direct /project/* visits
+      // do not appear to "bounce" to the home screen.
+      if (window.location.pathname.startsWith('/project/')) {
+        setCurrentPage("project-detail");
+        setSelectedProject(null);
+      }
       return;
     }
     
@@ -1384,6 +1390,11 @@ function AppShell() {
 
   const handlePasswordCancel = () => {
     setPendingProtectedProject(null);
+    if (currentPage === "project-detail" && !selectedProject) {
+      setCurrentPage("home");
+      setSelectedProject(null);
+      setTimeout(forceScrollToTop, 0);
+    }
   };
 
   const handleUpdateProject = async (updatedProject: ProjectData) => {
