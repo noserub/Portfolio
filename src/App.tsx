@@ -937,25 +937,24 @@ function AppShell() {
           }),
         ]);
 
-      const { data: authUser } = await supabase.auth.getUser();
       let rows: Record<string, unknown>[] | null = null;
 
-      if (authUser.user) {
-        const { data, error } = await withTimeout(supabase.from("projects").select("*"));
-        if (data && !error) {
-          rows = data as Record<string, unknown>[];
-        }
-        // Signed-in users can still miss rows due ownership/RLS mismatch.
-        // Fall back to the public RPC so deep-link refresh still resolves.
-        if (!rows?.length) {
-          const publicRes = await withTimeout(supabase.rpc("get_projects_public"));
-          if (publicRes.data && !publicRes.error) {
-            rows = publicRes.data as Record<string, unknown>[];
+      // Deep-link fast path: resolve from public published projects first.
+      // This avoids waiting on auth/session checks before rendering case-study routes.
+      const publicRes = await withTimeout(supabase.rpc("get_projects_public"));
+      if (publicRes.data && !publicRes.error) {
+        rows = publicRes.data as Record<string, unknown>[];
+      }
+
+      // Fallback for signed-in/private visibility cases.
+      if (!rows?.length) {
+        const { data: authUser } = await withTimeout(supabase.auth.getUser(), 2500);
+        if (authUser.user) {
+          const { data, error } = await withTimeout(supabase.from("projects").select("*"));
+          if (data && !error) {
+            rows = data as Record<string, unknown>[];
           }
         }
-      } else {
-        const { data, error } = await withTimeout(supabase.rpc("get_projects_public"));
-        if (data && !error) rows = data as Record<string, unknown>[];
       }
 
       if (rows?.length) {
