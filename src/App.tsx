@@ -325,6 +325,9 @@ function AppShell() {
   const [currentPage, setCurrentPage] = useState(getInitialPage()); // Use URL-based initial state
   const [selectedProject, setSelectedProject] = useState(null);
   const [projectUpdateCallback, setProjectUpdateCallback] = useState(null);
+  const [isResolvingProjectRoute, setIsResolvingProjectRoute] = useState(() =>
+    window.location.pathname.startsWith('/project/'),
+  );
   
   // Utility: force scroll to top cross-browser
   const forceScrollToTop = () => {
@@ -1005,38 +1008,62 @@ function AppShell() {
     }
   };
 
-  // Listen for browser back/forward buttons
+  const getProjectSlugFromPathname = (pathname: string): string => {
+    const rawSlug = pathname.split('/project/')[1] || '';
+    return rawSlug.split('?')[0]?.split('#')[0]?.replace(/\/+$/, '') || '';
+  };
+
+  // Listen for browser back/forward buttons + initial URL routing
   useEffect(() => {
-    const handlePopState = async (event: PopStateEvent) => {
+    const resolveProjectRoute = async (pathname: string) => {
+      const projectSlug = getProjectSlugFromPathname(pathname);
+      setCurrentPage("project-detail");
+      setSelectedProject(null);
+      setIsResolvingProjectRoute(true);
+
+      if (!projectSlug) {
+        setCurrentPage("home");
+        setSelectedProject(null);
+        setIsResolvingProjectRoute(false);
+        return;
+      }
+
+      try {
+        const project = await findProjectBySlug(projectSlug);
+        if (project) {
+          await navigateToProject(project as ProjectData, () => {});
+        } else {
+          console.warn('Project not found:', projectSlug);
+          setCurrentPage("home");
+          setSelectedProject(null);
+        }
+      } finally {
+        setIsResolvingProjectRoute(false);
+      }
+    };
+
+    const handlePopState = async () => {
       const pathname = window.location.pathname;
       
       if (pathname === '/' || pathname === '') {
         // Home page
         setCurrentPage("home");
         setSelectedProject(null);
+        setIsResolvingProjectRoute(false);
       } else if (pathname.startsWith('/project/')) {
-        // Project detail page — use same password gate + Supabase refresh as Home card clicks
-        const projectSlug = pathname.split('/project/')[1];
-        if (projectSlug) {
-          const project = await findProjectBySlug(projectSlug);
-          if (project) {
-            await navigateToProject(project as ProjectData, () => {});
-          } else {
-            console.warn('Project not found:', projectSlug);
-            setCurrentPage("home");
-            setSelectedProject(null);
-          }
-        }
+        await resolveProjectRoute(pathname);
       } else if (pathname.startsWith('/')) {
         // Other pages
         const page = pathname.substring(1) as Page;
         if (['about', 'contact', 'messages'].includes(page)) {
           setCurrentPage(page);
           setSelectedProject(null);
+          setIsResolvingProjectRoute(false);
         } else {
           // Unknown route, redirect to home
           setCurrentPage("home");
           setSelectedProject(null);
+          setIsResolvingProjectRoute(false);
         }
       }
       // Ensure scroll top after navigation caused by browser buttons
@@ -1048,52 +1075,12 @@ function AppShell() {
     
     // Parse initial URL on page load
     const pathname = window.location.pathname;
-    if (pathname.startsWith('/project/')) {
-      // If we're on a project page, we need to load the project data
-      handlePopState({} as PopStateEvent);
-    } else if (pathname !== '/' && pathname !== '') {
-      // Handle any other pathname-based routing
-      handlePopState({} as PopStateEvent);
-    }
-    // For home page, the initial state is already correct
+    void handlePopState();
 
     return () => {
       window.removeEventListener('popstate', handlePopState);
     };
   }, []);
-
-  // Recovery path: if we are on /project/... but no project is selected yet,
-  // retry slug resolution so we don't get stuck on RouteFallback indefinitely.
-  useEffect(() => {
-    if (currentPage !== "project-detail" || selectedProject) return;
-    const pathname = window.location.pathname;
-    if (!pathname.startsWith("/project/")) return;
-
-    let cancelled = false;
-    const retryResolve = async () => {
-      const rawSlug = pathname.split("/project/")[1] || "";
-      const projectSlug = rawSlug.split("?")[0]?.split("#")[0]?.replace(/\/+$/, "");
-      if (!projectSlug) {
-        setCurrentPage("home");
-        setSelectedProject(null);
-        return;
-      }
-      const project = await findProjectBySlug(projectSlug);
-      if (cancelled) return;
-      if (project) {
-        await navigateToProject(project as ProjectData, () => {});
-      } else {
-        console.warn("Project not found during recovery:", projectSlug);
-        setCurrentPage("home");
-        setSelectedProject(null);
-      }
-    };
-
-    void retryResolve();
-    return () => {
-      cancelled = true;
-    };
-  }, [currentPage, selectedProject]);
 
   // NOW ALL HOOKS ARE DECLARED - SAFE TO DO CONDITIONAL RENDERING
   // If in emergency mode, show emergency recovery
