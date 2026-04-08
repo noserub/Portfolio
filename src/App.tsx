@@ -760,8 +760,21 @@ function AppShell() {
     setTimeout(forceScrollToTop, 32);
   }, [currentPage, (selectedProject as any)?._navTimestamp]);
 
+  const hasRunInitialUrlSyncRef = useRef(false);
+
   // Browser navigation support
   useEffect(() => {
+    // On first render, preserve incoming deep-link URLs while route state hydrates.
+    if (!hasRunInitialUrlSyncRef.current) {
+      hasRunInitialUrlSyncRef.current = true;
+      const initialPath = window.location.pathname;
+      const isHydratingProjectDeepLink =
+        initialPath.startsWith('/project/') && currentPage === "home" && !selectedProject;
+      if (isHydratingProjectDeepLink) {
+        return;
+      }
+    }
+
     // Update URL when currentPage changes
     const updateURL = () => {
       let newPath = '/';
