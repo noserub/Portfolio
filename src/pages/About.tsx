@@ -8,7 +8,7 @@ import { Textarea } from "../components/ui/textarea";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../components/ui/accordion";
 import { Checkbox } from "../components/ui/checkbox";
 import { Label } from "../components/ui/label";
-import { Sparkles, Target, Users, Rocket, Zap, Award, Lightbulb, TrendingUp, Boxes, BarChart3, PenTool, BrainCircuit, GraduationCap, Wrench, FileText, Edit2, Save, X, ChevronDown, ChevronUp, ArrowUp, ArrowDown, Handshake, Layers } from "lucide-react";
+import { Sparkles, Target, Users, Rocket, Zap, Award, Lightbulb, TrendingUp, Boxes, BarChart3, PenTool, BrainCircuit, GraduationCap, Wrench, FileText, Edit2, Save, X, ChevronDown, ChevronUp, ArrowUp, ArrowDown, Handshake, Layers, Trash2 } from "lucide-react";
 import { MarkdownRenderer } from "../components/MarkdownRenderer";
 import { toast } from "sonner";
 import { useSEO } from "../hooks/useSEO";
@@ -815,6 +815,19 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
       newExpanded.add(index);
     }
     setExpandedAICards(newExpanded);
+  };
+
+  const handleRemoveAICard = (index: number) => {
+    setHowIUseAIItems(howIUseAIItems.filter((_, i) => i !== index));
+    const newExpanded = new Set<number>();
+    expandedAICards.forEach((i) => {
+      if (i < index) newExpanded.add(i);
+      else if (i > index) newExpanded.add(i - 1);
+    });
+    setExpandedAICards(newExpanded);
+    if (editingSection === `ai-${index}`) {
+      handleCancelCard();
+    }
   };
 
   // Helper to check if text needs truncation (more than 4 lines)
@@ -2316,15 +2329,25 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
                           placeholder="Card content..."
                         />
                       </div>
-                      <div className="flex gap-2 justify-end">
-                        <Button size="sm" variant="outline" onClick={handleCancelCard}>
-                          <X className="w-3 h-3 mr-1" />
-                          Cancel
+                      <div className="flex gap-2 justify-between pt-2">
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleRemoveAICard(index)}
+                        >
+                          <Trash2 className="w-3 h-3 mr-1" />
+                          Remove card
                         </Button>
-                        <Button size="sm" onClick={() => handleSaveCard('ai', index)}>
-                          <Save className="w-3 h-3 mr-1" />
-                          Save
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="outline" onClick={handleCancelCard}>
+                            <X className="w-3 h-3 mr-1" />
+                            Cancel
+                          </Button>
+                          <Button size="sm" onClick={() => handleSaveCard('ai', index)}>
+                            <Save className="w-3 h-3 mr-1" />
+                            Save
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   ) : (
@@ -2343,14 +2366,24 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
                           {item.title}
                         </motion.h3>
                         {isEditMode && (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleEditCard('ai', index, item)}
-                            className="flex-shrink-0"
-                          >
-                            <Edit2 className="w-3 h-3" />
-                          </Button>
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleEditCard('ai', index, item)}
+                            >
+                              <Edit2 className="w-3 h-3" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleRemoveAICard(index)}
+                              className="text-destructive hover:text-destructive"
+                              title="Remove card"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          </div>
                         )}
                       </div>
                       <p className="text-muted-foreground leading-relaxed text-sm">
