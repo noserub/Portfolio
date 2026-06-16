@@ -25,6 +25,9 @@ const EmergencyRecovery = lazyWithRetry(() => import("./pages/EmergencyRecovery"
 const Messages = lazyWithRetry(() =>
   import("./pages/Messages").then((m) => ({ default: m.Messages })),
 );
+const LiteBriteMusic = lazyWithRetry(() =>
+  import("./pages/LiteBriteMusic").then((m) => ({ default: m.default })),
+);
 const SupabaseTest = lazyWithRetry(() => import("./components/SupabaseTest"));
 import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
@@ -85,7 +88,14 @@ try {
   // Continue anyway - don't block React
 }
 
-type Page = "home" | "about" | "contact" | "project-detail" | "supabase-test" | "messages";
+type Page =
+  | "home"
+  | "about"
+  | "contact"
+  | "project-detail"
+  | "supabase-test"
+  | "messages"
+  | "lite-brite";
 
 // Error Boundary Component
 interface ErrorBoundaryState {
@@ -312,7 +322,7 @@ function AppShell() {
       return "project-detail";
     } else if (pathname.startsWith('/')) {
       const page = pathname.substring(1) as Page;
-      if (['about', 'contact', 'messages'].includes(page)) {
+      if (['about', 'contact', 'messages', 'lite-brite'].includes(page)) {
         return page;
       }
     }
@@ -848,8 +858,10 @@ function AppShell() {
       return '/contact';
     } else if (currentPage === "messages") {
       return '/messages';
+    } else if (currentPage === "lite-brite") {
+      return '/lite-brite';
     }
-    
+
     return '/';
   };
 
@@ -1055,7 +1067,7 @@ function AppShell() {
       } else if (pathname.startsWith('/')) {
         // Other pages
         const page = pathname.substring(1) as Page;
-        if (['about', 'contact', 'messages'].includes(page)) {
+        if (['about', 'contact', 'messages', 'lite-brite'].includes(page)) {
           setCurrentPage(page);
           setSelectedProject(null);
           setIsResolvingProjectRoute(false);
@@ -1638,6 +1650,7 @@ function AppShell() {
   const showPillNav =
     pillNavPages.length > 0 &&
     currentPage !== "home" &&
+    currentPage !== "lite-brite" &&
     currentPage !== "project-detail" &&
     currentPage !== "supabase-test";
 
@@ -1645,9 +1658,13 @@ function AppShell() {
     <ErrorBoundary>
       <div className="min-h-screen relative" data-react-root="true">
         
-        {/* Fixed backgrounds that show on all pages */}
-        <AnimatedBackground />
-        <AbstractPattern />
+        {/* Fixed backgrounds — hidden on immersive lite-brite viz */}
+        {currentPage !== "lite-brite" && (
+          <>
+            <AnimatedBackground />
+            <AbstractPattern />
+          </>
+        )}
       
       {/* Sign In Modal */}
       {showSignIn && (
@@ -2135,6 +2152,7 @@ function AppShell() {
             <RouteFallback />
           )}
           {currentPage === "supabase-test" && <SupabaseTest />}
+          {currentPage === "lite-brite" && <LiteBriteMusic />}
         </Suspense>
           {/* Supabase test page removed */}
       </div>

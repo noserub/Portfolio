@@ -29,6 +29,7 @@ import {
   AlertDialogTitle,
 } from "../components/ui/alert-dialog";
 import { Label } from "../components/ui/label";
+import { Switch } from "../components/ui/switch";
 import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
 import {
   type CaseStudyFilterEntry,
@@ -39,6 +40,8 @@ import {
   type HomePageContentV2,
   type HomePageStat,
   defaultBioDocument,
+  getHeroDeleteStopLength,
+  getHeroGreetingAnimationPlan,
   healDegenerateHeroBio,
   HERO_SEQUENCE_PAUSE_MS,
   mergeHeroGreetingsFromDraftLines,
@@ -2415,19 +2418,22 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
   const resolvedHeroBio = useMemo(() => healDegenerateHeroBio(heroText), [heroText]);
   const bioDocumentForUi =
     resolvedHeroBio.bioDocument ?? defaultBioDocument();
+  const heroAnimationPlan = useMemo(
+    () =>
+      getHeroGreetingAnimationPlan(
+        heroText.greetings || [heroText.greeting],
+        heroText.heroRetypeMode ?? "full",
+      ),
+    [heroText.greetings, heroText.greeting, heroText.heroRetypeMode],
+  );
 
   const [deleteConfirmation, setDeleteConfirmation] = useState(null);
 
-  // Use ref to store greetings array - prevents infinite re-render loops
-  const greetingsRef = useRef([]);
+  const heroAnimationPlanRef = useRef(getHeroGreetingAnimationPlan([], "full"));
+  heroAnimationPlanRef.current = heroAnimationPlan;
   
   // Ref for case study scroll (singular) - used in handleAddFromTemplate
   const caseStudyScrollRef = useRef(null);
-  
-  // Update ref when heroText changes (but don't trigger effects)
-  useEffect(() => {
-    greetingsRef.current = heroText.greetings || [heroText.greeting];
-  }, [heroText.greetings, heroText.greeting]);
   
   // Typing animation state
   const [currentGreetingIndex, setCurrentGreetingIndex] = useState(0);
@@ -2438,10 +2444,12 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
   // Typing animation effect - uses ref so doesn't re-run when heroText changes
   useEffect(() => {
     if (homeContentLoading) return;
-    const greetings = greetingsRef.current;
+    const plan = heroAnimationPlanRef.current;
+    const greetings = plan.greetings;
     if (!greetings || greetings.length === 0) return;
     
     const currentGreeting = greetings[currentGreetingIndex] || "";
+    const deleteStopLength = getHeroDeleteStopLength(plan);
     const isLastGreeting = currentGreetingIndex === greetings.length - 1;
     const pauseDuration = heroText.lastGreetingPauseDuration || 30000;
     
@@ -2456,7 +2464,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         delay = HERO_SEQUENCE_PAUSE_MS;
       }
     } else {
-      if (displayedText.length > 0) {
+      if (displayedText.length > deleteStopLength) {
         delay = 25; // Fast deletion
       } else {
         delay = 300; // Brief pause before next greeting
@@ -2469,7 +2477,11 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         setIsDeleting(true);
       } else if (!isDeleting) {
         if (displayedText.length < currentGreeting.length) {
-          setDisplayedText(currentGreeting.slice(0, displayedText.length + 1));
+          if (plan.mode === "suffix-only" && displayedText.length < deleteStopLength) {
+            setDisplayedText(currentGreeting.slice(0, deleteStopLength));
+          } else {
+            setDisplayedText(currentGreeting.slice(0, displayedText.length + 1));
+          }
         } else {
           if (isLastGreeting) {
             setIsWaitingForCycle(true);
@@ -2478,11 +2490,11 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
           }
         }
       } else {
-        if (displayedText.length > 0) {
+        if (displayedText.length > deleteStopLength) {
           setDisplayedText(displayedText.slice(0, -1));
         } else {
           setIsDeleting(false);
-          const greetingsLength = greetingsRef.current.length;
+          const greetingsLength = heroAnimationPlanRef.current.greetings.length;
           setCurrentGreetingIndex((prev) => (prev + 1) % greetingsLength);
         }
       }
@@ -2509,13 +2521,20 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     prevHomeContentLoadingRef.current = homeContentLoading;
   }, [homeContentLoading]);
 
-  // Reset animation when pause duration changes
+  // Reset animation when pause duration or retype mode changes
   useEffect(() => {
     if (isWaitingForCycle) {
       setIsWaitingForCycle(false);
       setIsDeleting(true);
     }
   }, [heroText.lastGreetingPauseDuration]);
+
+  useEffect(() => {
+    setDisplayedText("");
+    setCurrentGreetingIndex(0);
+    setIsDeleting(false);
+    setIsWaitingForCycle(false);
+  }, [heroText.heroRetypeMode]);
   
   const [selectedProjectType, setSelectedProjectType] = useState<string | null>(null);
   /** After the visitor changes filters by hand, do not snap back to the CMS default until they change the default in the editor or reload. */
@@ -3407,6 +3426,37 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     ? designProjects
     : designProjects.filter((p) => p.published);
 
+  const suffixOnlyHeroLayout =
+    heroAnimationPlan.mode === "suffix-only" &&
+    Boolean(heroAnimationPlan.sharedPrefix) &&
+    Boolean(heroAnimationPlan.suffixes?.length);
+  const heroSharedPrefix = (heroAnimationPlan.sharedPrefix ?? "").trimEnd();
+  const heroPrefixLength = heroAnimationPlan.sharedPrefix?.length ?? 0;
+  const heroSuffixVisible =
+    displayedText.length > heroPrefixLength ? displayedText.slice(heroPrefixLength) : "";
+
+  const heroGradientTextMotion = {
+    animate: {
+      backgroundImage: [
+        "linear-gradient(45deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)",
+        "linear-gradient(90deg, #8b5cf6 0%, #3b82f6 50%, #fbbf24 100%)",
+        "linear-gradient(135deg, #3b82f6 0%, #fbbf24 50%, #ec4899 100%)",
+        "linear-gradient(180deg, #fbbf24 0%, #ec4899 50%, #8b5cf6 100%)",
+        "linear-gradient(45deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)",
+      ],
+    },
+    transition: {
+      duration: 10,
+      repeat: Infinity,
+      ease: "linear" as const,
+    },
+    style: {
+      backgroundClip: "text",
+      WebkitBackgroundClip: "text",
+      WebkitTextFillColor: "transparent",
+    },
+  };
+
   return (
     <div className="min-h-screen relative">
 
@@ -3420,7 +3470,11 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
           className="text-center space-y-6 mb-16 relative z-10 mt-10 md:mt-20 w-full max-w-4xl"
         >
           <motion.h1
-            className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl tracking-tight font-extrabold text-center break-words md:whitespace-nowrap px-4"
+            className={
+              suffixOnlyHeroLayout
+                ? "tracking-tight text-center break-words px-4 w-full"
+                : "text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl tracking-tight font-extrabold text-center break-words px-4 w-full"
+            }
             style={{
               fontFamily: heroText.greetingFont || "Inter, sans-serif",
               lineHeight: "1.3",
@@ -3429,52 +3483,47 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
               overflowWrap: "break-word",
             }}
           >
-            <motion.span
-              className="inline"
-              animate={{
-                backgroundImage: [
-                  "linear-gradient(45deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)",
-                  "linear-gradient(90deg, #8b5cf6 0%, #3b82f6 50%, #fbbf24 100%)",
-                  "linear-gradient(135deg, #3b82f6 0%, #fbbf24 50%, #ec4899 100%)",
-                  "linear-gradient(180deg, #fbbf24 0%, #ec4899 50%, #8b5cf6 100%)",
-                  "linear-gradient(45deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)",
-                ],
-              }}
-              transition={{
-                duration: 10,
-                repeat: Infinity,
-                ease: "linear",
-              }}
-              style={{
-                backgroundClip: "text",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-              }}
-            >
-              {displayedText}
-            </motion.span>
-            <motion.span 
-              className="inline-block align-middle ml-1 w-1 md:w-1.5"
-              animate={{
-                backgroundImage: [
-                  "linear-gradient(45deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)",
-                  "linear-gradient(90deg, #8b5cf6 0%, #3b82f6 50%, #fbbf24 100%)",
-                  "linear-gradient(135deg, #3b82f6 0%, #fbbf24 50%, #ec4899 100%)",
-                  "linear-gradient(180deg, #fbbf24 0%, #ec4899 50%, #8b5cf6 100%)",
-                  "linear-gradient(45deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)",
-                ],
-              }}
-              transition={{
-                duration: 10,
-                repeat: Infinity,
-                ease: "linear",
-              }}
-              style={{
-                height: "0.9em",
-                animation: "blinkCursor 1.2s infinite",
-                verticalAlign: "baseline",
-              }}
-            />
+            {suffixOnlyHeroLayout ? (
+              <span className="flex flex-col items-center">
+                <motion.span
+                  className="block whitespace-pre text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-semibold tracking-tight"
+                  {...heroGradientTextMotion}
+                >
+                  {heroSharedPrefix}
+                </motion.span>
+                <span className="block mt-1 md:mt-2 whitespace-nowrap text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-extrabold tracking-tight">
+                  <motion.span className="inline" {...heroGradientTextMotion}>
+                    {heroSuffixVisible}
+                  </motion.span>
+                  <motion.span
+                    className="inline-block align-middle ml-1 w-1 md:w-1.5"
+                    animate={heroGradientTextMotion.animate}
+                    transition={heroGradientTextMotion.transition}
+                    style={{
+                      height: "0.9em",
+                      animation: "blinkCursor 1.2s infinite",
+                      verticalAlign: "baseline",
+                    }}
+                  />
+                </span>
+              </span>
+            ) : (
+              <>
+                <motion.span className="inline md:whitespace-nowrap" {...heroGradientTextMotion}>
+                  {displayedText}
+                </motion.span>
+                <motion.span
+                  className="inline-block align-middle ml-1 w-1 md:w-1.5"
+                  animate={heroGradientTextMotion.animate}
+                  transition={heroGradientTextMotion.transition}
+                  style={{
+                    height: "0.9em",
+                    animation: "blinkCursor 1.2s infinite",
+                    verticalAlign: "baseline",
+                  }}
+                />
+              </>
+            )}
           </motion.h1>
           
           {/* Dot Indicators */}
@@ -3483,8 +3532,9 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
               <button
                 key={index}
                 onClick={() => {
+                  const greetings = heroAnimationPlanRef.current.greetings;
                   setCurrentGreetingIndex(index);
-                  setDisplayedText('');
+                  setDisplayedText(greetings[index] || "");
                   setIsDeleting(false);
                   setIsWaitingForCycle(false);
                 }}
@@ -3826,6 +3876,23 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                     rows={6}
                     className="font-mono text-sm"
                   />
+                  <div className="flex items-center justify-between gap-4 rounded-lg border border-border px-3 py-2">
+                    <div>
+                      <Label htmlFor="hero-retype-suffix" className="text-sm">
+                        Retype only last word
+                      </Label>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Shared first line stays fixed; only the last word retypes on line two (e.g. AI Product / Builder → Designer).
+                      </p>
+                    </div>
+                    <Switch
+                      id="hero-retype-suffix"
+                      checked={heroText.heroRetypeMode === "suffix-only"}
+                      onCheckedChange={(checked) =>
+                        patchHero({ heroRetypeMode: checked ? "suffix-only" : "full" })
+                      }
+                    />
+                  </div>
                   <div className="flex items-center gap-3">
                     <Label className="text-xs shrink-0">Pause after last (sec)</Label>
                     <Input

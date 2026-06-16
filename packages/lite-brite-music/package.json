@@ -1,0 +1,15 @@
+{
+  "name": "lite-brite-music",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Audio-reactive Lite-Brite style canvas visualization (React). Copy this folder into any project.",
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "license": "MIT"
+}
