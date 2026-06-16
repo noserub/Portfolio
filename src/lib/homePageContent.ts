@@ -23,9 +23,21 @@ export interface BioDocument {
   paragraphs: BioParagraph[];
 }
 
+export type HeroRetypeMode = "full" | "suffix-only";
+
+export interface HeroGreetingAnimationPlan {
+  mode: HeroRetypeMode;
+  greetings: string[];
+  /** Shared prefix when mode is suffix-only (includes trailing space). */
+  sharedPrefix?: string;
+  suffixes?: string[];
+}
+
 export interface HeroTextState {
   greeting: string;
   greetings?: string[];
+  /** When suffix-only, only the last word is deleted/retyped between lines with a shared prefix. */
+  heroRetypeMode?: HeroRetypeMode;
   greetingFont?: string;
   lastGreetingPauseDuration?: number;
   subtitle: string;
@@ -50,6 +62,49 @@ export interface HeroTextState {
 
 /** Pause after each hero greeting finishes typing (before backspace or cycle wait). Not CMS-editable by design. */
 export const HERO_SEQUENCE_PAUSE_MS = 2000;
+
+/** Minimum displayed length while backspacing in suffix-only mode (falls back to 0 in full mode). */
+export function getHeroDeleteStopLength(plan: HeroGreetingAnimationPlan): number {
+  return plan.mode === "suffix-only" && plan.sharedPrefix ? plan.sharedPrefix.length : 0;
+}
+
+/**
+ * Build typing animation plan from hero greetings.
+ * Suffix-only requires at least two lines that share the same text before the last space.
+ */
+export function getHeroGreetingAnimationPlan(
+  greetings: string[],
+  retypeMode: HeroRetypeMode = "full",
+): HeroGreetingAnimationPlan {
+  if (retypeMode !== "suffix-only" || greetings.length < 2) {
+    return { mode: "full", greetings };
+  }
+
+  const parsed = greetings.map((line) => {
+    const lastSpace = line.lastIndexOf(" ");
+    if (lastSpace <= 0) return null;
+    return {
+      prefix: line.slice(0, lastSpace + 1),
+      suffix: line.slice(lastSpace + 1),
+    };
+  });
+
+  if (parsed.some((entry) => entry === null)) {
+    return { mode: "full", greetings };
+  }
+
+  const sharedPrefix = parsed[0]!.prefix;
+  if (!parsed.every((entry) => entry!.prefix === sharedPrefix)) {
+    return { mode: "full", greetings };
+  }
+
+  return {
+    mode: "suffix-only",
+    greetings,
+    sharedPrefix,
+    suffixes: parsed.map((entry) => entry!.suffix),
+  };
+}
 
 export interface HomePageStat {
   number: string;
@@ -111,8 +166,8 @@ export const DEFAULT_UI: HomePageUI = {
 
 /** Default segment strings for initial hero state and legacy migration when building bioDocument. */
 export const DEFAULT_CLASSIC_BIO_FIELDS = {
-  subtitle: "Brian Bureson is a product design leader and builder who turns complex ideas into high-quality, shipped products. He architects AI-native designs, from high-fidelity vision to production-ready code.", 
-  description: "Brian works across product strategy, UX, and engineering to help teams move from ambiguity to execution.",
+  subtitle: `I am a Principal Product Designer with a 20-year obsession with high-stakes, "zero-failure" systems. My focus lies at the intersection of complex hardware, regulated software, and frontier AI. I gravitate toward "gnarly" problems—situations where ambiguity is high, safety is critical, and the human impact is life-altering.`,
+  description: "",
   word1: "help teams",
   word2: "move",
   word3: "from ambiguity",
@@ -158,17 +213,20 @@ export function coerceClassicBioFields(
   };
 }
 
-/** Two plain paragraphs (line break between sections); no bold or gradient runs. */
+/** Plain paragraphs (line break between sections); no bold or gradient runs. Skips empty subtitle/description so one block can stand alone. */
 export function plainBioDocumentFromHeroFields(fields: {
   subtitle: string;
   description: string;
 }): BioDocument {
-  return {
-    paragraphs: [
-      { runs: [{ type: "text", text: fields.subtitle }] },
-      { runs: [{ type: "text", text: fields.description }] },
-    ],
-  };
+  const paragraphs: BioParagraph[] = [];
+  const sub = typeof fields.subtitle === "string" ? fields.subtitle.trim() : "";
+  const desc = typeof fields.description === "string" ? fields.description.trim() : "";
+  if (sub) paragraphs.push({ runs: [{ type: "text", text: sub }] });
+  if (desc) paragraphs.push({ runs: [{ type: "text", text: desc }] });
+  if (paragraphs.length === 0) {
+    paragraphs.push({ runs: [{ type: "text", text: "" }] });
+  }
+  return { paragraphs };
 }
 
 /** Canonical default home bio (matches `defaultHeroTextState` copy). */
@@ -342,6 +400,7 @@ function mergeHero(partial: Partial<HeroTextState> | Record<string, unknown>): H
         ? [h.greeting]
         : base.greetings,
     greeting: h.greeting || (h.greetings && h.greetings[0]) || base.greeting,
+    heroRetypeMode: h.heroRetypeMode === "suffix-only" ? "suffix-only" : "full",
     accentGradient: h.accentGradient !== false,
     bioParagraphGapRem:
       typeof h.bioParagraphGapRem === "number" && !Number.isNaN(h.bioParagraphGapRem)

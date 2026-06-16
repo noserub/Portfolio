@@ -102,6 +102,8 @@ function injectStructuredDataIntoHTML() {
 
   // Remove any existing structured data scripts (to avoid duplicates)
   html = html.replace(/<script[^>]*type=["']application\/ld\+json["'][^>]*>[\s\S]*?<\/script>/gi, '');
+  // Keep repeated builds from leaving expanding blank space where JSON-LD scripts were removed.
+  html = html.replace(/(?:[ \t]*\r?\n){4,}/g, '\n\n\n');
 
   const schemas = generateStaticStructuredData(metaDescription);
 

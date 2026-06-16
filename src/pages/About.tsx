@@ -50,7 +50,7 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editingSection, setEditingSection] = useState(null);
   const [bioParagraph1, setBioParagraph1] = useState(
-    "Brian Bureson is a Denver, Colorado-based product designer and strategic design leader with 20+ years of experience delivering 0–1, research-backed digital products across enterprise, mid-size, and startup environments."
+    `I am a Principal Product Designer with a 20-year obsession with high-stakes, "zero-failure" systems. My focus lies at the intersection of complex hardware, regulated software, and frontier AI. I gravitate toward "gnarly" problems—situations where ambiguity is high, safety is critical, and the human impact is life-altering.`
   );
   const [bioParagraph2, setBioParagraph2] = useState(
     "As an AI native designer and product builder, Brian brings deep craft, collaborative leadership, and a proven track record of innovation."
