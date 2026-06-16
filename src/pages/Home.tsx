@@ -14,7 +14,7 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Textarea } from "../components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
-import { Plus, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Edit2, Save, GripVertical, Linkedin, Github, FileText, Trash2, Eye, Wand2, ArrowUp, ArrowDown, Cloud, AlertTriangle } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, ChevronDown, Edit2, Save, GripVertical, Linkedin, Github, FileText, Trash2, Eye, Wand2, ArrowUp, ArrowDown, Cloud, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { Tooltip, TooltipTrigger, TooltipContent } from "../components/ui/tooltip";
 // import { createCaseStudyFromTemplate } from "../utils/caseStudyTemplate"; // REMOVED - using unified project creator
@@ -50,6 +50,7 @@ import { getPortfolioOwnerUserId } from "../lib/portfolioOwner";
 import { lazyWithRetry } from "../utils/lazyWithRetry";
 import { useSiteAuth } from "../contexts/SiteAuthContext";
 import { BioDocumentRenderer } from "../components/HomeBioDocument";
+import { HomeScrollChevron } from "../components/HomeScrollChevron";
 
 const UnifiedProjectCreator = lazyWithRetry(() =>
   import("../components/UnifiedProjectCreator").then((m) => ({
@@ -183,15 +184,7 @@ function DraggableProjectItem({
         duration: 0.2,
         ease: "easeOut"
       }}
-      whileHover={!isEditMode ? {
-        y: -8,
-        transition: {
-          type: "spring",
-          stiffness: 400,
-          damping: 25
-        }
-      } : {}}
-      className="relative w-full"
+      className={`relative w-full ${!isEditMode ? "hover:-translate-y-2 transition-transform duration-200 ease-out motion-reduce:transition-none motion-reduce:hover:translate-y-0" : ""}`}
     >
       {isEditMode && (
         <div
@@ -843,7 +836,6 @@ export function Home({ onStartClick, isEditMode, onProjectClick, currentPage }: 
 
   useEffect(() => {
     if (import.meta.env.DEV) {
-      console.log('🔍 DEBUG: useProjects — loading:', loading, 'projects:', projects.length);
     }
   }, [loading, projects.length]);
   
@@ -896,7 +888,6 @@ export function Home({ onStartClick, isEditMode, onProjectClick, currentPage }: 
         return;
       }
       
-      console.log('🔍 MassRoots search results:', supabaseProjects);
       
       if (supabaseProjects && supabaseProjects.length > 0) {
         const project = supabaseProjects[0];
@@ -1044,7 +1035,6 @@ Complete UI overhaul with focus on visual content, making the app feel modern an
         }
       } else {
         // Try a broader search for MassRoots
-        console.log('🔍 No exact match found, trying broader search...');
         const { data: broadSearch, error: broadError } = await supabase
           .from('projects')
           .select('*')
@@ -1053,7 +1043,6 @@ Complete UI overhaul with focus on visual content, making the app feel modern an
         if (broadError) {
           console.log('❌ Error in broad search:', broadError);
         } else {
-          console.log('🔍 Broad search results:', broadSearch);
           if (broadSearch && broadSearch.length > 0) {
             const project = broadSearch[0];
             console.log('📄 Found MassRoots project (broad search):', project);
@@ -1378,7 +1367,6 @@ Redesigned friend connections and sharing to encourage more social interaction.
       if (tandemError) {
         console.log('❌ Error fetching Tandem project:', tandemError);
       } else {
-        console.log('🔍 Tandem search results:', tandemProjects);
         if (tandemProjects && tandemProjects.length > 0) {
           const project = tandemProjects[0];
           console.log('📄 Found Tandem project:', project);
@@ -1678,7 +1666,6 @@ Tools for family members to support patients without being intrusive.
   // Check for missing important projects and restore them if needed
   const checkAndRestoreMissingProjects = async () => {
     try {
-      console.log('🔍 Checking for missing important projects...');
       
       // Check if Tandem Diabetes Care exists
       const { data: tandemProjects, error: tandemError } = await supabase
@@ -1888,7 +1875,6 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         .select('*')
         .ilike('title', '%skype%qik%');
       
-      console.log('🔍 Found Skype Qik projects:', skypeProjects?.length || 0);
       
       if (skypeProjects && skypeProjects.length > 0) {
         // Fix all Skype Qik projects
@@ -2109,8 +2095,6 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
   // Memoize deduplication to prevent recalculation on every render
   // Optimized from O(n²) to O(n) complexity using Map
   const deduplicatedProjects = useMemo(() => {
-    console.log('🔍 DEBUG: Raw projects count:', projects.length);
-    console.log('🔍 DEBUG: Raw projects:', projects.map(p => ({ id: p.id, title: p.title, updated_at: p.updated_at, requires_password: p.requires_password })));
     
     const seen = new Map<string, typeof projects[0]>();
     
@@ -2133,8 +2117,6 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     }
     
     const result = Array.from(seen.values());
-    console.log('🔍 DEBUG: Deduplicated projects count:', result.length);
-    console.log('🔍 DEBUG: Deduplicated projects:', result.map(p => ({ id: p.id, title: p.title, updated_at: p.updated_at, requires_password: p.requires_password })));
     return result;
   }, [projects]);
   
@@ -2192,9 +2174,6 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
   
   // Memoize case studies filtering to prevent recalculation
   const caseStudies = useMemo(() => {
-    console.log('🔍 DEBUG: deduplicatedProjects count:', deduplicatedProjects.length);
-    console.log('🔍 DEBUG: All projects before filtering:', deduplicatedProjects.map(p => ({ id: p.id, title: p.title, requiresPassword: p.requiresPassword, requires_password: p.requires_password })));
-    console.log('🔍 DEBUG: All projects before filtering (expanded):', deduplicatedProjects);
     
     const filtered = deduplicatedProjects
       .filter(project => {
@@ -2244,15 +2223,11 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         return normalized;
       });
     
-    console.log('🔍 DEBUG: Filtered case studies:', filtered.map(p => ({ id: p.id, title: p.title, requiresPassword: p.requiresPassword, requires_password: p.requires_password })));
-    console.log('🔍 DEBUG: Filtered case studies (expanded):', filtered);
     return filtered;
   }, [deduplicatedProjects]);
   
   // Debug: Log when caseStudies changes
   useEffect(() => {
-    console.log('🔍 DEBUG: caseStudies changed:', caseStudies.length, 'items');
-    console.log('🔍 DEBUG: caseStudies details:', caseStudies.map(p => ({ title: p.title, published: p.published })));
   }, [caseStudies]);
   
   // Memoize design projects filtering to prevent recalculation
@@ -2542,114 +2517,8 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
   const [lightboxProject, setLightboxProject] = useState(null);
   const designProjectsScrollRef = useRef(null);
   const quickStatsScrollRef = useRef<HTMLDivElement>(null);
-  const caseStudiesSectionRef = useRef(null);
+  const caseStudiesSectionRef = useRef<HTMLElement>(null);
 
-  // Scroll to case studies section
-  const scrollToCaseStudies = useCallback(() => {
-    if (caseStudiesSectionRef.current) {
-      caseStudiesSectionRef.current.scrollIntoView({ 
-        behavior: 'smooth',
-        block: 'start'
-      });
-    }
-  }, []);
-  
-  // State to track scroll direction and position
-  const [shouldShowUpChevron, setShouldShowUpChevron] = useState(false);
-  const scrollPositionRef = useRef(typeof window !== 'undefined' ? window.scrollY : 0);
-  const scrollDirectionRef = useRef<'up' | 'down' | null>(null);
-  
-  // Scroll to top of page
-  const scrollToTop = useCallback(() => {
-    // Try multiple methods to ensure it works
-    window.scrollTo({
-      top: 0,
-      left: 0,
-      behavior: 'smooth'
-    });
-    // Also try document.documentElement as fallback
-    document.documentElement.scrollTo({
-      top: 0,
-      left: 0,
-      behavior: 'smooth'
-    });
-    // And document.body as another fallback
-    if (document.body) {
-      document.body.scrollTo({
-        top: 0,
-        left: 0,
-        behavior: 'smooth'
-      });
-    }
-  }, []);
-  
-  // Detect scroll direction and position to determine chevron state
-  useEffect(() => {
-    const handleScroll = () => {
-      const scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
-      const windowHeight = window.innerHeight;
-      const documentHeight = Math.max(
-        document.body.scrollHeight,
-        document.documentElement.scrollHeight,
-        document.body.offsetHeight,
-        document.documentElement.offsetHeight,
-        document.body.clientHeight,
-        document.documentElement.clientHeight
-      );
-      
-      // Track scroll direction
-      const prevScrollTop = scrollPositionRef.current;
-      
-      // Update direction if position changed
-      if (prevScrollTop !== scrollTop) {
-        scrollDirectionRef.current = scrollTop > prevScrollTop ? 'down' : 'up';
-      }
-      
-      // Initialize direction if not set
-      if (scrollDirectionRef.current === null) {
-        scrollDirectionRef.current = scrollTop > 0 ? 'down' : 'down';
-      }
-      
-      scrollPositionRef.current = scrollTop;
-      
-      // Determine if near top or bottom
-      const threshold = 100;
-      const isNearTop = scrollTop < threshold;
-      const distanceFromBottom = documentHeight - scrollTop - windowHeight;
-      const isNearBottom = distanceFromBottom < threshold;
-      
-      // Logic per user requirements:
-      // - At top OR scrolling down → down chevron → scroll to case studies
-      // - At bottom OR scrolling up → up chevron → scroll to top
-      let shouldShowUp = false;
-      
-      if (isNearTop) {
-        shouldShowUp = false;
-      } else if (isNearBottom) {
-        shouldShowUp = true;
-      } else {
-        shouldShowUp = scrollDirectionRef.current === 'up';
-      }
-      
-      setShouldShowUpChevron(shouldShowUp);
-    };
-    
-    // Try multiple ways to attach the listener
-    window.addEventListener('scroll', handleScroll, { passive: true, capture: true });
-    document.addEventListener('scroll', handleScroll, { passive: true, capture: true });
-    document.documentElement.addEventListener('scroll', handleScroll, { passive: true, capture: true });
-    
-    handleScroll(); // Check initial position
-    
-    return () => {
-      window.removeEventListener('scroll', handleScroll, { capture: true } as EventListenerOptions);
-      document.removeEventListener('scroll', handleScroll, { capture: true } as EventListenerOptions);
-      document.documentElement.removeEventListener('scroll', handleScroll, { capture: true } as EventListenerOptions);
-    };
-  }, []); // Empty deps - setup once on mount
-
-  
-  
   // REMOVED: Duplicate save effect - hero text is already saved by the debounced effect above
   // This was causing multiple simultaneous saves and potential data loss
 
@@ -2661,7 +2530,6 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
 
   const handleProjectClick = (project: ProjectData, type: 'caseStudies' | 'design') => {
     const normalizedProject = normalizeProjectData(project);
-    console.log('🏠 Home: handleProjectClick - normalized project:', normalizedProject);
     
     if (isEditMode) {
       // In edit mode, open lightbox
@@ -2680,17 +2548,6 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     const cleanProject = { ...(updatedProject as any) };
     delete (cleanProject as any)._skipDbPersist;
 
-    console.log('🏠 Home: handleUpdateProject called:', {
-      id: cleanProject.id,
-      title: cleanProject.title,
-      contentLength: cleanProject.caseStudyContent?.length || 0,
-      type,
-      skipRefetch,
-      skipDbPersist,
-      requiresPassword: cleanProject.requiresPassword,
-      'Full updatedProject': cleanProject
-    });
-    
     try {
       // Convert to Supabase format
       const solutionCardsPositionRaw = cleanProject.solutionCardsPosition ?? (cleanProject as any).solution_cards_position;
@@ -2753,34 +2610,8 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         projectData.solution_cards_position = solutionCardsPositionRaw;
       }
 
-      console.log('🔄 Home: Calling updateProject with data:', {
-        id: cleanProject.id,
-        case_study_content_length: projectData.case_study_content?.length || 0,
-        requires_password: projectData.requires_password,
-        project_type: projectData.project_type,
-        project_type_type: typeof projectData.project_type,
-        'updatedProject.projectType': cleanProject.projectType,
-        'updatedProject.project_type': (cleanProject as any).project_type,
-        'projectData keys': Object.keys(projectData),
-        'has project_type in projectData': 'project_type' in projectData
-      });
-      
-      // DEBUG: Detailed content comparison
-      console.log('🔍 DEBUG: Content comparison:', {
-        'updatedProject.caseStudyContent length': cleanProject.caseStudyContent?.length || 0,
-        'updatedProject.caseStudyContent preview': cleanProject.caseStudyContent?.substring(0, 100) + '...',
-        'projectData.case_study_content length': projectData.case_study_content?.length || 0,
-        'projectData.case_study_content preview': projectData.case_study_content?.substring(0, 100) + '...',
-        'Are they equal?': cleanProject.caseStudyContent === projectData.case_study_content
-      });
-
       const result = skipDbPersist ? (cleanProject as any) : await updateProject(cleanProject.id, projectData);
       if (result) {
-        console.log('✅ Project updated in Supabase:', cleanProject.id, {
-          result_project_type: (result as any).project_type,
-          result_projectType: (result as any).projectType
-        });
-        
         // updateProject() already merges the returned DB row into `projects` in useProjects.
         // Avoid full-table refetch here: it can race with replication and briefly show older content.
 
@@ -3167,7 +2998,6 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
   
   // Sort case studies: published first (by sortOrder), then drafts (by sortOrder)
   const sortedCaseStudies = useMemo(() => {
-    console.log('🔍 DEBUG: sortedCaseStudies calculation - caseStudies:', caseStudies?.length || 0);
     if (!caseStudies || !Array.isArray(caseStudies)) {
       console.error("🏠 Home: caseStudies is invalid:", caseStudies);
       return [];
@@ -3186,7 +3016,6 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         // Stable tiebreak so equal sort_order never shuffles when source array order changes
         return String(a.id).localeCompare(String(b.id));
       });
-      console.log('🔍 DEBUG: sortedCaseStudies result:', sorted.length, 'projects');
       return sorted;
     } catch (error) {
       console.error("🏠 Home: Error sorting caseStudies:", error);
@@ -3195,7 +3024,6 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
   }, [caseStudies]);
   const displayCaseStudies = useMemo(() => {
     const source = localCaseStudiesOrder || sortedCaseStudies;
-    console.log('🔍 DEBUG: displayCaseStudies source:', source.length, 'projects from', isEditMode ? 'edit mode' : 'preview mode');
     // Apply project type filter if selected
     let filtered = source;
     if (selectedProjectType) {
@@ -3206,7 +3034,6 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     }
     
     if (isEditMode) {
-      console.log('🔍 DEBUG: displayCaseStudies (edit mode):', filtered.length, 'projects');
       return filtered;
     }
     // In preview mode, only show published projects (draft projects are hidden)
@@ -3218,27 +3045,15 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
       const isPublished = publishedValue === true;
       const requiresPassword = Boolean(p.requiresPassword || p.requires_password);
       
-      console.log('🔍 DEBUG: Project filtering:', {
-        title: p.title,
-        published: p.published,
-        publishedValue,
-        isPublished,
-        requiresPassword,
-        isSupabaseAuthenticated
-      });
-      
       // Only filter out draft projects - password-protected projects should still be visible
       // (they'll prompt for password when clicked)
       if (!isPublished) {
-        console.log('🔍 DEBUG: Filtering out draft project in preview mode:', p.title, '| published:', p.published);
         return false;
       }
       
       // Don't filter out password-protected projects - show them so users can click and enter password
       return true;
     });
-    console.log('🔍 DEBUG: displayCaseStudies (preview mode):', previewFiltered.length, 'of', source.length, 'projects');
-    console.log('🔍 DEBUG: displayCaseStudies projects:', previewFiltered.map(p => ({ title: p.title, published: p.published, hasImages: (p.caseStudyImages?.length || p.case_study_images?.length || 0) > 0, hasContent: ((p.caseStudyContent || p.case_study_content || '') + '').trim().length > 0 })));
     return previewFiltered;
   }, [localCaseStudiesOrder, sortedCaseStudies, isEditMode, selectedProjectType, isSupabaseAuthenticated]);
 
@@ -3253,16 +3068,6 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
       }
     });
     const result = Array.from(types);
-    console.log('🔍 availableProjectTypes calculated:', {
-      sourceLength: source.length,
-      types: result,
-      projectsWithTypes: source.map(p => ({
-        title: p.title,
-        projectType: p.projectType,
-        project_type: (p as any).project_type,
-        resolved: p.projectType || (p as any).project_type
-      }))
-    });
     return result;
     }, [localCaseStudiesOrder, sortedCaseStudies]);
 
@@ -3709,9 +3514,9 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
             { x: '83%', y: '92%', color: '#ec4899', size: 13, delay: 2.8 },
             { x: '102%', y: '48%', color: '#8b5cf6', size: 9, delay: 3.2 },
           ].map((dot, index) => (
-            <motion.div
+            <div
               key={index}
-              className="absolute rounded-full pointer-events-none"
+              className="absolute rounded-full pointer-events-none opacity-50"
               style={{
                 left: dot.x,
                 top: dot.y,
@@ -3719,17 +3524,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                 height: `${dot.size}px`,
                 background: dot.color,
               }}
-              animate={{
-                opacity: [0.3, 0.8, 0.3],
-                scale: [1, 1.5, 1],
-                y: [0, -15, 0],
-              }}
-              transition={{
-                duration: 4 + (index % 3),
-                repeat: Infinity,
-                delay: dot.delay,
-                ease: "easeInOut",
-              }}
+              aria-hidden
             />
           ))}
 
@@ -4282,75 +4077,12 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
           </div>
         </div>
 
-        {/* Scroll Indicator Arrow - Dynamic up/down chevron based on scroll position */}
         {!isEditMode && !homeContentLoading && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1, duration: 0.6 }}
-            className="flex justify-center py-12 md:py-16 relative z-10"
-          >
-            <motion.div
-              className="rounded-full p-[2px] inline-block flex-shrink-0 pointer-events-none"
-              style={{ pointerEvents: "none" }}
-              animate={{
-                background: [
-                  "linear-gradient(0deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
-                  "linear-gradient(45deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
-                  "linear-gradient(90deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
-                  "linear-gradient(135deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
-                  "linear-gradient(180deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
-                  "linear-gradient(225deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
-                  "linear-gradient(270deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
-                  "linear-gradient(315deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
-                  "linear-gradient(360deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
-                ],
-                y: [0, 8, 0],
-              }}
-              transition={{
-                background: {
-                  duration: 8,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                },
-                y: {
-                  duration: 2,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                },
-              }}
-            >
-              <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (shouldShowUpChevron) {
-                      scrollToTop();
-                    } else {
-                      scrollToCaseStudies();
-                    }
-                  }}
-                  onMouseDown={(e) => {
-                    // Prevent default to stop focus on mouse click
-                    e.preventDefault();
-                    e.stopPropagation();
-                  }}
-                  className="relative rounded-full w-14 h-14 flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-300 bg-background/80 backdrop-blur-sm hover:bg-background/60 cursor-pointer focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary z-20 pointer-events-auto"
-                  style={{ pointerEvents: 'auto' }}
-                  aria-label={shouldShowUpChevron ? "Scroll to top" : "Scroll to case studies"}
-                >
-                  {shouldShowUpChevron ? (
-                    <ChevronUp className="w-6 h-6 text-foreground stroke-[3]" />
-                  ) : (
-                    <ChevronDown className="w-6 h-6 text-foreground stroke-[3]" />
-                  )}
-                </button>
-            </motion.div>
-          </motion.div>
+          <HomeScrollChevron caseStudiesRef={caseStudiesSectionRef} />
         )}
 
         {/* Quick Stats Section */}
-        <section className="w-full min-w-0 pt-6 md:pt-8 pb-12 relative z-10 px-0 md:px-6">
+        <section className="w-full min-w-0 pt-6 md:pt-8 pb-12 relative z-10 px-0 md:px-6 [content-visibility:auto] [contain-intrinsic-size:auto_600px]">
           <div className="grid w-full min-w-0 grid-cols-1 sm:grid-cols-2 gap-6 max-w-4xl mx-auto p-8 px-0 md:px-8">
             {homePageContent.stats.map((stat, index) => {
               const totalCards = homePageContent.stats.length;
@@ -4366,32 +4098,12 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                 className={`bg-gradient-to-br from-slate-50/80 via-white/60 to-gray-50/40 dark:from-slate-800/30 dark:via-slate-900/25 dark:to-slate-800/20 backdrop-blur-md rounded-3xl border border-border/20 shadow-lg hover:shadow-xl transition-shadow duration-300 px-4 py-4 flex flex-row items-center justify-center gap-4 text-left w-full ${gridSpanClass}`}
               >
                 {/* Number - Left */}
-                <motion.span
-                  className="flex-shrink-0 block font-extrabold tracking-tight leading-none"
-                  style={{
-                    fontSize: '44px',
-                    backgroundClip: "text",
-                    WebkitBackgroundClip: "text",
-                    WebkitTextFillColor: "transparent",
-                  }}
-                  animate={{
-                    backgroundImage: [
-                      "linear-gradient(45deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)",
-                      "linear-gradient(90deg, #8b5cf6 0%, #3b82f6 50%, #fbbf24 100%)",
-                      "linear-gradient(135deg, #3b82f6 0%, #fbbf24 50%, #ec4899 100%)",
-                      "linear-gradient(180deg, #fbbf24 0%, #ec4899 50%, #8b5cf6 100%)",
-                      "linear-gradient(225deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)",
-                      "linear-gradient(45deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)",
-                    ],
-                  }}
-                  transition={{
-                    duration: 8,
-                    repeat: Infinity,
-                    ease: "linear",
-                  }}
+                <span
+                  className="home-stat-gradient flex-shrink-0 block font-extrabold tracking-tight leading-none"
+                  style={{ fontSize: "44px" }}
                 >
                   {stat.number}
-                </motion.span>
+                </span>
                 
                 {/* Content */}
                 <div className="flex-1 flex flex-col justify-center min-w-0">
@@ -4411,7 +4123,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         {/* Case Studies Carousel */}
         <div 
           ref={caseStudiesSectionRef}
-          className="w-full max-w-[1400px] mx-auto mb-16 mt-16 md:mt-[116px] relative z-10 md:text-center">
+          className="w-full max-w-[1400px] mx-auto mb-16 mt-16 md:mt-[116px] relative z-10 md:text-center [content-visibility:auto] [contain-intrinsic-size:auto_800px]">
           <>
           <motion.h2
             initial={false}

@@ -84,7 +84,7 @@ const OptimizedImage = memo(({
       },
       { 
         threshold: 0.1,
-        rootMargin: '500px' // Prefetch well before the image enters the viewport
+        rootMargin: '800px' // Prefetch well before the image enters the viewport
       }
     );
 

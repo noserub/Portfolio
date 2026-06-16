@@ -23,6 +23,8 @@ export function useScrollHideChrome() {
   const [offscreen, setOffscreen] = useState(false);
   const [reduceMotion, setReduceMotion] = useState(false);
   const lastY = useRef(0);
+  const offscreenRef = useRef(false);
+  const rafRef = useRef<number | null>(null);
 
   useEffect(() => {
     setReduceMotion(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
@@ -33,24 +35,39 @@ export function useScrollHideChrome() {
 
     lastY.current = getScrollY();
 
-    const onScroll = () => {
+    const update = () => {
+      rafRef.current = null;
       const y = getScrollY();
       if (y <= TOP_SHOW_PX) {
-        setOffscreen(false);
+        if (offscreenRef.current) {
+          offscreenRef.current = false;
+          setOffscreen(false);
+        }
         lastY.current = y;
         return;
       }
       const delta = y - lastY.current;
       lastY.current = y;
-      if (delta > SCROLL_DELTA_PX) setOffscreen(true);
-      else if (delta < -SCROLL_DELTA_PX) setOffscreen(false);
+      let next = offscreenRef.current;
+      if (delta > SCROLL_DELTA_PX) next = true;
+      else if (delta < -SCROLL_DELTA_PX) next = false;
+      if (next !== offscreenRef.current) {
+        offscreenRef.current = next;
+        setOffscreen(next);
+      }
+    };
+
+    const onScroll = () => {
+      if (rafRef.current !== null) return;
+      rafRef.current = window.requestAnimationFrame(update);
     };
 
     window.addEventListener("scroll", onScroll, { passive: true });
-    document.addEventListener("scroll", onScroll, { passive: true, capture: true });
     return () => {
       window.removeEventListener("scroll", onScroll);
-      document.removeEventListener("scroll", onScroll, { capture: true } as AddEventListenerOptions);
+      if (rafRef.current !== null) {
+        window.cancelAnimationFrame(rafRef.current);
+      }
     };
   }, [reduceMotion]);
 
