@@ -30,6 +30,7 @@ import {
 } from "../components/ui/alert-dialog";
 import { Label } from "../components/ui/label";
 import { Switch } from "../components/ui/switch";
+import { Skeleton } from "../components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
 import {
   type CaseStudyFilterEntry,
@@ -51,6 +52,11 @@ import { lazyWithRetry } from "../utils/lazyWithRetry";
 import { useSiteAuth } from "../contexts/SiteAuthContext";
 import { BioDocumentRenderer } from "../components/HomeBioDocument";
 import { HomeScrollChevron } from "../components/HomeScrollChevron";
+import {
+  BioCardContentSkeleton,
+  HeroHeadlineSkeleton,
+  HomeStatsSkeleton,
+} from "../components/ContentCardSkeleton";
 
 const UnifiedProjectCreator = lazyWithRetry(() =>
   import("../components/UnifiedProjectCreator").then((m) => ({
@@ -3287,7 +3293,9 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
               overflowWrap: "break-word",
             }}
           >
-            {suffixOnlyHeroLayout ? (
+            {homeContentLoading ? (
+              <HeroHeadlineSkeleton twoLine={suffixOnlyHeroLayout} />
+            ) : suffixOnlyHeroLayout ? (
               <span className="flex flex-col items-center">
                 <motion.span
                   className="block whitespace-pre text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-semibold tracking-tight"
@@ -3331,6 +3339,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
           </motion.h1>
           
           {/* Dot Indicators */}
+          {!homeContentLoading ? (
           <div className="flex justify-center items-center mt-6" style={{ gap: '16px' }}>
             {(heroText.greetings || [heroText.greeting] || ['Welcome,', "I'm Brian.", 'Designer.', 'Researcher.', 'Product Builder.']).map((_, index) => (
               <button
@@ -3353,6 +3362,14 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
               />
             ))}
           </div>
+          ) : (
+            <div className="flex justify-center items-center mt-6 gap-4" aria-hidden>
+              <Skeleton className="h-2 w-2 rounded-full" />
+              <Skeleton className="h-2 w-2 rounded-full" />
+              <Skeleton className="h-2 w-6 rounded-full" />
+              <Skeleton className="h-2 w-2 rounded-full" />
+            </div>
+          )}
         </motion.div>
 
         {/* Bio Container — static wrapper: hero <p> is often LCP; motion fade-in hid text and inflated element render delay */}
@@ -3935,6 +3952,8 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                   </Button>
                 </div>
               </div>
+            ) : homeContentLoading ? (
+              <BioCardContentSkeleton showCta={!isEditMode} />
             ) : (
               <BioDocumentRenderer
                 document={bioDocumentForUi}
@@ -3944,6 +3963,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
             )}
 
             {/* CTA Button & LinkedIn - Inside container, flush left */}
+            {!homeContentLoading && !isEditingHero ? (
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -4073,6 +4093,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                 </Tooltip>
               </div>
             </motion.div>
+            ) : null}
             </>
           </div>
         </div>
@@ -4084,7 +4105,9 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         {/* Quick Stats Section */}
         <section className="w-full min-w-0 pt-6 md:pt-8 pb-12 relative z-10 px-0 md:px-6 [content-visibility:auto] [contain-intrinsic-size:auto_600px]">
           <div className="grid w-full min-w-0 grid-cols-1 sm:grid-cols-2 gap-6 max-w-4xl mx-auto p-8 px-0 md:px-8">
-            {homePageContent.stats.map((stat, index) => {
+            {homeContentLoading ? (
+              <HomeStatsSkeleton count={homePageContent.stats.length} />
+            ) : homePageContent.stats.map((stat, index) => {
               const totalCards = homePageContent.stats.length;
               const isLastCard = index === totalCards - 1;
 

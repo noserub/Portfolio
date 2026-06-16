@@ -15,6 +15,7 @@ import { useSEO } from "../hooks/useSEO";
 import { useProfiles, type ProfileUpdate } from "../hooks/useProfiles";
 import { getPostgrestErrorMessage } from "../lib/supabaseClient";
 import { getProfileWriterUserId } from "../lib/portfolioOwner";
+import { BioCardContentSkeleton } from "../components/ContentCardSkeleton";
 
 interface AboutProps {
   onBack: () => void;
@@ -45,6 +46,8 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
   
   // Track if data has been loaded from Supabase - prevents saving defaults
   const [dataLoadedFromSupabase, setDataLoadedFromSupabase] = useState(false);
+  /** True until profile row load finishes — gates bio card so defaults never flash. */
+  const [aboutContentLoading, setAboutContentLoading] = useState(true);
   
   // Editable content state
   const [isEditing, setIsEditing] = useState(false);
@@ -342,6 +345,7 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
     let cancelled = false;
 
     const loadProfile = async () => {
+      setAboutContentLoading(true);
       let user: { id: string } | null = null;
       try {
         console.log('📥 Loading profile data from Supabase...');
@@ -530,9 +534,6 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
             }
             if (!cancelled) setResumeUrl(nextResume);
           }
-          if (!cancelled) {
-            setDataLoadedFromSupabase(true); // Mark data as loaded, safe to save now
-          }
         } else {
           console.log('ℹ️ No profile found in Supabase, checking localStorage...');
           
@@ -545,15 +546,11 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
               applyAboutPageFromStorageDraft(profileData);
               
               console.log('✅ Loaded from localStorage');
-              if (!cancelled) setDataLoadedFromSupabase(true); // Mark data as loaded (from localStorage), safe to save now
             } catch (parseError) {
               console.log('❌ Error parsing localStorage data:', parseError);
-              if (!cancelled) setDataLoadedFromSupabase(true); // Even if parse fails, don't save defaults
             }
           } else {
             console.log('ℹ️ No localStorage data found, using hardcoded defaults');
-            // If no data exists anywhere, allow saves (for first-time setup)
-            if (!cancelled) setDataLoadedFromSupabase(true);
           }
         }
       } catch (error) {
@@ -569,15 +566,16 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
             applyAboutPageFromStorageDraft(profileData);
             
             console.log('✅ Loaded from localStorage');
-            if (!cancelled) setDataLoadedFromSupabase(true); // Mark data as loaded (from localStorage), safe to save now
           } catch (parseError) {
             console.log('❌ Error parsing localStorage data:', parseError);
-            if (!cancelled) setDataLoadedFromSupabase(true); // Even if parse fails, don't save defaults
           }
         } else {
           console.log('ℹ️ No localStorage data found, using hardcoded defaults');
-          // If no data exists anywhere, allow saves (for first-time setup)
-          if (!cancelled) setDataLoadedFromSupabase(true);
+        }
+      } finally {
+        if (!cancelled) {
+          setDataLoadedFromSupabase(true);
+          setAboutContentLoading(false);
         }
       }
     };
@@ -1000,6 +998,7 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
           }}
           className="relative p-10 bg-gradient-to-br from-slate-50/80 via-blue-50/60 to-purple-50/40 dark:from-black/15 dark:via-slate-950/12 dark:to-black/10 backdrop-blur-md hover:backdrop-blur-lg rounded-3xl border border-border shadow-2xl hover:shadow-3xl overflow-hidden transition-all duration-500 hover:scale-[1.02]"
           style={{ order: sectionOrder?.indexOf('bio') ?? 0 }}
+          aria-busy={aboutContentLoading}
         >
           {/* Decorative Curved Brushstrokes - Far right near dots, bleeding off edges */}
           <svg
@@ -1183,6 +1182,10 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
           ))}
 
           <div className="max-w-4xl relative z-10">
+            {aboutContentLoading ? (
+              <BioCardContentSkeleton showCta />
+            ) : (
+            <>
             <SectionControls sectionId="bio" label="Bio" />
             
             {/* Edit buttons for bio paragraphs */}
@@ -1298,6 +1301,8 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
                 </div>
               )}
             </div>
+            </>
+            )}
           </div>
         </motion.div>
 
