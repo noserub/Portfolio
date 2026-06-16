@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, memo } from 'react';
+import React, { useState, useRef, useEffect, memo, useMemo } from 'react';
 import { motion } from 'motion/react';
 import { 
   generateResponsiveImageSet, 
@@ -51,26 +51,22 @@ const OptimizedImage = memo(({
   const [isInView, setIsInView] = useState(priority); // Load immediately if priority
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
-  const [responsiveSet, setResponsiveSet] = useState<ResponsiveImageSet | null>(null);
-  const [blurPlaceholder, setBlurPlaceholder] = useState<string>('');
   const imgRef = useRef<HTMLImageElement>(null);
 
-  // Generate responsive image set and blur placeholder
-  useEffect(() => {
-    if (src) {
-      const imageSet = generateResponsiveImageSet(src, alt, {
-        quality,
-        width,
-        height,
-        fit
-      });
-      setResponsiveSet(imageSet);
-      
-      // Generate blur placeholder
-      const blur = generateBlurPlaceholder(src, { quality: 20, width: 20, height: 20 });
-      setBlurPlaceholder(blur);
-    }
+  const responsiveSet = useMemo(() => {
+    if (!src) return null;
+    return generateResponsiveImageSet(src, alt, {
+      quality,
+      width,
+      height,
+      fit,
+    });
   }, [src, alt, quality, width, height, fit]);
+
+  const blurPlaceholder = useMemo(() => {
+    if (!src) return '';
+    return generateBlurPlaceholder(src, { quality: 20, width: 20, height: 20 });
+  }, [src]);
 
   // Intersection Observer for lazy loading
   useEffect(() => {
@@ -88,7 +84,7 @@ const OptimizedImage = memo(({
       },
       { 
         threshold: 0.1,
-        rootMargin: '50px' // Start loading 50px before the image comes into view
+        rootMargin: '500px' // Prefetch well before the image enters the viewport
       }
     );
 

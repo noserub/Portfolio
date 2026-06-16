@@ -17,7 +17,7 @@ import {
 } from "./components";
 import Home from "./pages/Home";
 
-const About = lazyWithRetry(() => import("./pages/About"));
+import About from "./pages/About";
 const Contact = lazyWithRetry(() => import("./pages/Contact"));
 const ProjectDetail = lazyWithRetry(() => import("./pages/ProjectDetail"));
 const DiagnosticPage = lazyWithRetry(() => import("./pages/DiagnosticPage"));

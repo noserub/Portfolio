@@ -896,7 +896,7 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
 
     return (
       <motion.div
-        initial={{ opacity: 0, x: -20 }}
+        initial={false}
         animate={{ opacity: 1, x: 0 }}
         className="flex items-center gap-3 mb-6 bg-purple-500/10 border border-purple-500/30 rounded-xl p-3 backdrop-blur-sm"
       >
@@ -987,7 +987,7 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
       >
         {/* Bio Section - Full Width */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={false}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
           onMouseEnter={() => {
@@ -1303,7 +1303,7 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
 
         {/* Super Powers - Grid Layout */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={false}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
           style={{ order: sectionOrder?.indexOf('superPowers') ?? 1 }}
@@ -1363,7 +1363,7 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
               return (
               <motion.div
                 key={index}
-                initial={{ opacity: 0, y: 20 }}
+                initial={false}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 + index * 0.1 }}
                 whileHover={{ 
@@ -1508,7 +1508,7 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
 
         {/* Highlights */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={false}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6 }}
           style={{ order: sectionOrder?.indexOf('highlights') ?? 2 }}
@@ -1672,7 +1672,7 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
                 return (
                 <motion.div
                   key={idx}
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={false}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.7 + idx * 0.1 }}
                   className="flex flex-col gap-3 p-4 rounded-xl bg-white/40 dark:bg-slate-800/40 backdrop-blur-sm border border-border/30 hover:border-border/50 transition-all duration-300"
@@ -1784,7 +1784,7 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
 
         {/* Leadership & Impact */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={false}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.65 }}
           style={{ order: sectionOrder?.indexOf('leadership') ?? 3 }}
@@ -1914,7 +1914,7 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
                     return (
                     <motion.div
                       key={idx}
-                      initial={{ opacity: 0, y: 10 }}
+                      initial={false}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.7 + idx * 0.1 }}
                       className="flex flex-col gap-3 p-4 rounded-xl bg-white/40 dark:bg-slate-800/40 backdrop-blur-sm border border-border/30 hover:border-border/50 transition-all duration-300"
@@ -1987,7 +1987,7 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
 
         {/* Expertise - Clean Grid Layout */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={false}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.7 }}
           style={{ order: sectionOrder?.indexOf('expertise') ?? 4 }}
@@ -2048,7 +2048,7 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
               return (
                 <motion.div 
                   key={idx}
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={false}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.8 + idx * 0.05 }}
                   whileHover={{ 
@@ -2143,7 +2143,7 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
 
         {/* How I use AI - Uniform Grid */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={false}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.8 }}
           style={{ order: sectionOrder?.indexOf('howIUseAI') ?? 5 }}
@@ -2215,7 +2215,7 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
               return (
                 <motion.div
                   key={index}
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={false}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.9 + index * 0.1 }}
                   whileHover={{ 
@@ -2438,7 +2438,7 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
 
         {/* Process - Grid with Expandable Cards */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={false}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.9 }}
           style={{ order: sectionOrder?.indexOf('process') ?? 6 }}
@@ -2540,7 +2540,7 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
               return (
               <AccordionItem key={index} value={`item-${index}`} className="border-none">
                 <motion.div
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={false}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 1 + index * 0.08 }}
                   className="h-full"
@@ -2679,7 +2679,7 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
 
         {/* Certifications & Tools */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={false}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1.1 }}
           style={{ order: sectionOrder?.indexOf('certifications') ?? 7 }}
@@ -2758,7 +2758,7 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
                 return (
                 <motion.div
                   key={idx}
-                  initial={{ opacity: 0, x: -20 }}
+                  initial={false}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 1.2 + idx * 0.1 }}
                   className="flex items-start gap-4 p-4 rounded-xl bg-white/30 dark:bg-slate-800/30 backdrop-blur-sm border border-border/20 hover:border-border/40 transition-all duration-300"
@@ -2901,7 +2901,7 @@ export function About({ onBack, onHoverChange, isEditMode }: AboutProps) {
                 return (
                 <AccordionItem key={idx} value={`tool-${idx}`} className="border-none">
                   <motion.div
-                    initial={{ opacity: 0, x: -20 }}
+                    initial={false}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 1.2 + idx * 0.1 }}
                     className="rounded-xl bg-white/30 dark:bg-slate-800/30 backdrop-blur-sm border border-border/20 cursor-pointer hover:border-border/40 transition-all duration-300"

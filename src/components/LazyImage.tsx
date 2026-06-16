@@ -38,7 +38,7 @@ const LazyImage = memo(({
       },
       { 
         threshold: 0.1,
-        rootMargin: '50px' // Start loading 50px before the image comes into view
+        rootMargin: '500px'
       }
     );
 

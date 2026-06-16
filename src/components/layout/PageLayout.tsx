@@ -29,11 +29,7 @@ export function PageLayout({ title, children, onBack, overline, actionButton, su
       {/* Contextual Action Button Area - Top Right, aligned with tabs and back button */}
       {actionButton && (
         <div className="fixed right-6 z-40 hidden lg:block portfolio-sticky-below-chrome">
-          <motion.div
-            initial={{ x: 20, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            transition={{ delay: 0.2 }}
-          >
+          <motion.div initial={false}>
             {actionButton}
           </motion.div>
         </div>
@@ -45,28 +41,19 @@ export function PageLayout({ title, children, onBack, overline, actionButton, su
           <div>
             {overline && (
               <motion.div
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.2 }}
+                initial={false}
                 className="text-sm tracking-wider text-muted-foreground mb-2"
                 style={{ fontSize: '12pt' }}
               >
                 {overline}
               </motion.div>
             )}
-            <motion.h1
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.3 }}
-              className="text-foreground"
-            >
+            <motion.h1 initial={false} className="text-foreground">
               {title}
             </motion.h1>
             {subtitle && (
               <motion.p
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.35 }}
+                initial={false}
                 className="mt-3 text-lg text-muted-foreground max-w-3xl"
               >
                 {subtitle}
@@ -75,12 +62,7 @@ export function PageLayout({ title, children, onBack, overline, actionButton, su
           </div>
           {/* Action button shows here on mobile */}
           {actionButton && (
-            <motion.div
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.3 }}
-              className="mt-4 lg:hidden"
-            >
+            <motion.div initial={false} className="mt-4 lg:hidden">
               {actionButton}
             </motion.div>
           )}

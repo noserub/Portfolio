@@ -173,15 +173,14 @@ function DraggableProjectItem({
   return (
     <motion.div
       ref={ref}
-      initial={{ opacity: 0, y: 30 }}
+      initial={false}
       animate={{ 
         opacity: isDragging ? 0.5 : isOver ? 0.8 : 1,
         scale: isDragging ? 0.95 : isOver ? 1.02 : 1,
         y: 0 
       }}
       transition={{ 
-        delay: isDragging ? 0 : index * 0.1,
-        duration: 0.4,
+        duration: 0.2,
         ease: "easeOut"
       }}
       whileHover={!isEditMode ? {
@@ -221,7 +220,7 @@ function DraggableProjectItem({
         onReplace={onReplace}
         onNavigate={onNavigate}
         onDelete={onDelete}
-        priority={index === 0}
+        priority={index < 6}
       />
     </motion.div>
   );
@@ -4415,18 +4414,14 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
           className="w-full max-w-[1400px] mx-auto mb-16 mt-16 md:mt-[116px] relative z-10 md:text-center">
           <>
           <motion.h2
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.5, duration: 0.5 }}
+            initial={false}
             className="mb-6 px-4 text-center md:px-0"
           >
             {homePageContent.ui.caseStudiesTitle}
           </motion.h2>
           {/* Filter Buttons */}
           <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.55, duration: 0.4 }}
+            initial={false}
             className="flex flex-wrap justify-center gap-3 mb-6 px-4 md:px-0"
           >
               {(() => {
@@ -4476,9 +4471,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
           </motion.div>
           </>
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6, duration: 0.5 }}
+            initial={false}
             className="w-full">
             {/* Grid Container */}
             <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6 max-w-4xl mx-auto px-4 md:px-8 py-8">
@@ -4505,9 +4498,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                   {/* Add Project Button in Grid (Edit Mode Only) */}
                   {isEditMode && (
                     <motion.div
-                      initial={{ opacity: 0, y: 30 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: displayCaseStudies.length * 0.1, duration: 0.4, ease: "easeOut" }}
+                      initial={false}
                       className="flex items-center justify-center"
                     >
                       <button
