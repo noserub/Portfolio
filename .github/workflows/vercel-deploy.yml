@@ -1,9 +1,9 @@
 name: Vercel Deploy
 
+# Native Vercel Git integration handles deploys and GitHub deployment status.
+# This workflow is kept for manual redeploys only (Actions → Vercel Deploy → Run workflow).
 on:
-  push:
-    branches: [main]
-  pull_request:
+  workflow_dispatch:
 
 concurrency:
   group: vercel-${{ github.workflow }}-${{ github.ref }}
