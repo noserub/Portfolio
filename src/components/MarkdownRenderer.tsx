@@ -37,31 +37,31 @@ export function MarkdownRenderer({ content, variant = 'default' }: MarkdownRende
     .markdown-content ul + h1,
     .markdown-content p + h2,
     .markdown-content ul + h2 {
-      margin-top: 6rem !important;
+      margin-top: 2.5rem !important;
     }
     
     .markdown-content p + h3,
     .markdown-content ul + h3 {
-      margin-top: 4rem !important;
+      margin-top: 2rem !important;
     }
     
     .markdown-content p + h4,
     .markdown-content ul + h4 {
-      margin-top: 3.5rem !important;
+      margin-top: 1.75rem !important;
     }
     
     .markdown-content p + h5,
     .markdown-content ul + h5 {
-      margin-top: 3rem !important;
+      margin-top: 1.5rem !important;
     }
     
     .markdown-content p + h6,
     .markdown-content ul + h6 {
-      margin-top: 2.5rem !important;
+      margin-top: 1.25rem !important;
     }
     
     .markdown-content p {
-      margin-bottom: 1rem !important;
+      margin-bottom: 0.875rem !important;
     }
     
     .markdown-content p:last-child {
@@ -75,8 +75,8 @@ export function MarkdownRenderer({ content, variant = 'default' }: MarkdownRende
     }
     
     .markdown-content ul {
-      margin-top: 3rem !important;
-      margin-bottom: 3rem !important;
+      margin-top: 1rem !important;
+      margin-bottom: 1rem !important;
       list-style: none !important;
       padding-left: 0 !important;
     }
@@ -84,23 +84,33 @@ export function MarkdownRenderer({ content, variant = 'default' }: MarkdownRende
     .markdown-content ul:last-child {
       margin-bottom: 0 !important;
     }
+
+    .markdown-content p + ul {
+      margin-top: 0.5rem !important;
+    }
+
+    .markdown-content ul + p {
+      margin-top: 0.25rem !important;
+    }
     
-    /* Reduce spacing between headings and bullets */
+    /* Tight spacing between headings and bullets */
     .markdown-content h2 + ul,
     .markdown-content h3 + ul,
     .markdown-content h4 + ul,
     .markdown-content h5 + ul,
     .markdown-content h6 + ul {
-      margin-top: 1rem !important;
+      margin-top: 0.5rem !important;
     }
     
     .markdown-content ul li {
       position: relative !important;
-      padding-left: 2rem !important;
-      margin-bottom: 1rem !important;
-      display: flex !important;
-      align-items: start !important;
-      gap: 0.625rem !important;
+      padding-left: 1.5rem !important;
+      margin-bottom: 0.5rem !important;
+      display: block !important;
+    }
+    
+    .markdown-content ul li:last-child {
+      margin-bottom: 0 !important;
     }
     
     .markdown-content ul li::before {
@@ -372,17 +382,17 @@ export function MarkdownRenderer({ content, variant = 'default' }: MarkdownRende
       <div 
         className="markdown-content prose prose-lg max-w-none
           prose-headings:font-['Montserrat',sans-serif]
-          prose-h1:text-5xl prose-h1:font-bold prose-h1:mb-10 first:prose-h1:mt-0 prose-h1:leading-tight
-          prose-h2:text-3xl prose-h2:font-bold prose-h2:mb-8 first:prose-h2:mt-0 prose-h2:leading-snug
-          prose-h3:text-2xl prose-h3:font-semibold prose-h3:mb-6 first:prose-h3:mt-0 prose-h3:leading-snug
-          prose-h4:text-xl prose-h4:font-semibold prose-h4:mb-5 first:prose-h4:mt-0
-          prose-h5:text-lg prose-h5:font-semibold prose-h5:mb-4 first:prose-h5:mt-0
-          prose-h6:text-base prose-h6:font-semibold prose-h6:mb-3 first:prose-h6:mt-0
+          prose-h1:text-5xl prose-h1:font-bold prose-h1:mb-6 first:prose-h1:mt-0 prose-h1:leading-tight
+          prose-h2:text-3xl prose-h2:font-bold prose-h2:mb-3 first:prose-h2:mt-0 prose-h2:leading-snug
+          prose-h3:text-2xl prose-h3:font-semibold prose-h3:mb-2 first:prose-h3:mt-0 prose-h3:leading-snug
+          prose-h4:text-xl prose-h4:font-semibold prose-h4:mb-2 first:prose-h4:mt-0
+          prose-h5:text-lg prose-h5:font-semibold prose-h5:mb-2 first:prose-h5:mt-0
+          prose-h6:text-base prose-h6:font-semibold prose-h6:mb-2 first:prose-h6:mt-0
           prose-p:text-lg prose-p:leading-relaxed prose-p:text-muted-foreground
-          prose-ul:space-y-3 prose-ul:pl-6
+          prose-ul:my-3 prose-ul:space-y-1 prose-ul:pl-0
           prose-li:text-lg prose-li:leading-relaxed prose-li:text-muted-foreground prose-li:marker:text-primary
           prose-strong:text-foreground prose-strong:font-semibold
-          prose-hr:my-24 prose-hr:border-border/50
+          prose-hr:my-12 prose-hr:border-border/50
           dark:prose-invert"
         dangerouslySetInnerHTML={{ __html: htmlContent }}
       />

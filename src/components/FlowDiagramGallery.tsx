@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import OptimizedImage from "./OptimizedImage";
 import { useDesignVariant } from "../design/DesignVariantContext";
 import { PORTFOLIO_ANIMATED_BORDER_GRADIENTS, portfolioMediaWellBackground } from "../lib/modernSurfaces";
+import { croppedImageStyle } from "../lib/projectHeroFrame";
 
 interface FlowDiagramImage {
   id: string;
@@ -139,14 +140,12 @@ function FlowDiagramItem({
           alt={image.alt || ""}
           className="w-full h-full"
           style={{
-            objectFit: scale > 1 ? 'cover' : 'contain',
-            transform: `scale(${scale})`,
-            transformOrigin: `${position.x}% ${position.y}%`,
+            ...croppedImageStyle(scale, position),
             transition: isDraggingPosition ? 'none' : 'transform 0.2s ease-out',
             opacity: imageLoadError ? 0 : 1
           }}
           quality={80}
-          fit={scale > 1 ? 'cover' : 'contain'}
+          fit="contain"
           onLoad={() => setImageLoadError(false)}
           onError={() => setImageLoadError(true)}
           priority={false}
