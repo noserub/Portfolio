@@ -2,39 +2,10 @@ import React from "react";
 import { motion } from "motion/react";
 import type { BioDocument, BioParagraph, BioRun } from "../lib/homePageContent";
 import { modern } from "../design/modernTokens";
+import { PORTFOLIO_BIO_GRADIENT_ANIMATION_SETS } from "../lib/modernSurfaces";
 
 function gradientStops(delayIndex: number) {
-  const sets = [
-    [
-      "linear-gradient(45deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)",
-      "linear-gradient(90deg, #8b5cf6 0%, #3b82f6 50%, #fbbf24 100%)",
-      "linear-gradient(135deg, #3b82f6 0%, #fbbf24 50%, #ec4899 100%)",
-      "linear-gradient(180deg, #fbbf24 0%, #ec4899 50%, #8b5cf6 100%)",
-      "linear-gradient(45deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)",
-    ],
-    [
-      "linear-gradient(90deg, #8b5cf6 0%, #3b82f6 50%, #fbbf24 100%)",
-      "linear-gradient(135deg, #3b82f6 0%, #fbbf24 50%, #ec4899 100%)",
-      "linear-gradient(180deg, #fbbf24 0%, #ec4899 50%, #8b5cf6 100%)",
-      "linear-gradient(45deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)",
-      "linear-gradient(90deg, #8b5cf6 0%, #3b82f6 50%, #fbbf24 100%)",
-    ],
-    [
-      "linear-gradient(135deg, #3b82f6 0%, #fbbf24 50%, #ec4899 100%)",
-      "linear-gradient(180deg, #fbbf24 0%, #ec4899 50%, #8b5cf6 100%)",
-      "linear-gradient(45deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)",
-      "linear-gradient(90deg, #8b5cf6 0%, #3b82f6 50%, #fbbf24 100%)",
-      "linear-gradient(135deg, #3b82f6 0%, #fbbf24 50%, #ec4899 100%)",
-    ],
-    [
-      "linear-gradient(180deg, #fbbf24 0%, #ec4899 50%, #8b5cf6 100%)",
-      "linear-gradient(45deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)",
-      "linear-gradient(90deg, #8b5cf6 0%, #3b82f6 50%, #fbbf24 100%)",
-      "linear-gradient(135deg, #3b82f6 0%, #fbbf24 50%, #ec4899 100%)",
-      "linear-gradient(180deg, #fbbf24 0%, #ec4899 50%, #8b5cf6 100%)",
-    ],
-  ] as const;
-  const set = sets[delayIndex % sets.length];
+  const set = PORTFOLIO_BIO_GRADIENT_ANIMATION_SETS[delayIndex % PORTFOLIO_BIO_GRADIENT_ANIMATION_SETS.length];
   return [...set];
 }
 

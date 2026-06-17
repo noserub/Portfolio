@@ -1,5 +1,6 @@
 import { ArrowUpRight } from "lucide-react";
 import { ModernFooter } from "../../components/modern/ModernFooter";
+import { ModernResumeLink } from "../../components/modern/ModernResumeLink";
 import { useAboutPageData, DEFAULT_ABOUT_HEADLINE, DEFAULT_ABOUT_LEAD } from "../../hooks/useAboutPageData";
 import { useSEO } from "../../hooks/useSEO";
 import { stripHtmlForDisplay } from "../../lib/modernCaseStudies";
@@ -139,42 +140,45 @@ export function ModernAbout({ onNavigateContact }: ModernAboutProps) {
           </div>
         </section>
       ) : null,
-    tools: () =>
-      data.toolsCategories.length > 0 ? (
-        <section key="tools" className={`${modernLayout.sectionX} ${modernLayout.aboutSection}`}>
-          <div className={modernLayout.container}>
-            <h2
-              className="text-xs uppercase tracking-widest mb-8"
-              style={{ ...modernFont, fontWeight: 600, color: modern.accent }}
-            >
-              Tools &amp; stack
-            </h2>
-            <div className={modernLayout.aboutCardGrid2}>
-              {data.toolsCategories.map((cat) => (
-                <div key={cat.title}>
-                  <p className="text-xs mb-4" style={{ ...modernFont, color: modern.muted }}>
-                    {cat.title}
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {(cat.tools || []).map((tool) => (
-                      <span
-                        key={tool}
-                        className="text-xs px-3 py-1.5 rounded-full border"
-                        style={{ ...modernFont, borderColor: modern.border, background: modern.surface, color: modern.text }}
-                      >
-                        {tool}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      ) : null,
   };
 
-  const sectionOrder = data.sectionOrder.filter((id) => sectionRenderers[id]);
+  const toolsSection =
+    data.toolsCategories.length > 0 ? (
+      <section key="tools" className={`${modernLayout.sectionX} ${modernLayout.aboutSection}`}>
+        <div className={modernLayout.container}>
+          <h2
+            className="text-xs uppercase tracking-widest mb-8"
+            style={{ ...modernFont, fontWeight: 600, color: modern.accent }}
+          >
+            Tools &amp; stack
+          </h2>
+          <div className={modernLayout.aboutCardGrid2}>
+            {data.toolsCategories.map((cat) => (
+              <div key={cat.title}>
+                <p
+                  className="text-[10px] uppercase tracking-widest mb-4"
+                  style={{ ...modernFont, fontWeight: 500, color: modern.muted }}
+                >
+                  {cat.title}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {(cat.tools || []).map((tool) => (
+                    <span key={tool} className="modern-about-tool-pill text-xs px-3 py-1.5 rounded-full border">
+                      {tool}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    ) : null;
+
+  const pinnedBottomIds = new Set(["tools", "certifications"]);
+  const sectionOrder = data.sectionOrder.filter(
+    (id) => sectionRenderers[id] && !pinnedBottomIds.has(id),
+  );
 
   return (
     <main className="min-h-screen" style={{ background: modern.bg }}>
@@ -219,16 +223,10 @@ export function ModernAbout({ onNavigateContact }: ModernAboutProps) {
               Get in touch
             </button>
             {data.resumeUrl ? (
-              <a
-                href={data.resumeUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="modern-btn-outline"
-                style={modernFont}
-              >
+              <ModernResumeLink resumeUrl={data.resumeUrl} className="modern-btn-outline" style={modernFont}>
                 View resume
                 <ArrowUpRight size={14} />
-              </a>
+              </ModernResumeLink>
             ) : null}
           </div>
         </div>
@@ -279,6 +277,8 @@ export function ModernAbout({ onNavigateContact }: ModernAboutProps) {
       </section>
 
       {sectionOrder.map((id) => sectionRenderers[id]?.())}
+
+      {toolsSection}
 
       <ModernFooter />
     </main>

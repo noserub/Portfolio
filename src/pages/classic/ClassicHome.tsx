@@ -51,6 +51,14 @@ import {
   HERO_TYPING_DELAY_RANGE_MS,
   mergeHeroGreetingsFromDraftLines,
 } from "../../lib/homePageContent";
+import {
+  PORTFOLIO_ACCENT,
+  PORTFOLIO_ACCENT_BRIGHT,
+  PORTFOLIO_ACCENT_DIM,
+  PORTFOLIO_CTA_BORDER_GRADIENTS,
+  PORTFOLIO_HERO_SUFFIX_GRADIENTS,
+  portfolioDecorLimeColor,
+} from "../../lib/modernSurfaces";
 import { getPortfolioOwnerUserId } from "../../lib/portfolioOwner";
 import { lazyWithRetry } from "../../utils/lazyWithRetry";
 import { useSiteAuth } from "../../contexts/SiteAuthContext";
@@ -3251,13 +3259,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
 
   const heroGradientTextMotion = {
     animate: {
-      backgroundImage: [
-        "linear-gradient(45deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)",
-        "linear-gradient(90deg, #8b5cf6 0%, #3b82f6 50%, #fbbf24 100%)",
-        "linear-gradient(135deg, #3b82f6 0%, #fbbf24 50%, #ec4899 100%)",
-        "linear-gradient(180deg, #fbbf24 0%, #ec4899 50%, #8b5cf6 100%)",
-        "linear-gradient(45deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)",
-      ],
+      backgroundImage: [...PORTFOLIO_HERO_SUFFIX_GRADIENTS],
     },
     transition: {
       duration: 10,
@@ -3359,7 +3361,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                   index === currentGreetingIndex ? 'w-6 h-2' : 'w-2 h-2'
                 }`}
                 style={{
-                  backgroundImage: "linear-gradient(45deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%)",
+                  backgroundImage: `linear-gradient(45deg, ${PORTFOLIO_ACCENT_DIM}, ${PORTFOLIO_ACCENT}, ${PORTFOLIO_ACCENT_BRIGHT})`,
                   opacity: index === currentGreetingIndex ? 1 : 0.4,
                 }}
                 aria-label={`Go to greeting ${index + 1}`}
@@ -3377,7 +3379,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         </motion.div>
 
         {/* Bio Container — static wrapper: hero <p> is often LCP; motion fade-in hid text and inflated element render delay */}
-        <div className="relative w-full max-w-4xl mx-auto mb-2 md:mb-3 p-8 bg-gradient-to-br from-slate-50/80 via-blue-50/60 to-purple-50/40 dark:from-slate-900/20 dark:via-blue-900/10 dark:to-purple-900/10 backdrop-blur-sm rounded-3xl border border-border shadow-2xl overflow-hidden transition-all duration-500">
+        <div className="relative w-full max-w-4xl mx-auto mb-2 md:mb-3 p-8 bg-gradient-to-br from-slate-50/80 via-white/60 to-gray-50/40 dark:from-[#141414] dark:via-[#111408] dark:to-[#0a0a0a] backdrop-blur-sm rounded-3xl border border-border shadow-2xl overflow-hidden transition-all duration-500">
           {/* Decorative Curved Brushstrokes - Far right near dots, bleeding off edges */}
           <svg
             className="absolute right-0 top-0 h-full w-[25%] pointer-events-none"
@@ -3386,19 +3388,19 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
           >
             <defs>
               <linearGradient id="home-bio-gradient-1" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#ec4899" stopOpacity="1" />
-                <stop offset="50%" stopColor="#8b5cf6" stopOpacity="0.9" />
-                <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.8" />
+                <stop offset="0%" stopColor={PORTFOLIO_ACCENT_DIM} stopOpacity="1" />
+                <stop offset="50%" stopColor={PORTFOLIO_ACCENT} stopOpacity="0.9" />
+                <stop offset="100%" stopColor={PORTFOLIO_ACCENT_BRIGHT} stopOpacity="0.75" />
               </linearGradient>
               <linearGradient id="home-bio-gradient-2" x1="100%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.9" />
-                <stop offset="50%" stopColor="#fbbf24" stopOpacity="1" />
-                <stop offset="100%" stopColor="#ec4899" stopOpacity="0.8" />
+                <stop offset="0%" stopColor={PORTFOLIO_ACCENT} stopOpacity="0.9" />
+                <stop offset="50%" stopColor={PORTFOLIO_ACCENT_BRIGHT} stopOpacity="1" />
+                <stop offset="100%" stopColor={PORTFOLIO_ACCENT_DIM} stopOpacity="0.8" />
               </linearGradient>
               <linearGradient id="home-bio-gradient-3" x1="0%" y1="100%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#8b5cf6" stopOpacity="1" />
-                <stop offset="50%" stopColor="#ec4899" stopOpacity="0.9" />
-                <stop offset="100%" stopColor="#fbbf24" stopOpacity="0.8" />
+                <stop offset="0%" stopColor={PORTFOLIO_ACCENT_BRIGHT} stopOpacity="1" />
+                <stop offset="50%" stopColor={PORTFOLIO_ACCENT} stopOpacity="0.9" />
+                <stop offset="100%" stopColor={PORTFOLIO_ACCENT_DIM} stopOpacity="0.8" />
               </linearGradient>
             </defs>
 
@@ -3475,7 +3477,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
             <motion.path
               d="M140,-80 Q170,20 190,110 Q210,200 230,280 Q250,350 310,420"
               fill="none"
-              stroke="#fbbf24"
+              stroke={PORTFOLIO_ACCENT_BRIGHT}
               strokeWidth="50"
               strokeLinecap="round"
               opacity="0.45"
@@ -3498,7 +3500,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
             <motion.path
               d="M110,380 Q150,420 180,460 Q210,500 240,540 Q270,580 330,630"
               fill="none"
-              stroke="#8b5cf6"
+              stroke={PORTFOLIO_ACCENT_DIM}
               strokeWidth="48"
               strokeLinecap="round"
               opacity="0.42"
@@ -3520,20 +3522,20 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
 
           {/* Colorful Animated Dots - Right side between text and edge */}
           {[
-            { x: '78%', y: '8%', color: '#ec4899', size: 14, delay: 0 },
-            { x: '88%', y: '15%', color: '#8b5cf6', size: 11, delay: 0.5 },
-            { x: '94%', y: '22%', color: '#3b82f6', size: 16, delay: 1 },
-            { x: '82%', y: '28%', color: '#fbbf24', size: 12, delay: 1.5 },
-            { x: '91%', y: '35%', color: '#ec4899', size: 15, delay: 2 },
-            { x: '98%', y: '42%', color: '#8b5cf6', size: 10, delay: 2.5 },
-            { x: '85%', y: '50%', color: '#3b82f6', size: 13, delay: 3 },
-            { x: '92%', y: '58%', color: '#fbbf24', size: 11, delay: 3.5 },
-            { x: '100%', y: '65%', color: '#ec4899', size: 14, delay: 0.8 },
-            { x: '80%', y: '72%', color: '#8b5cf6', size: 12, delay: 1.2 },
-            { x: '89%', y: '78%', color: '#3b82f6', size: 15, delay: 1.8 },
-            { x: '96%', y: '85%', color: '#fbbf24', size: 10, delay: 2.2 },
-            { x: '83%', y: '92%', color: '#ec4899', size: 13, delay: 2.8 },
-            { x: '102%', y: '48%', color: '#8b5cf6', size: 9, delay: 3.2 },
+            { x: '78%', y: '8%', size: 14, delay: 0 },
+            { x: '88%', y: '15%', size: 11, delay: 0.5 },
+            { x: '94%', y: '22%', size: 16, delay: 1 },
+            { x: '82%', y: '28%', size: 12, delay: 1.5 },
+            { x: '91%', y: '35%', size: 15, delay: 2 },
+            { x: '98%', y: '42%', size: 10, delay: 2.5 },
+            { x: '85%', y: '50%', size: 13, delay: 3 },
+            { x: '92%', y: '58%', size: 11, delay: 3.5 },
+            { x: '100%', y: '65%', size: 14, delay: 0.8 },
+            { x: '80%', y: '72%', size: 12, delay: 1.2 },
+            { x: '89%', y: '78%', size: 15, delay: 1.8 },
+            { x: '96%', y: '85%', size: 10, delay: 2.2 },
+            { x: '83%', y: '92%', size: 13, delay: 2.8 },
+            { x: '102%', y: '48%', size: 9, delay: 3.2 },
           ].map((dot, index) => (
             <div
               key={index}
@@ -3543,7 +3545,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                 top: dot.y,
                 width: `${dot.size}px`,
                 height: `${dot.size}px`,
-                background: dot.color,
+                background: portfolioDecorLimeColor(index),
               }}
               aria-hidden
             />
@@ -4004,17 +4006,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                   <motion.div
                     className="rounded-full p-[2px] inline-block flex-shrink-0"
                     animate={{
-                      background: [
-                        "linear-gradient(0deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
-                        "linear-gradient(45deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
-                        "linear-gradient(90deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
-                        "linear-gradient(135deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
-                        "linear-gradient(180deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
-                        "linear-gradient(225deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
-                        "linear-gradient(270deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
-                        "linear-gradient(315deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
-                        "linear-gradient(360deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
-                      ],
+                      background: [...PORTFOLIO_CTA_BORDER_GRADIENTS],
                     }}
                     transition={{
                       duration: 8,

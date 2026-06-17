@@ -5,6 +5,8 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import OptimizedImage from "./OptimizedImage";
+import { useDesignVariant } from "../design/DesignVariantContext";
+import { PORTFOLIO_ANIMATED_BORDER_GRADIENTS, portfolioMediaWellBackground } from "../lib/modernSurfaces";
 
 interface FlowDiagramImage {
   id: string;
@@ -55,6 +57,8 @@ function FlowDiagramItem({
   onMoveUp,
   onMoveDown,
 }: FlowDiagramItemProps) {
+  const { designVariant } = useDesignVariant();
+  const isModernChrome = designVariant === "modern";
   const imageRef = useRef<HTMLDivElement>(null);
   const [isEditingCaption, setIsEditingCaption] = useState(false);
   const [captionValue, setCaptionValue] = useState(image.caption || "");
@@ -118,15 +122,15 @@ function FlowDiagramItem({
           document.addEventListener('mousemove', handleMouseMove);
           document.addEventListener('mouseup', handleMouseUp);
         }}
-        whileHover={!isEditingImage ? { scale: 1.02, y: -4 } : {}}
-        className="overflow-hidden rounded-lg shadow-lg hover:shadow-xl transition-all relative"
+        whileHover={!isEditingImage ? { scale: 1.01, y: -2 } : {}}
+        className={`overflow-hidden rounded-lg transition-all relative modern-media-well${isModernChrome ? " modern-media-well--inset" : ""}`}
         style={{
           aspectRatio: aspectRatio === '3x4' ? '3 / 4' :
                       aspectRatio === '4x3' ? '4 / 3' :
                       aspectRatio === '2x3' ? '2 / 3' :
                       aspectRatio === '3x2' ? '3 / 2' :
                       '16 / 9',
-          background: 'linear-gradient(135deg, #ec4899 0%, #8b5cf6 25%, #3b82f6 50%, #06b6d4 75%, #fbbf24 100%)',
+          background: portfolioMediaWellBackground(isModernChrome),
           cursor: isEditingImage ? (isDraggingPosition ? 'grabbing' : 'grab') : 'pointer'
         }}
       >
@@ -712,11 +716,7 @@ export function FlowDiagramGallery({
                   className="inline-block"
                   animate={{
                     backgroundImage: [
-                      "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%)",
-                      "linear-gradient(180deg, #8b5cf6 0%, #ec4899 50%, #3b82f6 100%)",
-                      "linear-gradient(225deg, #ec4899 0%, #3b82f6 50%, #8b5cf6 100%)",
-                      "linear-gradient(270deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%)",
-                      "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%)",
+                      [...PORTFOLIO_ANIMATED_BORDER_GRADIENTS]
                     ],
                   }}
                   transition={{
@@ -757,11 +757,7 @@ export function FlowDiagramGallery({
                   className="inline-block"
                   animate={{
                     backgroundImage: [
-                      "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%)",
-                      "linear-gradient(180deg, #8b5cf6 0%, #ec4899 50%, #3b82f6 100%)",
-                      "linear-gradient(225deg, #ec4899 0%, #3b82f6 50%, #8b5cf6 100%)",
-                      "linear-gradient(270deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%)",
-                      "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%)",
+                      [...PORTFOLIO_ANIMATED_BORDER_GRADIENTS]
                     ],
                   }}
                   transition={{

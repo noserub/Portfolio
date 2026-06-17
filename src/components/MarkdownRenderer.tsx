@@ -110,7 +110,7 @@ export function MarkdownRenderer({ content, variant = 'default' }: MarkdownRende
       height: 0.375rem !important;
       border-radius: 9999px !important;
       margin-top: 0.5rem !important;
-      background: linear-gradient(135deg, #3b82f6, #8b5cf6, #ec4899) !important;
+      background: linear-gradient(135deg, #6a8f00, #84bd00, #95d004) !important;
       position: absolute !important;
       left: 0.25rem !important;
     }

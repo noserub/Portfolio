@@ -46,11 +46,11 @@ function CaseStudyCardImage({
       {requiresPassword ? <CaseStudyProtectedBadge /> : null}
       {wide ? (
         <>
-          <div className="absolute inset-0 bg-gradient-to-t from-[#141414] via-transparent to-transparent md:hidden" />
-          <div className="hidden md:block absolute inset-y-0 right-0 w-16 bg-gradient-to-r from-transparent to-[#141414]" />
+          <div className="modern-case-study-card__scrim modern-case-study-card__scrim--bottom" />
+          <div className="modern-case-study-card__scrim modern-case-study-card__scrim--side" />
         </>
       ) : (
-        <div className="absolute inset-0 bg-gradient-to-t from-[#141414] via-transparent to-transparent" />
+        <div className="modern-case-study-card__scrim modern-case-study-card__scrim--bottom" />
       )}
     </div>
   );

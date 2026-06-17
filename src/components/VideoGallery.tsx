@@ -6,6 +6,8 @@ import { Input } from "./ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
 import { Label } from "./ui/label";
+import { useDesignVariant } from "../design/DesignVariantContext";
+import { portfolioMediaWellBackground } from "../lib/modernSurfaces";
 
 interface VideoItem {
   id: string;
@@ -74,6 +76,8 @@ function VideoItemComponent({
   onMoveUp,
   onMoveDown,
 }: VideoItemProps) {
+  const { designVariant } = useDesignVariant();
+  const isModernChrome = designVariant === "modern";
   const [isEditingCaption, setIsEditingCaption] = useState(false);
   const [captionValue, setCaptionValue] = useState(video.caption || "");
 
@@ -111,8 +115,8 @@ function VideoItemComponent({
       className="relative group"
     >
       <motion.div
-        whileHover={{ scale: 1.02, y: -4 }}
-        className="overflow-hidden rounded-lg shadow-lg hover:shadow-xl transition-all relative"
+        whileHover={{ scale: 1.01, y: -2 }}
+        className={`overflow-hidden rounded-lg transition-all relative modern-media-well${isModernChrome ? " modern-media-well--inset" : " shadow-lg hover:shadow-xl"}`}
         style={{
           aspectRatio: aspectRatio === '3x4' ? '3 / 4' :
                       aspectRatio === '4x3' ? '4 / 3' :
@@ -120,7 +124,7 @@ function VideoItemComponent({
                       aspectRatio === '3x2' ? '3 / 2' :
                       aspectRatio === '9x16' ? '9 / 16' :
                       '16 / 9',
-          background: 'linear-gradient(135deg, #ec4899 0%, #8b5cf6 25%, #3b82f6 50%, #06b6d4 75%, #fbbf24 100%)',
+          background: portfolioMediaWellBackground(isModernChrome),
         }}
       >
         {video.type === 'upload' ? (

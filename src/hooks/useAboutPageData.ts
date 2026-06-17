@@ -67,8 +67,29 @@ const defaults: AboutPageData = {
   resumeUrl: null,
 };
 
+function normalizeToolsCategories(raw: unknown): AboutToolsCategory[] {
+  if (!Array.isArray(raw)) return [];
+
+  return raw
+    .map((entry) => {
+      if (!entry || typeof entry !== "object") return null;
+      const row = entry as Record<string, unknown>;
+      const titleRaw =
+        (typeof row.title === "string" ? row.title : null) ??
+        (typeof row.category === "string" ? row.category : null);
+      const title = titleRaw?.trim() ?? "";
+      const tools = Array.isArray(row.tools)
+        ? row.tools.filter((t): t is string => typeof t === "string" && t.trim().length > 0)
+        : [];
+      if (!title || tools.length === 0) return null;
+      return { title, tools };
+    })
+    .filter((cat): cat is AboutToolsCategory => cat !== null);
+}
+
 function mapProfileToAboutPageData(profile: AboutProfileRow): AboutPageData {
   const resolved = resolveAboutDisplayFields(profile);
+  const toolsCategories = normalizeToolsCategories(profile.tools_categories);
   return {
     headline: resolved.headline,
     heroLead: resolved.heroLead,
@@ -80,7 +101,7 @@ function mapProfileToAboutPageData(profile: AboutProfileRow): AboutPageData {
     howIUseAIItems: Array.isArray(profile.how_i_use_ai_items)
       ? profile.how_i_use_ai_items
       : [],
-    toolsCategories: Array.isArray(profile.tools_categories) ? profile.tools_categories : [],
+    toolsCategories,
     sectionOrder:
       Array.isArray(profile.section_order) && profile.section_order.length > 0
         ? profile.section_order

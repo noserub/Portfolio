@@ -24,6 +24,9 @@ import { FlowDiagramGallery } from "../../components/FlowDiagramGallery";
 import { VideoGallery } from "../../components/VideoGallery";
 import HeroImage from "../../components/HeroImage";
 import { useCaseStudySEO } from "../../hooks/useSEO";
+import { useDesignVariant } from "../../design/DesignVariantContext";
+import { mediaPlaceholderBackground } from "../../lib/portfolioLinks";
+import { PORTFOLIO_EDIT_INDICATOR_GRADIENT, PORTFOLIO_IMAGE_WELL_GRADIENT } from "../../lib/modernSurfaces";
 import {
   getCaseStudySEO,
   loadCaseStudySEOFromSupabase,
@@ -277,15 +280,15 @@ const DraggableImage = ({ image, index, isEditMode, onRemove, onImageClick, move
           transition={{ duration: 0.15, ease: "easeOut" }}
           className="absolute -top-3 left-0 right-0 h-1.5 rounded-full z-30"
           style={{
-            background: 'linear-gradient(90deg, #ec4899 0%, #8b5cf6 25%, #3b82f6 50%, #06b6d4 75%, #fbbf24 100%)',
-            boxShadow: '0 0 24px rgba(236, 72, 153, 0.9), 0 0 40px rgba(59, 130, 246, 0.7), 0 4px 12px rgba(0, 0, 0, 0.3)',
+            background: PORTFOLIO_EDIT_INDICATOR_GRADIENT,
+            boxShadow: '0 0 24px rgba(132, 189, 0, 0.45), 0 0 40px rgba(132, 189, 0, 0.25), 0 4px 12px rgba(0, 0, 0, 0.3)',
           }}
         >
           {/* Pulsing glow effect */}
           <motion.div
             className="absolute inset-0 rounded-full"
             style={{
-              background: 'linear-gradient(90deg, #ec4899 0%, #8b5cf6 25%, #3b82f6 50%, #06b6d4 75%, #fbbf24 100%)',
+              background: PORTFOLIO_EDIT_INDICATOR_GRADIENT,
             }}
             animate={{
               opacity: [0.5, 1, 0.5],
@@ -328,7 +331,7 @@ const DraggableImage = ({ image, index, isEditMode, onRemove, onImageClick, move
         className="aspect-[3/4] overflow-hidden rounded-xl shadow-lg border border-border/20 relative"
         style={{ 
           cursor: isEditingImage ? 'crosshair' : 'pointer',
-          background: 'linear-gradient(135deg, #ec4899 0%, #8b5cf6 25%, #3b82f6 50%, #06b6d4 75%, #fbbf24 100%)'
+          background: PORTFOLIO_IMAGE_WELL_GRADIENT
         }}
         onClick={() => !isEditMode && !isEditingImage && onImageClick(image)}
         onMouseDown={handleImageMouseDown}
@@ -458,6 +461,11 @@ const stripSolutionCardSections = (markdown: string): string => {
 };
 
 export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpdate, isEditMode }: ProjectDetailProps) {
+  const { effectiveVariant } = useDesignVariant();
+  const isModernChrome = effectiveVariant(isEditMode) === "modern";
+  const hasHeroImage = Boolean(project.url?.trim());
+  const heroMediaBackground = mediaPlaceholderBackground(isModernChrome, hasHeroImage);
+
   const [isEditing, setIsEditing] = useState(false);
   const [showSaveIndicator, setShowSaveIndicator] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -4695,7 +4703,7 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
             ref={heroImageRef}
             className="case-study-hero__media aspect-video overflow-hidden rounded-2xl shadow-2xl relative"
             style={{
-              background: 'linear-gradient(135deg, #ec4899 0%, #8b5cf6 25%, #3b82f6 50%, #06b6d4 75%, #fbbf24 100%)',
+              background: heroMediaBackground,
               cursor: isEditingHeroImage ? 'crosshair' : (project.url ? 'pointer' : 'default')
             }}
             onClick={() => !isEditMode && !isEditingHeroImage && project.url && setLightboxImage({ id: 'hero', url: project.url, alt: project.title })}

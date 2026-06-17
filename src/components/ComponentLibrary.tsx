@@ -172,15 +172,15 @@ export function ComponentLibrary({ isOpen, onClose }: ComponentLibraryProps) {
               className="rounded-full p-[2px] inline-block"
               animate={{
                 background: [
-                  "linear-gradient(0deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
-                  "linear-gradient(45deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
-                  "linear-gradient(90deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
-                  "linear-gradient(135deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
-                  "linear-gradient(180deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
-                  "linear-gradient(225deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
-                  "linear-gradient(270deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
-                  "linear-gradient(315deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
-                  "linear-gradient(360deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
+                  "linear-gradient(0deg, #84bd00, #6a8f00, #a3d419, #95d004)",
+                  "linear-gradient(45deg, #84bd00, #6a8f00, #a3d419, #95d004)",
+                  "linear-gradient(90deg, #84bd00, #6a8f00, #a3d419, #95d004)",
+                  "linear-gradient(135deg, #84bd00, #6a8f00, #a3d419, #95d004)",
+                  "linear-gradient(180deg, #84bd00, #6a8f00, #a3d419, #95d004)",
+                  "linear-gradient(225deg, #84bd00, #6a8f00, #a3d419, #95d004)",
+                  "linear-gradient(270deg, #84bd00, #6a8f00, #a3d419, #95d004)",
+                  "linear-gradient(315deg, #84bd00, #6a8f00, #a3d419, #95d004)",
+                  "linear-gradient(360deg, #84bd00, #6a8f00, #a3d419, #95d004)",
                 ],
               }}
               transition={{

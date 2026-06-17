@@ -2,6 +2,7 @@ import { getPublicContactEmail } from "../../lib/publicContactEmail";
 import { useAppSettings } from "../../hooks/useAppSettings";
 import { modernLayout } from "../../design/modernLayout";
 import { modern, modernFont } from "../../design/modernTokens";
+import { GITHUB_PROFILE_URL, LINKEDIN_PROFILE_URL } from "../../lib/portfolioLinks";
 import { ModernBrandLogo } from "./ModernBrandLogo";
 
 interface ModernFooterProps {
@@ -36,7 +37,16 @@ export function ModernFooter({ ownerName = "Brian Bureson", logoUrl: logoUrlProp
               </a>
             ) : null}
             <a
-              href="https://github.com/noserub"
+              href={LINKEDIN_PROFILE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs hover:text-[#FAFAFA] transition-colors"
+              style={{ ...modernFont, color: modern.muted }}
+            >
+              LinkedIn ↗
+            </a>
+            <a
+              href={GITHUB_PROFILE_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="text-xs hover:text-[#FAFAFA] transition-colors"

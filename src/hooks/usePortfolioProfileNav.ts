@@ -1,13 +1,16 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { getPortfolioOwnerUserId } from "../lib/portfolioOwner";
+import {
+  DEFAULT_OWNER_DISPLAY_NAME,
+  normalizeOwnerDisplayName,
+} from "../lib/portfolioLinks";
 
 export interface PortfolioProfileNav {
   fullName: string;
   resumeUrl: string | null;
 }
 
-const DEFAULT_NAME = "Brian Bureson";
 const NAV_CACHE_KEY = "portfolioProfileNav";
 
 function readCachedNav(): PortfolioProfileNav | null {
@@ -18,7 +21,7 @@ function readCachedNav(): PortfolioProfileNav | null {
     const parsed = JSON.parse(raw) as PortfolioProfileNav;
     if (!parsed || typeof parsed.fullName !== "string") return null;
     return {
-      fullName: resolveDisplayName(parsed.fullName),
+      fullName: normalizeOwnerDisplayName(parsed.fullName),
       resumeUrl: typeof parsed.resumeUrl === "string" ? parsed.resumeUrl : null,
     };
   } catch {
@@ -34,15 +37,9 @@ function writeCachedNav(profile: PortfolioProfileNav) {
   }
 }
 
-function resolveDisplayName(fullName: string | null | undefined): string {
-  const trimmed = fullName?.trim();
-  if (!trimmed || trimmed.includes("@")) return DEFAULT_NAME;
-  return trimmed;
-}
-
 export function usePortfolioProfileNav(): PortfolioProfileNav {
   const [profile, setProfile] = useState<PortfolioProfileNav>(
-    () => readCachedNav() ?? { fullName: DEFAULT_NAME, resumeUrl: null },
+    () => readCachedNav() ?? { fullName: DEFAULT_OWNER_DISPLAY_NAME, resumeUrl: null },
   );
 
   useEffect(() => {
@@ -63,7 +60,7 @@ export function usePortfolioProfileNav(): PortfolioProfileNav {
         if (cancelled || !data) return;
 
         const next = {
-          fullName: resolveDisplayName(data.full_name as string),
+          fullName: normalizeOwnerDisplayName(data.full_name as string),
           resumeUrl: (data.resume_url as string) || null,
         };
         writeCachedNav(next);

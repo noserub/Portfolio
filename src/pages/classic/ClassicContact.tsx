@@ -484,7 +484,7 @@ export function ClassicContact({ onBack, isEditMode = false }: ContactProps) {
               <div 
                 className="absolute top-0 left-0 right-0 z-[1] h-1 rounded-t-2xl"
                 style={{
-                  background: "linear-gradient(90deg, #ec4899, #8b5cf6, #3b82f6)"
+                  background: "linear-gradient(90deg, #84bd00, #6a8f00, #a3d419)"
                 }}
               />
 
@@ -497,7 +497,7 @@ export function ClassicContact({ onBack, isEditMode = false }: ContactProps) {
                 <motion.path
                   d="M60,-20 Q70,30 75,80 Q80,130 85,180"
                   fill="none"
-                  stroke="#ec4899"
+                  stroke="#84bd00"
                   strokeWidth="18"
                   strokeLinecap="round"
                   className="group-hover:animate-[drawLine_2s_ease-in-out_forwards]"
@@ -523,8 +523,8 @@ export function ClassicContact({ onBack, isEditMode = false }: ContactProps) {
                     top: dot.y,
                     width: `${dot.size}px`,
                     height: `${dot.size}px`,
-                    background: '#ec4899',
-                    boxShadow: `0 0 ${dot.size * 2}px #ec489940`,
+                    background: '#84bd00',
+                    boxShadow: `0 0 ${dot.size * 2}px #84bd0040`,
                     animationDelay: `${dot.delay}s`,
                   }}
                 />
@@ -534,7 +534,7 @@ export function ClassicContact({ onBack, isEditMode = false }: ContactProps) {
               <motion.div
                 className="pointer-events-none absolute inset-0 z-[1] rounded-2xl opacity-0 transition-opacity duration-500 group-hover:opacity-100"
                 style={{
-                  background: 'radial-gradient(circle at 50% 50%, #ec489920, transparent 70%)',
+                  background: 'radial-gradient(circle at 50% 50%, #84bd0020, transparent 70%)',
                 }}
               />
 
@@ -620,15 +620,15 @@ export function ClassicContact({ onBack, isEditMode = false }: ContactProps) {
                         className="rounded-full p-[2px] w-full sm:w-auto"
                         animate={{
                           background: [
-                            "linear-gradient(0deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
-                            "linear-gradient(45deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
-                            "linear-gradient(90deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
-                            "linear-gradient(135deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
-                            "linear-gradient(180deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
-                            "linear-gradient(225deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
-                            "linear-gradient(270deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
-                            "linear-gradient(315deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
-                            "linear-gradient(360deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
+                            "linear-gradient(0deg, #84bd00, #6a8f00, #a3d419, #95d004)",
+                            "linear-gradient(45deg, #84bd00, #6a8f00, #a3d419, #95d004)",
+                            "linear-gradient(90deg, #84bd00, #6a8f00, #a3d419, #95d004)",
+                            "linear-gradient(135deg, #84bd00, #6a8f00, #a3d419, #95d004)",
+                            "linear-gradient(180deg, #84bd00, #6a8f00, #a3d419, #95d004)",
+                            "linear-gradient(225deg, #84bd00, #6a8f00, #a3d419, #95d004)",
+                            "linear-gradient(270deg, #84bd00, #6a8f00, #a3d419, #95d004)",
+                            "linear-gradient(315deg, #84bd00, #6a8f00, #a3d419, #95d004)",
+                            "linear-gradient(360deg, #84bd00, #6a8f00, #a3d419, #95d004)",
                           ],
                         }}
                         transition={{
@@ -711,7 +711,7 @@ export function ClassicContact({ onBack, isEditMode = false }: ContactProps) {
               <motion.div
                 className="pointer-events-none absolute inset-0 z-[1] rounded-2xl opacity-0 transition-opacity duration-500 group-hover:opacity-100"
                 style={{
-                  background: 'radial-gradient(circle at 50% 50%, #ec489920, transparent 70%)',
+                  background: 'radial-gradient(circle at 50% 50%, #84bd0020, transparent 70%)',
                 }}
               />
 
@@ -775,7 +775,7 @@ export function ClassicContact({ onBack, isEditMode = false }: ContactProps) {
               <motion.div
                 className="pointer-events-none absolute inset-0 z-[1] rounded-2xl opacity-0 transition-opacity duration-500 group-hover:opacity-100"
                 style={{
-                  background: 'radial-gradient(circle at 50% 50%, #3b82f620, transparent 70%)',
+                  background: 'radial-gradient(circle at 50% 50%, #a3d41920, transparent 70%)',
                 }}
               />
 

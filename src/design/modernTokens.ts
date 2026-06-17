@@ -7,8 +7,11 @@ export const modern = {
   borderHover: "var(--modern-border-hover)",
   text: "var(--modern-text)",
   muted: "var(--modern-muted-text)",
-  /** Text accents: labels, links, stats, hero suffix, icons */
+  /** Eyebrow labels, stats, hero emphasis — not inline links */
   accent: "var(--modern-accent)",
+  /** Markdown and inline body links (foreground + underline; hover uses accent) */
+  link: "var(--modern-link)",
+  linkHover: "var(--modern-link-hover)",
   /** Filled buttons and strong interactive surfaces */
   accentFill: "var(--modern-accent-fill)",
   accentFillHover: "var(--modern-accent-fill-hover)",

@@ -40,6 +40,10 @@
   --modern-accent-subtle: rgba(132, 189, 0, 0.12);
   --modern-accent-subtle-strong: rgba(132, 189, 0, 0.18);
   --modern-accent-glow: rgba(132, 189, 0, 0.07);
+  --modern-link: var(--modern-text);
+  --modern-link-underline: var(--modern-border-hover);
+  --modern-link-hover: var(--modern-text);
+  --modern-link-underline-hover: var(--modern-accent);
 }
 
 html[data-design="modern"]:not(.dark) {
@@ -72,6 +76,10 @@ html[data-design="modern"]:not(.dark) {
   --modern-accent-subtle: rgba(132, 189, 0, 0.14);
   --modern-accent-subtle-strong: rgba(132, 189, 0, 0.2);
   --modern-accent-glow: rgba(132, 189, 0, 0.1);
+  --modern-link: var(--modern-text);
+  --modern-link-underline: var(--modern-surface-border);
+  --modern-link-hover: var(--modern-text);
+  --modern-link-underline-hover: var(--modern-accent);
 }
 
 [data-design="modern"] body {
@@ -327,6 +335,47 @@ html[data-design="modern"]:not(.dark) .modern-case-study-card__protected-badge {
   color: var(--modern-text);
 }
 
+[data-design="modern"] .modern-case-study-card__scrim {
+  pointer-events: none;
+}
+
+[data-design="modern"] .modern-case-study-card__scrim--bottom {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, var(--modern-bg) 0%, transparent 55%);
+}
+
+[data-design="modern"] .modern-case-study-card__scrim--side {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  [data-design="modern"] .modern-case-study-card--wide .modern-case-study-card__scrim--bottom {
+    display: none;
+  }
+
+  [data-design="modern"] .modern-case-study-card--wide .modern-case-study-card__scrim--side {
+    display: block;
+    position: absolute;
+    inset-block: 0;
+    right: 0;
+    width: 4rem;
+    background: linear-gradient(to right, transparent 0%, var(--modern-bg) 100%);
+  }
+}
+
+[data-design="modern"] [data-modern-project-detail] [class*="aspect-"][style*="linear-gradient(180deg, #141414"],
+[data-design="modern"] [data-modern-project-detail] [class*="aspect-"][style*="linear-gradient(165deg, #141414"],
+[data-design="modern"] [data-modern-project-detail] .modern-media-well--inset {
+  background: var(--modern-surface-inset) !important;
+  border: 1px solid var(--modern-border);
+  box-shadow: none !important;
+}
+
+[data-design="modern"] [data-modern-project-detail] .modern-media-well--inset:hover {
+  border-color: var(--modern-border-hover);
+}
+
 [data-design="modern"] .modern-case-study-card__body {
   padding: 1.25rem;
 }
@@ -477,8 +526,9 @@ html[data-design="modern"]:not(.dark) .modern-case-study-card__protected-badge {
 }
 
 @media (min-width: 900px) {
-  [data-design="modern"] .modern-contact-info-grid--three {
-    grid-template-columns: repeat(3, 1fr);
+  [data-design="modern"] .modern-contact-info-grid--three,
+  [data-design="modern"] .modern-contact-info-grid--auto {
+    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
   }
 }
 
@@ -492,6 +542,14 @@ html[data-design="modern"]:not(.dark) .modern-case-study-card__protected-badge {
 
 [data-design="modern"] .modern-contact-card:hover {
   border-color: var(--modern-accent);
+}
+
+[data-design="modern"] .modern-contact-card--static {
+  cursor: default;
+}
+
+[data-design="modern"] .modern-contact-card--static:hover {
+  border-color: var(--modern-border);
 }
 
 /* ── About page ────────────────────────────────────────────────────────── */
@@ -703,6 +761,13 @@ html[data-design="modern"]:not(.dark) .modern-case-study-card__protected-badge {
   border: 1px solid var(--border);
   background: var(--modern-surface);
   padding: 1rem 1.25rem;
+}
+
+[data-design="modern"] .modern-about-tool-pill {
+  font-family: Inter, sans-serif;
+  border: 1px solid var(--modern-border);
+  background: var(--modern-surface);
+  color: var(--modern-text);
 }
 
 [data-design="modern"] .modern-typing-cursor {
@@ -1358,6 +1423,11 @@ html[data-design="modern"]:not(.dark) .modern-case-study-card__protected-badge {
   font-size: 0.9375rem;
   line-height: 1.65;
   color: var(--modern-text);
+  margin-top: 0.25rem;
+}
+
+[data-design="modern"] [data-modern-project-detail] .modern-case-study-overview .markdown-content > :first-child {
+  margin-top: 0 !important;
 }
 
 [data-design="modern"] [data-modern-project-detail] .modern-case-study-overview .markdown-content p + p {
@@ -1433,6 +1503,54 @@ html[data-design="modern"]:not(.dark) .modern-case-study-card__protected-badge {
 [data-design="modern"] [data-modern-project-detail] .at-a-glance-content strong,
 [data-design="modern"] [data-modern-project-detail] .impact-sidebar-content strong {
   color: var(--modern-text);
+}
+
+/* Body / markdown links — foreground text + lime underline for affordance */
+[data-design="modern"] .markdown-content a,
+[data-design="modern"] .markdown-content a.markdown-link,
+[data-design="modern"] .markdown-content-compact a,
+[data-design="modern"] .markdown-content-compact a.markdown-link,
+[data-design="modern"] .at-a-glance-content a,
+[data-design="modern"] .impact-sidebar-content a,
+[data-design="modern"] .prose :where(a):not(:where([class~="modern-btn-primary"], [class~="modern-btn-outline"], [class~="modern-nav-link"], [class~="modern-contact-card"])) {
+  color: var(--modern-link) !important;
+  font-weight: 500;
+  text-decoration: underline !important;
+  text-underline-offset: 0.18em;
+  text-decoration-thickness: 1px;
+  text-decoration-color: color-mix(in oklab, var(--modern-accent) 72%, transparent) !important;
+  transition: color 0.15s ease, text-decoration-color 0.15s ease;
+}
+
+[data-design="modern"] .markdown-content a:hover,
+[data-design="modern"] .markdown-content a.markdown-link:hover,
+[data-design="modern"] .markdown-content-compact a:hover,
+[data-design="modern"] .markdown-content-compact a.markdown-link:hover,
+[data-design="modern"] .at-a-glance-content a:hover,
+[data-design="modern"] .impact-sidebar-content a:hover,
+[data-design="modern"] .prose :where(a):not(:where([class~="modern-btn-primary"], [class~="modern-btn-outline"], [class~="modern-nav-link"], [class~="modern-contact-card"])):hover {
+  color: var(--modern-link-hover) !important;
+  text-decoration-color: var(--modern-link-underline-hover) !important;
+}
+
+[data-design="modern"] .markdown-content a.github-link,
+[data-design="modern"] .markdown-content-compact a.github-link {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: underline !important;
+  text-decoration-color: color-mix(in oklab, var(--modern-accent) 72%, transparent) !important;
+}
+
+[data-design="modern"] .markdown-content a.github-link:hover,
+[data-design="modern"] .markdown-content-compact a.github-link:hover {
+  text-decoration-color: var(--modern-accent) !important;
+}
+
+[data-design="modern"] .markdown-content a.github-link .github-icon,
+[data-design="modern"] .markdown-content-compact a.github-link .github-icon {
+  color: var(--modern-link) !important;
+  text-decoration: none !important;
 }
 
 [data-design="modern"] .markdown-content ul li::before {

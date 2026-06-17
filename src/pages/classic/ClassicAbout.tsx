@@ -967,15 +967,15 @@ export function ClassicAbout({ onBack, onHoverChange, isEditMode }: AboutProps) 
       className="rounded-full p-[2px] w-full lg:w-auto"
       animate={{
         background: [
-          "linear-gradient(0deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
-          "linear-gradient(45deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
-          "linear-gradient(90deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
-          "linear-gradient(135deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
-          "linear-gradient(180deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
-          "linear-gradient(225deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
-          "linear-gradient(270deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
-          "linear-gradient(315deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
-          "linear-gradient(360deg, #ec4899, #8b5cf6, #3b82f6, #fbbf24)",
+          "linear-gradient(0deg, #84bd00, #6a8f00, #a3d419, #95d004)",
+          "linear-gradient(45deg, #84bd00, #6a8f00, #a3d419, #95d004)",
+          "linear-gradient(90deg, #84bd00, #6a8f00, #a3d419, #95d004)",
+          "linear-gradient(135deg, #84bd00, #6a8f00, #a3d419, #95d004)",
+          "linear-gradient(180deg, #84bd00, #6a8f00, #a3d419, #95d004)",
+          "linear-gradient(225deg, #84bd00, #6a8f00, #a3d419, #95d004)",
+          "linear-gradient(270deg, #84bd00, #6a8f00, #a3d419, #95d004)",
+          "linear-gradient(315deg, #84bd00, #6a8f00, #a3d419, #95d004)",
+          "linear-gradient(360deg, #84bd00, #6a8f00, #a3d419, #95d004)",
         ],
       }}
       transition={{
@@ -1041,19 +1041,19 @@ export function ClassicAbout({ onBack, onHoverChange, isEditMode }: AboutProps) 
           >
             <defs>
               <linearGradient id="bio-gradient-1" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#ec4899" stopOpacity="1" />
-                <stop offset="50%" stopColor="#8b5cf6" stopOpacity="0.9" />
-                <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.8" />
+                <stop offset="0%" stopColor="#84bd00" stopOpacity="1" />
+                <stop offset="50%" stopColor="#6a8f00" stopOpacity="0.9" />
+                <stop offset="100%" stopColor="#a3d419" stopOpacity="0.8" />
               </linearGradient>
               <linearGradient id="bio-gradient-2" x1="100%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.9" />
-                <stop offset="50%" stopColor="#fbbf24" stopOpacity="1" />
-                <stop offset="100%" stopColor="#ec4899" stopOpacity="0.8" />
+                <stop offset="0%" stopColor="#a3d419" stopOpacity="0.9" />
+                <stop offset="50%" stopColor="#95d004" stopOpacity="1" />
+                <stop offset="100%" stopColor="#84bd00" stopOpacity="0.8" />
               </linearGradient>
               <linearGradient id="bio-gradient-3" x1="0%" y1="100%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#8b5cf6" stopOpacity="1" />
-                <stop offset="50%" stopColor="#ec4899" stopOpacity="0.9" />
-                <stop offset="100%" stopColor="#fbbf24" stopOpacity="0.8" />
+                <stop offset="0%" stopColor="#6a8f00" stopOpacity="1" />
+                <stop offset="50%" stopColor="#84bd00" stopOpacity="0.9" />
+                <stop offset="100%" stopColor="#95d004" stopOpacity="0.8" />
               </linearGradient>
             </defs>
 
@@ -1130,7 +1130,7 @@ export function ClassicAbout({ onBack, onHoverChange, isEditMode }: AboutProps) 
             <motion.path
               d="M140,-80 Q170,20 190,110 Q210,200 230,280 Q250,350 310,420"
               fill="none"
-              stroke="#fbbf24"
+              stroke="#95d004"
               strokeWidth="50"
               strokeLinecap="round"
               opacity="0.45"
@@ -1153,7 +1153,7 @@ export function ClassicAbout({ onBack, onHoverChange, isEditMode }: AboutProps) 
             <motion.path
               d="M110,380 Q150,420 180,460 Q210,500 240,540 Q270,580 330,630"
               fill="none"
-              stroke="#8b5cf6"
+              stroke="#6a8f00"
               strokeWidth="48"
               strokeLinecap="round"
               opacity="0.42"
@@ -1175,20 +1175,20 @@ export function ClassicAbout({ onBack, onHoverChange, isEditMode }: AboutProps) 
 
           {/* Colorful Animated Dots - Right side between text and edge */}
           {[
-            { x: '72%', y: '8%', color: '#ec4899', size: 14, delay: 0 },
-            { x: '82%', y: '15%', color: '#8b5cf6', size: 11, delay: 0.5 },
-            { x: '88%', y: '22%', color: '#3b82f6', size: 16, delay: 1 },
-            { x: '76%', y: '28%', color: '#fbbf24', size: 12, delay: 1.5 },
-            { x: '85%', y: '35%', color: '#ec4899', size: 15, delay: 2 },
-            { x: '92%', y: '42%', color: '#8b5cf6', size: 10, delay: 2.5 },
-            { x: '79%', y: '50%', color: '#3b82f6', size: 13, delay: 3 },
-            { x: '86%', y: '58%', color: '#fbbf24', size: 11, delay: 3.5 },
-            { x: '94%', y: '65%', color: '#ec4899', size: 14, delay: 0.8 },
-            { x: '74%', y: '72%', color: '#8b5cf6', size: 12, delay: 1.2 },
-            { x: '83%', y: '78%', color: '#3b82f6', size: 15, delay: 1.8 },
-            { x: '90%', y: '85%', color: '#fbbf24', size: 10, delay: 2.2 },
-            { x: '77%', y: '92%', color: '#ec4899', size: 13, delay: 2.8 },
-            { x: '96%', y: '48%', color: '#8b5cf6', size: 9, delay: 3.2 },
+            { x: '72%', y: '8%', color: '#84bd00', size: 14, delay: 0 },
+            { x: '82%', y: '15%', color: '#6a8f00', size: 11, delay: 0.5 },
+            { x: '88%', y: '22%', color: '#a3d419', size: 16, delay: 1 },
+            { x: '76%', y: '28%', color: '#95d004', size: 12, delay: 1.5 },
+            { x: '85%', y: '35%', color: '#84bd00', size: 15, delay: 2 },
+            { x: '92%', y: '42%', color: '#6a8f00', size: 10, delay: 2.5 },
+            { x: '79%', y: '50%', color: '#a3d419', size: 13, delay: 3 },
+            { x: '86%', y: '58%', color: '#95d004', size: 11, delay: 3.5 },
+            { x: '94%', y: '65%', color: '#84bd00', size: 14, delay: 0.8 },
+            { x: '74%', y: '72%', color: '#6a8f00', size: 12, delay: 1.2 },
+            { x: '83%', y: '78%', color: '#a3d419', size: 15, delay: 1.8 },
+            { x: '90%', y: '85%', color: '#95d004', size: 10, delay: 2.2 },
+            { x: '77%', y: '92%', color: '#84bd00', size: 13, delay: 2.8 },
+            { x: '96%', y: '48%', color: '#6a8f00', size: 9, delay: 3.2 },
           ].map((dot, index) => (
             <motion.div
               key={index}
@@ -1514,11 +1514,11 @@ export function ClassicAbout({ onBack, onHoverChange, isEditMode }: AboutProps) 
                   <motion.path
                     d="M60,-20 Q70,30 75,80 Q80,130 85,180"
                     fill="none"
-                    stroke={iconColor.includes('yellow') ? '#fbbf24' : 
-                           iconColor.includes('blue') ? '#3b82f6' :
-                           iconColor.includes('purple') ? '#8b5cf6' :
-                           iconColor.includes('green') ? '#10b981' :
-                           '#ec4899'}
+                    stroke={iconColor.includes('yellow') ? '#95d004' : 
+                           iconColor.includes('blue') ? '#a3d419' :
+                           iconColor.includes('purple') ? '#6a8f00' :
+                           iconColor.includes('green') ? '#6a8f00' :
+                           '#84bd00'}
                     strokeWidth="18"
                     strokeLinecap="round"
                     className="group-hover:animate-[drawLine_2s_ease-in-out_forwards]"
@@ -1546,16 +1546,16 @@ export function ClassicAbout({ onBack, onHoverChange, isEditMode }: AboutProps) 
                       top: dot.y,
                       width: `${dot.size}px`,
                       height: `${dot.size}px`,
-                      background: iconColor.includes('yellow') ? '#fbbf24' : 
-                                 iconColor.includes('blue') ? '#3b82f6' :
-                                 iconColor.includes('purple') ? '#8b5cf6' :
-                                 iconColor.includes('green') ? '#10b981' :
-                                 '#ec4899',
-                      boxShadow: `0 0 ${dot.size * 2}px ${iconColor.includes('yellow') ? '#fbbf24' : 
-                                 iconColor.includes('blue') ? '#3b82f6' :
-                                 iconColor.includes('purple') ? '#8b5cf6' :
-                                 iconColor.includes('green') ? '#10b981' :
-                                 '#ec4899'}40`,
+                      background: iconColor.includes('yellow') ? '#95d004' : 
+                                 iconColor.includes('blue') ? '#a3d419' :
+                                 iconColor.includes('purple') ? '#6a8f00' :
+                                 iconColor.includes('green') ? '#6a8f00' :
+                                 '#84bd00',
+                      boxShadow: `0 0 ${dot.size * 2}px ${iconColor.includes('yellow') ? '#95d004' : 
+                                 iconColor.includes('blue') ? '#a3d419' :
+                                 iconColor.includes('purple') ? '#6a8f00' :
+                                 iconColor.includes('green') ? '#6a8f00' :
+                                 '#84bd00'}40`,
                       animationDelay: `${dot.delay}s`,
                     }}
                   />
@@ -1566,11 +1566,11 @@ export function ClassicAbout({ onBack, onHoverChange, isEditMode }: AboutProps) 
                   className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
                   style={{
                     background: `radial-gradient(circle at 50% 50%, ${
-                      iconColor.includes('yellow') ? '#fbbf2420' : 
-                      iconColor.includes('blue') ? '#3b82f620' :
-                      iconColor.includes('purple') ? '#8b5cf620' :
-                      iconColor.includes('green') ? '#10b98120' :
-                      '#ec489920'
+                      iconColor.includes('yellow') ? '#95d00420' : 
+                      iconColor.includes('blue') ? '#a3d41920' :
+                      iconColor.includes('purple') ? '#6a8f0020' :
+                      iconColor.includes('green') ? '#6a8f0020' :
+                      '#84bd0020'
                     }, transparent 70%)`,
                   }}
                 />
@@ -1688,7 +1688,7 @@ export function ClassicAbout({ onBack, onHoverChange, isEditMode }: AboutProps) 
               <motion.path
                 d="M60,-20 Q70,30 75,80 Q80,130 85,180"
                 fill="none"
-                stroke="#fbbf24"
+                stroke="#95d004"
                 strokeWidth="18"
                 strokeLinecap="round"
                 className="group-hover:animate-[drawLine_2s_ease-in-out_forwards]"
@@ -1714,8 +1714,8 @@ export function ClassicAbout({ onBack, onHoverChange, isEditMode }: AboutProps) 
                   top: dot.y,
                   width: `${dot.size}px`,
                   height: `${dot.size}px`,
-                  background: '#fbbf24',
-                  boxShadow: `0 0 ${dot.size * 2}px #fbbf2440`,
+                  background: '#95d004',
+                  boxShadow: `0 0 ${dot.size * 2}px #95d00440`,
                   animationDelay: `${dot.delay}s`,
                 }}
               />
@@ -1725,7 +1725,7 @@ export function ClassicAbout({ onBack, onHoverChange, isEditMode }: AboutProps) 
             <motion.div
               className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
               style={{
-                background: 'radial-gradient(circle at 50% 50%, #fbbf2420, transparent 70%)',
+                background: 'radial-gradient(circle at 50% 50%, #95d00420, transparent 70%)',
               }}
             />
 
@@ -1855,11 +1855,11 @@ export function ClassicAbout({ onBack, onHoverChange, isEditMode }: AboutProps) 
                               className="inline-block"
                               animate={{
                                 backgroundImage: [
-                                  "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%)",
-                                  "linear-gradient(180deg, #8b5cf6 0%, #ec4899 50%, #3b82f6 100%)",
-                                  "linear-gradient(225deg, #ec4899 0%, #3b82f6 50%, #8b5cf6 100%)",
-                                  "linear-gradient(270deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%)",
-                                  "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%)",
+                                  "linear-gradient(135deg, #a3d419 0%, #6a8f00 50%, #84bd00 100%)",
+                                  "linear-gradient(180deg, #6a8f00 0%, #84bd00 50%, #a3d419 100%)",
+                                  "linear-gradient(225deg, #84bd00 0%, #a3d419 50%, #6a8f00 100%)",
+                                  "linear-gradient(270deg, #a3d419 0%, #6a8f00 50%, #84bd00 100%)",
+                                  "linear-gradient(135deg, #a3d419 0%, #6a8f00 50%, #84bd00 100%)",
                                 ],
                               }}
                               transition={{
@@ -1939,7 +1939,7 @@ export function ClassicAbout({ onBack, onHoverChange, isEditMode }: AboutProps) 
                 <motion.path
                   d="M60,-20 Q70,30 75,80 Q80,130 85,180"
                   fill="none"
-                  stroke="#8b5cf6"
+                  stroke="#6a8f00"
                   strokeWidth="18"
                   strokeLinecap="round"
                   className="group-hover:animate-[drawLine_2s_ease-in-out_forwards]"
@@ -1965,8 +1965,8 @@ export function ClassicAbout({ onBack, onHoverChange, isEditMode }: AboutProps) 
                     top: dot.y,
                     width: `${dot.size}px`,
                     height: `${dot.size}px`,
-                    background: '#8b5cf6',
-                    boxShadow: `0 0 ${dot.size * 2}px #8b5cf640`,
+                    background: '#6a8f00',
+                    boxShadow: `0 0 ${dot.size * 2}px #6a8f0040`,
                     animationDelay: `${dot.delay}s`,
                   }}
                 />
@@ -1976,7 +1976,7 @@ export function ClassicAbout({ onBack, onHoverChange, isEditMode }: AboutProps) 
               <motion.div
                 className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
                 style={{
-                  background: 'radial-gradient(circle at 50% 50%, #8b5cf620, transparent 70%)',
+                  background: 'radial-gradient(circle at 50% 50%, #6a8f0020, transparent 70%)',
                 }}
               />
 
@@ -2157,12 +2157,12 @@ export function ClassicAbout({ onBack, onHoverChange, isEditMode }: AboutProps) 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {expertiseItems?.map((item, idx) => {
               const gradients = [
-                "linear-gradient(135deg, #ec4899, #8b5cf6)",
-                "linear-gradient(135deg, #8b5cf6, #3b82f6)",
-                "linear-gradient(135deg, #3b82f6, #fbbf24)",
-                "linear-gradient(135deg, #fbbf24, #ec4899)",
-                "linear-gradient(135deg, #ec4899, #3b82f6)",
-                "linear-gradient(135deg, #8b5cf6, #fbbf24)"
+                "linear-gradient(135deg, #84bd00, #6a8f00)",
+                "linear-gradient(135deg, #6a8f00, #a3d419)",
+                "linear-gradient(135deg, #a3d419, #95d004)",
+                "linear-gradient(135deg, #95d004, #84bd00)",
+                "linear-gradient(135deg, #84bd00, #a3d419)",
+                "linear-gradient(135deg, #6a8f00, #95d004)"
               ];
               const gradient = gradients[idx % gradients.length];
               
@@ -2365,11 +2365,11 @@ export function ClassicAbout({ onBack, onHoverChange, isEditMode }: AboutProps) 
                     <motion.path
                       d="M60,-20 Q70,30 75,80 Q80,130 85,180"
                       fill="none"
-                      stroke={iconColor.includes('yellow') ? '#fbbf24' : 
-                             iconColor.includes('blue') ? '#3b82f6' :
-                             iconColor.includes('purple') ? '#8b5cf6' :
-                             iconColor.includes('green') ? '#10b981' :
-                             iconColor.includes('pink') ? '#ec4899' :
+                      stroke={iconColor.includes('yellow') ? '#95d004' : 
+                             iconColor.includes('blue') ? '#a3d419' :
+                             iconColor.includes('purple') ? '#6a8f00' :
+                             iconColor.includes('green') ? '#6a8f00' :
+                             iconColor.includes('pink') ? '#84bd00' :
                              '#6366f1'}
                       strokeWidth="18"
                       strokeLinecap="round"
@@ -2398,17 +2398,17 @@ export function ClassicAbout({ onBack, onHoverChange, isEditMode }: AboutProps) 
                         top: dot.y,
                         width: `${dot.size}px`,
                         height: `${dot.size}px`,
-                        background: iconColor.includes('yellow') ? '#fbbf24' : 
-                                   iconColor.includes('blue') ? '#3b82f6' :
-                                   iconColor.includes('purple') ? '#8b5cf6' :
-                                   iconColor.includes('green') ? '#10b981' :
-                                   iconColor.includes('pink') ? '#ec4899' :
+                        background: iconColor.includes('yellow') ? '#95d004' : 
+                                   iconColor.includes('blue') ? '#a3d419' :
+                                   iconColor.includes('purple') ? '#6a8f00' :
+                                   iconColor.includes('green') ? '#6a8f00' :
+                                   iconColor.includes('pink') ? '#84bd00' :
                                    '#6366f1',
-                        boxShadow: `0 0 ${dot.size * 2}px ${iconColor.includes('yellow') ? '#fbbf24' : 
-                                   iconColor.includes('blue') ? '#3b82f6' :
-                                   iconColor.includes('purple') ? '#8b5cf6' :
-                                   iconColor.includes('green') ? '#10b981' :
-                                   iconColor.includes('pink') ? '#ec4899' :
+                        boxShadow: `0 0 ${dot.size * 2}px ${iconColor.includes('yellow') ? '#95d004' : 
+                                   iconColor.includes('blue') ? '#a3d419' :
+                                   iconColor.includes('purple') ? '#6a8f00' :
+                                   iconColor.includes('green') ? '#6a8f00' :
+                                   iconColor.includes('pink') ? '#84bd00' :
                                    '#6366f1'}40`,
                         animationDelay: `${dot.delay}s`,
                       }}
@@ -2420,11 +2420,11 @@ export function ClassicAbout({ onBack, onHoverChange, isEditMode }: AboutProps) 
                     className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
                     style={{
                       background: `radial-gradient(circle at 50% 50%, ${
-                        iconColor.includes('yellow') ? '#fbbf2420' : 
-                        iconColor.includes('blue') ? '#3b82f620' :
-                        iconColor.includes('purple') ? '#8b5cf620' :
-                        iconColor.includes('green') ? '#10b98120' :
-                        iconColor.includes('pink') ? '#ec489920' :
+                        iconColor.includes('yellow') ? '#95d00420' : 
+                        iconColor.includes('blue') ? '#a3d41920' :
+                        iconColor.includes('purple') ? '#6a8f0020' :
+                        iconColor.includes('green') ? '#6a8f0020' :
+                        iconColor.includes('pink') ? '#84bd0020' :
                         '#6366f120'
                       }, transparent 70%)`,
                     }}
@@ -2522,11 +2522,11 @@ export function ClassicAbout({ onBack, onHoverChange, isEditMode }: AboutProps) 
                             className="inline-block"
                             animate={{
                               backgroundImage: [
-                                "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%)",
-                                "linear-gradient(180deg, #8b5cf6 0%, #ec4899 50%, #3b82f6 100%)",
-                                "linear-gradient(225deg, #ec4899 0%, #3b82f6 50%, #8b5cf6 100%)",
-                                "linear-gradient(270deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%)",
-                                "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%)",
+                                "linear-gradient(135deg, #a3d419 0%, #6a8f00 50%, #84bd00 100%)",
+                                "linear-gradient(180deg, #6a8f00 0%, #84bd00 50%, #a3d419 100%)",
+                                "linear-gradient(225deg, #84bd00 0%, #a3d419 50%, #6a8f00 100%)",
+                                "linear-gradient(270deg, #a3d419 0%, #6a8f00 50%, #84bd00 100%)",
+                                "linear-gradient(135deg, #a3d419 0%, #6a8f00 50%, #84bd00 100%)",
                               ],
                             }}
                             transition={{
@@ -2648,11 +2648,11 @@ export function ClassicAbout({ onBack, onHoverChange, isEditMode }: AboutProps) 
           >
             {processItems?.map((step, index) => {
               const gradients = [
-                "linear-gradient(135deg, #3b82f6, #8b5cf6)",
-                "linear-gradient(135deg, #8b5cf6, #ec4899)",
-                "linear-gradient(135deg, #ec4899, #fbbf24)",
-                "linear-gradient(135deg, #fbbf24, #10b981)",
-                "linear-gradient(135deg, #10b981, #3b82f6)"
+                "linear-gradient(135deg, #a3d419, #6a8f00)",
+                "linear-gradient(135deg, #6a8f00, #84bd00)",
+                "linear-gradient(135deg, #84bd00, #95d004)",
+                "linear-gradient(135deg, #95d004, #6a8f00)",
+                "linear-gradient(135deg, #6a8f00, #a3d419)"
               ];
               const icons = ["🔍", "✏️", "📊", "🎨", "✓"];
               const gradient = gradients[index % gradients.length];
@@ -2826,7 +2826,7 @@ export function ClassicAbout({ onBack, onHoverChange, isEditMode }: AboutProps) 
             <div 
               className="absolute top-0 left-0 right-0 h-1 rounded-t-2xl"
               style={{
-                background: "linear-gradient(90deg, #06b6d4, #3b82f6, #8b5cf6)"
+                background: "linear-gradient(90deg, #84bd00, #a3d419, #6a8f00)"
               }}
             />
             
@@ -2871,8 +2871,8 @@ export function ClassicAbout({ onBack, onHoverChange, isEditMode }: AboutProps) 
             <div className="space-y-5">
               {certificationsItems?.map((cert, idx) => {
                 const gradients = [
-                  "linear-gradient(135deg, #06b6d4, #3b82f6)",
-                  "linear-gradient(135deg, #3b82f6, #8b5cf6)"
+                  "linear-gradient(135deg, #84bd00, #a3d419)",
+                  "linear-gradient(135deg, #a3d419, #6a8f00)"
                 ];
                 const gradient = gradients[idx % gradients.length];
                 
@@ -2969,7 +2969,7 @@ export function ClassicAbout({ onBack, onHoverChange, isEditMode }: AboutProps) 
             <div 
               className="absolute top-0 left-0 right-0 h-1 rounded-t-2xl"
               style={{
-                background: "linear-gradient(90deg, #a855f7, #3b82f6, #06b6d4)"
+                background: "linear-gradient(90deg, #6a8f00, #a3d419, #84bd00)"
               }}
             />
             
@@ -3014,8 +3014,8 @@ export function ClassicAbout({ onBack, onHoverChange, isEditMode }: AboutProps) 
             <Accordion type="multiple" defaultValue={["tool-0"]} className="space-y-4">
               {toolsCategories?.map((section, idx) => {
                 const gradients = [
-                  "linear-gradient(135deg, #a855f7, #3b82f6)",
-                  "linear-gradient(135deg, #3b82f6, #06b6d4)"
+                  "linear-gradient(135deg, #6a8f00, #a3d419)",
+                  "linear-gradient(135deg, #a3d419, #84bd00)"
                 ];
                 const gradient = gradients[idx % gradients.length];
                 

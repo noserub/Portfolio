@@ -6,6 +6,17 @@ import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
 import { Input } from "../ui/input";
 import { cn } from "../ui/utils";
+import {
+  PORTFOLIO_ACCENT,
+  PORTFOLIO_ANIMATED_BORDER_GRADIENTS,
+  PORTFOLIO_CARD_TILE_GRADIENTS,
+  PORTFOLIO_CHALLENGE_GRADIENT,
+  PORTFOLIO_ICON_COLOR_CLASS,
+  portfolioAccentAlpha,
+  portfolioAccentFromGradient,
+  portfolioAccentGlowFromGradient,
+  portfolioSectionGradientAt,
+} from "../../lib/modernSurfaces";
 import { 
   Target, 
   Award, 
@@ -80,98 +91,98 @@ interface CaseStudySectionsProps {
 const sectionConfig: Record<string, { icon: any; gradient: string; iconColor: string }> = {
   "At a glance": { 
     icon: Info, 
-    gradient: "linear-gradient(135deg, #06b6d4, #8b5cf6)",
-    iconColor: "text-cyan-600 dark:text-cyan-400"
+    gradient: portfolioSectionGradientAt(0),
+    iconColor: PORTFOLIO_ICON_COLOR_CLASS
   },
   "Overview": { 
     icon: Target, 
-    gradient: "linear-gradient(135deg, #3b82f6, #8b5cf6)",
-    iconColor: "text-blue-600 dark:text-blue-400"
+    gradient: portfolioSectionGradientAt(1),
+    iconColor: PORTFOLIO_ICON_COLOR_CLASS
   },
   "The challenge": { 
     icon: AlertCircle, 
-    gradient: "linear-gradient(135deg, #ef4444, #f97316)",
+    gradient: PORTFOLIO_CHALLENGE_GRADIENT,
     iconColor: "text-red-600 dark:text-red-400"
   },
   "My role & impact": { 
     icon: Award, 
-    gradient: "linear-gradient(135deg, #8b5cf6, #ec4899)",
-    iconColor: "text-purple-600 dark:text-purple-400"
+    gradient: portfolioSectionGradientAt(2),
+    iconColor: PORTFOLIO_ICON_COLOR_CLASS
   },
   "Research insights": { 
     icon: Lightbulb, 
-    gradient: "linear-gradient(135deg, #ec4899, #fbbf24)",
-    iconColor: "text-pink-600 dark:text-pink-400"
+    gradient: portfolioSectionGradientAt(3),
+    iconColor: PORTFOLIO_ICON_COLOR_CLASS
   },
   "Competitive analysis": { 
     icon: BarChart3, 
-    gradient: "linear-gradient(135deg, #fbbf24, #10b981)",
-    iconColor: "text-yellow-600 dark:text-yellow-400"
+    gradient: portfolioSectionGradientAt(4),
+    iconColor: PORTFOLIO_ICON_COLOR_CLASS
   },
   "The solution: A new direction": { 
     icon: Rocket, 
-    gradient: "linear-gradient(135deg, #10b981, #06b6d4)",
-    iconColor: "text-green-600 dark:text-green-400"
+    gradient: portfolioSectionGradientAt(5),
+    iconColor: PORTFOLIO_ICON_COLOR_CLASS
   },
   "Key features": { 
     icon: CheckCircle, 
-    gradient: "linear-gradient(135deg, #10b981, #06b6d4)",
-    iconColor: "text-emerald-600 dark:text-emerald-400"
+    gradient: portfolioSectionGradientAt(6),
+    iconColor: PORTFOLIO_ICON_COLOR_CLASS
   },
   "Solution highlights": { 
     icon: CheckCircle, 
-    gradient: "linear-gradient(135deg, #10b981, #06b6d4)",
-    iconColor: "text-emerald-600 dark:text-emerald-400"
+    gradient: portfolioSectionGradientAt(6),
+    iconColor: PORTFOLIO_ICON_COLOR_CLASS
   },
   "Registration, onboarding and compliance": { 
     icon: UserCheck, 
-    gradient: "linear-gradient(135deg, #06b6d4, #3b82f6)",
-    iconColor: "text-cyan-600 dark:text-cyan-400"
+    gradient: portfolioSectionGradientAt(7),
+    iconColor: PORTFOLIO_ICON_COLOR_CLASS
   },
   "Product reviews": { 
     icon: Star, 
-    gradient: "linear-gradient(135deg, #ec4899, #8b5cf6)",
-    iconColor: "text-pink-600 dark:text-pink-400"
+    gradient: portfolioSectionGradientAt(0),
+    iconColor: PORTFOLIO_ICON_COLOR_CLASS
   },
   "Navigation, feeds, and business profiles": { 
     icon: Layout, 
-    gradient: "linear-gradient(135deg, #8b5cf6, #3b82f6)",
-    iconColor: "text-purple-600 dark:text-purple-400"
+    gradient: portfolioSectionGradientAt(1),
+    iconColor: PORTFOLIO_ICON_COLOR_CLASS
   },
   "Dispensary finder": { 
     icon: MapPin, 
-    gradient: "linear-gradient(135deg, #3b82f6, #10b981)",
-    iconColor: "text-blue-600 dark:text-blue-400"
+    gradient: portfolioSectionGradientAt(2),
+    iconColor: PORTFOLIO_ICON_COLOR_CLASS
   },
   "Search, explore, and strain pages": { 
     icon: Search, 
-    gradient: "linear-gradient(135deg, #fbbf24, #ec4899)",
-    iconColor: "text-yellow-600 dark:text-yellow-400"
+    gradient: portfolioSectionGradientAt(3),
+    iconColor: PORTFOLIO_ICON_COLOR_CLASS
   },
   "Business and consumer impact": { 
     icon: TrendingUp, 
-    gradient: "linear-gradient(135deg, #10b981, #fbbf24)",
-    iconColor: "text-green-600 dark:text-green-400"
+    gradient: portfolioSectionGradientAt(4),
+    iconColor: PORTFOLIO_ICON_COLOR_CLASS
   },
   "Scaling the design team": { 
     icon: Users, 
-    gradient: "linear-gradient(135deg, #06b6d4, #8b5cf6)",
-    iconColor: "text-cyan-600 dark:text-cyan-400"
+    gradient: portfolioSectionGradientAt(5),
+    iconColor: PORTFOLIO_ICON_COLOR_CLASS
   },
   "Key takeaway": { 
     icon: Key, 
-    gradient: "linear-gradient(135deg, #ec4899, #fbbf24)",
-    iconColor: "text-pink-600 dark:text-pink-400"
+    gradient: portfolioSectionGradientAt(6),
+    iconColor: PORTFOLIO_ICON_COLOR_CLASS
   },
   "Design team": { 
     icon: User, 
-    gradient: "linear-gradient(135deg, #8b5cf6, #ec4899)",
-    iconColor: "text-purple-600 dark:text-purple-400"
+    gradient: portfolioSectionGradientAt(7),
+    iconColor: PORTFOLIO_ICON_COLOR_CLASS
   },
   "Key contributions": { 
     icon: Rocket, 
-    gradient: "linear-gradient(135deg, #10b981, #06b6d4)",
-    iconColor: "text-green-600 dark:text-green-400"
+    gradient: portfolioSectionGradientAt(0),
+    iconColor: PORTFOLIO_ICON_COLOR_CLASS
   }
 };
 
@@ -184,8 +195,8 @@ const getSectionConfig = (title: string) => {
   // Default configuration for any sidebar section (first non-Overview section)
   return {
     icon: Info,
-    gradient: "linear-gradient(135deg, #06b6d4, #8b5cf6)",
-    iconColor: "text-cyan-600 dark:text-cyan-400"
+    gradient: portfolioSectionGradientAt(0),
+    iconColor: PORTFOLIO_ICON_COLOR_CLASS
   };
 };
 
@@ -2066,13 +2077,7 @@ export function CaseStudySections({
                     <motion.div
                       className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
                       style={{
-                        background: `radial-gradient(circle at 50% 50%, ${
-                          config?.iconColor?.includes('blue') ? '#3b82f620' :
-                          config?.iconColor?.includes('purple') ? '#8b5cf620' :
-                          config?.iconColor?.includes('pink') ? '#ec489920' :
-                          config?.iconColor?.includes('green') ? '#10b98120' :
-                          config?.iconColor?.includes('yellow') ? '#fbbf2420' : '#3b82f620'
-                        }, transparent 70%)`,
+                        background: `radial-gradient(circle at 50% 50%, ${portfolioAccentGlowFromGradient(config?.gradient)}, transparent 70%)`,
                       }}
                     />
 
@@ -2208,11 +2213,7 @@ export function CaseStudySections({
                                 className="inline-block"
                                 animate={{
                                   backgroundImage: [
-                                    "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%)",
-                                    "linear-gradient(180deg, #8b5cf6 0%, #ec4899 50%, #3b82f6 100%)",
-                                    "linear-gradient(225deg, #ec4899 0%, #3b82f6 50%, #8b5cf6 100%)",
-                                    "linear-gradient(270deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%)",
-                                    "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%)",
+[...PORTFOLIO_ANIMATED_BORDER_GRADIENTS]
                                   ],
                                 }}
                                 transition={{
@@ -2335,12 +2336,7 @@ export function CaseStudySections({
                   <motion.path
                     d="M60,-20 Q70,30 75,80 Q80,130 85,180"
                     fill="none"
-                    stroke={
-                      iconColor.includes('purple') ? '#8b5cf6' :
-                      iconColor.includes('blue') ? '#3b82f6' :
-                      iconColor.includes('pink') ? '#ec4899' :
-                      iconColor.includes('green') ? '#10b981' : '#fbbf24'
-                    }
+                    stroke={portfolioAccentFromGradient(iconColor)}
                     strokeWidth="18"
                     strokeLinecap="round"
                     className="group-hover:animate-[drawLine_2s_ease-in-out_forwards]"
@@ -2368,16 +2364,8 @@ export function CaseStudySections({
                       top: dot.y,
                       width: `${dot.size}px`,
                       height: `${dot.size}px`,
-                      background: iconColor.includes('purple') ? '#8b5cf6' :
-                                 iconColor.includes('blue') ? '#3b82f6' :
-                                 iconColor.includes('pink') ? '#ec4899' :
-                                 iconColor.includes('green') ? '#10b981' : '#fbbf24',
-                      boxShadow: `0 0 ${dot.size * 2}px ${
-                        iconColor.includes('purple') ? '#8b5cf6' :
-                        iconColor.includes('blue') ? '#3b82f6' :
-                        iconColor.includes('pink') ? '#ec4899' :
-                        iconColor.includes('green') ? '#10b981' : '#fbbf24'
-                      }40`,
+                      background: portfolioAccentFromGradient(iconColor),
+                      boxShadow: `0 0 ${dot.size * 2}px ${portfolioAccentAlpha(25)}`,
                       animationDelay: `${dot.delay}s`,
                     }}
                   />
@@ -2387,12 +2375,7 @@ export function CaseStudySections({
                 <motion.div
                   className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
                   style={{
-                    background: `radial-gradient(circle at 50% 50%, ${
-                      iconColor.includes('purple') ? '#8b5cf620' :
-                      iconColor.includes('blue') ? '#3b82f620' :
-                      iconColor.includes('pink') ? '#ec489920' :
-                      iconColor.includes('green') ? '#10b98120' : '#fbbf2420'
-                    }, transparent 70%)`,
+                    background: `radial-gradient(circle at 50% 50%, ${portfolioAccentGlowFromGradient(iconColor)}, transparent 70%)`,
                   }}
                 />
 
@@ -2566,13 +2549,7 @@ export function CaseStudySections({
           }
 
 
-          const insightGradients = [
-            "linear-gradient(135deg, #ec4899, #fbbf24)",
-            "linear-gradient(135deg, #3b82f6, #8b5cf6)",
-            "linear-gradient(135deg, #10b981, #06b6d4)",
-            "linear-gradient(135deg, #fbbf24, #ec4899)",
-            "linear-gradient(135deg, #8b5cf6, #ec4899)"
-          ];
+          const insightGradients = [...PORTFOLIO_CARD_TILE_GRADIENTS];
 
           return (
             <motion.div
@@ -2755,12 +2732,7 @@ export function CaseStudySections({
                       <motion.div
                         className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
                         style={{
-                          background: `radial-gradient(circle at 50% 50%, ${
-                            gradient.includes('#ec4899') ? '#ec489915' : 
-                            gradient.includes('#3b82f6') ? '#3b82f615' :
-                            gradient.includes('#10b981') ? '#10b98115' :
-                            gradient.includes('#fbbf24') ? '#fbbf2415' : '#8b5cf615'
-                          }, transparent 70%)`,
+                          background: `radial-gradient(circle at 50% 50%, ${portfolioAccentGlowFromGradient(gradient, 8)}, transparent 70%)`,
                         }}
                       />
 
@@ -2801,11 +2773,7 @@ export function CaseStudySections({
                                   className="inline-block"
                                   animate={{
                                     backgroundImage: [
-                                      "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%)",
-                                      "linear-gradient(180deg, #8b5cf6 0%, #ec4899 50%, #3b82f6 100%)",
-                                      "linear-gradient(225deg, #ec4899 0%, #3b82f6 50%, #8b5cf6 100%)",
-                                      "linear-gradient(270deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%)",
-                                      "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%)",
+                                      [...PORTFOLIO_ANIMATED_BORDER_GRADIENTS]
                                     ],
                                   }}
                                   transition={{
@@ -2814,7 +2782,7 @@ export function CaseStudySections({
                                     ease: "linear",
                                   }}
                                   style={{
-                                    backgroundImage: "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%)",
+                                    backgroundImage: PORTFOLIO_ANIMATED_BORDER_GRADIENTS[0],
                                     backgroundClip: "text",
                                     WebkitBackgroundClip: "text",
                                     color: "transparent",
@@ -2922,7 +2890,7 @@ export function CaseStudySections({
                 /* 3 Cards in a Single Row */
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {highlightCards.map((highlight, idx) => {
-                    const gradient = "linear-gradient(135deg, #10b981, #06b6d4)";
+                    const gradient = portfolioSectionGradientAt(5);
                     
                     return (
                       <motion.div
@@ -2945,13 +2913,7 @@ export function CaseStudySections({
                         <div 
                           className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
                           style={{
-                            background: `radial-gradient(circle at 50% 0%, ${
-                              gradient.includes('green') ? '#10b98120' : 
-                              gradient.includes('blue') ? '#3b82f620' : 
-                              gradient.includes('purple') ? '#8b5cf620' : 
-                              gradient.includes('pink') ? '#ec489920' : 
-                              gradient.includes('yellow') ? '#fbbf2420' : '#10b98120'
-                            }, transparent 70%)`,
+                            background: `radial-gradient(circle at 50% 0%, ${portfolioAccentGlowFromGradient(gradient)}, transparent 70%)`,
                           }}
                         />
 
@@ -3138,7 +3100,7 @@ export function CaseStudySections({
                     const previewContent = previewLines.join('\n');
                     const hasMore = contentLines.length > 2;
                     
-                    const gradient = "linear-gradient(135deg, #10b981, #06b6d4)";
+                    const gradient = portfolioSectionGradientAt(5);
                     
                     return (
                       <motion.div
@@ -3161,7 +3123,7 @@ export function CaseStudySections({
                         <div 
                           className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
                           style={{
-                            background: `radial-gradient(circle at 50% 0%, #10b98120, transparent 70%)`,
+                            background: `radial-gradient(circle at 50% 0%, ${portfolioAccentGlowFromGradient(gradient)}, transparent 70%)`,
                           }}
                         />
 
@@ -3210,11 +3172,7 @@ export function CaseStudySections({
                                     className="inline-block"
                                     animate={{
                                       backgroundImage: [
-                                        "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%)",
-                                        "linear-gradient(180deg, #8b5cf6 0%, #ec4899 50%, #3b82f6 100%)",
-                                        "linear-gradient(225deg, #ec4899 0%, #3b82f6 50%, #8b5cf6 100%)",
-                                        "linear-gradient(270deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%)",
-                                        "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%)",
+                                        [...PORTFOLIO_ANIMATED_BORDER_GRADIENTS]
                                       ],
                                     }}
                                     transition={{
@@ -3384,7 +3342,7 @@ export function CaseStudySections({
                       <div 
                         className="absolute left-0 top-0 bottom-0 w-1 rounded-l-xl"
                         style={{
-                          background: config?.gradient || '#3b82f6'
+                          background: config?.gradient || PORTFOLIO_ACCENT
                         }}
                       />
 
@@ -3392,9 +3350,7 @@ export function CaseStudySections({
                       <motion.div
                         className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
                         style={{
-                          background: `radial-gradient(circle at 50% 50%, ${
-                            config.gradient.includes('#fbbf24') ? '#fbbf2415' : '#3b82f615'
-                          }, transparent 70%)`,
+                          background: `radial-gradient(circle at 50% 50%, ${portfolioAccentGlowFromGradient(config.gradient, 8)}, transparent 70%)`,
                         }}
                       />
 
@@ -3439,11 +3395,7 @@ export function CaseStudySections({
                               className="inline-block"
                               animate={{
                                 backgroundImage: [
-                                  "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%)",
-                                  "linear-gradient(180deg, #8b5cf6 0%, #ec4899 50%, #3b82f6 100%)",
-                                  "linear-gradient(225deg, #ec4899 0%, #3b82f6 50%, #8b5cf6 100%)",
-                                  "linear-gradient(270deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%)",
-                                  "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%)",
+                                  [...PORTFOLIO_ANIMATED_BORDER_GRADIENTS]
                                 ],
                               }}
                               transition={{
@@ -3511,7 +3463,7 @@ export function CaseStudySections({
             <div 
               className="absolute top-0 left-0 right-0 h-1 rounded-t-2xl"
               style={{
-                background: regularSectionConfig?.gradient || '#3b82f6'
+                background: regularSectionConfig?.gradient || PORTFOLIO_ACCENT
               }}
             />
 
@@ -3524,10 +3476,7 @@ export function CaseStudySections({
               <motion.path
                 d="M60,-20 Q70,30 75,80 Q80,130 85,180"
                 fill="none"
-                stroke={(regularSectionConfig?.gradient?.includes('#ec4899') ? '#ec4899' : 
-                       regularSectionConfig?.gradient?.includes('#8b5cf6') ? '#8b5cf6' :
-                       regularSectionConfig?.gradient?.includes('#fbbf24') ? '#fbbf24' :
-                       regularSectionConfig?.gradient?.includes('#10b981') ? '#10b981' : '#3b82f6')}
+                stroke={portfolioAccentFromGradient(regularSectionConfig?.gradient)}
                 strokeWidth="18"
                 strokeLinecap="round"
                 className="group-hover:animate-[drawLine_2s_ease-in-out_forwards]"
@@ -3553,14 +3502,8 @@ export function CaseStudySections({
                   top: dot.y,
                   width: `${dot.size}px`,
                   height: `${dot.size}px`,
-                  background: (regularSectionConfig?.gradient?.includes('#ec4899') ? '#ec4899' : 
-                             regularSectionConfig?.gradient?.includes('#8b5cf6') ? '#8b5cf6' :
-                             regularSectionConfig?.gradient?.includes('#fbbf24') ? '#fbbf24' :
-                             regularSectionConfig?.gradient?.includes('#10b981') ? '#10b981' : '#3b82f6'),
-                  boxShadow: `0 0 ${dot.size * 2}px ${regularSectionConfig?.gradient?.includes('#ec4899') ? '#ec489940' : 
-                             regularSectionConfig?.gradient?.includes('#8b5cf6') ? '#8b5cf640' :
-                             regularSectionConfig?.gradient?.includes('#fbbf24') ? '#fbbf2440' :
-                             regularSectionConfig?.gradient?.includes('#10b981') ? '#10b98140' : '#3b82f640'}`,
+                  background: portfolioAccentFromGradient(regularSectionConfig?.gradient),
+                  boxShadow: `0 0 ${dot.size * 2}px ${portfolioAccentAlpha(25)}`,
                   animationDelay: `${dot.delay}s`,
                 }}
               />
@@ -3570,12 +3513,7 @@ export function CaseStudySections({
             <motion.div
               className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
               style={{
-                background: `radial-gradient(circle at 50% 50%, ${
-                  regularSectionConfig?.gradient?.includes('#ec4899') ? '#ec489920' : 
-                  regularSectionConfig?.gradient?.includes('#8b5cf6') ? '#8b5cf620' :
-                  regularSectionConfig?.gradient?.includes('#fbbf24') ? '#fbbf2420' :
-                  regularSectionConfig?.gradient?.includes('#10b981') ? '#10b98120' : '#3b82f620'
-                }, transparent 70%)`,
+                background: `radial-gradient(circle at 50% 50%, ${portfolioAccentGlowFromGradient(regularSectionConfig?.gradient)}, transparent 70%)`,
               }}
             />
 
@@ -3592,10 +3530,7 @@ export function CaseStudySections({
 
             {/* Section header */}
             <div
-              className={cn(
-                "relative z-10 flex items-center justify-between",
-                isModernOverview ? "mb-5" : "mb-8",
-              )}
+              className="relative z-10 flex items-center justify-between mb-8"
             >
               <h2>{section.title}</h2>
               {isEditMode && editingSection !== section.title && (

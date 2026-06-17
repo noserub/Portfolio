@@ -7,7 +7,6 @@ interface ModernNavProps {
   ownerName: string;
   logoUrl?: string | null;
   currentPage: string;
-  resumeUrl?: string | null;
   showAbout: boolean;
   showContact: boolean;
   overflowMenu?: ReactNode;
@@ -31,7 +30,6 @@ export function ModernNav({
   ownerName,
   logoUrl,
   currentPage,
-  resumeUrl,
   showAbout,
   showContact,
   overflowMenu,
@@ -98,16 +96,6 @@ export function ModernNav({
           Contact
         </button>
       ) : null}
-      {resumeUrl ? (
-        <a
-          href={resumeUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="modern-nav-link"
-        >
-          Resume
-        </a>
-      ) : null}
     </>
   );
 
@@ -139,17 +127,6 @@ export function ModernNav({
         >
           Contact
         </button>
-      ) : null}
-      {resumeUrl ? (
-        <a
-          href={resumeUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={drawerLinkClass(false)}
-          onClick={closeMobile}
-        >
-          Resume ↗
-        </a>
       ) : null}
     </>
   );

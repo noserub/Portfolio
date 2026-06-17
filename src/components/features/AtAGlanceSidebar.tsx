@@ -113,7 +113,7 @@ export function AtAGlanceSidebar({ content, title, isEditMode, onUpdate, onRemov
         <motion.div
           className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
           style={{
-            background: 'radial-gradient(circle at 50% 50%, #06b6d420, transparent 70%)',
+            background: 'radial-gradient(circle at 50% 50%, #84bd0020, transparent 70%)',
           }}
         />
 

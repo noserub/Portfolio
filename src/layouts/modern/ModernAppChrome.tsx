@@ -29,14 +29,13 @@ export function ModernAppChrome({
   onNavigateContact,
   onScrollToWork,
 }: ModernAppChromeProps) {
-  const { fullName, resumeUrl } = usePortfolioProfileNav();
+  const { fullName } = usePortfolioProfileNav();
 
   return (
     <ModernNav
       ownerName={fullName}
       logoUrl={logoUrl}
       currentPage={currentPage}
-      resumeUrl={resumeUrl}
       showAbout={showAbout}
       showContact={showContact}
       overflowMenu={overflowMenu}

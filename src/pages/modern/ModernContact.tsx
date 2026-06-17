@@ -1,13 +1,15 @@
 import { useEffect, useState } from "react";
-import { Mail, MapPin, ArrowUpRight, Send, CheckCircle, FileText } from "lucide-react";
+import { Mail, MapPin, ArrowUpRight, Send, CheckCircle, FileText, Linkedin } from "lucide-react";
 import { Input } from "../../components/ui/input";
 import { Textarea } from "../../components/ui/textarea";
 import { ModernFooter } from "../../components/modern/ModernFooter";
+import { ModernResumeLink } from "../../components/modern/ModernResumeLink";
 import { useContactMessages } from "../../hooks/useContactMessages";
 import { usePortfolioProfileNav } from "../../hooks/usePortfolioProfileNav";
 import { useSEO } from "../../hooks/useSEO";
 import { getPortfolioOwnerUserId } from "../../lib/portfolioOwner";
 import { getPublicContactEmail } from "../../lib/publicContactEmail";
+import { LINKEDIN_PROFILE_URL } from "../../lib/portfolioLinks";
 import { supabase } from "../../lib/supabaseClient";
 import { modernLayout } from "../../design/modernLayout";
 import { modern, modernFont, modernPrimaryButtonStyle } from "../../design/modernTokens";
@@ -120,7 +122,7 @@ export function ModernContact({ onBack }: ModernContactProps) {
 
       <section className={`${modernLayout.sectionX} ${modernLayout.contactBlocks}`}>
         <div className={modernLayout.container}>
-          <div className={`${modernLayout.contactInfoGrid} modern-contact-info-grid--three`}>
+          <div className={`${modernLayout.contactInfoGrid} modern-contact-info-grid--auto`}>
             <a
               href={`mailto:${contactInfo.email}`}
               className={`group ${modernLayout.contactCard}`}
@@ -137,7 +139,40 @@ export function ModernContact({ onBack }: ModernContactProps) {
               </div>
             </a>
 
-            <div className={modernLayout.contactCard}>
+            <a
+              href={LINKEDIN_PROFILE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`group ${modernLayout.contactCard}`}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <Linkedin size={18} style={{ color: modern.accent }} />
+                <ArrowUpRight size={14} className="text-[#666666] modern-icon-accent-hover transition-colors" />
+              </div>
+              <div className="text-[10px] uppercase tracking-widest mb-1" style={{ ...modernFont, color: modern.muted }}>
+                LinkedIn
+              </div>
+              <div className="text-sm leading-snug" style={{ ...modernFont, color: modern.text }}>
+                linkedin.com/in/bureson
+              </div>
+            </a>
+
+            {resumeUrl ? (
+              <ModernResumeLink resumeUrl={resumeUrl} className={`group ${modernLayout.contactCard}`}>
+                <div className="flex items-center justify-between mb-4">
+                  <FileText size={18} style={{ color: modern.accent }} />
+                  <ArrowUpRight size={14} className="text-[#666666] modern-icon-accent-hover transition-colors" />
+                </div>
+                <div className="text-[10px] uppercase tracking-widest mb-1" style={{ ...modernFont, color: modern.muted }}>
+                  Resume
+                </div>
+                <div className="text-sm leading-snug" style={{ ...modernFont, color: modern.text }}>
+                  View resume in new tab
+                </div>
+              </ModernResumeLink>
+            ) : null}
+
+            <div className={`${modernLayout.contactCard} modern-contact-card--static`}>
               <div className="flex items-center justify-between mb-4">
                 <MapPin size={18} style={{ color: modern.accent }} />
               </div>
@@ -148,39 +183,6 @@ export function ModernContact({ onBack }: ModernContactProps) {
                 {contactInfo.location}
               </div>
             </div>
-
-            {resumeUrl ? (
-              <a
-                href={resumeUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`group ${modernLayout.contactCard}`}
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <FileText size={18} style={{ color: modern.accent }} />
-                  <ArrowUpRight size={14} className="text-[#666666] modern-icon-accent-hover transition-colors" />
-                </div>
-                <div className="text-[10px] uppercase tracking-widest mb-1" style={{ ...modernFont, color: modern.muted }}>
-                  Resume
-                </div>
-                <div className="text-sm leading-snug" style={{ ...modernFont, color: modern.text }}>
-                  View full resume on Google Drive
-                </div>
-              </a>
-            ) : (
-              <div className={modernLayout.contactCard} aria-hidden="true">
-                <div className="flex items-center justify-between mb-4">
-                  <FileText size={18} style={{ color: modern.accent }} />
-                  <ArrowUpRight size={14} style={{ color: "#666666" }} />
-                </div>
-                <div className="text-[10px] uppercase tracking-widest mb-1" style={{ ...modernFont, color: modern.muted }}>
-                  Resume
-                </div>
-                <div className="text-sm leading-snug" style={{ ...modernFont, color: modern.text }}>
-                  View full resume on Google Drive
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </section>

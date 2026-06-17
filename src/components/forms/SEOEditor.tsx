@@ -588,15 +588,15 @@ export function SEOEditor({ isOpen, onClose }: SEOEditorProps) {
                       <Input
                         id="favicon-gradient-start"
                         type="color"
-                        value={seoData.sitewide.faviconGradientStart || '#8b5cf6'}
+                        value={seoData.sitewide.faviconGradientStart || '#6a8f00'}
                         onChange={(e) => updateSitewide('faviconGradientStart', e.target.value)}
                         className="bg-background border-border w-16 h-10 p-1 cursor-pointer"
                       />
                       <Input
-                        value={seoData.sitewide.faviconGradientStart || '#8b5cf6'}
+                        value={seoData.sitewide.faviconGradientStart || '#6a8f00'}
                         onChange={(e) => updateSitewide('faviconGradientStart', e.target.value)}
                         className="bg-background border-border text-foreground flex-1"
-                        placeholder="#8b5cf6"
+                        placeholder="#6a8f00"
                       />
                     </div>
                     <p className="text-xs text-foreground/50">Top-left gradient color</p>
@@ -608,12 +608,12 @@ export function SEOEditor({ isOpen, onClose }: SEOEditorProps) {
                       <Input
                         id="favicon-gradient-end"
                         type="color"
-                        value={seoData.sitewide.faviconGradientEnd || '#3b82f6'}
+                        value={seoData.sitewide.faviconGradientEnd || '#95d004'}
                         onChange={(e) => updateSitewide('faviconGradientEnd', e.target.value)}
                         className="bg-background border-border w-16 h-10 p-1 cursor-pointer"
                       />
                       <Input
-                        value={seoData.sitewide.faviconGradientEnd || '#3b82f6'}
+                        value={seoData.sitewide.faviconGradientEnd || '#95d004'}
                         onChange={(e) => updateSitewide('faviconGradientEnd', e.target.value)}
                         className="bg-background border-border text-foreground flex-1"
                         placeholder="#3b82f6"
@@ -641,7 +641,7 @@ export function SEOEditor({ isOpen, onClose }: SEOEditorProps) {
                         <div 
                           className="w-16 h-16 rounded-lg flex items-center justify-center text-foreground shadow-lg"
                           style={{
-                            background: `linear-gradient(135deg, ${seoData.sitewide.faviconGradientStart || '#8b5cf6'}, ${seoData.sitewide.faviconGradientEnd || '#3b82f6'})`
+                            background: `linear-gradient(135deg, ${seoData.sitewide.faviconGradientStart || '#6a8f00'}, ${seoData.sitewide.faviconGradientEnd || '#95d004'})`
                           }}
                         >
                           <span className="text-2xl font-bold">{seoData.sitewide.faviconText || 'BB'}</span>
