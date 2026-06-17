@@ -43,6 +43,8 @@ jobs:
           vercel build \
             ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && '--prod' || '' }} \
             --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VITE_DESIGN_VARIANT: modern
 
       - name: Deploy
         id: deploy
