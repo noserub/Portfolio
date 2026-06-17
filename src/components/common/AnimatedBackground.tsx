@@ -8,11 +8,11 @@ export function AnimatedBackground() {
         className="absolute inset-0"
         animate={{
           background: [
-            "linear-gradient(45deg, rgba(236, 72, 153, 0.15) 0%, rgba(139, 92, 246, 0.15) 25%, rgba(59, 130, 246, 0.15) 50%, rgba(251, 191, 36, 0.15) 100%)",
-            "linear-gradient(90deg, rgba(139, 92, 246, 0.15) 0%, rgba(59, 130, 246, 0.15) 25%, rgba(251, 191, 36, 0.15) 50%, rgba(236, 72, 153, 0.15) 100%)",
-            "linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(251, 191, 36, 0.15) 25%, rgba(236, 72, 153, 0.15) 50%, rgba(139, 92, 246, 0.15) 100%)",
-            "linear-gradient(180deg, rgba(251, 191, 36, 0.15) 0%, rgba(236, 72, 153, 0.15) 25%, rgba(139, 92, 246, 0.15) 50%, rgba(59, 130, 246, 0.15) 100%)",
-            "linear-gradient(45deg, rgba(236, 72, 153, 0.15) 0%, rgba(139, 92, 246, 0.15) 25%, rgba(59, 130, 246, 0.15) 50%, rgba(251, 191, 36, 0.15) 100%)",
+            "linear-gradient(45deg, rgba(132, 189, 0, 0.15) 0%, rgba(106, 143, 0, 0.15) 25%, rgba(163, 212, 25, 0.15) 50%, rgba(149, 208, 4, 0.15) 100%)",
+            "linear-gradient(90deg, rgba(106, 143, 0, 0.15) 0%, rgba(163, 212, 25, 0.15) 25%, rgba(149, 208, 4, 0.15) 50%, rgba(132, 189, 0, 0.15) 100%)",
+            "linear-gradient(135deg, rgba(163, 212, 25, 0.15) 0%, rgba(149, 208, 4, 0.15) 25%, rgba(132, 189, 0, 0.15) 50%, rgba(106, 143, 0, 0.15) 100%)",
+            "linear-gradient(180deg, rgba(149, 208, 4, 0.15) 0%, rgba(132, 189, 0, 0.15) 25%, rgba(106, 143, 0, 0.15) 50%, rgba(163, 212, 25, 0.15) 100%)",
+            "linear-gradient(45deg, rgba(132, 189, 0, 0.15) 0%, rgba(106, 143, 0, 0.15) 25%, rgba(163, 212, 25, 0.15) 50%, rgba(149, 208, 4, 0.15) 100%)",
           ],
         }}
         transition={{
@@ -27,11 +27,11 @@ export function AnimatedBackground() {
         className="absolute inset-0 dark:opacity-0"
         animate={{
           background: [
-            "radial-gradient(circle at 20% 30%, rgba(251, 191, 36, 0.12) 0%, transparent 50%), radial-gradient(circle at 80% 70%, rgba(236, 72, 153, 0.12) 0%, transparent 50%)",
-            "radial-gradient(circle at 50% 50%, rgba(139, 92, 246, 0.12) 0%, transparent 50%), radial-gradient(circle at 30% 80%, rgba(59, 130, 246, 0.12) 0%, transparent 50%)",
-            "radial-gradient(circle at 70% 20%, rgba(59, 130, 246, 0.12) 0%, transparent 50%), radial-gradient(circle at 40% 60%, rgba(251, 191, 36, 0.12) 0%, transparent 50%)",
-            "radial-gradient(circle at 20% 70%, rgba(236, 72, 153, 0.12) 0%, transparent 50%), radial-gradient(circle at 90% 40%, rgba(139, 92, 246, 0.12) 0%, transparent 50%)",
-            "radial-gradient(circle at 20% 30%, rgba(251, 191, 36, 0.12) 0%, transparent 50%), radial-gradient(circle at 80% 70%, rgba(236, 72, 153, 0.12) 0%, transparent 50%)",
+            "radial-gradient(circle at 20% 30%, rgba(149, 208, 4, 0.12) 0%, transparent 50%), radial-gradient(circle at 80% 70%, rgba(132, 189, 0, 0.12) 0%, transparent 50%)",
+            "radial-gradient(circle at 50% 50%, rgba(106, 143, 0, 0.12) 0%, transparent 50%), radial-gradient(circle at 30% 80%, rgba(163, 212, 25, 0.12) 0%, transparent 50%)",
+            "radial-gradient(circle at 70% 20%, rgba(163, 212, 25, 0.12) 0%, transparent 50%), radial-gradient(circle at 40% 60%, rgba(149, 208, 4, 0.12) 0%, transparent 50%)",
+            "radial-gradient(circle at 20% 70%, rgba(132, 189, 0, 0.12) 0%, transparent 50%), radial-gradient(circle at 90% 40%, rgba(106, 143, 0, 0.12) 0%, transparent 50%)",
+            "radial-gradient(circle at 20% 30%, rgba(149, 208, 4, 0.12) 0%, transparent 50%), radial-gradient(circle at 80% 70%, rgba(132, 189, 0, 0.12) 0%, transparent 50%)",
           ],
         }}
         transition={{
@@ -52,24 +52,24 @@ export function AnimatedBackground() {
       >
         <defs>
           <linearGradient id="swirl-bg-1" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#ec4899" stopOpacity="0.25" />
-            <stop offset="50%" stopColor="#8b5cf6" stopOpacity="0.25" />
-            <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.2" />
+            <stop offset="0%" stopColor="#84bd00" stopOpacity="0.25" />
+            <stop offset="50%" stopColor="#6a8f00" stopOpacity="0.25" />
+            <stop offset="100%" stopColor="#a3d419" stopOpacity="0.2" />
           </linearGradient>
           <linearGradient id="swirl-bg-2" x1="100%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.2" />
-            <stop offset="50%" stopColor="#fbbf24" stopOpacity="0.25" />
-            <stop offset="100%" stopColor="#ec4899" stopOpacity="0.2" />
+            <stop offset="0%" stopColor="#a3d419" stopOpacity="0.2" />
+            <stop offset="50%" stopColor="#95d004" stopOpacity="0.25" />
+            <stop offset="100%" stopColor="#84bd00" stopOpacity="0.2" />
           </linearGradient>
           <linearGradient id="swirl-bg-3" x1="0%" y1="100%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.2" />
-            <stop offset="50%" stopColor="#ec4899" stopOpacity="0.25" />
-            <stop offset="100%" stopColor="#fbbf24" stopOpacity="0.2" />
+            <stop offset="0%" stopColor="#6a8f00" stopOpacity="0.2" />
+            <stop offset="50%" stopColor="#84bd00" stopOpacity="0.25" />
+            <stop offset="100%" stopColor="#95d004" stopOpacity="0.2" />
           </linearGradient>
           <linearGradient id="swirl-bg-4" x1="50%" y1="0%" x2="50%" y2="100%">
-            <stop offset="0%" stopColor="#fbbf24" stopOpacity="0.25" />
-            <stop offset="50%" stopColor="#3b82f6" stopOpacity="0.2" />
-            <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0.2" />
+            <stop offset="0%" stopColor="#95d004" stopOpacity="0.25" />
+            <stop offset="50%" stopColor="#a3d419" stopOpacity="0.2" />
+            <stop offset="100%" stopColor="#6a8f00" stopOpacity="0.2" />
           </linearGradient>
         </defs>
 

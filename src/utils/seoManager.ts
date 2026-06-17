@@ -24,7 +24,7 @@ export interface SitewideSEO {
   defaultTwitterCard: 'summary' | 'summary_large_image';
   faviconType?: 'text' | 'image'; // Type of favicon to use
   faviconText?: string; // Text to display in favicon (default: "BB")
-  faviconGradientStart?: string; // Hex color for gradient start (default: "#8b5cf6")
+  faviconGradientStart?: string; // Hex color for gradient start (default: "#6a8f00")
   faviconGradientEnd?: string; // Hex color for gradient end (default: "#3b82f6")
   faviconImageUrl?: string; // Custom favicon image (data URI or URL)
   /** Newline- or comma-separated profile URLs (LinkedIn, GitHub, etc.) for JSON-LD sameAs */
@@ -87,7 +87,7 @@ const DEFAULT_SEO_DATA: AllSEOData = {
     defaultTwitterCard: 'summary_large_image',
     faviconType: 'text',
     faviconText: 'BB',
-    faviconGradientStart: '#8b5cf6',
+    faviconGradientStart: '#6a8f00',
     faviconGradientEnd: '#3b82f6',
     faviconImageUrl: '',
     sameAs: '',
@@ -342,8 +342,8 @@ async function ensureSitewideFaviconInSeoData(ownerId: string, faviconUrl: strin
     favicon_image: faviconUrl,
     favicon_type: 'image',
     favicon_text: sw.faviconText || 'BB',
-    favicon_gradient_start: sw.faviconGradientStart || '#8b5cf6',
-    favicon_gradient_end: sw.faviconGradientEnd || '#3b82f6',
+    favicon_gradient_start: sw.faviconGradientStart || '#6a8f00',
+    favicon_gradient_end: sw.faviconGradientEnd || '#95d004',
   };
   if (existing?.id) {
     const { error } = await supabase.from('seo_data').update(patch).eq('id', existing.id);
@@ -453,8 +453,8 @@ export async function saveSEOData(data: AllSEOData): Promise<void> {
           default_twitter_card: normalized.sitewide.defaultTwitterCard,
           favicon_type: normalized.sitewide.faviconType || 'text',
           favicon_text: normalized.sitewide.faviconText || 'BB',
-          favicon_gradient_start: normalized.sitewide.faviconGradientStart || '#8b5cf6',
-          favicon_gradient_end: normalized.sitewide.faviconGradientEnd || '#3b82f6',
+          favicon_gradient_start: normalized.sitewide.faviconGradientStart || '#6a8f00',
+          favicon_gradient_end: normalized.sitewide.faviconGradientEnd || '#95d004',
           favicon_image: normalized.sitewide.faviconImageUrl || null,
           same_as: normalized.sitewide.sameAs?.trim() || null,
           organization_logo_url: normalized.sitewide.organizationLogoUrl?.trim() || null,
@@ -734,8 +734,8 @@ export function updateFavicon(sitewide: SitewideSEO): void {
   } else {
     // Generate text-based SVG favicon
     const text = (sitewide.faviconText || 'BB').toString();
-    const gradientStart = (sitewide.faviconGradientStart || '#8b5cf6').toString();
-    const gradientEnd = (sitewide.faviconGradientEnd || '#3b82f6').toString();
+    const gradientStart = (sitewide.faviconGradientStart || '#6a8f00').toString();
+    const gradientEnd = (sitewide.faviconGradientEnd || '#95d004').toString();
 
     // Create SVG favicon with defensive encoding
     const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='grad' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' style='stop-color:${gradientStart};stop-opacity:1' /><stop offset='100%' style='stop-color:${gradientEnd};stop-opacity:1' /></linearGradient></defs><rect width='100' height='100' rx='20' fill='url(#grad)'/><text x='50' y='50' dominant-baseline='central' text-anchor='middle' font-family='Arial, sans-serif' font-size='45' font-weight='bold' fill='white'>${text}</text></svg>`;

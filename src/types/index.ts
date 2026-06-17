@@ -70,6 +70,8 @@ export interface FormData {
 // Theme types
 export type Theme = 'light' | 'dark' | 'system';
 
+export type DesignVariant = 'classic' | 'modern';
+
 // Animation types
 export interface AnimationConfig {
   duration: number;

@@ -16,6 +16,7 @@ import {
 } from "./ui/dropdown-menu";
 // Import optimized image components
 import OptimizedImage from './OptimizedImage';
+import { PORTFOLIO_IMAGE_WELL_GRADIENT } from "../lib/modernSurfaces";
 
 export interface ProjectData {
   id: string;
@@ -538,7 +539,7 @@ export function ProjectImage({
             isDragging ? "ring-4 ring-primary" : ""
           } ${!isEditMode && isHovered ? "shadow-2xl ring-2 ring-primary/30" : ""}`}
           style={{
-            background: 'linear-gradient(135deg, #ec4899 0%, #8b5cf6 25%, #3b82f6 50%, #06b6d4 75%, #fbbf24 100%)',
+            background: PORTFOLIO_IMAGE_WELL_GRADIENT,
             cursor: isPositioning ? 'crosshair' : !isEditMode ? 'pointer' : 'default',
             borderRadius: '1rem 1rem 2rem 2rem'
           }}

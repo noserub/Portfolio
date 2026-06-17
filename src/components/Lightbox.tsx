@@ -3,6 +3,8 @@ import { X, ChevronLeft, ChevronRight, Maximize2, Minimize2, ZoomIn, ZoomOut, Ro
 import { DialogOverlay, DialogPortal } from "./ui/dialog";
 import { cn } from "./ui/utils";
 import { useEffect, useState } from "react";
+import { useDesignVariant } from "../design/DesignVariantContext";
+import { portfolioMediaWellBackground } from "../lib/modernSurfaces";
 
 interface LightboxImage {
   url: string;
@@ -31,6 +33,8 @@ export function Lightbox({
   currentIndex = 0,
   onNavigate 
 }: LightboxProps) {
+  const { designVariant } = useDesignVariant();
+  const mediaWellBg = portfolioMediaWellBackground(designVariant === "modern");
   const hasMultipleImages = images.length > 1;
   const hasPrevious = hasMultipleImages && currentIndex > 0;
   const hasNext = hasMultipleImages && currentIndex < images.length - 1;
@@ -243,7 +247,7 @@ export function Lightbox({
             "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 w-full max-w-7xl translate-x-[-50%] translate-y-[-50%] p-0 border-none rounded-lg shadow-lg duration-200"
           )}
           style={{
-            background: 'linear-gradient(135deg, #ec4899 0%, #8b5cf6 25%, #3b82f6 50%, #06b6d4 75%, #fbbf24 100%)'
+            background: mediaWellBg
           }}
         >
           <DialogPrimitive.Title className="sr-only">{imageAlt}</DialogPrimitive.Title>

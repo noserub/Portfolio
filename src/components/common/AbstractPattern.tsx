@@ -11,19 +11,19 @@ export function AbstractPattern() {
       >
         <defs>
           <linearGradient id="swirl-gradient-1" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#ec4899" stopOpacity="0.25" />
-            <stop offset="50%" stopColor="#8b5cf6" stopOpacity="0.25" />
-            <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.2" />
+            <stop offset="0%" stopColor="#84bd00" stopOpacity="0.25" />
+            <stop offset="50%" stopColor="#6a8f00" stopOpacity="0.25" />
+            <stop offset="100%" stopColor="#a3d419" stopOpacity="0.2" />
           </linearGradient>
           <linearGradient id="swirl-gradient-2" x1="100%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.2" />
-            <stop offset="50%" stopColor="#fbbf24" stopOpacity="0.25" />
-            <stop offset="100%" stopColor="#ec4899" stopOpacity="0.2" />
+            <stop offset="0%" stopColor="#a3d419" stopOpacity="0.2" />
+            <stop offset="50%" stopColor="#95d004" stopOpacity="0.25" />
+            <stop offset="100%" stopColor="#84bd00" stopOpacity="0.2" />
           </linearGradient>
           <linearGradient id="swirl-gradient-3" x1="0%" y1="100%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.2" />
-            <stop offset="50%" stopColor="#ec4899" stopOpacity="0.25" />
-            <stop offset="100%" stopColor="#fbbf24" stopOpacity="0.2" />
+            <stop offset="0%" stopColor="#6a8f00" stopOpacity="0.2" />
+            <stop offset="50%" stopColor="#84bd00" stopOpacity="0.25" />
+            <stop offset="100%" stopColor="#95d004" stopOpacity="0.2" />
           </linearGradient>
         </defs>
 
@@ -43,7 +43,7 @@ export function AbstractPattern() {
           <path
             d="M280,280 Q340,350 310,440 T250,580 Q200,620 180,540"
             fill="none"
-            stroke="#ec4899"
+            stroke="#84bd00"
             strokeWidth="55"
             strokeLinecap="round"
           />
@@ -66,7 +66,7 @@ export function AbstractPattern() {
           <path
             d="M1520,240 Q1420,270 1380,350 T1420,480 Q1480,540 1560,500 T1600,400 Q1580,320 1520,300"
             fill="none"
-            stroke="#8b5cf6"
+            stroke="#6a8f00"
             strokeWidth="60"
             strokeLinecap="round"
           />
@@ -89,7 +89,7 @@ export function AbstractPattern() {
           <path
             d="M1480,880 Q1560,820 1640,760 T1740,680 Q1780,640 1720,620"
             fill="none"
-            stroke="#3b82f6"
+            stroke="#a3d419"
             strokeWidth="50"
             strokeLinecap="round"
           />
@@ -112,7 +112,7 @@ export function AbstractPattern() {
           <path
             d="M460,850 Q420,770 350,740 T240,680 Q200,640 250,600"
             fill="none"
-            stroke="#fbbf24"
+            stroke="#95d004"
             strokeWidth="65"
             strokeLinecap="round"
           />
@@ -201,7 +201,7 @@ export function AbstractPattern() {
           <path
             d="M400,0 Q420,200 400,400 T420,800 Q410,900 400,1080"
             fill="none"
-            stroke="#ec4899"
+            stroke="#84bd00"
             strokeWidth="45"
             strokeLinecap="round"
           />
@@ -223,7 +223,7 @@ export function AbstractPattern() {
           <path
             d="M1200,0 Q1180,250 1200,500 T1180,900 Q1190,1000 1200,1080"
             fill="none"
-            stroke="#8b5cf6"
+            stroke="#6a8f00"
             strokeWidth="50"
             strokeLinecap="round"
           />
@@ -244,7 +244,7 @@ export function AbstractPattern() {
           <path
             d="M0,200 Q300,100 600,200 T1200,200 Q1500,250 1920,200"
             fill="none"
-            stroke="#3b82f6"
+            stroke="#a3d419"
             strokeWidth="55"
             strokeLinecap="round"
           />
@@ -266,7 +266,7 @@ export function AbstractPattern() {
           <path
             d="M0,900 Q400,800 800,900 T1600,900 Q1800,950 1920,900"
             fill="none"
-            stroke="#fbbf24"
+            stroke="#95d004"
             strokeWidth="60"
             strokeLinecap="round"
           />
@@ -289,7 +289,7 @@ export function AbstractPattern() {
           <path
             d="M300,250 Q400,200 500,250 T700,300 Q800,350 750,450 T650,600"
             fill="none"
-            stroke="#ec4899"
+            stroke="#84bd00"
             strokeWidth="65"
             strokeLinecap="round"
           />
@@ -312,7 +312,7 @@ export function AbstractPattern() {
           <path
             d="M1400,700 Q1300,650 1350,550 T1450,400 Q1500,300 1400,250"
             fill="none"
-            stroke="#8b5cf6"
+            stroke="#6a8f00"
             strokeWidth="60"
             strokeLinecap="round"
           />
@@ -335,7 +335,7 @@ export function AbstractPattern() {
           <path
             d="M500,850 Q650,800 750,850 T950,900 Q1050,950 1000,1050"
             fill="none"
-            stroke="#fbbf24"
+            stroke="#95d004"
             strokeWidth="70"
             strokeLinecap="round"
           />
@@ -359,10 +359,10 @@ export function AbstractPattern() {
               width: `${10 + (i % 3) * 3}px`,
               height: `${10 + (i % 3) * 3}px`,
               background: [
-                "#ec4899",
-                "#8b5cf6",
-                "#3b82f6",
-                "#fbbf24",
+                "#84bd00",
+                "#6a8f00",
+                "#a3d419",
+                "#95d004",
               ][i % 4],
             }}
             animate={{
