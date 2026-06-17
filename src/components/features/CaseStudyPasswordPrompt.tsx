@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { motion } from "motion/react";
-import { Lock, X } from "lucide-react";
+import { X } from "lucide-react";
 import { Button } from "../ui/button";
-import { Input } from "../ui/input";
 import { useDesignVariant } from "../../design/DesignVariantContext";
 import { modernFont, modernPrimaryButtonStyle } from "../../design/modernTokens";
 
@@ -73,23 +72,18 @@ export function CaseStudyPasswordPrompt({
           <X className="w-4 h-4" />
         </button>
 
-        <div className="flex items-center gap-3 mb-6">
-          <div className="case-study-password-dialog__icon-wrap p-3 rounded-full">
-            <Lock className="case-study-password-dialog__icon w-6 h-6" />
-          </div>
-          <div>
-            <h2 id="case-study-password-title" className="case-study-password-dialog__title text-2xl font-bold">
-              Password required
-            </h2>
-            <p className="case-study-password-dialog__subtitle text-sm text-muted-foreground mt-1">
-              {projectTitle}
-            </p>
-          </div>
+        <div className="mb-6">
+          <h2 id="case-study-password-title" className="case-study-password-dialog__title text-2xl font-bold">
+            Password required
+          </h2>
+          <p className="case-study-password-dialog__subtitle text-sm text-muted-foreground mt-1">
+            {projectTitle}
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
           <div>
-            <Input
+            <input
               id="case-study-unlock-password"
               name="case-study-unlock"
               type="password"
@@ -102,7 +96,7 @@ export function CaseStudyPasswordPrompt({
               autoComplete="new-password"
               autoFocus
               disabled={submitting}
-              className={`case-study-password-dialog__input${error ? " case-study-password-dialog__input--error" : ""}`}
+              className={`case-study-password-dialog__input no-focus-ring${error ? " case-study-password-dialog__input--error" : ""}`}
             />
             {error ? (
               <p className="case-study-password-dialog__error text-sm mt-2">{error}</p>
