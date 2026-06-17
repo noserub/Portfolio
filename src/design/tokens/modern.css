@@ -1222,12 +1222,27 @@ html[data-design="modern"]:not(.dark) .modern-case-study-card__protected-badge {
 
 /* ── Case study password dialog ─────────────────────────────────────────── */
 
-.case-study-password-dialog__icon-wrap {
-  background: color-mix(in oklab, var(--primary) 10%, transparent);
+.case-study-password-dialog__input {
+  display: block;
+  width: 100%;
+  min-height: 2.25rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--input-background, var(--background));
+  color: var(--foreground);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  outline: none;
+  box-shadow: none;
+  transition: border-color 0.15s ease;
 }
 
-.case-study-password-dialog__icon {
-  color: var(--primary);
+.case-study-password-dialog__input:focus,
+.case-study-password-dialog__input:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+  border-width: 1px !important;
 }
 
 .case-study-password-dialog__input--error {
@@ -1254,14 +1269,6 @@ html[data-design="modern"]:not(.dark) .modern-case-study-card__protected-badge {
   background: var(--modern-surface-inset);
 }
 
-[data-design="modern"] .case-study-password-dialog__icon-wrap {
-  background: var(--modern-accent-subtle);
-}
-
-[data-design="modern"] .case-study-password-dialog__icon {
-  color: var(--modern-accent);
-}
-
 [data-design="modern"] .case-study-password-dialog__title {
   font-family: Inter, sans-serif;
   color: var(--modern-text);
@@ -1274,7 +1281,7 @@ html[data-design="modern"]:not(.dark) .modern-case-study-card__protected-badge {
 
 [data-design="modern"] .case-study-password-dialog__input {
   background: var(--modern-bg) !important;
-  border-color: var(--modern-border) !important;
+  border: 1px solid var(--modern-border) !important;
   color: var(--modern-text) !important;
 }
 
@@ -1284,17 +1291,13 @@ html[data-design="modern"]:not(.dark) .modern-case-study-card__protected-badge {
 
 [data-design="modern"] .case-study-password-dialog__input:focus,
 [data-design="modern"] .case-study-password-dialog__input:focus-visible {
-  border-color: var(--modern-accent) !important;
-  outline: none !important;
-  box-shadow: 0 0 0 3px var(--modern-accent-subtle-strong) !important;
+  border: 1px solid var(--modern-accent) !important;
 }
 
 [data-design="modern"] .case-study-password-dialog__input--error,
 [data-design="modern"] .case-study-password-dialog__input--error:focus,
 [data-design="modern"] .case-study-password-dialog__input--error:focus-visible {
-  border-color: var(--destructive) !important;
-  outline: none !important;
-  box-shadow: 0 0 0 3px color-mix(in oklab, var(--destructive) 25%, transparent) !important;
+  border: 1px solid var(--destructive) !important;
 }
 
 [data-design="modern"] .case-study-password-dialog__submit.modern-btn-primary {
@@ -1308,15 +1311,35 @@ html[data-design="modern"]:not(.dark) .modern-case-study-card__protected-badge {
 }
 
 /* Modern form fields — lime focus ring (overrides legacy global input rules) */
-html[data-design="modern"] input:focus,
-html[data-design="modern"] input:focus-visible,
-html[data-design="modern"] textarea:focus,
-html[data-design="modern"] textarea:focus-visible,
-html[data-design="modern"] select:focus,
-html[data-design="modern"] select:focus-visible {
+html[data-design="modern"] input:focus:not(.no-focus-ring),
+html[data-design="modern"] input:focus-visible:not(.no-focus-ring),
+html[data-design="modern"] textarea:focus:not(.no-focus-ring),
+html[data-design="modern"] textarea:focus-visible:not(.no-focus-ring),
+html[data-design="modern"] select:focus:not(.no-focus-ring),
+html[data-design="modern"] select:focus-visible:not(.no-focus-ring) {
   border-color: var(--modern-accent) !important;
   outline: none !important;
   box-shadow: 0 0 0 3px var(--modern-accent-subtle-strong) !important;
+}
+
+/* Password dialog input — thin 1px lime border on focus, no glow */
+html[data-design="modern"] .case-study-password-dialog__input:focus,
+html[data-design="modern"] .case-study-password-dialog__input:focus-visible,
+html[data-design="modern"] .case-study-password-dialog__input--error:focus,
+html[data-design="modern"] .case-study-password-dialog__input--error:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+  border-width: 1px !important;
+}
+
+html[data-design="modern"] .case-study-password-dialog__input:focus,
+html[data-design="modern"] .case-study-password-dialog__input:focus-visible {
+  border-color: var(--modern-accent) !important;
+}
+
+html[data-design="modern"] .case-study-password-dialog__input--error:focus,
+html[data-design="modern"] .case-study-password-dialog__input--error:focus-visible {
+  border-color: var(--destructive) !important;
 }
 
 /* ── Case study (project detail) — align with About editorial containers ── */

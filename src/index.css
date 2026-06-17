@@ -616,20 +616,20 @@ body {
     background-color: color-mix(in oklab, var(--ring) 40%, transparent);
   }
 
-  input:focus-visible,
-  textarea:focus-visible,
-  select:focus-visible,
-  [role="combobox"]:focus-visible,
-  [role="textbox"]:focus-visible {
+  input:focus-visible:not(.no-focus-ring),
+  textarea:focus-visible:not(.no-focus-ring),
+  select:focus-visible:not(.no-focus-ring),
+  [role="combobox"]:focus-visible:not(.no-focus-ring),
+  [role="textbox"]:focus-visible:not(.no-focus-ring) {
     outline-offset: 0 !important;
     border-color: var(--ring) !important;
     outline: 2px solid var(--ring) !important;
     box-shadow: 0 0 0 4px color-mix(in oklab, var(--ring) 15%, transparent) !important;
   }
 
-  input:focus,
-  textarea:focus,
-  select:focus {
+  input:focus:not(.no-focus-ring),
+  textarea:focus:not(.no-focus-ring),
+  select:focus:not(.no-focus-ring) {
     outline-offset: 0 !important;
     border-color: var(--ring) !important;
     outline: 2px solid var(--ring) !important;

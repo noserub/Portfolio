@@ -163,26 +163,30 @@ export function SiteOverflowMenu({
         ) : null}
         <DropdownMenuSeparator />
         <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground">Theme</DropdownMenuLabel>
-        <DropdownMenuItem
-          onClick={() => {
-            onThemeLight();
-            blurActiveElement();
-          }}
-        >
-          {resolvedTheme === "light" && themeSource === "user" ? "✓ " : ""}
-          <Sun className="w-4 h-4 mr-2" />
-          Light
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={() => {
-            onThemeDark();
-            blurActiveElement();
-          }}
-        >
-          {resolvedTheme === "dark" && themeSource === "user" ? "✓ " : ""}
-          <Moon className="w-4 h-4 mr-2" />
-          Dark
-        </DropdownMenuItem>
+        {variant === "classic" ? (
+          <>
+            <DropdownMenuItem
+              onClick={() => {
+                onThemeLight();
+                blurActiveElement();
+              }}
+            >
+              {resolvedTheme === "light" && themeSource === "user" ? "✓ " : ""}
+              <Sun className="w-4 h-4 mr-2" />
+              Light
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => {
+                onThemeDark();
+                blurActiveElement();
+              }}
+            >
+              {resolvedTheme === "dark" && themeSource === "user" ? "✓ " : ""}
+              <Moon className="w-4 h-4 mr-2" />
+              Dark
+            </DropdownMenuItem>
+          </>
+        ) : null}
         <DropdownMenuItem
           onClick={() => {
             onThemeSystem();
