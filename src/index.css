@@ -608,62 +608,44 @@ body {
 
   ::selection {
     color: inherit;
-    background-color: #a78bfa4d;
-  }
-
-  ::selection {
-    color: inherit;
-    background-color: #a78bfa4d;
+    background-color: color-mix(in oklab, var(--ring) 30%, transparent);
   }
 
   .dark ::selection {
     color: oklch(.985 0 0);
-    background-color: #a78bfa66;
+    background-color: color-mix(in oklab, var(--ring) 40%, transparent);
   }
 
-  .dark ::selection {
-    color: oklch(.985 0 0);
-    background-color: #a78bfa66;
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible,
+  [role="combobox"]:focus-visible,
+  [role="textbox"]:focus-visible {
+    outline-offset: 0 !important;
+    border-color: var(--ring) !important;
+    outline: 2px solid var(--ring) !important;
+    box-shadow: 0 0 0 4px color-mix(in oklab, var(--ring) 15%, transparent) !important;
   }
 
-  input:focus-visible, textarea:focus-visible, select:focus-visible, [role="combobox"]:focus-visible, [role="textbox"]:focus-visible {
-    outline-offset: 0px !important;
-    border-color: #a78bfa !important;
-    outline: 2px solid #a78bfa !important;
-    box-shadow: 0 0 0 4px #a78bfa26 !important;
+  input:focus,
+  textarea:focus,
+  select:focus {
+    outline-offset: 0 !important;
+    border-color: var(--ring) !important;
+    outline: 2px solid var(--ring) !important;
+    box-shadow: 0 0 0 4px color-mix(in oklab, var(--ring) 15%, transparent) !important;
   }
 
-  .dark input:focus-visible, .dark textarea:focus-visible, .dark select:focus-visible, .dark [role="combobox"]:focus-visible, .dark [role="textbox"]:focus-visible {
-    outline-offset: 0px !important;
-    border-color: #c084fc !important;
-    outline: 2px solid #c084fc !important;
-    box-shadow: 0 0 0 4px #c084fc33 !important;
-  }
-
-  input:focus, textarea:focus, select:focus {
-    outline-offset: 0px !important;
-    border-color: #a78bfa !important;
-    outline: 2px solid #a78bfa !important;
-    box-shadow: 0 0 0 4px #a78bfa26 !important;
-  }
-
-  .dark input:focus, .dark textarea:focus, .dark select:focus {
-    outline-offset: 0px !important;
-    border-color: #c084fc !important;
-    outline: 2px solid #c084fc !important;
-    box-shadow: 0 0 0 4px #c084fc33 !important;
-  }
-
-  button:focus-visible:not(.no-focus-ring), a:focus-visible:not(.no-focus-ring), [role="button"]:focus-visible:not(.no-focus-ring), [role="tab"]:focus-visible:not(.no-focus-ring), [role="menuitem"]:focus-visible:not(.no-focus-ring), [role="link"]:focus-visible:not(.no-focus-ring), [tabindex]:focus-visible:not(.no-focus-ring) {
+  button:focus-visible:not(.no-focus-ring),
+  a:focus-visible:not(.no-focus-ring),
+  [role="button"]:focus-visible:not(.no-focus-ring),
+  [role="tab"]:focus-visible:not(.no-focus-ring),
+  [role="menuitem"]:focus-visible:not(.no-focus-ring),
+  [role="link"]:focus-visible:not(.no-focus-ring),
+  [tabindex]:focus-visible:not(.no-focus-ring) {
     outline-offset: 2px !important;
-    outline: 2px solid #a78bfa !important;
-    box-shadow: 0 0 0 4px #a78bfa26 !important;
-  }
-
-  .dark button:focus-visible:not(.no-focus-ring), .dark a:focus-visible:not(.no-focus-ring), .dark [role="button"]:focus-visible:not(.no-focus-ring), .dark [role="tab"]:focus-visible:not(.no-focus-ring), .dark [role="menuitem"]:focus-visible:not(.no-focus-ring), .dark [role="link"]:focus-visible:not(.no-focus-ring), .dark [tabindex]:focus-visible:not(.no-focus-ring) {
-    outline-offset: 2px !important;
-    outline: 2px solid #c084fc !important;
-    box-shadow: 0 0 0 4px #c084fc33 !important;
+    outline: 2px solid var(--ring) !important;
+    box-shadow: 0 0 0 4px color-mix(in oklab, var(--ring) 15%, transparent) !important;
   }
 
   /* Mouse/touch clicks must not show focus rings — keyboard only (:focus-visible) */
@@ -686,13 +668,7 @@ body {
   .compact-focus:focus-visible {
     outline-offset: -2px !important;
     box-shadow: none !important;
-    outline: 2px solid #a78bfa !important;
-  }
-
-  .dark .compact-focus:focus-visible {
-    outline-offset: -2px !important;
-    box-shadow: none !important;
-    outline: 2px solid #c084fc !important;
+    outline: 2px solid var(--ring) !important;
   }
 
   .compact-focus:focus:not(:focus-visible) {

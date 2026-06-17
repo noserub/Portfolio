@@ -1282,15 +1282,19 @@ html[data-design="modern"]:not(.dark) .modern-case-study-card__protected-badge {
   color: var(--modern-muted-text);
 }
 
+[data-design="modern"] .case-study-password-dialog__input:focus,
 [data-design="modern"] .case-study-password-dialog__input:focus-visible {
   border-color: var(--modern-accent) !important;
-  outline: none;
-  box-shadow: 0 0 0 3px var(--modern-accent-subtle-strong);
+  outline: none !important;
+  box-shadow: 0 0 0 3px var(--modern-accent-subtle-strong) !important;
 }
 
+[data-design="modern"] .case-study-password-dialog__input--error,
+[data-design="modern"] .case-study-password-dialog__input--error:focus,
 [data-design="modern"] .case-study-password-dialog__input--error:focus-visible {
   border-color: var(--destructive) !important;
-  box-shadow: 0 0 0 3px color-mix(in oklab, var(--destructive) 25%, transparent);
+  outline: none !important;
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--destructive) 25%, transparent) !important;
 }
 
 [data-design="modern"] .case-study-password-dialog__submit.modern-btn-primary {
@@ -1301,6 +1305,18 @@ html[data-design="modern"]:not(.dark) .modern-case-study-card__protected-badge {
 [data-design="modern"] .case-study-password-dialog__cancel.modern-btn-outline {
   width: 100%;
   justify-content: center;
+}
+
+/* Modern form fields — lime focus ring (overrides legacy global input rules) */
+html[data-design="modern"] input:focus,
+html[data-design="modern"] input:focus-visible,
+html[data-design="modern"] textarea:focus,
+html[data-design="modern"] textarea:focus-visible,
+html[data-design="modern"] select:focus,
+html[data-design="modern"] select:focus-visible {
+  border-color: var(--modern-accent) !important;
+  outline: none !important;
+  box-shadow: 0 0 0 3px var(--modern-accent-subtle-strong) !important;
 }
 
 /* ── Case study (project detail) — align with About editorial containers ── */
