@@ -1,6 +1,7 @@
 import { ArrowUpRight } from "lucide-react";
 import type { ProjectData } from "../ProjectImage";
 import { projectTypeTag } from "../../lib/modernCaseStudies";
+import { projectHeroImageStyle } from "../../lib/projectHeroFrame";
 import { cn } from "../ui/utils";
 
 interface ModernProjectCardProps {
@@ -44,7 +45,8 @@ export function ModernProjectCard({
           <img
             src={project.url}
             alt={project.title}
-            className="h-full w-full object-cover object-top transition-transform duration-500 group-hover:scale-[1.02]"
+            className="h-full w-full"
+            style={projectHeroImageStyle(project)}
             loading="lazy"
           />
         ) : (

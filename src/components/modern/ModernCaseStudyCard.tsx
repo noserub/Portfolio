@@ -1,6 +1,7 @@
 import { ArrowRight, ArrowUpRight, Lock } from "lucide-react";
 import type { ProjectData } from "../ProjectImage";
 import { projectTypeTag } from "../../lib/modernCaseStudies";
+import { projectHeroImageStyle } from "../../lib/projectHeroFrame";
 import { modern, modernFont } from "../../design/modernTokens";
 
 interface ModernCaseStudyCardProps {
@@ -20,23 +21,25 @@ function CaseStudyProtectedBadge() {
 }
 
 function CaseStudyCardImage({
-  cover,
+  project,
   title,
   requiresPassword,
   wide,
 }: {
-  cover: string;
+  project: ProjectData;
   title: string;
   requiresPassword?: boolean;
   wide?: boolean;
 }) {
+  const cover = project.url;
   return (
     <div className="modern-case-study-card__image">
       {cover ? (
         <img
           src={cover}
           alt={title}
-          className={`w-full h-full object-cover object-top group-hover:opacity-100 group-hover:scale-[1.03] transition-all duration-700 ${wide ? "opacity-85" : "opacity-80"}`}
+          className={`w-full h-full transition-opacity duration-700 group-hover:opacity-100 ${wide ? "opacity-85" : "opacity-80"}`}
+          style={projectHeroImageStyle(project)}
         />
       ) : (
         <div className="w-full h-full flex items-center justify-center text-sm" style={{ color: modern.muted }}>
@@ -63,7 +66,6 @@ export function ModernCaseStudyCard({
 }: ModernCaseStudyCardProps) {
   const isWide = layout === "wide";
   const tag = projectTypeTag(project);
-  const cover = project.url;
   const requiresPassword = Boolean(project.requiresPassword);
 
   if (isWide) {
@@ -73,7 +75,7 @@ export function ModernCaseStudyCard({
         onClick={onClick}
         className="group modern-case-study-card modern-case-study-card--wide"
       >
-        <CaseStudyCardImage cover={cover} title={project.title} requiresPassword={requiresPassword} wide />
+        <CaseStudyCardImage project={project} title={project.title} requiresPassword={requiresPassword} wide />
 
         <div className="flex-1 flex flex-col justify-center p-5">
           <div className="flex items-start justify-between gap-4">
@@ -118,7 +120,7 @@ export function ModernCaseStudyCard({
 
   return (
     <button type="button" onClick={onClick} className="group modern-case-study-card">
-      <CaseStudyCardImage cover={cover} title={project.title} requiresPassword={requiresPassword} />
+      <CaseStudyCardImage project={project} title={project.title} requiresPassword={requiresPassword} />
 
       <div className="modern-case-study-card__body">
         <div className="flex items-start justify-between gap-4">

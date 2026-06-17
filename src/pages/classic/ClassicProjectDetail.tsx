@@ -8,6 +8,7 @@ import { Input } from "../../components/ui/input";
 import { Textarea } from "../../components/ui/textarea";
 import { Lightbox } from "../../components/Lightbox";
 import { ProjectData } from "../../components/ProjectImage";
+import { getProjectHeroFrame, projectHeroImageStyle } from "../../lib/projectHeroFrame";
 import { CaseStudySections } from "../../components/features/CaseStudySections";
 import { PageLayout } from "../../components/layout/PageLayout";
 import {
@@ -1405,12 +1406,18 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
       sectionPositions,
     });
   }, [caseStudyContent, project, editedTitle, editedDescription, editedProjectType, galleryAspectRatio, flowDiagramAspectRatio, videoAspectRatio, galleryColumns, flowDiagramColumns, videoColumns, projectImagesPosition, videosPosition, flowDiagramsPosition, solutionCardsPosition, sectionPositions, persistUpdate]);
-  // Hero image positioning - completely independent from home screen
-  // Case study detail screen has its own positioning that doesn't affect home screen
-  const [heroScale, setHeroScale] = useState(1);
-  const [heroPosition, setHeroPosition] = useState({ x: 50, y: 50 });
+  // Hero image crop — shared with home cards via project.scale / project.position
+  const initialHeroFrame = getProjectHeroFrame(project);
+  const [heroScale, setHeroScale] = useState(initialHeroFrame.scale);
+  const [heroPosition, setHeroPosition] = useState(initialHeroFrame.position);
   const [isDraggingHero, setIsDraggingHero] = useState(false);
   const heroImageRef = useRef(null);
+
+  useEffect(() => {
+    const frame = getProjectHeroFrame(project);
+    setHeroScale(frame.scale);
+    setHeroPosition(frame.position);
+  }, [project.id, project.scale, project.position?.x, project.position?.y]);
   
   // Store original content when entering edit mode (for Cancel functionality)
   const [originalContent, setOriginalContent] = useState(caseStudyContent);
@@ -1526,8 +1533,10 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
       research_insights_columns: d.researchInsightsColumns,
       caseStudyDecorativeIcons,
       case_study_decorative_icons: caseStudyDecorativeIcons,
+      scale: heroScale,
+      position: heroPosition,
     } as ProjectData;
-  }, [project, caseStudyDecorativeIcons]);
+  }, [project, caseStudyDecorativeIcons, heroScale, heroPosition]);
 
   // Clean up corrupted content on mount and use cleaned content for parsing
   // ALSO strip legacy sidebar blocks on LOAD if JSON sidebars exist
@@ -2874,9 +2883,18 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
     // Don't auto-save - save happens when clicking Back or Done button
   };
 
-  // Hero image positioning is completely independent - no auto-save needed
-  // The hero image positioning only affects the case study detail screen
-  // Home screen positioning remains separate and controlled by project.position/project.scale
+  const saveHeroFrame = useCallback(
+    (scale: number, position: { x: number; y: number }) => {
+      persistUpdate({
+        ...project,
+        scale,
+        position,
+      });
+    },
+    [persistUpdate, project],
+  );
+
+  // Hero image positioning persists to project.scale / project.position (shared with home)
 
   const handleHeroMouseDown = (e: any) => {
     if (!isEditingHeroImage) return;
@@ -4742,13 +4760,9 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
               src={project.url}
               alt={project.title}
               className="w-full h-full"
-              style={{
-                objectFit: 'contain', // Use contain to show full image without cropping
-                transform: `scale(${heroScale})`,
-                transformOrigin: `${heroPosition.x}% ${heroPosition.y}%`,
-              }}
+              style={projectHeroImageStyle({ scale: heroScale, position: heroPosition })}
               quality={90}
-              fit="contain" // Changed from "cover" to "contain" to prevent cropping
+              fit="contain"
               priority={true}
             />
             {/* Edit Buttons - Only visible in Edit Mode when not editing */}
@@ -4805,6 +4819,7 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
                   className="absolute bottom-4 right-4 z-30 shadow-lg"
                   onClick={(e) => {
                     e.stopPropagation();
+                    saveHeroFrame(heroScale, heroPosition);
                     setIsEditingHeroImage(false);
                   }}
                 >
