@@ -1,3 +1,6 @@
+@import "./design/tokens/classic.css";
+@import "./design/tokens/modern.css";
+
 /* Fonts load via <link> in index.html (avoids render-blocking @import chain) */
 
 /*
@@ -663,16 +666,16 @@ body {
     box-shadow: 0 0 0 4px #c084fc33 !important;
   }
 
-  button:focus:not(.no-focus-ring), a:focus:not(.no-focus-ring), [role="button"]:focus:not(.no-focus-ring), [role="tab"]:focus:not(.no-focus-ring), [role="menuitem"]:focus:not(.no-focus-ring), [role="link"]:focus:not(.no-focus-ring) {
-    outline-offset: 2px !important;
-    outline: 2px solid #a78bfa !important;
-    box-shadow: 0 0 0 4px #a78bfa26 !important;
-  }
-
-  .dark button:focus:not(.no-focus-ring), .dark a:focus:not(.no-focus-ring), .dark [role="button"]:focus:not(.no-focus-ring), .dark [role="tab"]:focus:not(.no-focus-ring), .dark [role="menuitem"]:focus:not(.no-focus-ring), .dark [role="link"]:focus:not(.no-focus-ring) {
-    outline-offset: 2px !important;
-    outline: 2px solid #c084fc !important;
-    box-shadow: 0 0 0 4px #c084fc33 !important;
+  /* Mouse/touch clicks must not show focus rings — keyboard only (:focus-visible) */
+  button:focus:not(:focus-visible):not(.no-focus-ring),
+  a:focus:not(:focus-visible):not(.no-focus-ring),
+  [role="button"]:focus:not(:focus-visible):not(.no-focus-ring),
+  [role="tab"]:focus:not(:focus-visible):not(.no-focus-ring),
+  [role="menuitem"]:focus:not(:focus-visible):not(.no-focus-ring),
+  [role="link"]:focus:not(:focus-visible):not(.no-focus-ring),
+  [tabindex]:focus:not(:focus-visible):not(.no-focus-ring) {
+    outline: none !important;
+    box-shadow: none !important;
   }
 
   .no-focus-ring:focus, .no-focus-ring:focus-visible {
@@ -680,16 +683,21 @@ body {
     outline: none !important;
   }
 
-  .compact-focus:focus-visible, .compact-focus:focus {
+  .compact-focus:focus-visible {
     outline-offset: -2px !important;
     box-shadow: none !important;
     outline: 2px solid #a78bfa !important;
   }
 
-  .dark .compact-focus:focus-visible, .dark .compact-focus:focus {
+  .dark .compact-focus:focus-visible {
     outline-offset: -2px !important;
     box-shadow: none !important;
     outline: 2px solid #c084fc !important;
+  }
+
+  .compact-focus:focus:not(:focus-visible) {
+    outline: none !important;
+    box-shadow: none !important;
   }
 
   h1 {
@@ -6673,4 +6681,12 @@ body.dialog-open {
     var(--case-study-sidebar-glass-via),
     var(--case-study-sidebar-glass-to)
   );
+}
+
+/* Modern design: re-assert lime tokens after global :root / .dark blocks */
+html.dark[data-design="modern"],
+html[data-design="modern"]:not(.dark) {
+  --primary: #84bd00;
+  --primary-foreground: #0a0a0a;
+  --ring: #84bd00;
 }

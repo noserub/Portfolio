@@ -1,0 +1,4 @@
+/* Classic design uses default :root / .dark tokens in index.css */
+[data-design="classic"] {
+  /* Explicit marker; no overrides required */
+}

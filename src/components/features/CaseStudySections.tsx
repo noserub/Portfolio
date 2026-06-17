@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { motion } from "motion/react";
+import { useDesignVariant } from "../../design/DesignVariantContext";
 import { MarkdownRenderer } from "../MarkdownRenderer";
 import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
@@ -312,6 +313,9 @@ export function CaseStudySections({
   onResearchInsightsColumnsChange,
   caseStudyDecorativeIcons = false,
 }: CaseStudySectionsProps) {
+  const { effectiveVariant } = useDesignVariant();
+  const isModernDetail = effectiveVariant(Boolean(isEditMode)) === "modern";
+
   const [expandedCards, setExpandedCards] = useState<Set<number>>(new Set());
   const [editingSection, setEditingSection] = useState<string | null>(null);
   const [editedSectionTitle, setEditedSectionTitle] = useState<string>("");
@@ -3475,23 +3479,34 @@ export function CaseStudySections({
         // Regular section rendering - get config for decorative card styling
         // Note: config may already be declared above for special sections
         const regularSectionConfig = getSectionConfig(section.title);
-        
+        const isModernOverview = isModernDetail && section.title === "Overview";
+
         return (
           <motion.div
             key={index}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 + index * 0.08 }}
-            whileHover={{ 
-              y: -8,
-              transition: { 
-                type: "spring", 
-                stiffness: 300, 
-                damping: 20 
-              }
-            }}
-            className="relative p-8 md:p-10 bg-gradient-to-br from-slate-50/10 via-white/15 to-gray-50/8 dark:from-slate-800/30 dark:via-slate-900/25 dark:to-slate-800/20 backdrop-blur-md rounded-2xl border border-border/30 shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden group"
+            whileHover={
+              isModernOverview
+                ? undefined
+                : {
+                    y: -8,
+                    transition: {
+                      type: "spring",
+                      stiffness: 300,
+                      damping: 20,
+                    },
+                  }
+            }
+            className={
+              isModernOverview
+                ? "modern-case-study-overview"
+                : "relative p-8 md:p-10 bg-gradient-to-br from-slate-50/10 via-white/15 to-gray-50/8 dark:from-slate-800/30 dark:via-slate-900/25 dark:to-slate-800/20 backdrop-blur-md rounded-2xl border border-border/30 shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden group"
+            }
           >
+            {!isModernOverview ? (
+              <>
             {/* Gradient top border */}
             <div 
               className="absolute top-0 left-0 right-0 h-1 rounded-t-2xl"
@@ -3572,9 +3587,16 @@ export function CaseStudySections({
                 backgroundSize: '24px 24px'
               }}
             />
+              </>
+            ) : null}
 
             {/* Section header */}
-            <div className="mb-8 relative z-10 flex items-center justify-between">
+            <div
+              className={cn(
+                "relative z-10 flex items-center justify-between",
+                isModernOverview ? "mb-5" : "mb-8",
+              )}
+            >
               <h2>{section.title}</h2>
               {isEditMode && editingSection !== section.title && (
                 <div className="flex gap-2">

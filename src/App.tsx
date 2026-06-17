@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { supabase } from "./lib/supabaseClient";
-import { Edit3, Eye, LogOut, Save, AlertTriangle, Moon, Sun, MoreHorizontal, Search, BookOpen, ArrowLeft, Settings, Key, RefreshCw, Mail } from "lucide-react";
+import { Save, AlertTriangle, Moon, Sun, ArrowLeft, Mail } from "lucide-react";
 import { DeferredVercelMonitoring } from "./components/DeferredVercelMonitoring";
 import { 
   Header, 
@@ -15,6 +15,10 @@ import {
   SEOEditor, 
   ComponentLibrary 
 } from "./components";
+import { useDesignVariant } from "./design/DesignVariantContext";
+import { ModernAppChrome } from "./layouts/modern/ModernAppChrome";
+import { ModernFooter } from "./components/modern/ModernFooter";
+import { SiteOverflowMenu } from "./components/SiteOverflowMenu";
 import Home from "./pages/Home";
 
 import About from "./pages/About";
@@ -31,19 +35,7 @@ const LiteBriteMusic = lazyWithRetry(() =>
 const SupabaseTest = lazyWithRetry(() => import("./components/SupabaseTest"));
 import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
-import { Switch } from "./components/ui/switch";
 import { ProjectData } from "./components/ProjectImage";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
-  DropdownMenuSeparator,
-  DropdownMenuLabel,
-} from "./components/ui/dropdown-menu";
 import { Toaster } from "./components/ui/sonner";
 import { migrateResearchInsights, migrateProjectsArray, runSafetyChecks } from "./utils";
 import { FLUSH_HOME_PAGE_CMS_EVENT } from "./lib/homePageContent";
@@ -270,6 +262,7 @@ function buildProjectUpdatePayloadForSupabase(
 
 function AppShell() {
   const { isSupabaseAuthenticated } = useSiteAuth();
+  const { designVariant, setDesignVariant, effectiveVariant } = useDesignVariant();
   const [isDiagnosticMode, setIsDiagnosticMode] = useState(false);
   const [isEmergencyMode, setIsEmergencyMode] = useState(false);
   
@@ -628,6 +621,28 @@ function AppShell() {
     
     savePageVisibility();
   }, [pageVisibility]);
+
+  const resolvedTheme: 'light' | 'dark' =
+    themeSource === 'system' ? (systemPrefersDark ? 'dark' : 'light') : theme;
+
+  const handleThemeToggle = () => {
+    setThemeSource('user');
+    setTheme(resolvedTheme === 'light' ? 'dark' : 'light');
+  };
+
+  const handleThemeLight = () => {
+    setThemeSource('user');
+    setTheme('light');
+  };
+
+  const handleThemeDark = () => {
+    setThemeSource('user');
+    setTheme('dark');
+  };
+
+  const handleThemeSystem = () => {
+    setThemeSource('system');
+  };
 
   // Apply theme to document and save to localStorage
   useEffect(() => {
@@ -1207,6 +1222,15 @@ function AppShell() {
     }
   };
 
+  const navigateContact = () => {
+    setCurrentPage("contact");
+    setTimeout(forceScrollToTop, 0);
+  };
+
+  const scrollToCaseStudies = () => {
+    document.getElementById("case-studies")?.scrollIntoView({ behavior: "smooth" });
+  };
+
   const navigateToStart = () => {
     setCurrentPage("about");
     setTimeout(forceScrollToTop, 0);
@@ -1646,20 +1670,50 @@ function AppShell() {
     { key: "about" as const, label: "About", visible: isEditMode || pageVisibility.about },
     { key: "contact" as const, label: "Contact", visible: isEditMode || pageVisibility.contact },
   ].filter((page) => page.visible);
+  const chromeVariant = effectiveVariant(isEditMode);
+
+  useEffect(() => {
+    document.documentElement.dataset.design = chromeVariant;
+  }, [chromeVariant]);
+
   /** Pill nav below header (desktop) / fixed bottom (mobile): only after leaving home — not on the landing screen. */
   const showPillNav =
+    chromeVariant === "classic" &&
     pillNavPages.length > 0 &&
     currentPage !== "home" &&
     currentPage !== "lite-brite" &&
     currentPage !== "project-detail" &&
     currentPage !== "supabase-test";
 
+  const siteOverflowMenu = (variant: "classic" | "modern") => (
+    <SiteOverflowMenu
+      variant={variant}
+      isEditMode={isEditMode}
+      isSupabaseAuthenticated={isSupabaseAuthenticated}
+      designVariant={designVariant}
+      pageVisibility={pageVisibility}
+      systemPrefersDark={systemPrefersDark}
+      onEditModeClick={handleEditModeClick}
+      onPageVisibilityChange={handlePageVisibilityChange}
+      onDesignVariantChange={setDesignVariant}
+      themeSource={themeSource}
+      resolvedTheme={resolvedTheme}
+      onThemeLight={handleThemeLight}
+      onThemeDark={handleThemeDark}
+      onThemeSystem={handleThemeSystem}
+      onShowPasswordReset={() => setShowPasswordReset(true)}
+      onShowSEOEditor={() => setShowSEOEditor(true)}
+      onShowComponentLibrary={() => setShowComponentLibrary(true)}
+      onSignOut={handleSignOut}
+    />
+  );
+
   return (
     <ErrorBoundary>
       <div className="min-h-screen relative" data-react-root="true">
         
         {/* Fixed backgrounds — hidden on immersive lite-brite viz */}
-        {currentPage !== "lite-brite" && (
+        {currentPage !== "lite-brite" && chromeVariant === "classic" && (
           <>
             <AnimatedBackground />
             <AbstractPattern />
@@ -1692,8 +1746,28 @@ function AppShell() {
       />
       
       
+      {chromeVariant === "modern" && currentPage !== "lite-brite" && (
+        <ModernAppChrome
+          currentPage={currentPage}
+          logoUrl={logo}
+          showAbout={isEditMode || pageVisibility.about}
+          showContact={isEditMode || pageVisibility.contact}
+          overflowMenu={siteOverflowMenu("modern")}
+          isDarkMode={resolvedTheme === 'dark'}
+          onThemeToggle={handleThemeToggle}
+          onNavigateHome={navigateHome}
+          onNavigateAbout={() => {
+            setCurrentPage("about");
+            setTimeout(forceScrollToTop, 0);
+          }}
+          onNavigateContact={navigateContact}
+          onScrollToWork={scrollToCaseStudies}
+        />
+      )}
+
       {/* Top chrome: slides up on scroll down, returns on scroll up (see useScrollHideChrome).
           Transform is inline — Tailwind may not emit -translate-y-full in the CSS bundle. */}
+      {chromeVariant === "classic" && (
       <div
         className="fixed top-0 left-0 right-0 z-50 pointer-events-none will-change-transform"
         style={{
@@ -1824,159 +1898,7 @@ function AppShell() {
           )}
           
           {/* Overflow menu with three dots (both desktop and mobile) */}
-          <DropdownMenu>
-            <DropdownMenuTrigger
-            className={`rounded-full shadow-lg backdrop-blur-sm p-2.5 inline-flex items-center justify-center ${
-              isEditMode 
-                ? "bg-primary text-primary-foreground hover:bg-primary/90" 
-                : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-            } transition-colors`}
-            aria-label="Menu"
-            onMouseUp={(e) => e.currentTarget.blur()} // Remove focus after mouse click
-          >
-            <MoreHorizontal className="w-5 h-5" />
-          </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-56">
-            {/* Edit/Preview Toggle */}
-            <DropdownMenuItem 
-              onClick={(e) => {
-                handleEditModeClick();
-                setTimeout(() => document.activeElement instanceof HTMLElement && document.activeElement.blur(), 0);
-              }}
-            >
-              {isEditMode ? "Preview Mode" : (isSupabaseAuthenticated ? "Edit Mode" : "Sign In")}
-            </DropdownMenuItem>
-            
-            {/* Page Visibility Section - Only in Edit Mode */}
-            {isSupabaseAuthenticated && isEditMode && (
-              <>
-                <DropdownMenuSeparator />
-                <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground">Page Visibility</DropdownMenuLabel>
-                <DropdownMenuItem 
-                  onClick={(e) => {
-                    e.preventDefault();
-                    handlePageVisibilityChange('about');
-                    setTimeout(() => document.activeElement instanceof HTMLElement && document.activeElement.blur(), 0);
-                  }}
-                  className="flex items-center justify-between"
-                >
-                  <span>About Page</span>
-                  <Switch 
-                    checked={pageVisibility.about}
-                    onCheckedChange={() => handlePageVisibilityChange('about')}
-                    className="ml-2"
-                  />
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={(e) => {
-                    e.preventDefault();
-                    handlePageVisibilityChange('contact');
-                    setTimeout(() => document.activeElement instanceof HTMLElement && document.activeElement.blur(), 0);
-                  }}
-                  className="flex items-center justify-between"
-                >
-                  <span>Contact Page</span>
-                  <Switch 
-                    checked={pageVisibility.contact}
-                    onCheckedChange={() => handlePageVisibilityChange('contact')}
-                    className="ml-2"
-                  />
-                </DropdownMenuItem>
-              </>
-            )}
-            
-            {/* Theme Settings - Available to all users */}
-            <DropdownMenuSeparator />
-            <DropdownMenuItem 
-              onClick={(e) => {
-                setThemeSource('system');
-                e.currentTarget.blur();
-              }}
-            >
-              {systemPrefersDark ? (
-                <Moon className="w-4 h-4 mr-2" />
-              ) : (
-                <Sun className="w-4 h-4 mr-2" />
-              )}
-              System Theme (auto)
-            </DropdownMenuItem>
-            
-            {/* Settings Section - Authenticated users only */}
-            {isSupabaseAuthenticated && (
-              <>
-                <DropdownMenuSeparator />
-                <DropdownMenuSub>
-                  <DropdownMenuSubTrigger>
-                    <Settings className="w-4 h-4 mr-2" />
-                    Settings
-                  </DropdownMenuSubTrigger>
-                  <DropdownMenuSubContent>
-                    <DropdownMenuItem 
-                      onClick={(e) => {
-                        setShowPasswordReset(!showPasswordReset);
-                        setTimeout(() => document.activeElement instanceof HTMLElement && document.activeElement.blur(), 0);
-                      }}
-                    >
-                      <Key className="w-4 h-4 mr-2" />
-                      Case Study Password
-                    </DropdownMenuItem>
-                    <DropdownMenuItem 
-                      onClick={(e) => {
-                        setShowSEOEditor(true);
-                        setTimeout(() => document.activeElement instanceof HTMLElement && document.activeElement.blur(), 0);
-                      }}
-                    >
-                      <Search className="w-4 h-4 mr-2" />
-                      SEO Settings
-                    </DropdownMenuItem>
-                  </DropdownMenuSubContent>
-                </DropdownMenuSub>
-              </>
-            )}
-            
-            {/* Edit Mode Tools */}
-            {isEditMode && (
-              <>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem 
-                  onClick={(e) => {
-                    window.location.reload();
-                    setTimeout(() => document.activeElement instanceof HTMLElement && document.activeElement.blur(), 0);
-                  }}
-                >
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Refresh
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={(e) => {
-                    setShowComponentLibrary(true);
-                    setTimeout(() => document.activeElement instanceof HTMLElement && document.activeElement.blur(), 0);
-                  }}
-                >
-                  <BookOpen className="w-4 h-4 mr-2" />
-                  Component Library
-                </DropdownMenuItem>
-              </>
-            )}
-            
-            {/* Sign Out */}
-            {isSupabaseAuthenticated && (
-              <>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem 
-                  onClick={(e) => {
-                    handleSignOut();
-                    setTimeout(() => document.activeElement instanceof HTMLElement && document.activeElement.blur(), 0);
-                  }}
-                  className="text-foreground"
-                >
-                  <LogOut className="w-4 h-4 mr-2" />
-                  Sign Out
-                </DropdownMenuItem>
-              </>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
+          {siteOverflowMenu("classic")}
         </div>
       </motion.div>
 
@@ -2023,6 +1945,7 @@ function AppShell() {
           )}
         </div>
       </div>
+      )}
 
       {/* Password Reset Modal */}
       <AnimatePresence>
@@ -2127,10 +2050,11 @@ function AppShell() {
               isEditMode={isEditMode}
               onProjectClick={navigateToProject}
               currentPage={currentPage}
+              onNavigateContact={navigateContact}
             />
           )}
           {currentPage === "about" && (isEditMode || pageVisibility.about) && (
-            <About onBack={navigateHome} onHoverChange={setIsBlurringBackground} isEditMode={isEditMode} />
+            <About onBack={navigateHome} onHoverChange={setIsBlurringBackground} isEditMode={isEditMode} onNavigateContact={navigateContact} />
           )}
           {currentPage === "contact" && (isEditMode || pageVisibility.contact) && (
             <Contact onBack={navigateHome} isEditMode={isEditMode} />
@@ -2190,8 +2114,12 @@ function AppShell() {
       )}
       </div>
 
-      {/* Footer - shown on all pages */}
-      <Footer />
+      {/* Footer - classic pages only (modern pages include their own footer) */}
+      {chromeVariant === "classic" && <Footer />}
+      {chromeVariant === "modern" &&
+        (currentPage === "project-detail" || currentPage === "messages") && (
+          <ModernFooter logoUrl={logo} />
+        )}
 
       {/* Component Library Modal */}
       <ComponentLibrary 

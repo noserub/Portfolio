@@ -11,6 +11,8 @@ export interface Profile {
   avatar_url?: string;
   bio_paragraph_1?: string;
   bio_paragraph_2?: string;
+  about_hero_headline?: string;
+  about_hero_lead?: string;
   super_powers_title?: string;
   super_powers?: string[];
   highlights_title?: string;
@@ -43,6 +45,8 @@ export interface ProfileInsert {
   avatar_url?: string;
   bio_paragraph_1?: string;
   bio_paragraph_2?: string;
+  about_hero_headline?: string;
+  about_hero_lead?: string;
   super_powers_title?: string;
   super_powers?: string[];
   highlights_title?: string;
@@ -71,6 +75,8 @@ export interface ProfileUpdate {
   avatar_url?: string;
   bio_paragraph_1?: string;
   bio_paragraph_2?: string;
+  about_hero_headline?: string;
+  about_hero_lead?: string;
   super_powers_title?: string;
   super_powers?: string[];
   highlights_title?: string;

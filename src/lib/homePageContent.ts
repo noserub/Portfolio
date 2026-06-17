@@ -61,7 +61,17 @@ export interface HeroTextState {
 }
 
 /** Pause after each hero greeting finishes typing (before backspace or cycle wait). Not CMS-editable by design. */
-export const HERO_SEQUENCE_PAUSE_MS = 2000;
+export const HERO_SEQUENCE_PAUSE_MS = 2800;
+
+/** Per-character typing delay (ms): min + random(0..range). */
+export const HERO_TYPING_DELAY_MIN_MS = 58;
+export const HERO_TYPING_DELAY_RANGE_MS = 52;
+
+/** Backspace speed between characters (ms). */
+export const HERO_DELETE_DELAY_MS = 38;
+
+/** Pause after erasing before the next greeting starts (ms). */
+export const HERO_BETWEEN_GREETINGS_PAUSE_MS = 480;
 
 /** Minimum displayed length while backspacing in suffix-only mode (falls back to 0 in full mode). */
 export function getHeroDeleteStopLength(plan: HeroGreetingAnimationPlan): number {
@@ -131,6 +141,8 @@ export interface HomePageUI {
   caseStudyFilters: CaseStudyFilterEntry[];
   /** Which filter is selected for visitors until they click another (must match an enabled category or `"all"`). */
   defaultCaseStudyFilter: DefaultCaseStudyFilter;
+  /** Modern home: wide hero card. When null or not in the current filter, falls back to first by sort order. */
+  featuredCaseStudyId?: string | null;
 }
 
 export interface HomePageContentV2 {
@@ -162,6 +174,7 @@ export const DEFAULT_UI: HomePageUI = {
   filterAll: "All",
   caseStudyFilters: DEFAULT_CASE_STUDY_FILTERS.map((f) => ({ ...f })),
   defaultCaseStudyFilter: "all",
+  featuredCaseStudyId: null,
 };
 
 /** Default segment strings for initial hero state and legacy migration when building bioDocument. */
@@ -516,6 +529,10 @@ function mergeUI(raw: unknown): HomePageUI {
     filterAll: String(o.filterAll ?? DEFAULT_UI.filterAll),
     caseStudyFilters,
     defaultCaseStudyFilter,
+    featuredCaseStudyId:
+      typeof o.featuredCaseStudyId === "string" && o.featuredCaseStudyId.trim()
+        ? o.featuredCaseStudyId.trim()
+        : null,
   };
 }
 
