@@ -1474,7 +1474,7 @@ html[data-design="modern"] .case-study-password-dialog__input--error:focus-visib
   color: var(--modern-muted-text);
 }
 
-[data-design="modern"] [data-modern-project-detail] [class*="bg-gradient-to-br"]:not(.case-study-hero),
+[data-design="modern"] [data-modern-project-detail] [class*="bg-gradient-to-br"]:not(.case-study-hero):not(.case-study-gallery-section),
 [data-design="modern"] [data-modern-project-detail] .bg-case-study-sidebar-glass {
   background: var(--modern-surface, #141414) !important;
   backdrop-filter: none !important;
@@ -1484,16 +1484,41 @@ html[data-design="modern"] .case-study-password-dialog__input--error:focus-visib
   box-shadow: none !important;
 }
 
-[data-design="modern"] [data-modern-project-detail] [class*="bg-gradient-to-br"]:not(.case-study-hero):hover,
+[data-design="modern"] [data-modern-project-detail] [class*="bg-gradient-to-br"]:not(.case-study-hero):not(.case-study-gallery-section):hover,
 [data-design="modern"] [data-modern-project-detail] .bg-case-study-sidebar-glass:hover {
   box-shadow: none !important;
   border-color: var(--modern-border-hover) !important;
 }
 
-[data-design="modern"] [data-modern-project-detail] [class*="bg-gradient-to-br"]:not(.case-study-hero) > .absolute,
+[data-design="modern"] [data-modern-project-detail] [class*="bg-gradient-to-br"]:not(.case-study-hero):not(.case-study-gallery-section) > .absolute,
 [data-design="modern"] [data-modern-project-detail] .bg-case-study-sidebar-glass > .absolute,
-[data-design="modern"] [data-modern-project-detail] [class*="bg-gradient-to-br"]:not(.case-study-hero) > svg.absolute {
+[data-design="modern"] [data-modern-project-detail] [class*="bg-gradient-to-br"]:not(.case-study-hero):not(.case-study-gallery-section) > svg.absolute {
   display: none !important;
+}
+
+/* Galleries: editorial flow — label + grid, no outer section card */
+[data-design="modern"] [data-modern-project-detail] .case-study-gallery-section {
+  padding: 0 !important;
+  background: none !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+[data-design="modern"] [data-modern-project-detail] .case-study-gallery-section__header {
+  margin-bottom: 1rem !important;
+}
+
+[data-design="modern"] [data-modern-project-detail] .case-study-gallery-section__title {
+  font-family: Inter, sans-serif !important;
+  font-weight: 600 !important;
+  font-size: 0.75rem !important;
+  letter-spacing: 0.1em !important;
+  text-transform: uppercase !important;
+  color: var(--modern-accent) !important;
+  line-height: 1.25 !important;
 }
 
 /* Hero: one editorial surface — outer shell is layout-only, no nested card chrome */
@@ -1521,7 +1546,7 @@ html[data-design="modern"] .case-study-password-dialog__input--error:focus-visib
 }
 
 [data-design="modern"] [data-modern-project-detail] .bg-case-study-sidebar-glass h3,
-[data-design="modern"] [data-modern-project-detail] [class*="bg-gradient-to-br"] h3 {
+[data-design="modern"] [data-modern-project-detail] [class*="bg-gradient-to-br"]:not(.case-study-gallery-section) h3 {
   font-family: Inter, sans-serif !important;
   font-weight: 500 !important;
   font-size: 0.9375rem !important;

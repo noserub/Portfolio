@@ -5207,10 +5207,10 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.6 }}
                 >
-                  <div className="p-8 bg-gradient-to-br from-slate-50/10 via-white/15 to-gray-50/8 dark:from-slate-800/30 dark:via-slate-900/25 dark:to-slate-800/20 backdrop-blur-md rounded-2xl border border-border/30 shadow-lg">
+                  <div className="case-study-gallery-section p-8 bg-gradient-to-br from-slate-50/10 via-white/15 to-gray-50/8 dark:from-slate-800/30 dark:via-slate-900/25 dark:to-slate-800/20 backdrop-blur-md rounded-2xl border border-border/30 shadow-lg">
                     <div
                       className={cn(
-                        "flex items-center mb-8 min-w-0",
+                        "case-study-gallery-section__header flex items-center mb-8 min-w-0",
                         caseStudyDecorativeIcons && "gap-3"
                       )}
                     >
@@ -5219,7 +5219,7 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
                           <ImageIcon className="w-6 h-6" />
                         </div>
                       )}
-                      <h3 className="m-0 min-w-0 flex-1 text-left text-xl font-semibold leading-tight">
+                      <h3 className="case-study-gallery-section__title m-0 min-w-0 flex-1 text-left text-xl font-semibold leading-tight">
                         Project Images
                       </h3>
                     </div>
@@ -5324,10 +5324,10 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.65 }}
                 >
-                  <div className="p-8 bg-gradient-to-br from-slate-50/10 via-white/15 to-gray-50/8 dark:from-slate-800/30 dark:via-slate-900/25 dark:to-slate-800/20 backdrop-blur-md rounded-2xl border border-border/30 shadow-lg">
+                  <div className="case-study-gallery-section p-8 bg-gradient-to-br from-slate-50/10 via-white/15 to-gray-50/8 dark:from-slate-800/30 dark:via-slate-900/25 dark:to-slate-800/20 backdrop-blur-md rounded-2xl border border-border/30 shadow-lg">
                     <div
                       className={cn(
-                        "flex items-center mb-8 min-w-0",
+                        "case-study-gallery-section__header flex items-center mb-8 min-w-0",
                         caseStudyDecorativeIcons && "gap-3"
                       )}
                     >
@@ -5336,7 +5336,7 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
                           <VideoIcon className="w-6 h-6" />
                         </div>
                       )}
-                      <h3 className="m-0 min-w-0 flex-1 text-left text-xl font-semibold leading-tight">
+                      <h3 className="case-study-gallery-section__title m-0 min-w-0 flex-1 text-left text-xl font-semibold leading-tight">
                         Videos
                       </h3>
                     </div>
@@ -5449,10 +5449,10 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.7 }}
                 >
-                  <div className="p-8 bg-gradient-to-br from-slate-50/10 via-white/15 to-gray-50/8 dark:from-slate-800/30 dark:via-slate-900/25 dark:to-slate-800/20 backdrop-blur-md rounded-2xl border border-border/30 shadow-lg">
+                  <div className="case-study-gallery-section p-8 bg-gradient-to-br from-slate-50/10 via-white/15 to-gray-50/8 dark:from-slate-800/30 dark:via-slate-900/25 dark:to-slate-800/20 backdrop-blur-md rounded-2xl border border-border/30 shadow-lg">
                     <div
                       className={cn(
-                        "flex items-center mb-8 min-w-0",
+                        "case-study-gallery-section__header flex items-center mb-8 min-w-0",
                         caseStudyDecorativeIcons && "gap-3"
                       )}
                     >
@@ -5461,7 +5461,7 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
                           <ImageIcon className="w-6 h-6" />
                         </div>
                       )}
-                      <h3 className="m-0 min-w-0 flex-1 text-left text-xl font-semibold leading-tight">
+                      <h3 className="case-study-gallery-section__title m-0 min-w-0 flex-1 text-left text-xl font-semibold leading-tight">
                         Flow Diagrams
                       </h3>
                     </div>
