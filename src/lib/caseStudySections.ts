@@ -6,6 +6,7 @@ import type {
   GallerySectionConfig,
   GalleryVideoItem,
 } from '../types/caseStudySections';
+import { isLegacyGallerySectionId, gallerySectionHasContent } from '../types/caseStudySections';
 
 function newId(): string {
   return Math.random().toString(36).slice(2, 11);
@@ -134,7 +135,8 @@ export function resolveGallerySections(project: ProjectData & Record<string, unk
   if (Array.isArray(stored) && stored.length > 0) {
     const parsed = stored
       .map((row, index) => normalizeGallerySection(row, index))
-      .filter((s): s is CaseStudyGallerySection => Boolean(s));
+      .filter((s): s is CaseStudyGallerySection => Boolean(s))
+      .filter((s) => gallerySectionHasContent(s) || !isLegacyGallerySectionId(s.id));
     if (parsed.length > 0) {
       return sortGallerySections(parsed);
     }
@@ -143,8 +145,8 @@ export function resolveGallerySections(project: ProjectData & Record<string, unk
   const legacy: CaseStudyGallerySection[] = [];
 
   const projectImages = project.caseStudyImages ?? (project.case_study_images as GalleryImageItem[]) ?? [];
-  const projectImagesPosition = project.projectImagesPosition ?? project.project_images_position;
-  if (projectImages.length > 0 || projectImagesPosition != null) {
+  if (projectImages.length > 0) {
+    const projectImagesPosition = project.projectImagesPosition ?? project.project_images_position;
     legacy.push({
       id: 'legacy-project-images',
       type: 'gallery',
@@ -163,8 +165,8 @@ export function resolveGallerySections(project: ProjectData & Record<string, unk
   }
 
   const videos = project.videoItems ?? (project.video_items as GalleryVideoItem[]) ?? [];
-  const videosPosition = project.videosPosition ?? project.videos_position;
-  if (videos.length > 0 || videosPosition != null) {
+  if (videos.length > 0) {
+    const videosPosition = project.videosPosition ?? project.videos_position;
     legacy.push({
       id: 'legacy-videos',
       type: 'gallery',
@@ -184,8 +186,8 @@ export function resolveGallerySections(project: ProjectData & Record<string, unk
 
   const flowDiagrams =
     project.flowDiagramImages ?? (project.flow_diagram_images as GalleryImageItem[]) ?? [];
-  const flowDiagramsPosition = project.flowDiagramsPosition ?? project.flow_diagrams_position;
-  if (flowDiagrams.length > 0 || flowDiagramsPosition != null) {
+  if (flowDiagrams.length > 0) {
+    const flowDiagramsPosition = project.flowDiagramsPosition ?? project.flow_diagrams_position;
     legacy.push({
       id: 'legacy-flow-diagrams',
       type: 'gallery',

@@ -51,6 +51,10 @@ import {
   syncLegacyGalleryFieldsFromSections,
 } from "../../lib/caseStudySections";
 import type { CaseStudyGallerySection } from "../../types/caseStudySections";
+import {
+  filterGallerySectionsForDisplay,
+  sanitizeGallerySectionsForPersist,
+} from "../../types/caseStudySections";
 import { gallerySectionKey } from "../../types/caseStudySections";
 import { toast } from "sonner";
 
@@ -977,6 +981,11 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
     setGallerySections(resolved);
     gallerySectionsRef.current = resolved;
   }, [project.id]);
+
+  const visibleGallerySections = useMemo(
+    () => filterGallerySectionsForDisplay(gallerySections, isEditMode),
+    [gallerySections, isEditMode],
+  );
   
   const [projectImagesPosition, setProjectImagesPosition] = useState(
     project.projectImagesPosition ?? (project as any).project_images_position ??
@@ -1141,7 +1150,7 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
 
   const persistGallerySections = useCallback(
     (sections: CaseStudyGallerySection[]) => {
-      const sorted = sortGallerySections(sections);
+      const sorted = sortGallerySections(sanitizeGallerySectionsForPersist(sections));
       gallerySectionsRef.current = sorted;
       setGallerySections(sorted);
 
@@ -1696,8 +1705,8 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
       research_insights_columns: d.researchInsightsColumns,
       caseStudyDecorativeIcons,
       case_study_decorative_icons: caseStudyDecorativeIcons,
-      caseStudySections: gallerySectionsRef.current,
-      case_study_sections: gallerySectionsRef.current,
+      caseStudySections: sanitizeGallerySectionsForPersist(gallerySectionsRef.current),
+      case_study_sections: sanitizeGallerySectionsForPersist(gallerySectionsRef.current),
       scale: heroScale,
       position: heroPosition,
     } as ProjectData;
@@ -4045,32 +4054,32 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
     // Collect insertions - ONLY insert when position is explicitly set (not undefined)
     const insertions: Array<{ pos: number; item: { title: string; type: string } }> = [];
     
-    if (gallerySections.length > 0) {
-      for (const gallerySection of gallerySections.filter((s) => s.visible)) {
+    if (visibleGallerySections.length > 0) {
+      for (const gallerySection of visibleGallerySections) {
         insertions.push({
           pos: gallerySection.position,
           item: { title: gallerySectionKey(gallerySection.id), type: 'gallery' },
         });
       }
     } else {
-    // Only insert Project Images if position is explicitly set (not null/undefined) AND (images exist OR in edit mode)
-    if (projectImagesPosition != null && (caseStudyImages.length > 0 || isEditMode)) {
+    // Only insert legacy galleries when they have actual media
+    if (projectImagesPosition != null && caseStudyImages.length > 0) {
       insertions.push({ 
         pos: projectImagesPosition, 
         item: { title: '__PROJECT_IMAGES__', type: 'gallery' }
       });
     }
     
-    // Only insert Videos if position is explicitly set (not null/undefined) AND (videos exist OR in edit mode)
-    if (videosPosition != null && (videoItems.length > 0 || isEditMode)) {
+    // Only insert Videos when they have actual items
+    if (videosPosition != null && videoItems.length > 0) {
       insertions.push({ 
         pos: videosPosition, 
         item: { title: '__VIDEOS__', type: 'gallery' }
       });
     }
     
-    // Only insert Flow Diagrams if position is explicitly set (not null/undefined) AND (diagrams exist OR in edit mode)
-    if (flowDiagramsPosition != null && (flowDiagramImages.length > 0 || isEditMode)) {
+    // Only insert Flow Diagrams when they have actual images
+    if (flowDiagramsPosition != null && flowDiagramImages.length > 0) {
       insertions.push({ 
         pos: flowDiagramsPosition, 
         item: { title: '__FLOW_DIAGRAMS__', type: 'gallery' }
@@ -4173,7 +4182,7 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
     videosPosition,
     flowDiagramsPosition,
     solutionCardsPosition,
-    gallerySections,
+    visibleGallerySections,
     isEditMode
   ]);
 
@@ -5119,7 +5128,7 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
             onMoveMarkdownSection={handleMoveMarkdownSection}
             actualPositions={actualPositions}
             totalSections={totalSections}
-            unifiedGallerySections={gallerySections}
+            unifiedGallerySections={visibleGallerySections}
             renderUnifiedGallery={(section) => (
               <MediaGallerySection
                 section={section}
@@ -5133,8 +5142,8 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
             onMoveUnifiedGallery={handleMoveUnifiedGallery}
             onRemoveUnifiedGallery={handleRemoveGallerySection}
             imageGallerySlot={
-              gallerySections.length > 0 ? undefined : (
-              (caseStudyImages.length > 0 || (isEditMode && project.projectImagesPosition !== undefined)) ? (
+              visibleGallerySections.length > 0 ? undefined : (
+              caseStudyImages.length > 0 ? (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -5251,8 +5260,8 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
               ) : undefined)
             }
             videoSlot={
-              gallerySections.length > 0 ? undefined : (
-              (videoItems.length > 0 || (isEditMode && project.videosPosition !== undefined)) ? (
+              visibleGallerySections.length > 0 ? undefined : (
+              videoItems.length > 0 ? (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -5377,8 +5386,8 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
               ) : undefined)
             }
             flowDiagramSlot={
-              gallerySections.length > 0 ? undefined : (
-              (flowDiagramImages.length > 0 || (isEditMode && project.flowDiagramsPosition !== undefined)) ? (
+              visibleGallerySections.length > 0 ? undefined : (
+              flowDiagramImages.length > 0 ? (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}

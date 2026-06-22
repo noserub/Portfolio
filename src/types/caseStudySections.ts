@@ -49,3 +49,36 @@ export function parseGallerySectionKey(key: string): string | null {
   if (!key.startsWith(GALLERY_SECTION_KEY_PREFIX)) return null;
   return key.slice(GALLERY_SECTION_KEY_PREFIX.length);
 }
+
+export function isLegacyGallerySectionId(id: string): boolean {
+  return id.startsWith('legacy-');
+}
+
+export function gallerySectionHasContent(section: CaseStudyGallerySection): boolean {
+  const g = section.gallery;
+  if (g.mediaMode === 'video') {
+    return g.videoItems.some((item) => Boolean(item.url?.trim()));
+  }
+  return g.imageItems.some((item) => Boolean(item.url?.trim()));
+}
+
+/** Preview: content only. Edit: also show user-added empty galleries (not legacy auto-migrations). */
+export function filterGallerySectionsForDisplay(
+  sections: CaseStudyGallerySection[],
+  isEditMode: boolean,
+): CaseStudyGallerySection[] {
+  return sections.filter((section) => {
+    if (!section.visible) return false;
+    if (gallerySectionHasContent(section)) return true;
+    return isEditMode && !isLegacyGallerySectionId(section.id);
+  });
+}
+
+/** Drop empty legacy migrations before persisting — avoids ghost galleries in case_study_sections. */
+export function sanitizeGallerySectionsForPersist(
+  sections: CaseStudyGallerySection[],
+): CaseStudyGallerySection[] {
+  return sections.filter(
+    (section) => gallerySectionHasContent(section) || !isLegacyGallerySectionId(section.id),
+  );
+}
