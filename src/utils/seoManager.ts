@@ -602,6 +602,23 @@ export async function saveCaseStudySEO(caseStudyId: string, data: SEOData): Prom
   }
 }
 
+/** Copy SEO settings from one case study to another (used when duplicating a project). */
+export async function copyCaseStudySEO(
+  sourceCaseStudyId: string,
+  targetCaseStudyId: string,
+  targetTitle: string
+): Promise<void> {
+  const sourceSeo = await loadCaseStudySEOFromSupabase(sourceCaseStudyId);
+  const copied: SEOData = {
+    ...sourceSeo,
+    title: `${targetTitle} - Brian Bureson`,
+    ogTitle: sourceSeo.ogTitle ? `${targetTitle} - Brian Bureson` : undefined,
+    twitterTitle: sourceSeo.twitterTitle ? `${targetTitle} - Brian Bureson` : undefined,
+    canonicalUrl: undefined,
+  };
+  await saveCaseStudySEO(targetCaseStudyId, copied);
+}
+
 // Apply SEO data to document head
 export function applyPageSEO(pageSEO: SEOData, sitewide: SitewideSEO): void {
   // Update title
