@@ -45,6 +45,8 @@ import {
   ArrowUp,
   ArrowDown
 } from "lucide-react";
+import type { CaseStudyGallerySection } from "../../types/caseStudySections";
+import { gallerySectionKey, parseGallerySectionKey } from "../../types/caseStudySections";
 
 interface CaseStudySectionsProps {
   content: string;
@@ -85,6 +87,11 @@ interface CaseStudySectionsProps {
   onResearchInsightsColumnsChange?: (columns: 1 | 2 | 3) => void;
   /** Lucide icons on My role subsection cards and similar. Off by default. */
   caseStudyDecorativeIcons?: boolean;
+  /** Repeatable image/video galleries with custom titles (preferred over legacy slots). */
+  unifiedGallerySections?: CaseStudyGallerySection[];
+  renderUnifiedGallery?: (section: CaseStudyGallerySection) => React.ReactNode;
+  onMoveUnifiedGallery?: (sectionId: string, direction: 'up' | 'down') => void;
+  onRemoveUnifiedGallery?: (sectionId: string) => void;
 }
 
 // Map section titles to icons and gradients
@@ -191,8 +198,31 @@ const getSectionConfig = (title: string) => {
   if (sectionConfig[title]) {
     return sectionConfig[title];
   }
-  
-  // Default configuration for any sidebar section (first non-Overview section)
+
+  const titleLower = title.toLowerCase();
+  if (titleLower.includes("challenge")) {
+    return sectionConfig["The challenge"];
+  }
+  if (titleLower.includes("overview")) {
+    return sectionConfig["Overview"];
+  }
+  if (titleLower.includes("my role") || titleLower.includes("role & impact")) {
+    return sectionConfig["My role & impact"];
+  }
+  if (titleLower.includes("research")) {
+    return sectionConfig["Research insights"];
+  }
+  if (titleLower.includes("competitive") || titleLower.includes("competitor")) {
+    return sectionConfig["Competitive analysis"];
+  }
+  if (titleLower.includes("solution")) {
+    return sectionConfig["The solution: A new direction"];
+  }
+  if (titleLower.includes("key feature") || titleLower.includes("project phase")) {
+    return sectionConfig["Key features"];
+  }
+
+  // Default configuration for custom narrative sections
   return {
     icon: Info,
     gradient: portfolioSectionGradientAt(0),
@@ -323,6 +353,10 @@ export function CaseStudySections({
   researchInsightsColumns = 3,
   onResearchInsightsColumnsChange,
   caseStudyDecorativeIcons = false,
+  unifiedGallerySections = [],
+  renderUnifiedGallery,
+  onMoveUnifiedGallery,
+  onRemoveUnifiedGallery,
 }: CaseStudySectionsProps) {
   const { effectiveVariant } = useDesignVariant();
   const isModernDetail = effectiveVariant(Boolean(isEditMode)) === "modern";
@@ -371,22 +405,28 @@ export function CaseStudySections({
     // CRITICAL: Use latestProjectContent as the base, not content
     // content is cleaned/filtered and may be missing cards, but latestProjectContent has all saved cards
     const contentToEdit = latestProjectContent || content;
+    const lookupTitle = (originalSectionTitle || sectionTitle).trim();
+    const nextTitle = editedSectionTitle.trim() || lookupTitle;
 
     // Replace the section title and content in the full content
     const lines = contentToEdit.split('\n');
     const newLines: string[] = [];
     let inTargetSection = false;
+    let sectionReplaced = false;
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
       
       // Check if this is the start of our target section
       const headerMatch = line.match(/^# (.+)$/);
-      if (headerMatch && headerMatch[1].trim() === sectionTitle) {
+      if (headerMatch && headerMatch[1].trim() === lookupTitle) {
         inTargetSection = true;
-        // Add the EDITED header (new title)
-        newLines.push(`# ${editedSectionTitle}`);
-        newLines.push(editedSectionContent); // Add the edited content
+        sectionReplaced = true;
+        // Add the EDITED header (new title) and content lines
+        newLines.push(`# ${nextTitle}`);
+        if (editedSectionContent) {
+          newLines.push(...editedSectionContent.split('\n'));
+        }
         continue;
       }
 
@@ -399,6 +439,11 @@ export function CaseStudySections({
       if (!inTargetSection) {
         newLines.push(line);
       }
+    }
+
+    if (!sectionReplaced) {
+      console.error('Could not find section to update:', lookupTitle);
+      return;
     }
 
     const newContent = newLines.join('\n');
@@ -1581,66 +1626,22 @@ export function CaseStudySections({
   const overviewIndex = regularSections.findIndex(s => s.title === "Overview");
   const solutionIndex = regularSections.findIndex(s => s.title.toLowerCase().includes("solution"));
   
-  // Sections that should always render in decorative card style (not grid style)
-  // Note: "Key features" is excluded here because it has special rendering (grid of cards)
-  const decorativeCardSections = [
-    "Overview",
-    "The challenge",
-    "My role",
-    "My role & impact", // Explicitly include full title
-    "Research insights",
-    "Competitive analysis",
-    "Solution highlights",
-    "Key contributions",
-    "The solution", // Include "The solution" to match "The solution: A new direction"
-    "The solution: A new direction" // Explicitly include this title
-  ];
+  const isSolutionCardSection = (section: { title: string; content: string }, index: number) => {
+    if (solutionIndex === -1 || index <= solutionIndex) return false;
+
+    const titleLower = section.title.toLowerCase();
+    if (isKeyFeaturesSection(section)) return false;
+    if (titleLower.includes("research")) return false;
+    if (titleLower.includes("competitive") || titleLower.includes("competitor")) return false;
+    if (titleLower.includes("my role") || titleLower.includes("role & impact")) return false;
+    if (titleLower.includes("overview")) return false;
+    if (titleLower.includes("challenge")) return false;
+    if (titleLower.includes("solution") && !titleLower.includes("cards")) return false;
+
+    return true;
+  };
   
-  // Split into sections before and after "The Solution"
-  // Include "Key features" explicitly (it has special rendering, not decorative card style)
-  // Include ALL sections in beforeSolution - they should all be renderable and moveable
-  const beforeSolution = regularSections.filter(s => {
-    const titleLower = s.title.toLowerCase();
-    // Check if it matches decorative sections (bidirectional matching for "My role" vs "My role & impact")
-    const isDecorative = decorativeCardSections.some(dec => {
-      const decLower = dec.toLowerCase();
-      return titleLower.includes(decLower) || decLower.includes(titleLower);
-    });
-    const isSolution = titleLower.includes("solution") && !titleLower.includes("cards");
-    const isKeyFeatures = isKeyFeaturesSection(s);
-    // Include decorative sections, solution sections, AND Key features
-    return isDecorative || isSolution || isKeyFeatures;
-  });
-  
-  const afterSolutionRaw = regularSections.filter((s, index) => {
-    // Only include sections that come AFTER the solution section
-    if (solutionIndex === -1 || index <= solutionIndex) {
-      return false;
-    }
-    
-    const titleLower = s.title.toLowerCase();
-    const isDecorative = decorativeCardSections.some(dec => {
-      const decLower = dec.toLowerCase();
-      return titleLower.includes(decLower) || decLower.includes(titleLower);
-    });
-    // Exclude any section with "solution" in the title (but not "Solution cards" which is the grid itself)
-    const isSolution = titleLower.includes("solution") && !titleLower.includes("cards");
-    const isKeyFeatures = isKeyFeaturesSection(s);
-    const isResearchInsights = titleLower.includes("research insights") || titleLower.includes("research");
-    
-    // Debug logging
-    if (isDecorative || isSolution || isKeyFeatures || isResearchInsights) {
-      console.log('🚫 Excluding from solution cards grid:', s.title, {
-        isDecorative,
-        isSolution,
-        isKeyFeatures,
-        isResearchInsights
-      });
-    }
-    
-    // Exclude decorative sections, solution sections, research insights, AND Key features (it has special rendering)
-    return !isDecorative && !isSolution && !isKeyFeatures && !isResearchInsights;
-  });
+  const afterSolutionRaw = regularSections.filter((s, index) => isSolutionCardSection(s, index));
   
   // Filter out specific sections we don't want in the grid
   // "Key features" is already excluded above, but add it here too for safety
@@ -1662,6 +1663,9 @@ export function CaseStudySections({
       return titleLower.includes(excludedLower) || excludedLower.includes(titleLower);
     });
   });
+
+  const solutionCardTitles = new Set(afterSolution.map((section) => section.title));
+  const beforeSolution = regularSections.filter((section) => !solutionCardTitles.has(section.title));
   
   console.log('🔍 Solution Cards Filtering:', {
     solutionIndex,
@@ -1711,14 +1715,17 @@ export function CaseStudySections({
     }
   }
 
+  const visibleUnifiedGalleries = (unifiedGallerySections || []).filter((s) => s.visible);
+  const useUnifiedGalleries = visibleUnifiedGalleries.length > 0 && Boolean(renderUnifiedGallery);
+
   const galleryPositionOpts = {
     projectImagesPosition: projectImagesPosition ?? 2,
     videosPosition: videosPosition ?? 998,
     flowDiagramsPosition: flowDiagramsPosition ?? 1000,
     solutionCardsPosition: solutionCardsPositionForMerge,
-    hasImageSlot: Boolean(imageGallerySlot),
-    hasVideoSlot: Boolean(videoSlot),
-    hasFlowSlot: Boolean(flowDiagramSlot),
+    hasImageSlot: useUnifiedGalleries ? false : Boolean(imageGallerySlot),
+    hasVideoSlot: useUnifiedGalleries ? false : Boolean(videoSlot),
+    hasFlowSlot: useUnifiedGalleries ? false : Boolean(flowDiagramSlot),
     hasSolutionCardsSlot: Boolean(hasSolutionCardsSlot),
   };
 
@@ -1727,9 +1734,9 @@ export function CaseStudySections({
   const clampInsertPos = (pos: number | null | undefined) =>
     Math.min(Math.max(0, Number(pos ?? 0)), beforeSolution.length);
 
-  const effectiveImagePos = imageGallerySlot ? clampInsertPos(projectImagesPosition ?? 2) : 0;
-  const effectiveVideosPos = videoSlot ? clampInsertPos(videosPosition ?? 998) : 0;
-  const effectiveFlowPos = flowDiagramSlot ? clampInsertPos(flowDiagramsPosition ?? 1000) : 0;
+  const effectiveImagePos = !useUnifiedGalleries && imageGallerySlot ? clampInsertPos(projectImagesPosition ?? 2) : 0;
+  const effectiveVideosPos = !useUnifiedGalleries && videoSlot ? clampInsertPos(videosPosition ?? 998) : 0;
+  const effectiveFlowPos = !useUnifiedGalleries && flowDiagramSlot ? clampInsertPos(flowDiagramsPosition ?? 1000) : 0;
   const effectiveSolutionCardsPos = hasSolutionCardsSlot
     ? clampInsertPos(solutionCardsPositionForMerge)
     : 0;
@@ -1740,6 +1747,19 @@ export function CaseStudySections({
     item: { title: string; content: string; type: "section" | "gallery" | "sidebar"; position: number };
   }> = [];
 
+  if (useUnifiedGalleries) {
+    for (const gallerySection of visibleUnifiedGalleries) {
+      insertions.push({
+        pos: clampInsertPos(gallerySection.position),
+        item: {
+          title: gallerySectionKey(gallerySection.id),
+          content: "",
+          type: "gallery" as const,
+          position: clampInsertPos(gallerySection.position),
+        },
+      });
+    }
+  } else {
   if (imageGallerySlot) {
     insertions.push({
       pos: effectiveImagePos,
@@ -1774,6 +1794,7 @@ export function CaseStudySections({
         position: effectiveFlowPos,
       },
     });
+  }
   }
 
   if (hasSolutionCardsSlot) {
@@ -1830,6 +1851,64 @@ export function CaseStudySections({
           );
         }
         
+        // Render unified gallery section
+        const unifiedGalleryId = parseGallerySectionKey(section.title);
+        if (unifiedGalleryId && renderUnifiedGallery) {
+          const gallerySection = visibleUnifiedGalleries.find((g) => g.id === unifiedGalleryId);
+          if (!gallerySection) return null;
+          const galleryIndex = visibleUnifiedGalleries.findIndex((g) => g.id === unifiedGalleryId);
+          return (
+            <div key={section.title} className="relative">
+              {isEditMode && onMoveUnifiedGallery && (
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="flex items-center gap-3 mb-6 bg-purple-500/10 border border-purple-500/30 rounded-xl p-3 backdrop-blur-sm"
+                >
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => onMoveUnifiedGallery(unifiedGalleryId, 'up')}
+                      disabled={galleryIndex <= 0}
+                      className="rounded-full p-2"
+                      title="Move gallery up"
+                    >
+                      <ArrowUp className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => onMoveUnifiedGallery(unifiedGalleryId, 'down')}
+                      disabled={galleryIndex >= visibleUnifiedGalleries.length - 1}
+                      className="rounded-full p-2"
+                      title="Move gallery down"
+                    >
+                      <ArrowDown className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  <div className="flex-1">
+                    <span className="text-sm font-semibold text-purple-900 dark:text-purple-100">
+                      🖼️ {gallerySection.title}
+                    </span>
+                  </div>
+                  {onRemoveUnifiedGallery && (
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => onRemoveUnifiedGallery(unifiedGalleryId)}
+                      className="rounded-full"
+                    >
+                      Remove
+                    </Button>
+                  )}
+                </motion.div>
+              )}
+              {renderUnifiedGallery(gallerySection)}
+            </div>
+          );
+        }
+
         // Render Project Images gallery with move buttons
         if (section.title === '__PROJECT_IMAGES__') {
           return (

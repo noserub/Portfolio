@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { getPortfolioOwnerUserId } from '../lib/portfolioOwner';
 import { devLog } from '../lib/devLog';
+import { copyCaseStudySEO } from '../utils/seoManager';
 
 export interface Project {
   id: string;
@@ -36,6 +37,8 @@ export interface Project {
   sort_order: number;
   project_type?: 'product-design' | 'development' | 'branding';
   case_study_decorative_icons?: boolean;
+  case_study_sidebars?: Record<string, unknown>;
+  case_study_sections?: unknown[];
 }
 
 export interface ProjectInsert {
@@ -67,6 +70,9 @@ export interface ProjectInsert {
   section_positions?: any;
   sort_order?: number;
   project_type?: 'product-design' | 'development' | 'branding';
+  case_study_decorative_icons?: boolean;
+  case_study_sidebars?: Record<string, unknown>;
+  case_study_sections?: unknown[];
 }
 
 export interface ProjectUpdate {
@@ -98,6 +104,8 @@ export interface ProjectUpdate {
   sort_order?: number;
   project_type?: 'product-design' | 'development' | 'branding';
   case_study_decorative_icons?: boolean;
+  case_study_sidebars?: Record<string, unknown>;
+  case_study_sections?: unknown[];
 }
 
 /** Shared project list + mutations. Prefer consuming via `ProjectsProvider` + `useProjects` from `contexts/ProjectsContext` so the app only mounts one instance (avoids duplicate full-table fetches). */
@@ -212,6 +220,119 @@ export function useProjectsState() {
     }
   }, []);
 
+  // Duplicate an existing project into a new draft row (deep copy of case-study content).
+  const duplicateProject = useCallback(async (id: string): Promise<Project | null> => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user?.id) {
+        devLog('❌ useProjects: No Supabase session — cannot duplicate project');
+        setError('Sign in with Supabase to duplicate projects');
+        return null;
+      }
+
+      const ownerId = getPortfolioOwnerUserId(user.id);
+
+      // Prefer the in-memory full row; fall back to a direct fetch.
+      let source = projects.find(p => p.id === id);
+      if (!source) {
+        const { data, error } = await supabase.from('projects').select('*').eq('id', id).single();
+        if (error) throw error;
+        source = data as Project;
+      }
+      if (!source) {
+        setError('Project to duplicate was not found');
+        return null;
+      }
+
+      // Slugs are derived from the title, so keep the copy's title unique.
+      const existingTitles = new Set(projects.map(p => p.title));
+      let title = `${source.title} (Copy)`;
+      let copyIndex = 2;
+      while (existingTitles.has(title)) {
+        title = `${source.title} (Copy ${copyIndex})`;
+        copyIndex += 1;
+      }
+
+      const deepClone = <T,>(value: T): T =>
+        value == null ? value : JSON.parse(JSON.stringify(value));
+
+      // Regenerate client-side ids inside JSONB media arrays so they stay independent.
+      const regenIds = (arr?: any[]) =>
+        Array.isArray(arr)
+          ? arr.map(item =>
+              item && typeof item === 'object' && 'id' in item
+                ? { ...item, id: Math.random().toString(36).substr(2, 9) }
+                : item
+            )
+          : (arr ?? []);
+
+      const maxSortOrder = projects.reduce(
+        (max, project) => Math.max(max, project.sort_order ?? 0),
+        -1
+      );
+
+      const payload: ProjectInsert = {
+        user_id: ownerId,
+        title,
+        description: source.description,
+        url: source.url,
+        position_x: Math.min(95, (source.position_x ?? 50) + 3),
+        position_y: Math.min(95, (source.position_y ?? 50) + 3),
+        scale: source.scale,
+        published: false, // copies start as drafts so they aren't published accidentally
+        requires_password: source.requires_password,
+        password: source.password,
+        case_study_content: source.case_study_content,
+        case_study_images: regenIds(deepClone(source.case_study_images)),
+        flow_diagram_images: regenIds(deepClone(source.flow_diagram_images)),
+        video_items: regenIds(deepClone(source.video_items)),
+        gallery_aspect_ratio: source.gallery_aspect_ratio,
+        flow_diagram_aspect_ratio: source.flow_diagram_aspect_ratio,
+        video_aspect_ratio: source.video_aspect_ratio,
+        gallery_columns: source.gallery_columns,
+        flow_diagram_columns: source.flow_diagram_columns,
+        video_columns: source.video_columns,
+        key_features_columns: source.key_features_columns,
+        project_images_position: source.project_images_position,
+        videos_position: source.videos_position,
+        flow_diagrams_position: source.flow_diagrams_position,
+        solution_cards_position: source.solution_cards_position,
+        section_positions: deepClone(source.section_positions),
+        sort_order: maxSortOrder + 1,
+        project_type: source.project_type,
+        case_study_decorative_icons: source.case_study_decorative_icons,
+        case_study_sidebars: deepClone(
+          source.case_study_sidebars ?? (source as { caseStudySidebars?: Record<string, unknown> }).caseStudySidebars
+        ),
+        case_study_sections: deepClone(
+          (source as { case_study_sections?: unknown[] }).case_study_sections ??
+            (source as { caseStudySections?: unknown[] }).caseStudySections ??
+            []
+        ),
+      };
+
+      const { data, error } = await supabase
+        .from('projects')
+        .insert(payload)
+        .select()
+        .single();
+      if (error) throw error;
+
+      try {
+        await copyCaseStudySEO(id, data.id, title);
+      } catch (seoErr) {
+        console.warn('⚠️ useProjects: case study SEO copy failed (project was still duplicated):', seoErr);
+      }
+
+      setProjects(prev => [...prev, data].sort((a, b) => a.sort_order - b.sort_order));
+      return data;
+    } catch (err: any) {
+      console.error('❌ useProjects: duplicateProject error:', err);
+      setError(err.message);
+      return null;
+    }
+  }, [projects]);
+
   // Update project
   const updateProject = useCallback(async (id: string, updates: ProjectUpdate): Promise<Project | null> => {
     try {
@@ -239,7 +360,7 @@ export function useProjectsState() {
         'case_study_content','case_study_images','flow_diagram_images','video_items','gallery_aspect_ratio',
         'flow_diagram_aspect_ratio','video_aspect_ratio','gallery_columns','flow_diagram_columns','video_columns','key_features_columns',
         'project_images_position','videos_position','flow_diagrams_position','solution_cards_position','section_positions','sort_order','project_type',
-        'case_study_decorative_icons'
+        'case_study_decorative_icons', 'case_study_sections'
       ];
       const payload: Record<string, any> = {};
       for (const key of allowedKeys) {
@@ -540,6 +661,7 @@ export function useProjectsState() {
     fetchPublishedProjects,
     getProject,
     createProject,
+    duplicateProject,
     updateProject,
     deleteProject,
     reorderProjects,

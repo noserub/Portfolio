@@ -225,6 +225,10 @@ function buildProjectUpdatePayloadForSupabase(
     videos_position: sanitizedProject.videosPosition,
     flow_diagrams_position: sanitizedProject.flowDiagramsPosition,
     section_positions: sanitizedProject.sectionPositions || {},
+    case_study_sections:
+      (sanitizedProject as any).caseStudySections ||
+      (sanitizedProject as any).case_study_sections ||
+      [],
     case_study_sidebars:
       (sanitizedProject as any).caseStudySidebars || (sanitizedProject as any).case_study_sidebars || undefined,
     project_type: sanitizedProject.projectType || (sanitizedProject as any).project_type || null,
@@ -2069,6 +2073,9 @@ function AppShell() {
                 onBack={navigateHome}
                 onUpdate={handleUpdateProject}
                 isEditMode={isEditMode}
+                onProjectDuplicated={(copy) => {
+                  void navigateToProject(copy, () => {});
+                }}
               />
             </div>
           )}

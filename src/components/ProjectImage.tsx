@@ -1,7 +1,7 @@
 import React from "react";
 import { motion } from "motion/react";
 import { useState, useEffect, useRef, memo, useMemo, useCallback } from "react";
-import { Edit2, Move, Check, X, ZoomIn, ZoomOut, RotateCcw, Lock, Eye, Trash2, MoreVertical, Settings, Maximize2, Minimize2 } from "lucide-react";
+import { Edit2, Move, Check, X, ZoomIn, ZoomOut, RotateCcw, Lock, Eye, Trash2, MoreVertical, Settings, Maximize2, Minimize2, Copy } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
@@ -17,6 +17,7 @@ import {
 // Import optimized image components
 import OptimizedImage from './OptimizedImage';
 import { PORTFOLIO_IMAGE_WELL_GRADIENT } from "../lib/modernSurfaces";
+import type { CaseStudyGallerySection } from "../types/caseStudySections";
 
 export interface ProjectData {
   id: string;
@@ -66,6 +67,8 @@ export interface ProjectData {
   sortOrder?: number;
   /** When true, show icons on case study sidebars, media blocks, and My role subsection cards. Default off. */
   caseStudyDecorativeIcons?: boolean;
+  /** Repeatable gallery sections (images/videos) with custom titles and layout. */
+  caseStudySections?: CaseStudyGallerySection[];
   /** ISO timestamps from Supabase `projects` (for JSON-LD dates when present). */
   createdAt?: string;
   updatedAt?: string;
@@ -79,6 +82,7 @@ interface ProjectImageProps {
   onReplace: (file: File) => void;
   onNavigate?: () => void;
   onDelete?: () => void;
+  onDuplicate?: () => void;
   /** First visible project card: eager load + high fetch priority for LCP */
   priority?: boolean;
 }
@@ -91,6 +95,7 @@ export function ProjectImage({
   onReplace,
   onNavigate,
   onDelete,
+  onDuplicate,
   priority = false,
 }: ProjectImageProps) {
   const [isHovered, setIsHovered] = useState(false);
@@ -505,6 +510,12 @@ export function ProjectImage({
     }
   };
 
+  const handleDuplicate = () => {
+    if (onDuplicate) {
+      onDuplicate();
+    }
+  };
+
   return (
     <motion.div
       onHoverStart={() => setIsHovered(true)}
@@ -760,6 +771,12 @@ export function ProjectImage({
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-48">
+                    {onDuplicate && (
+                      <DropdownMenuItem onClick={handleDuplicate}>
+                        <Copy className="w-4 h-4 mr-2" />
+                        Duplicate
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem onClick={handleDelete} className="text-red-600">
                       <Trash2 className="w-4 h-4 mr-2" />
                       Delete Project

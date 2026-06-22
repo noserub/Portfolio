@@ -3,6 +3,28 @@
  * Removes duplicate sections and malformed content
  */
 
+const SIDEBAR_MARKDOWN_SECTION_TITLES = /^(?:sidebar 1|sidebar 2|at a glance|impact|tech stack|tools)$/i;
+
+/** Remove legacy sidebar H1 blocks from markdown; keeps all narrative sections (including custom titles). */
+export function stripSidebarMarkdownSections(content: string): string {
+  if (!content) return content;
+
+  const lines = content.split('\n');
+  const filtered: string[] = [];
+  let skip = false;
+
+  for (const line of lines) {
+    const headerMatch = line.trim().match(/^#\s+(.+)$/);
+    if (headerMatch) {
+      skip = SIDEBAR_MARKDOWN_SECTION_TITLES.test(headerMatch[1].trim());
+      if (skip) continue;
+    }
+    if (!skip) filtered.push(line);
+  }
+
+  return filtered.join('\n').trim();
+}
+
 export function cleanMarkdownContent(content: string): string {
   if (!content) return content;
   

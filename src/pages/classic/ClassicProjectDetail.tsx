@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { motion } from "motion/react";
 import { supabase } from '../../lib/supabaseClient';
-import { ArrowLeft, Plus, X, Edit2, Image as ImageIcon, Video as VideoIcon, GripVertical, ZoomIn, ZoomOut, Move, RotateCcw, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowLeft, Plus, X, Edit2, Image as ImageIcon, Video as VideoIcon, GripVertical, ZoomIn, ZoomOut, Move, RotateCcw, ChevronDown, ChevronUp, Copy } from "lucide-react";
 import { useDrag, useDrop } from "react-dnd";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -34,18 +34,32 @@ import {
   saveCaseStudySEO,
   type SEOData,
 } from "../../utils/seoManager";
-import { cleanMarkdownContent, isContentCorrupted } from "../../utils/cleanMarkdownContent";
+import { cleanMarkdownContent, isContentCorrupted, stripSidebarMarkdownSections } from "../../utils/cleanMarkdownContent";
 import { uploadImage } from "../../utils/imageHelpers";
 import { Search } from "lucide-react";
 import { Label } from "../../components/ui/label";
 import { Checkbox } from "../../components/ui/checkbox";
 import { cn } from "../../components/ui/utils";
+import { useProjects } from "../../contexts/ProjectsContext";
+import { mapSupabaseProjectRowToProjectData } from "../../lib/mapSupabaseProjectRowToProjectData";
+import { MediaGallerySection } from "../../components/MediaGallerySection";
+import {
+  createGallerySection,
+  getNextGalleryPosition,
+  resolveGallerySections,
+  sortGallerySections,
+  syncLegacyGalleryFieldsFromSections,
+} from "../../lib/caseStudySections";
+import type { CaseStudyGallerySection } from "../../types/caseStudySections";
+import { gallerySectionKey } from "../../types/caseStudySections";
+import { toast } from "sonner";
 
 interface ProjectDetailProps {
   project: ProjectData;
   onBack: () => void;
   onUpdate: (updatedProject: ProjectData) => void;
   isEditMode: boolean;
+  onProjectDuplicated?: (copy: ProjectData) => void;
 }
 
 interface CaseStudyImage {
@@ -461,7 +475,8 @@ const stripSolutionCardSections = (markdown: string): string => {
     .replace(/\n{3,}/g, '\n\n');
 };
 
-export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpdate, isEditMode }: ProjectDetailProps) {
+export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpdate, isEditMode, onProjectDuplicated }: ProjectDetailProps) {
+  const { duplicateProject } = useProjects();
   const { effectiveVariant } = useDesignVariant();
   const isModernChrome = effectiveVariant(isEditMode) === "modern";
   const hasHeroImage = Boolean(project.url?.trim());
@@ -500,6 +515,17 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
     },
     [pushProjectUpdate, caseStudyDecorativeIcons],
   );
+
+  const handleDuplicateCaseStudy = useCallback(async () => {
+    const duplicated = await duplicateProject(project.id);
+    if (!duplicated) {
+      toast.error('Could not duplicate case study. Sign in and try again.');
+      return;
+    }
+    toast.success(`Created draft copy: "${duplicated.title}"`);
+    const copy = mapSupabaseProjectRowToProjectData(duplicated as unknown as Record<string, unknown>);
+    onProjectDuplicated?.(copy);
+  }, [duplicateProject, onProjectDuplicated, project.id]);
   
   // Update SEO metadata for case study page
   useCaseStudySEO(project.id, project.title, {
@@ -937,6 +963,20 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
     });
     return videos;
   });
+
+  const [gallerySections, setGallerySections] = useState<CaseStudyGallerySection[]>(() =>
+    resolveGallerySections(project as ProjectData & Record<string, unknown>),
+  );
+  const gallerySectionsRef = useRef(gallerySections);
+  useEffect(() => {
+    gallerySectionsRef.current = gallerySections;
+  }, [gallerySections]);
+
+  useEffect(() => {
+    const resolved = resolveGallerySections(project as ProjectData & Record<string, unknown>);
+    setGallerySections(resolved);
+    gallerySectionsRef.current = resolved;
+  }, [project.id]);
   
   const [projectImagesPosition, setProjectImagesPosition] = useState(
     project.projectImagesPosition ?? (project as any).project_images_position ??
@@ -1098,6 +1138,127 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
     const maxPos = candidates.length > 0 ? Math.max(...candidates, markdownCount) : markdownCount;
     return (isFinite(maxPos) ? maxPos : 0) + 1;
   }, [projectImagesPosition, videosPosition, flowDiagramsPosition, solutionCardsPosition, caseStudyContent]);
+
+  const persistGallerySections = useCallback(
+    (sections: CaseStudyGallerySection[]) => {
+      const sorted = sortGallerySections(sections);
+      gallerySectionsRef.current = sorted;
+      setGallerySections(sorted);
+
+      const legacy = syncLegacyGalleryFieldsFromSections(sorted);
+      caseStudyImagesRef.current = legacy.caseStudyImages ?? [];
+      setCaseStudyImages(legacy.caseStudyImages ?? []);
+      flowDiagramImagesRef.current = legacy.flowDiagramImages ?? [];
+      setFlowDiagramImages(legacy.flowDiagramImages ?? []);
+      videoItemsRef.current = legacy.videoItems ?? [];
+      setVideoItems(legacy.videoItems ?? []);
+      setProjectImagesPosition(legacy.projectImagesPosition);
+      setVideosPosition(legacy.videosPosition);
+      setFlowDiagramsPosition(legacy.flowDiagramsPosition);
+      if (legacy.galleryAspectRatio) setGalleryAspectRatio(legacy.galleryAspectRatio);
+      if (legacy.flowDiagramAspectRatio) setFlowDiagramAspectRatio(legacy.flowDiagramAspectRatio);
+      if (legacy.videoAspectRatio) setVideoAspectRatio(legacy.videoAspectRatio);
+      if (legacy.galleryColumns) setGalleryColumns(legacy.galleryColumns);
+      if (legacy.flowDiagramColumns) setFlowDiagramColumns(legacy.flowDiagramColumns);
+      if (legacy.videoColumns) setVideoColumns(legacy.videoColumns);
+
+      persistUpdate({
+        ...project,
+        title: editedTitle,
+        description: editedDescription,
+        projectType: editedProjectType,
+        caseStudyContent,
+        caseStudySections: sorted,
+        case_study_sections: sorted,
+        caseStudyImages: legacy.caseStudyImages,
+        flowDiagramImages: legacy.flowDiagramImages,
+        videoItems: legacy.videoItems,
+        galleryAspectRatio: legacy.galleryAspectRatio,
+        flowDiagramAspectRatio: legacy.flowDiagramAspectRatio,
+        videoAspectRatio: legacy.videoAspectRatio,
+        galleryColumns: legacy.galleryColumns,
+        flowDiagramColumns: legacy.flowDiagramColumns,
+        videoColumns: legacy.videoColumns,
+        projectImagesPosition: legacy.projectImagesPosition,
+        videosPosition: legacy.videosPosition,
+        flowDiagramsPosition: legacy.flowDiagramsPosition,
+        solutionCardsPosition,
+        sectionPositions,
+      } as ProjectData);
+    },
+    [
+      persistUpdate,
+      project,
+      editedTitle,
+      editedDescription,
+      editedProjectType,
+      caseStudyContent,
+      solutionCardsPosition,
+      sectionPositions,
+    ],
+  );
+
+  const handleAddGallerySection = useCallback(
+    (mediaMode: 'image' | 'video', title?: string) => {
+      const markdownCount =
+        (caseStudyContent?.split('\n').filter((l) => /^#\s+/.test((l || '').trim())).length) || 1;
+      const position = getNextGalleryPosition(
+        gallerySectionsRef.current,
+        {
+          projectImagesPosition,
+          videosPosition,
+          flowDiagramsPosition,
+          solutionCardsPosition,
+        },
+        markdownCount,
+      );
+      const defaultTitle = title || (mediaMode === 'video' ? 'Videos' : 'Gallery');
+      const section = createGallerySection(defaultTitle, mediaMode, position);
+      persistGallerySections([...gallerySectionsRef.current, section]);
+    },
+    [
+      caseStudyContent,
+      persistGallerySections,
+      projectImagesPosition,
+      videosPosition,
+      flowDiagramsPosition,
+      solutionCardsPosition,
+    ],
+  );
+
+  const handleUpdateGallerySection = useCallback(
+    (updated: CaseStudyGallerySection) => {
+      const next = gallerySectionsRef.current.map((s) => (s.id === updated.id ? updated : s));
+      persistGallerySections(next);
+    },
+    [persistGallerySections],
+  );
+
+  const handleRemoveGallerySection = useCallback(
+    (sectionId: string) => {
+      persistGallerySections(gallerySectionsRef.current.filter((s) => s.id !== sectionId));
+    },
+    [persistGallerySections],
+  );
+
+  const handleMoveUnifiedGallery = useCallback(
+    (sectionId: string, direction: 'up' | 'down') => {
+      const sorted = sortGallerySections(gallerySectionsRef.current);
+      const index = sorted.findIndex((s) => s.id === sectionId);
+      if (index === -1) return;
+      const swapIndex = direction === 'up' ? index - 1 : index + 1;
+      if (swapIndex < 0 || swapIndex >= sorted.length) return;
+      const a = sorted[index];
+      const b = sorted[swapIndex];
+      const next = sorted.map((s) => {
+        if (s.id === a.id) return { ...s, position: b.position };
+        if (s.id === b.id) return { ...s, position: a.position };
+        return s;
+      });
+      persistGallerySections(next);
+    },
+    [persistGallerySections],
+  );
 
   // Add sections after project creation (for Custom/blank or any project)
   const handleAddOverviewSection = useCallback(() => {
@@ -1474,6 +1635,7 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
     solutionCardsPosition: null as number | null,
     keyFeaturesColumns: 3 as 2 | 3,
     researchInsightsColumns: 3 as 1 | 2 | 3,
+    gallerySections: [] as CaseStudyGallerySection[],
   });
   editorDraftRef.current = {
     caseStudyContent,
@@ -1494,6 +1656,7 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
     solutionCardsPosition,
     keyFeaturesColumns,
     researchInsightsColumns,
+    gallerySections,
   };
 
   const buildEditorSavePayload = useCallback((): ProjectData => {
@@ -1533,6 +1696,8 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
       research_insights_columns: d.researchInsightsColumns,
       caseStudyDecorativeIcons,
       case_study_decorative_icons: caseStudyDecorativeIcons,
+      caseStudySections: gallerySectionsRef.current,
+      case_study_sections: gallerySectionsRef.current,
       scale: heroScale,
       position: heroPosition,
     } as ProjectData;
@@ -1667,138 +1832,8 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
       cleaned = cleaned.replace(pattern, '').trim();
     }
     
-    // Also strip non-whitelisted sections when JSON sidebars exist
-    // BUT: Allow any section that appears after "The solution" section (for solution cards grid)
-      const whitelistedSections = [
-        'Overview', 'The challenge', 'My role', 'My role & impact', 'Research insights', 'Research',
-        'Competitive analysis', 'The solution', 'The solution: A new direction', 'Solution cards', 'Key features', 'Project phases', 'New Card'
-      ];
-    const excludedSidebarTitles = ['Sidebar 1', 'Sidebar 2', 'At a glance', 'Impact', 'Tech stack', 'Tools'];
-    
-    // Decorative sections that should be in beforeSolution (not solution cards grid)
-    const decorativeCardSections = [
-      'Overview', 'The challenge', 'My role', 'My role & impact', 'Research insights',
-      'Competitive analysis', 'Solution highlights', 'Key contributions'
-    ];
-    
-    const lines = cleaned.split('\n');
-    const filteredLines: string[] = [];
-    let skipSection = false;
-    let currentSectionTitle = '';
-    let foundSolutionSection = false;
-    
-    for (const line of lines) {
-      const headerMatch = line.trim().match(/^#\s+(.+)$/);
-      if (headerMatch) {
-        // We've hit a new section header - reset skipSection
-        const previousSkipState = skipSection;
-        currentSectionTitle = headerMatch[1].trim();
-        const t = currentSectionTitle.toLowerCase();
-        
-        // Debug: Log ALL section headers found
-        console.log('🔍 Found section header:', currentSectionTitle);
-        
-        // Check if we've passed "The solution" section (but not if this IS the solution section)
-        // Only set foundSolutionSection after we've processed "The solution" section itself
-        const isSolutionSection = t.includes('solution') && !t.includes('cards');
-        if (isSolutionSection && !foundSolutionSection) {
-          // This IS "The solution" section - process it first, then mark that we've found it
-          // We'll set foundSolutionSection after processing this section
-        } else if (foundSolutionSection && !isSolutionSection) {
-          // We've already processed "The solution" section, and this is a different section
-          // Keep foundSolutionSection = true
-        } else if (isSolutionSection && foundSolutionSection) {
-          // This is a second solution section (shouldn't happen, but handle it)
-        }
-        
-        // Always skip sidebar titles
-        if (excludedSidebarTitles.includes(currentSectionTitle) || t === 'at a glance' || t === 'impact' || t === 'sidebar 1' || t === 'sidebar 2' || t === 'tech stack' || t === 'tools') {
-          skipSection = true;
-          // Skip the header line itself
-          continue;
-        }
-        
-        // If this IS "The solution" section, process it normally (use whitelist check below)
-        // Only apply the "after solution" logic to sections that come AFTER "The solution"
-        if (foundSolutionSection && !isSolutionSection) {
-          // We're AFTER "The solution" section - allow ANY section that's not explicitly excluded
-          // (these will appear in the solution cards grid, including custom card titles)
-          
-          // Explicitly exclude these sections from being solution cards:
-          const isResearchInsights = t.includes('research insights');
-          const isAnotherSolution = t.includes('solution') && !t.includes('cards');
-          const isKeyFeatures = t === 'key features';
-          
-          // Check if it's a decorative section (these should be before solution, not after)
-          const isDecorative = decorativeCardSections.some(dec => {
-            const decLower = dec.toLowerCase();
-            // Use strict matching - only exclude if it's an exact match or clearly matches a decorative section
-            return t === decLower || (t.startsWith(decLower + ' ') || t.startsWith(decLower + ':'));
-          });
-          
-          // If it's not explicitly excluded, allow it as a solution card
-          if (!isDecorative && !isKeyFeatures && !isResearchInsights && !isAnotherSolution) {
-            // Allow this section - it's part of solution cards grid (including ALL custom card titles)
-            skipSection = false;
-            console.log('✅ Allowing solution card section (after solution):', currentSectionTitle);
-          } else {
-            // This is an excluded section - only include if it's in the whitelist (for backward compatibility)
-        const isWhitelisted = whitelistedSections.some(w => {
-          const wLower = w.toLowerCase();
-              const matches = t === wLower || t.startsWith(wLower + ' ') || t.includes(wLower);
-              return matches;
-            });
-            if (isWhitelisted) {
-              skipSection = false;
-              console.log('✅ Allowing whitelisted section after solution:', currentSectionTitle);
-            } else {
-              console.log('🧹 Stripping excluded section after solution:', currentSectionTitle, '| isDecorative:', isDecorative, '| isKeyFeatures:', isKeyFeatures, '| isResearchInsights:', isResearchInsights, '| isAnotherSolution:', isAnotherSolution);
-              skipSection = true;
-              // Skip the header line itself
-              continue;
-            }
-          }
-        } else {
-          // Before "The solution" OR this IS "The solution" section - use strict whitelist
-          const isWhitelisted = whitelistedSections.some(w => {
-            const wLower = w.toLowerCase();
-            // Match exact, starts with, or contains (for flexible matching)
-            // Also check if title starts with the whitelist item (e.g., "The solution: A new direction" matches "The solution")
-            const matches = t === wLower || 
-                           t.startsWith(wLower + ' ') || 
-                           t.startsWith(wLower + ':') ||
-                           wLower.startsWith(t) ||
-                           t.includes(wLower) ||
-                           wLower.includes(t);
-            if (matches) {
-              console.log('✅ Whitelist match:', currentSectionTitle, 'matches', w, '| t:', t, '| wLower:', wLower);
-            }
-            return matches;
-        });
-        if (!isWhitelisted) {
-            console.log('🧹 Stripping non-whitelisted section on LOAD:', currentSectionTitle, '| Whitelist:', whitelistedSections, '| t:', t);
-          skipSection = true;
-            // Skip the header line itself - IMPORTANT: This prevents content from merging with previous section
-          continue;
-        }
-          // Section is whitelisted - include it
-        skipSection = false;
-          console.log('✅ Including whitelisted section:', currentSectionTitle);
-          
-          // After processing "The solution" section, mark that we've found it
-          if (isSolutionSection) {
-            foundSolutionSection = true;
-          }
-        }
-      }
-      
-      // Only add lines if we're not skipping the current section
-      if (!skipSection) {
-        filteredLines.push(line);
-      }
-    }
-    
-    cleaned = filteredLines.join('\n').trim();
+    // Keep all narrative sections (including custom titles); only strip legacy sidebar blocks.
+    cleaned = stripSidebarMarkdownSections(cleaned);
     
     // Also clean corrupted content if needed
     if (isContentCorrupted(cleaned)) {
@@ -3993,68 +4028,10 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
       'Sidebar 1', 'Sidebar 2', 'At a glance', 'Impact', 'Tech stack', 'Tools'
     ];
     
-    // Strict whitelist of legitimate section titles (only these are allowed when JSON sidebars exist)
-    // Include "New Card" patterns for solution cards grid
-      const whitelistedSections = [
-        'Overview', 'The challenge', 'My role', 'My role & impact', 'Research insights', 'Research',
-        'Competitive analysis', 'The solution', 'The solution: A new direction', 'Solution cards', 'Key features', 'Project phases', 'New Card'
-      ];
-    
-    let sections: string[] = [];
-    
-    // If JSON sidebars exist, ONLY parse whitelisted sections - ignore everything else
-    // BUT: Allow any section after "The solution" that isn't decorative (for solution cards grid)
-    if (hasJsonSidebars) {
-      let foundSolutionSection = false;
-      const decorativeCardSections = [
-        'Overview', 'The challenge', 'My role', 'My role & impact', 'Research insights',
-        'Competitive analysis', 'Solution highlights', 'Key contributions'
-      ];
-      
-      sections = lines
-        .filter(line => (line || '').trim().match(/^# (.+)$/))
-        .map(line => (line || '').trim().substring(2).trim())
-        .filter(title => {
-          // Exclude sidebar titles
-          if (excludedSidebarTitles.includes(title)) return false;
-          
-          const t = title.toLowerCase();
-          
-          // Check if we've passed "The solution" section
-          if (t.includes('solution') && !t.includes('cards')) {
-            foundSolutionSection = true;
-          }
-          
-          // If we're after "The solution", allow any non-decorative section
-          if (foundSolutionSection) {
-            const isDecorative = decorativeCardSections.some(dec => {
-              const decLower = dec.toLowerCase();
-              return t === decLower || t.includes(decLower) || decLower.includes(t);
-            });
-            const isKeyFeaturesLike = t.includes('key features') || t.includes('project phases');
-            if (!isDecorative && !isKeyFeaturesLike) {
-              // Allow this section - it's part of solution cards grid
-              return true;
-            }
-          }
-          
-          // Before "The solution" or for decorative sections - use strict whitelist
-          const isWhitelisted = whitelistedSections.some(w => {
-            const wLower = w.toLowerCase();
-            return t === wLower || t.startsWith(wLower + ' ') || t.includes(wLower);
-          });
-          if (!isWhitelisted) {
-            console.log('🚫 Excluding non-whitelisted section (JSON sidebars exist):', title);
-          }
-          return isWhitelisted;
-        });
-    } else {
-      // No JSON sidebars - parse all sections (legacy behavior)
-      sections = lines
-        .filter(line => (line || '').trim().match(/^# (.+)$/))
-        .map(line => (line || '').trim().substring(2).trim())
-        .filter(title => !excludedSidebarTitles.includes(title));
-    }
+    const sections = lines
+      .filter(line => (line || '').trim().match(/^# (.+)$/))
+      .map(line => (line || '').trim().substring(2).trim())
+      .filter(title => !excludedSidebarTitles.includes(title));
     // Build base items - include ALL sections except sidebars
     // This allows all sections to be moveable and positioned correctly
     const items: Array<{ title: string; type: string }> = sections.filter(title => {
@@ -4068,6 +4045,14 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
     // Collect insertions - ONLY insert when position is explicitly set (not undefined)
     const insertions: Array<{ pos: number; item: { title: string; type: string } }> = [];
     
+    if (gallerySections.length > 0) {
+      for (const gallerySection of gallerySections.filter((s) => s.visible)) {
+        insertions.push({
+          pos: gallerySection.position,
+          item: { title: gallerySectionKey(gallerySection.id), type: 'gallery' },
+        });
+      }
+    } else {
     // Only insert Project Images if position is explicitly set (not null/undefined) AND (images exist OR in edit mode)
     if (projectImagesPosition != null && (caseStudyImages.length > 0 || isEditMode)) {
       insertions.push({ 
@@ -4090,6 +4075,7 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
         pos: flowDiagramsPosition, 
         item: { title: '__FLOW_DIAGRAMS__', type: 'gallery' }
       });
+    }
     }
     
     // Only insert Solution Cards when EXPLICITLY added via UI (solutionCardsPosition is set)
@@ -4187,6 +4173,7 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
     videosPosition,
     flowDiagramsPosition,
     solutionCardsPosition,
+    gallerySections,
     isEditMode
   ]);
 
@@ -4626,6 +4613,7 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
       
       {isEditMode && (
         <div className="mb-10 px-6 pt-2" style={{ maxWidth: '1200px', margin: '0 auto' }}>
+          <div className="flex flex-wrap gap-4 items-center justify-between">
           <div className="flex flex-wrap gap-4 items-center">
           <div className="text-sm font-medium">Add:</div>
 
@@ -4640,9 +4628,16 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
             <DropdownMenuContent align="start">
               <DropdownMenuLabel>Galleries</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem disabled={videosPosition !== undefined} onClick={handleAddVideosSection}>Videos</DropdownMenuItem>
-              <DropdownMenuItem disabled={projectImagesPosition !== undefined} onClick={handleAddImagesSection}>Project Images</DropdownMenuItem>
-              <DropdownMenuItem disabled={flowDiagramsPosition !== undefined} onClick={handleAddFlowsSection}>Flow Diagrams</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleAddGallerySection('image', 'Gallery')}>
+                Image gallery
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleAddGallerySection('video', 'Videos')}>
+                Video gallery
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
+                Add as many galleries as you need. Rename and configure each in Settings.
+              </DropdownMenuLabel>
             </DropdownMenuContent>
           </DropdownMenu>
 
@@ -4684,6 +4679,17 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
               <DropdownMenuItem disabled={!!impactContent} onClick={() => addMarkdownSection('Sidebar 2', 'Describe outcomes or results here.')}>Sidebar 2</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="rounded-full"
+            onClick={() => void handleDuplicateCaseStudy()}
+          >
+            <Copy className="w-4 h-4 mr-2" />
+            Duplicate case study
+          </Button>
           </div>
         </div>
       )}
@@ -4934,96 +4940,7 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
               </div>
             )}
             <CaseStudySections 
-        content={(() => {
-          // Use cleanedContent (has legacy sidebars stripped) and filter non-whitelisted sections when JSON sidebars exist
-          const hasJsonSidebars = Boolean((caseStudySidebars as any)?.atGlance) || Boolean((caseStudySidebars as any)?.impact) ||
-                                  Boolean((project as any).caseStudySidebars?.atGlance) || Boolean((project as any).caseStudySidebars?.impact);
-      const whitelistedSections = [
-        'Overview', 'The challenge', 'My role', 'My role & impact', 'Research insights', 'Research',
-        'Competitive analysis', 'The solution', 'The solution: A new direction', 'Solution cards', 'Key features', 'Project phases', 'New Card'
-      ];
-          const excludedSidebarTitles = ['Sidebar 1', 'Sidebar 2', 'At a glance', 'Impact', 'Tech stack', 'Tools'];
-          
-          const lines = cleanedContent?.split('\n') || [];
-          const filteredLines: string[] = [];
-          let skipSection = false;
-          let currentSectionTitle = '';
-          let foundSolutionSection = false;
-          
-          for (const line of lines) {
-            // Check if this is a section header
-            const headerMatch = line.trim().match(/^#\s+(.+)$/);
-            if (headerMatch) {
-              currentSectionTitle = headerMatch[1].trim();
-              const t = currentSectionTitle.toLowerCase();
-              
-              // Always skip sidebar titles
-              if (excludedSidebarTitles.includes(currentSectionTitle) || t === 'at a glance' || t === 'impact' || t === 'sidebar 1' || t === 'sidebar 2' || t === 'tech stack' || t === 'tools') {
-              skipSection = true;
-              continue;
-            }
-            
-              // When JSON sidebars exist, ONLY allow whitelisted sections
-              // BUT: Allow any section after "The solution" that isn't decorative (for solution cards grid)
-              if (hasJsonSidebars) {
-                // Check if this IS "The solution" section (don't set foundSolutionSection until after processing it)
-                const isSolutionSection = t.includes('solution') && !t.includes('cards');
-                
-                // If we're after "The solution" (and this is NOT the solution section itself), allow any non-decorative section
-                if (foundSolutionSection && !isSolutionSection) {
-                  const decorativeCardSections = [
-                    'Overview', 'The challenge', 'My role', 'My role & impact', 'Research insights',
-                    'Competitive analysis', 'Solution highlights', 'Key contributions'
-                  ];
-                  const isDecorative = decorativeCardSections.some(dec => {
-                    const decLower = dec.toLowerCase();
-                    return t === decLower || t.includes(decLower) || decLower.includes(t);
-                  });
-                  const isKeyFeaturesLike = t.includes('key features') || t.includes('project phases');
-                  if (!isDecorative && !isKeyFeaturesLike) {
-                    // Allow this section - it's part of solution cards grid
-                    skipSection = false;
-                    continue;
-                  }
-                }
-                
-                // Before "The solution" OR this IS "The solution" section - use strict whitelist
-                const isWhitelisted = whitelistedSections.some(w => {
-                  const wLower = w.toLowerCase();
-                  // Match exact, starts with, or contains (for flexible matching like "The solution: A new direction" matching "The solution")
-                  const matches = t === wLower || 
-                                 t.startsWith(wLower + ' ') || 
-                                 t.startsWith(wLower + ':') ||
-                                 wLower.startsWith(t) ||
-                                 t.includes(wLower) ||
-                                 wLower.includes(t);
-                  return matches;
-                });
-                if (!isWhitelisted) {
-                  console.log('🚫 Filtering out non-whitelisted section from rendered content:', currentSectionTitle);
-                  skipSection = true;
-                  continue;
-                }
-                skipSection = false;
-                
-                // After processing "The solution" section, mark that we've found it
-                if (isSolutionSection) {
-                  foundSolutionSection = true;
-                }
-              }
-              
-              // Reset skipSection for whitelisted sections
-              skipSection = false;
-            }
-            
-            // Only add lines if we're not in a filtered section
-            if (!skipSection) {
-              filteredLines.push(line);
-            }
-          }
-          
-          return filteredLines.join('\n');
-        })()}
+        content={stripSidebarMarkdownSections(cleanedContent || '')}
             latestProjectContent={caseStudyContent}
             isEditMode={isEditMode}
             onEditClick={() => {
@@ -5033,9 +4950,11 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
             onContentUpdate={(newContent) => {
               // Merge edited content with existing sidebar sections
               const mergedContent = mergeContentWithSidebars(newContent, caseStudyContent);
+              const displayContent = stripSidebarMarkdownSections(mergedContent);
               
               // Update content when individual section is edited
               setCaseStudyContent(mergedContent);
+              setCleanedContent(displayContent);
               
               // Auto-save the project
               const updatedProject: ProjectData = {
@@ -5200,7 +5119,21 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
             onMoveMarkdownSection={handleMoveMarkdownSection}
             actualPositions={actualPositions}
             totalSections={totalSections}
+            unifiedGallerySections={gallerySections}
+            renderUnifiedGallery={(section) => (
+              <MediaGallerySection
+                section={section}
+                isEditMode={isEditMode}
+                showDecorativeIcons={caseStudyDecorativeIcons}
+                onSectionChange={handleUpdateGallerySection}
+                onRemove={() => handleRemoveGallerySection(section.id)}
+                onImageClick={(image) => setLightboxImage(image)}
+              />
+            )}
+            onMoveUnifiedGallery={handleMoveUnifiedGallery}
+            onRemoveUnifiedGallery={handleRemoveGallerySection}
             imageGallerySlot={
+              gallerySections.length > 0 ? undefined : (
               (caseStudyImages.length > 0 || (isEditMode && project.projectImagesPosition !== undefined)) ? (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
@@ -5315,9 +5248,10 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
                     />
                   </div>
                 </motion.div>
-              ) : undefined
+              ) : undefined)
             }
             videoSlot={
+              gallerySections.length > 0 ? undefined : (
               (videoItems.length > 0 || (isEditMode && project.videosPosition !== undefined)) ? (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
@@ -5440,9 +5374,10 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
                     />
                   </div>
                 </motion.div>
-              ) : undefined
+              ) : undefined)
             }
             flowDiagramSlot={
+              gallerySections.length > 0 ? undefined : (
               (flowDiagramImages.length > 0 || (isEditMode && project.flowDiagramsPosition !== undefined)) ? (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
@@ -5559,7 +5494,7 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
                     />
                   </div>
                 </motion.div>
-              ) : undefined
+              ) : undefined)
             }
             keyFeaturesColumns={keyFeaturesColumns}
             onKeyFeaturesColumnsChange={(columns) => {

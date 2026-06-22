@@ -29,6 +29,9 @@ interface FlowDiagramGalleryProps {
   onAspectRatioChange?: (ratio: AspectRatio) => void;
   columns?: 1 | 2 | 3;
   onColumnsChange?: (columns: 1 | 2 | 3) => void;
+  /** Override column-based preview cap; null uses default (12/8/4 by columns). */
+  previewLimit?: number | null;
+  showMoreLabel?: string;
 }
 
 interface FlowDiagramItemProps {
@@ -385,6 +388,8 @@ export function FlowDiagramGallery({
   onAspectRatioChange,
   columns = 1,
   onColumnsChange,
+  previewLimit = null,
+  showMoreLabel = 'Show more',
 }: FlowDiagramGalleryProps) {
   const [dragOver, setDragOver] = useState(false);
   const [showAllImages, setShowAllImages] = useState(false);
@@ -405,7 +410,8 @@ export function FlowDiagramGallery({
     }
   };
   
-  const initialLimit = getInitialLimit(columns);
+  const initialLimit =
+    previewLimit != null && previewLimit > 0 ? previewLimit : getInitialLimit(columns);
   const hasMoreImages = images.length > initialLimit;
   const displayedImages = isEditMode || showAllImages || !hasMoreImages ? images : images.slice(0, initialLimit);
   
@@ -729,7 +735,7 @@ export function FlowDiagramGallery({
                     WebkitTextFillColor: "transparent",
                   }}
                 >
-                  Show {images.length - initialLimit} more
+                  Show {images.length - initialLimit} more{showMoreLabel && showMoreLabel !== 'Show more' ? ` — ${showMoreLabel}` : ''}
                 </motion.span>
                 <ChevronDown className="w-4 h-4 text-blue-500" />
               </button>
