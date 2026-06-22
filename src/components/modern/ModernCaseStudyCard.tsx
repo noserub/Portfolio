@@ -1,7 +1,7 @@
 import { ArrowRight, ArrowUpRight, Lock } from "lucide-react";
 import type { ProjectData } from "../ProjectImage";
 import { projectTypeTag } from "../../lib/modernCaseStudies";
-import { projectHeroImageStyle } from "../../lib/projectHeroFrame";
+import { projectCardImageStyle } from "../../lib/projectHeroFrame";
 import { modern, modernFont } from "../../design/modernTokens";
 
 interface ModernCaseStudyCardProps {
@@ -24,12 +24,10 @@ function CaseStudyCardImage({
   project,
   title,
   requiresPassword,
-  wide,
 }: {
   project: ProjectData;
   title: string;
   requiresPassword?: boolean;
-  wide?: boolean;
 }) {
   const cover = project.url;
   return (
@@ -38,8 +36,8 @@ function CaseStudyCardImage({
         <img
           src={cover}
           alt={title}
-          className={`w-full h-full transition-opacity duration-700 group-hover:opacity-100 ${wide ? "opacity-85" : "opacity-80"}`}
-          style={projectHeroImageStyle(project)}
+          className="w-full h-full"
+          style={projectCardImageStyle(project)}
         />
       ) : (
         <div className="w-full h-full flex items-center justify-center text-sm" style={{ color: modern.muted }}>
@@ -47,14 +45,6 @@ function CaseStudyCardImage({
         </div>
       )}
       {requiresPassword ? <CaseStudyProtectedBadge /> : null}
-      {wide ? (
-        <>
-          <div className="modern-case-study-card__scrim modern-case-study-card__scrim--bottom" />
-          <div className="modern-case-study-card__scrim modern-case-study-card__scrim--side" />
-        </>
-      ) : (
-        <div className="modern-case-study-card__scrim modern-case-study-card__scrim--bottom" />
-      )}
     </div>
   );
 }
@@ -75,7 +65,7 @@ export function ModernCaseStudyCard({
         onClick={onClick}
         className="group modern-case-study-card modern-case-study-card--wide"
       >
-        <CaseStudyCardImage project={project} title={project.title} requiresPassword={requiresPassword} wide />
+        <CaseStudyCardImage project={project} title={project.title} requiresPassword={requiresPassword} />
 
         <div className="flex-1 flex flex-col justify-center p-5">
           <div className="flex items-start justify-between gap-4">

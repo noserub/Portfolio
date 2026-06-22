@@ -8,7 +8,7 @@ import { Input } from "../../components/ui/input";
 import { Textarea } from "../../components/ui/textarea";
 import { Lightbox } from "../../components/Lightbox";
 import { ProjectData } from "../../components/ProjectImage";
-import { getProjectHeroFrame, projectHeroImageStyle } from "../../lib/projectHeroFrame";
+import { getProjectDetailHeroFrame, projectDetailHeroImageStyle } from "../../lib/projectHeroFrame";
 import { CaseStudySections } from "../../components/features/CaseStudySections";
 import { PageLayout } from "../../components/layout/PageLayout";
 import {
@@ -1576,18 +1576,18 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
       sectionPositions,
     });
   }, [caseStudyContent, project, editedTitle, editedDescription, editedProjectType, galleryAspectRatio, flowDiagramAspectRatio, videoAspectRatio, galleryColumns, flowDiagramColumns, videoColumns, projectImagesPosition, videosPosition, flowDiagramsPosition, solutionCardsPosition, sectionPositions, persistUpdate]);
-  // Hero image crop — shared with home cards via project.scale / project.position
-  const initialHeroFrame = getProjectHeroFrame(project);
+  // Hero image crop — detail page only (`heroScale` / `heroPosition`); cards use `scale` / `position`.
+  const initialHeroFrame = getProjectDetailHeroFrame(project);
   const [heroScale, setHeroScale] = useState(initialHeroFrame.scale);
   const [heroPosition, setHeroPosition] = useState(initialHeroFrame.position);
   const [isDraggingHero, setIsDraggingHero] = useState(false);
   const heroImageRef = useRef(null);
 
   useEffect(() => {
-    const frame = getProjectHeroFrame(project);
+    const frame = getProjectDetailHeroFrame(project);
     setHeroScale(frame.scale);
     setHeroPosition(frame.position);
-  }, [project.id, project.scale, project.position?.x, project.position?.y]);
+  }, [project.id, project.heroScale, project.heroPosition?.x, project.heroPosition?.y]);
   
   // Store original content when entering edit mode (for Cancel functionality)
   const [originalContent, setOriginalContent] = useState(caseStudyContent);
@@ -1707,8 +1707,11 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
       case_study_decorative_icons: caseStudyDecorativeIcons,
       caseStudySections: sanitizeGallerySectionsForPersist(gallerySectionsRef.current),
       case_study_sections: sanitizeGallerySectionsForPersist(gallerySectionsRef.current),
-      scale: heroScale,
-      position: heroPosition,
+      heroScale,
+      heroPosition,
+      hero_scale: heroScale,
+      hero_position_x: heroPosition.x,
+      hero_position_y: heroPosition.y,
     } as ProjectData;
   }, [project, caseStudyDecorativeIcons, heroScale, heroPosition]);
 
@@ -2768,8 +2771,11 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
           const updatedProject: ProjectData = {
             ...project,
             url: newImageUrl,
-            scale: newScale, // This is for the home carousel
-            position: newPosition, // This is for the home carousel
+            heroScale: newScale,
+            heroPosition: newPosition,
+            hero_scale: newScale,
+            hero_position_x: newPosition.x,
+            hero_position_y: newPosition.y,
             title: editedTitle,
             description: editedDescription,
       projectType: editedProjectType,
@@ -2788,8 +2794,8 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
             console.log('🖼️ ProjectDetail: Hero image changed, calling onUpdate with:', {
               id: updatedProject.id,
               newImageUrl: newImageUrl.substring(0, 50) + '...',
-              scale: newScale,
-              position: newPosition
+              heroScale: newScale,
+              heroPosition: newPosition,
             });
             
           // Force immediate save for hero image changes
@@ -2798,8 +2804,8 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
             id: updatedProject.id,
             title: updatedProject.title,
             url: updatedProject.url?.substring(0, 50) + '...',
-            scale: updatedProject.scale,
-            position: updatedProject.position
+            heroScale: updatedProject.heroScale,
+            heroPosition: updatedProject.heroPosition,
           });
           persistUpdate(updatedProject);
           
@@ -2931,14 +2937,17 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
     (scale: number, position: { x: number; y: number }) => {
       persistUpdate({
         ...project,
-        scale,
-        position,
+        heroScale: scale,
+        heroPosition: position,
+        hero_scale: scale,
+        hero_position_x: position.x,
+        hero_position_y: position.y,
       });
     },
     [persistUpdate, project],
   );
 
-  // Hero image positioning persists to project.scale / project.position (shared with home)
+  // Detail hero positioning persists to heroScale / heroPosition (card crop stays on scale / position)
 
   const handleHeroMouseDown = (e: any) => {
     if (!isEditingHeroImage) return;
@@ -4775,7 +4784,7 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
               src={project.url}
               alt={project.title}
               className="w-full h-full"
-              style={projectHeroImageStyle({ scale: heroScale, position: heroPosition })}
+              style={projectDetailHeroImageStyle({ scale: heroScale, position: heroPosition })}
               quality={90}
               fit="contain"
               priority={true}

@@ -26,6 +26,9 @@ export interface ProjectData {
   description: string;
   position: { x: number; y: number };
   scale: number;
+  /** Detail-page hero crop (independent from card `scale` / `position`). */
+  heroScale?: number;
+  heroPosition?: { x: number; y: number };
   published: boolean;
   requiresPassword?: boolean;
   caseStudyContent?: string;

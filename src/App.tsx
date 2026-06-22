@@ -208,6 +208,18 @@ function buildProjectUpdatePayloadForSupabase(
     position_x: sanitizedProject.position?.x || 50,
     position_y: sanitizedProject.position?.y || 50,
     scale: sanitizedProject.scale || 1,
+    hero_scale:
+      sanitizedProject.heroScale != null && Number.isFinite(sanitizedProject.heroScale)
+        ? sanitizedProject.heroScale
+        : null,
+    hero_position_x:
+      sanitizedProject.heroPosition?.x != null && Number.isFinite(sanitizedProject.heroPosition.x)
+        ? sanitizedProject.heroPosition.x
+        : null,
+    hero_position_y:
+      sanitizedProject.heroPosition?.y != null && Number.isFinite(sanitizedProject.heroPosition.y)
+        ? sanitizedProject.heroPosition.y
+        : null,
     published: sanitizedProject.published || false,
     requires_password: sanitizedProject.requiresPassword || false,
     password: (sanitizedProject as any).password || "",

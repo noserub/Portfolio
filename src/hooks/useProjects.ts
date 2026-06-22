@@ -15,6 +15,9 @@ export interface Project {
   position_x: number;
   position_y: number;
   scale: number;
+  hero_scale?: number | null;
+  hero_position_x?: number | null;
+  hero_position_y?: number | null;
   published: boolean;
   requires_password: boolean;
   password?: string;
@@ -49,6 +52,9 @@ export interface ProjectInsert {
   position_x?: number;
   position_y?: number;
   scale?: number;
+  hero_scale?: number | null;
+  hero_position_x?: number | null;
+  hero_position_y?: number | null;
   published?: boolean;
   requires_password?: boolean;
   password?: string;
@@ -82,6 +88,9 @@ export interface ProjectUpdate {
   position_x?: number;
   position_y?: number;
   scale?: number;
+  hero_scale?: number | null;
+  hero_position_x?: number | null;
+  hero_position_y?: number | null;
   published?: boolean;
   requires_password?: boolean;
   password?: string;
@@ -279,6 +288,9 @@ export function useProjectsState() {
         position_x: Math.min(95, (source.position_x ?? 50) + 3),
         position_y: Math.min(95, (source.position_y ?? 50) + 3),
         scale: source.scale,
+        hero_scale: source.hero_scale ?? null,
+        hero_position_x: source.hero_position_x ?? null,
+        hero_position_y: source.hero_position_y ?? null,
         published: false, // copies start as drafts so they aren't published accidentally
         requires_password: source.requires_password,
         password: source.password,
@@ -356,7 +368,9 @@ export function useProjectsState() {
       
       // Filter to valid DB columns only and drop undefined
       const allowedKeys: (keyof ProjectUpdate)[] = [
-        'title','description','url','position_x','position_y','scale','published','requires_password','password',
+        'title','description','url','position_x','position_y','scale',
+        'hero_scale','hero_position_x','hero_position_y',
+        'published','requires_password','password',
         'case_study_content','case_study_images','flow_diagram_images','video_items','gallery_aspect_ratio',
         'flow_diagram_aspect_ratio','video_aspect_ratio','gallery_columns','flow_diagram_columns','video_columns','key_features_columns',
         'project_images_position','videos_position','flow_diagrams_position','solution_cards_position','section_positions','sort_order','project_type',

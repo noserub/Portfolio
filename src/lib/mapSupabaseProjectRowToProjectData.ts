@@ -10,6 +10,20 @@ export function mapSupabaseProjectRowToProjectData(data: Record<string, unknown>
   return {
     ...data,
     position: { x: (data.position_x as number) || 50, y: (data.position_y as number) || 50 },
+    heroScale:
+      data.hero_scale != null && data.hero_scale !== ""
+        ? Number(data.hero_scale)
+        : undefined,
+    heroPosition:
+      data.hero_position_x != null &&
+      data.hero_position_y != null &&
+      data.hero_position_x !== "" &&
+      data.hero_position_y !== ""
+        ? {
+            x: Number(data.hero_position_x),
+            y: Number(data.hero_position_y),
+          }
+        : undefined,
     caseStudyContent: data.case_study_content as string | undefined,
     caseStudyImages: (data.case_study_images as unknown[]) || [],
     flowDiagramImages: (data.flow_diagram_images as unknown[]) || [],
@@ -45,6 +59,9 @@ export function mapSupabaseProjectRowToProjectData(data: Record<string, unknown>
     updatedAt: typeof data.updated_at === 'string' ? data.updated_at : undefined,
     position_x: undefined,
     position_y: undefined,
+    hero_scale: undefined,
+    hero_position_x: undefined,
+    hero_position_y: undefined,
     case_study_content: undefined,
     case_study_images: undefined,
     flow_diagram_images: undefined,
