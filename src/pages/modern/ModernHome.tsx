@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowRight } from "lucide-react";
 import type { ProjectData } from "../../components/ProjectImage";
 import { BioDocumentRenderer } from "../../components/HomeBioDocument";
@@ -11,6 +11,7 @@ import { useSEO } from "../../hooks/useSEO";
 import { useProjects } from "../../contexts/ProjectsContext";
 import { useModernCaseStudies, layoutCaseStudiesForGrid } from "../../lib/modernCaseStudies";
 import { defaultBioDocument, healDegenerateHeroBio } from "../../lib/homePageContent";
+import { getProjectCardFrame } from "../../lib/projectHeroFrame";
 import { usePortfolioProfileNav } from "../../hooks/usePortfolioProfileNav";
 import { modernLayout } from "../../design/modernLayout";
 import { modern, modernFont, modernPrimaryButtonStyle } from "../../design/modernTokens";
@@ -19,9 +20,19 @@ interface ModernHomeProps {
   onStartClick: () => void;
   onProjectClick: (project: ProjectData, updateCallback: (project: ProjectData) => void) => void;
   onNavigateContact: () => void;
+  isEditMode?: boolean;
+  onProjectUpdate?: (project: ProjectData) => void;
 }
 
-export function ModernHome({ onStartClick, onProjectClick, onNavigateContact }: ModernHomeProps) {
+type CropDraft = { scale: number; position: { x: number; y: number } };
+
+export function ModernHome({
+  onStartClick,
+  onProjectClick,
+  onNavigateContact,
+  isEditMode = false,
+  onProjectUpdate,
+}: ModernHomeProps) {
   useSEO("home");
   const { fullName } = usePortfolioProfileNav();
   const { homePageContent, loading: homeContentLoading } = usePublicHomePageContent();
@@ -30,6 +41,9 @@ export function ModernHome({ onStartClick, onProjectClick, onNavigateContact }: 
 
   const [filter, setFilter] = useState<string>("all");
   const userOverrideRef = useRef(false);
+  const [croppingProjectId, setCroppingProjectId] = useState<string | null>(null);
+  const [cropDraft, setCropDraft] = useState<CropDraft | null>(null);
+  const cropProjectRef = useRef<ProjectData | null>(null);
 
   const visibleFilters = useMemo(() => {
     const types = new Set<string>();
@@ -63,7 +77,58 @@ export function ModernHome({ onStartClick, onProjectClick, onNavigateContact }: 
   const bioDocument = healDegenerateHeroBio(heroText).bioDocument ?? defaultBioDocument();
 
   const handleProject = (project: ProjectData) => {
+    if (isEditMode) return;
     onProjectClick(project, () => {});
+  };
+
+  const handleEditCaseStudy = (project: ProjectData) => {
+    onProjectClick(project, () => {});
+  };
+
+  const startCrop = useCallback((project: ProjectData) => {
+    cropProjectRef.current = project;
+    setCroppingProjectId(project.id);
+    setCropDraft(getProjectCardFrame(project));
+  }, []);
+
+  const cancelCrop = useCallback(() => {
+    setCroppingProjectId(null);
+    setCropDraft(null);
+    cropProjectRef.current = null;
+  }, []);
+
+  const saveCrop = useCallback(() => {
+    const base = cropProjectRef.current;
+    if (!base || !cropDraft || !onProjectUpdate) {
+      cancelCrop();
+      return;
+    }
+    onProjectUpdate({
+      ...base,
+      scale: cropDraft.scale,
+      position: cropDraft.position,
+    });
+    cancelCrop();
+  }, [cropDraft, cancelCrop, onProjectUpdate]);
+
+  const renderCard = (project: ProjectData, layout: "regular" | "wide") => {
+    const isCropping = croppingProjectId === project.id;
+    return (
+      <ModernCaseStudyCard
+        key={project.id}
+        project={project}
+        layout={layout}
+        onClick={() => handleProject(project)}
+        isEditMode={isEditMode}
+        isCropping={isCropping}
+        cropDraft={isCropping ? cropDraft ?? undefined : undefined}
+        onStartCrop={() => startCrop(project)}
+        onCropDraftChange={isCropping ? setCropDraft : undefined}
+        onCropDone={saveCrop}
+        onCropCancel={cancelCrop}
+        onEditCaseStudy={() => handleEditCaseStudy(project)}
+      />
+    );
   };
 
   return (
@@ -194,6 +259,12 @@ export function ModernHome({ onStartClick, onProjectClick, onNavigateContact }: 
 
         <div className={`${modernLayout.sectionX} ${modernLayout.belowDividerPt} modern-case-studies-grid`}>
           <div className={modernLayout.container}>
+          {isEditMode ? (
+            <p className="modern-home-edit-hint" style={modernFont}>
+              Editing on the published layout. Use <strong>Adjust cover</strong> to crop each card image, or{" "}
+              <strong>Edit case study</strong> for full content.
+            </p>
+          ) : null}
           {projectsLoading ? (
             <p className="text-sm" style={{ color: modern.muted }}>
               Loading case studies…
@@ -204,25 +275,11 @@ export function ModernHome({ onStartClick, onProjectClick, onNavigateContact }: 
             </p>
           ) : (
             <div className={modernLayout.cardGrid}>
-              {featured ? (
-                <ModernCaseStudyCard
-                  key={featured.id}
-                  project={featured}
-                  layout="wide"
-                  onClick={() => handleProject(featured)}
-                />
-              ) : null}
+              {featured ? renderCard(featured, "wide") : null}
               {rest.map((project, i) => {
                 const isLast = i === rest.length - 1;
                 const isWide = isLast && rest.length % 2 === 1;
-                return (
-                  <ModernCaseStudyCard
-                    key={project.id}
-                    project={project}
-                    layout={isWide ? "wide" : "regular"}
-                    onClick={() => handleProject(project)}
-                  />
-                );
+                return renderCard(project, isWide ? "wide" : "regular");
               })}
             </div>
           )}

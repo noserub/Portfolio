@@ -2065,6 +2065,7 @@ function AppShell() {
               onStartClick={navigateToStart} 
               isEditMode={isEditMode}
               onProjectClick={navigateToProject}
+              onProjectUpdate={handleUpdateProject}
               currentPage={currentPage}
               onNavigateContact={navigateContact}
             />

@@ -7,6 +7,7 @@ interface HomeProps {
   onStartClick: () => void;
   isEditMode: boolean;
   onProjectClick: (project: ProjectData, updateCallback: (project: ProjectData) => void) => void;
+  onProjectUpdate?: (project: ProjectData) => void;
   currentPage: string;
   onNavigateContact: () => void;
 }
@@ -15,11 +16,13 @@ export function Home({
   onStartClick,
   isEditMode,
   onProjectClick,
+  onProjectUpdate,
   currentPage,
   onNavigateContact,
 }: HomeProps) {
-  const { effectiveVariant } = useDesignVariant();
-  const variant = effectiveVariant(isEditMode);
+  const { effectiveVariant, designVariant } = useDesignVariant();
+  // Edit on the owner's chosen design (WYSIWYG); visitors always see published variant.
+  const variant = isEditMode ? designVariant : effectiveVariant(false);
 
   if (variant === "modern") {
     return (
@@ -27,6 +30,8 @@ export function Home({
         onStartClick={onStartClick}
         onProjectClick={onProjectClick}
         onNavigateContact={onNavigateContact}
+        isEditMode={isEditMode}
+        onProjectUpdate={onProjectUpdate}
       />
     );
   }
