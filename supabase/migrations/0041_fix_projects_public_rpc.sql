@@ -1,11 +1,11 @@
--- Repeatable case study gallery sections (unified image/video galleries with custom titles)
+-- Fix get_projects_public / get_project_by_id_public after 0040 broke tuple casting.
+-- Root cause: manual (col1, col2, ...)::projects tuples drift when columns are added out of order.
+-- Use row assignment so masking stays correct regardless of column order.
+
+-- Unified galleries column (0039) may be missing if only 0040 was applied in the SQL editor.
 ALTER TABLE public.projects
   ADD COLUMN IF NOT EXISTS case_study_sections JSONB NOT NULL DEFAULT '[]'::jsonb;
 
-COMMENT ON COLUMN public.projects.case_study_sections IS
-  'Ordered gallery sections: [{ id, type: gallery, title, position, visible, gallery: { mediaMode, imageItems, videoItems, columns, aspectRatio, previewLimit } }]';
-
--- Password-gated public RPC: strip gallery section payloads for protected projects
 CREATE OR REPLACE FUNCTION public._projects_mask_for_public(p public.projects)
 RETURNS public.projects
 LANGUAGE plpgsql
