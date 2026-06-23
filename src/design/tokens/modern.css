@@ -501,14 +501,24 @@ html[data-design="modern"]:not(.dark) .modern-case-study-card__protected-badge {
   margin-bottom: 0;
 }
 
+/* Equal vertical rhythm: subhead → tiles and tiles → form */
+[data-design="modern"] {
+  --modern-contact-stack-gap: 2.5rem;
+}
+
+@media (min-width: 640px) {
+  [data-design="modern"] {
+    --modern-contact-stack-gap: 3rem;
+  }
+}
+
 [data-design="modern"] .modern-contact-blocks {
-  padding-top: 2.5rem;
+  padding-top: var(--modern-contact-stack-gap);
   padding-bottom: 5rem;
 }
 
 @media (min-width: 640px) {
   [data-design="modern"] .modern-contact-blocks {
-    padding-top: 3rem;
     padding-bottom: 6rem;
   }
 }
@@ -555,13 +565,7 @@ html[data-design="modern"]:not(.dark) .modern-case-study-card__protected-badge {
 /* Contact form — open layout (no nested card); accessible field contrast */
 [data-design="modern"] .modern-contact-form-wrap {
   max-width: 36rem;
-  margin-top: 4.5rem;
-}
-
-@media (min-width: 640px) {
-  [data-design="modern"] .modern-contact-form-wrap {
-    margin-top: 6rem;
-  }
+  margin-top: var(--modern-contact-stack-gap);
 }
 
 [data-design="modern"] .modern-contact-form__title {
