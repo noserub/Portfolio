@@ -26,6 +26,55 @@ export const DEFAULT_CONTACT_PAGE: ContactPageData = {
 };
 
 const CONTACT_STORAGE_KEY = "contactPageContent";
+const CONTACT_PAGE_CACHE_KEY = "contactPageData";
+const CONTACT_PAGE_CACHE_VERSION = 2;
+
+export function readContactPageCache(): ContactPageData | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = sessionStorage.getItem(CONTACT_PAGE_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<ContactPageData> & { v?: number };
+    if (parsed.v !== CONTACT_PAGE_CACHE_VERSION) return null;
+    if (!parsed || typeof parsed.email !== "string") return null;
+    return {
+      ...DEFAULT_CONTACT_PAGE,
+      ...parsed,
+      resumeUrl:
+        typeof parsed.resumeUrl === "string" && parsed.resumeUrl.trim()
+          ? parsed.resumeUrl.trim()
+          : null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writeContactPageCache(data: ContactPageData) {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.setItem(
+      CONTACT_PAGE_CACHE_KEY,
+      JSON.stringify({ v: CONTACT_PAGE_CACHE_VERSION, ...data }),
+    );
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Sync best-effort snapshot for hero copy only — never used to render contact tiles before hydrate. */
+export function resolveInitialContactPageData(): ContactPageData {
+  const local = readLocalContactDraft();
+  return {
+    ...DEFAULT_CONTACT_PAGE,
+    pageSubtitle: local?.pageSubtitle?.trim() || DEFAULT_CONTACT_PAGE.pageSubtitle,
+    location: local?.location?.trim() || DEFAULT_CONTACT_PAGE.location,
+    email: local?.email?.trim() || DEFAULT_CONTACT_PAGE.email,
+    linkedinUrl: local?.linkedinUrl?.trim()
+      ? normalizeLinkedInUrl(local.linkedinUrl)
+      : DEFAULT_CONTACT_PAGE.linkedinUrl,
+  };
+}
 
 export function normalizeLinkedInUrl(raw: string): string {
   const trimmed = raw.trim();
@@ -100,6 +149,7 @@ export async function fetchContactPageData(): Promise<ContactPageData> {
       data: { user },
     } = await supabase.auth.getUser();
     const ownerId = getPortfolioOwnerUserId(user?.id);
+
     const profile = await fetchOwnerContactProfile(ownerId);
 
     if (profile?.email?.trim()) {
@@ -116,8 +166,9 @@ export async function fetchContactPageData(): Promise<ContactPageData> {
       next.linkedinUrl = normalizeLinkedInUrl(local.linkedinUrl);
     }
 
-    const resumeUrl = await fetchPublishedResumeUrl();
-    if (resumeUrl) next.resumeUrl = resumeUrl;
+    const profileResume =
+      typeof profile?.resume_url === "string" ? profile.resume_url.trim() : "";
+    next.resumeUrl = profileResume || (await fetchPublishedResumeUrl()) || null;
   } catch {
     if (local?.email?.trim()) next.email = local.email.trim();
     if (local?.linkedinUrl?.trim()) next.linkedinUrl = normalizeLinkedInUrl(local.linkedinUrl);
@@ -129,6 +180,7 @@ export async function fetchContactPageData(): Promise<ContactPageData> {
     }
   }
 
+  writeContactPageCache(next);
   return next;
 }
 

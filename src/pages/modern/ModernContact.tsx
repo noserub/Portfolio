@@ -7,7 +7,6 @@ import { ModernResumeLink } from "../../components/modern/ModernResumeLink";
 import { ModernContactEditorPanel } from "../../components/contact/ModernContactEditorPanel";
 import { useContactMessages } from "../../hooks/useContactMessages";
 import { useContactPageData } from "../../hooks/useContactPageData";
-import { useAboutPageData } from "../../hooks/useAboutPageData";
 import { useSEO } from "../../hooks/useSEO";
 import { formatLinkedInDisplay } from "../../lib/contactPageContent";
 import { modernLayout } from "../../design/modernLayout";
@@ -57,12 +56,28 @@ function ContactInfoCard({
   );
 }
 
+function ContactInfoSkeleton() {
+  return (
+    <div
+      className={`${modernLayout.contactInfoGrid} modern-contact-info-grid--four`}
+      aria-busy="true"
+      aria-label="Loading contact info"
+    >
+      {Array.from({ length: 4 }).map((_, index) => (
+        <div
+          key={index}
+          className={`${modernLayout.contactCard} modern-contact-card-skeleton`}
+          style={{ background: modern.surfaceInset, minHeight: "7.5rem" }}
+        />
+      ))}
+    </div>
+  );
+}
+
 export function ModernContact({ onBack, isEditMode = false }: ModernContactProps) {
   useSEO("contact");
   const { createMessage } = useContactMessages();
-  const { data: contactPage, reload } = useContactPageData();
-  const { data: aboutPage } = useAboutPageData();
-  const resumeUrl = contactPage.resumeUrl ?? aboutPage.resumeUrl;
+  const { data: contactPage, hydrated: contactHydrated, reload } = useContactPageData();
   const [contactEditorOpen, setContactEditorOpen] = useState(false);
 
   const [formData, setFormData] = useState({ name: "", email: "", message: "" });
@@ -106,6 +121,7 @@ export function ModernContact({ onBack, isEditMode = false }: ModernContactProps
   };
 
   const linkedInDisplay = formatLinkedInDisplay(contactPage.linkedinUrl);
+  const resumeUrl = contactPage.resumeUrl;
 
   return (
     <main className="min-h-screen" style={{ background: modern.bg }}>
@@ -153,7 +169,10 @@ export function ModernContact({ onBack, isEditMode = false }: ModernContactProps
 
       <section className={`${modernLayout.sectionX} ${modernLayout.contactBlocks}`}>
         <div className={modernLayout.container}>
-          <div className={`${modernLayout.contactInfoGrid} modern-contact-info-grid--auto`}>
+          {!contactHydrated ? (
+            <ContactInfoSkeleton />
+          ) : (
+          <div className={`${modernLayout.contactInfoGrid} modern-contact-info-grid--four`}>
             <ContactInfoCard isEditMode={isEditMode} onEdit={openContactEditor}>
               <a
                 href={`mailto:${contactPage.email}`}
@@ -223,6 +242,7 @@ export function ModernContact({ onBack, isEditMode = false }: ModernContactProps
               </div>
             </ContactInfoCard>
           </div>
+          )}
 
           <div className="modern-contact-form-wrap">
             <h2 className="modern-contact-form__title">Send a message</h2>

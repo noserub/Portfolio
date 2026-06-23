@@ -1000,8 +1000,30 @@ html[data-design="modern"]:not(.dark) .modern-case-study-card__protected-badge {
 
 @media (min-width: 900px) {
   [data-design="modern"] .modern-contact-info-grid--three,
-  [data-design="modern"] .modern-contact-info-grid--auto {
+  [data-design="modern"] .modern-contact-info-grid--auto,
+  [data-design="modern"] .modern-contact-info-grid--four {
     grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  }
+}
+
+@media (min-width: 900px) {
+  [data-design="modern"] .modern-contact-info-grid--four {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+[data-design="modern"] .modern-contact-card-skeleton {
+  border-color: var(--modern-border);
+  animation: modern-contact-skeleton-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes modern-contact-skeleton-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 0.75;
   }
 }
 
