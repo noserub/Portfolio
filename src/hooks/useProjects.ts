@@ -615,10 +615,15 @@ export function useProjectsState() {
       
       await Promise.all(updatePromises);
       
-      // Update local state
+      // Update local state — must sync sort_order on each row or useModernCaseStudies re-sorts by stale values.
       setProjects(prev => {
-        const reordered = projectIds.map(id => prev.find(p => p.id === id)).filter(Boolean) as Project[];
-        const remaining = prev.filter(p => !projectIds.includes(p.id));
+        const reordered = projectIds
+          .map((id, index) => {
+            const project = prev.find((p) => p.id === id);
+            return project ? { ...project, sort_order: index } : null;
+          })
+          .filter(Boolean) as Project[];
+        const remaining = prev.filter((p) => !projectIds.includes(p.id));
         return [...reordered, ...remaining];
       });
       

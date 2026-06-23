@@ -31,6 +31,7 @@ import { useProjects } from "../../contexts/ProjectsContext";
 import {
   useModernCaseStudies,
   layoutCaseStudiesForGrid,
+  modernCaseStudyCardLayout,
   mapRowToModernProjectData,
 } from "../../lib/modernCaseStudies";
 import { defaultBioDocument, healDegenerateHeroBio, type HomePageContentV2 } from "../../lib/homePageContent";
@@ -119,6 +120,11 @@ function ModernHomeView({
     return applyTypeFilter(source);
   }, [localCaseStudiesOrder, caseStudies, applyTypeFilter]);
 
+  const orderableCaseStudies = useMemo(
+    () => localCaseStudiesOrder ?? caseStudies,
+    [localCaseStudiesOrder, caseStudies],
+  );
+
   const visibleFilters = useMemo(() => {
     if (isEditMode) return homePageContent.ui.caseStudyFilters;
     const types = new Set<string>();
@@ -160,7 +166,7 @@ function ModernHomeView({
 
   const filtered = displayList;
 
-  const { featured, rest } = useMemo(
+  const previewGrid = useMemo(
     () => layoutCaseStudiesForGrid(filtered, homePageContent.ui.featuredCaseStudyId),
     [filtered, homePageContent.ui.featuredCaseStudyId],
   );
@@ -168,7 +174,7 @@ function ModernHomeView({
   const moveCaseStudy = useCallback(
     (dragId: string, hoverId: string) => {
       setLocalCaseStudiesOrder((currentOrder) => {
-        const order = currentOrder ?? caseStudies;
+        const order = currentOrder ?? orderableCaseStudies;
         const dragIndex = order.findIndex((p) => p.id === dragId);
         const hoverIndex = order.findIndex((p) => p.id === hoverId);
         if (dragIndex === -1 || hoverIndex === -1 || dragIndex === hoverIndex) return currentOrder;
@@ -176,17 +182,18 @@ function ModernHomeView({
         const newOrder = [...order];
         const [dragged] = newOrder.splice(dragIndex, 1);
         newOrder.splice(hoverIndex, 0, dragged);
+        const withSort = newOrder.map((p, index) => ({ ...p, sortOrder: index }));
 
-        queueSave(newOrder, async (ids) => {
+        queueSave(withSort, async (ids) => {
           const ok = await reorderProjects(ids);
           if (!ok) toast.error("Could not save case study order.");
           return ok;
         });
 
-        return newOrder;
+        return withSort;
       });
     },
-    [caseStudies, queueSave, reorderProjects],
+    [orderableCaseStudies, queueSave, reorderProjects],
   );
 
   const handleSaveOrderOnDragEnd = useCallback(() => {
@@ -559,19 +566,26 @@ function ModernHomeView({
               </p>
             ) : (
               <div className={modernLayout.cardGrid}>
-                {featured
-                  ? renderCard(
-                      featured,
-                      "wide",
-                      isEditMode ? filtered.findIndex((p) => p.id === featured.id) : undefined,
+                {isEditMode
+                  ? filtered.map((project, index) =>
+                      renderCard(
+                        project,
+                        modernCaseStudyCardLayout(index, filtered.length),
+                        index,
+                      ),
                     )
-                  : null}
-                {rest.map((project, i) => {
-                  const isLast = i === rest.length - 1;
-                  const isWide = isLast && rest.length % 2 === 1;
-                  const flatIndex = isEditMode ? filtered.findIndex((p) => p.id === project.id) : undefined;
-                  return renderCard(project, isWide ? "wide" : "regular", flatIndex);
-                })}
+                  : (
+                    <>
+                      {previewGrid.featured
+                        ? renderCard(previewGrid.featured, "wide")
+                        : null}
+                      {previewGrid.rest.map((project, i) => {
+                        const isLast = i === previewGrid.rest.length - 1;
+                        const isWide = isLast && previewGrid.rest.length % 2 === 1;
+                        return renderCard(project, isWide ? "wide" : "regular");
+                      })}
+                    </>
+                  )}
                 {isEditMode ? (
                   <button
                     type="button"
