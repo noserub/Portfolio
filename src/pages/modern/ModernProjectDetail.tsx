@@ -8,6 +8,7 @@ interface ModernProjectDetailProps {
   onBack: () => void;
   onUpdate: (project: ProjectData) => void;
   isEditMode: boolean;
+  onProjectDuplicated?: (copy: ProjectData) => void;
 }
 
 /** Reuses classic case study CMS body; modern editorial chrome via CSS + layout tokens. */

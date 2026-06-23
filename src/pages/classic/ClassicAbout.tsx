@@ -838,6 +838,29 @@ export function ClassicAbout({ onBack, onHoverChange, isEditMode }: AboutProps) 
     setEditedItems([]);
   };
 
+  const handleAddHighlight = () => {
+    const newIndex = highlights.length;
+    setHighlights([...highlights, { title: "New highlight", text: "" }]);
+    setEditingSection(`highlight-${newIndex}`);
+    setEditedCardTitle("New highlight");
+    setEditedCardText("");
+  };
+
+  const handleRemoveHighlight = (index: number) => {
+    setHighlights(highlights.filter((_, i) => i !== index));
+    setExpandedHighlights((prev) => {
+      const newSet = new Set<number>();
+      prev.forEach((i) => {
+        if (i < index) newSet.add(i);
+        else if (i > index) newSet.add(i - 1);
+      });
+      return newSet;
+    });
+    if (editingSection === `highlight-${index}`) {
+      handleCancelCard();
+    }
+  };
+
   const toggleAICard = (index: number) => {
     const newExpanded = new Set(expandedAICards);
     if (newExpanded.has(index)) {
@@ -1884,14 +1907,23 @@ export function ClassicAbout({ onBack, onHoverChange, isEditMode }: AboutProps) 
                         )}
                       </div>
                       {isEditMode && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleEditCard('highlight', idx, item)}
-                          className="flex-shrink-0"
-                        >
-                          <Edit2 className="w-3 h-3" />
-                        </Button>
+                        <div className="flex flex-shrink-0 gap-1">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleEditCard('highlight', idx, item)}
+                          >
+                            <Edit2 className="w-3 h-3" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleRemoveHighlight(idx)}
+                            disabled={highlights.length <= 1}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
                       )}
                     </div>
                   )}
@@ -1899,6 +1931,13 @@ export function ClassicAbout({ onBack, onHoverChange, isEditMode }: AboutProps) 
                 );
               })}
             </div>
+            {isEditMode && (
+              <div className="mt-6">
+                <Button size="sm" variant="outline" onClick={handleAddHighlight}>
+                  + Add card
+                </Button>
+              </div>
+            )}
           </div>
           </motion.div>
         </motion.div>

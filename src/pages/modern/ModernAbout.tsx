@@ -4,6 +4,7 @@ import { ModernResumeLink } from "../../components/modern/ModernResumeLink";
 import { useAboutPageData, DEFAULT_ABOUT_HEADLINE, DEFAULT_ABOUT_LEAD } from "../../hooks/useAboutPageData";
 import { useSEO } from "../../hooks/useSEO";
 import { stripHtmlForDisplay } from "../../lib/modernCaseStudies";
+import { MarkdownRenderer } from "../../components/MarkdownRenderer";
 import { modernLayout } from "../../design/modernLayout";
 import { MODERN_ABOUT_HIGHLIGHTS } from "../../design/modernAboutContent";
 import { modern, modernFont, modernPrimaryButtonStyle } from "../../design/modernTokens";
@@ -43,7 +44,7 @@ export function ModernAbout({ onNavigateContact }: ModernAboutProps) {
               className="text-xs uppercase tracking-widest mb-8"
               style={{ ...modernFont, fontWeight: 600, color: modern.accent }}
             >
-              Superpowers
+              {data.superPowersTitle}
             </h2>
             <div className="space-y-3">
               {data.superPowers.map((power, i) => (
@@ -60,17 +61,19 @@ export function ModernAbout({ onNavigateContact }: ModernAboutProps) {
           </div>
         </section>
       ) : null,
-    highlights: () => (
+    highlights: () => {
+      const highlights = data.highlights.length > 0 ? data.highlights : MODERN_ABOUT_HIGHLIGHTS;
+      return highlights.length > 0 ? (
         <section key="highlights" className={`${modernLayout.sectionX} ${modernLayout.aboutSection}`}>
           <div className={modernLayout.container}>
             <h2
               className="text-xs uppercase tracking-widest mb-8"
               style={{ ...modernFont, fontWeight: 600, color: modern.accent }}
             >
-              Highlights
+              {data.highlightsTitle}
             </h2>
             <div className={modernLayout.aboutCardGrid3}>
-              {MODERN_ABOUT_HIGHLIGHTS.map((h) => (
+              {highlights.map((h) => (
                 <div key={h.title} className={modernLayout.aboutInlineCard}>
                   <div
                     className="mb-3 text-[10px] uppercase tracking-widest"
@@ -78,15 +81,16 @@ export function ModernAbout({ onNavigateContact }: ModernAboutProps) {
                   >
                     {h.title}
                   </div>
-                  <p className="text-sm leading-relaxed" style={{ ...modernFont, color: modern.muted }}>
-                    {h.text}
-                  </p>
+                  <div className="text-sm leading-relaxed" style={{ ...modernFont, color: modern.muted }}>
+                    <MarkdownRenderer content={h.text} variant="compact" />
+                  </div>
                 </div>
               ))}
             </div>
           </div>
         </section>
-      ),
+      ) : null;
+    },
     expertise: () =>
       data.expertiseItems.length > 0 ? (
         <section key="expertise" className={`${modernLayout.sectionX} ${modernLayout.aboutSection}`}>
@@ -95,7 +99,7 @@ export function ModernAbout({ onNavigateContact }: ModernAboutProps) {
               className="text-xs uppercase tracking-widest mb-8"
               style={{ ...modernFont, fontWeight: 600, color: modern.accent }}
             >
-              Expertise
+              {data.expertiseTitle}
             </h2>
             <div className={`${modernLayout.aboutCardGrid2} lg-cols-3`}>
               {data.expertiseItems.map((ex) => (
@@ -120,7 +124,7 @@ export function ModernAbout({ onNavigateContact }: ModernAboutProps) {
               className="text-xs uppercase tracking-widest mb-8"
               style={{ ...modernFont, fontWeight: 600, color: modern.accent }}
             >
-              How I use AI
+              {data.howIUseAITitle}
             </h2>
             <div className={modernLayout.aboutCardGrid3}>
               {data.howIUseAIItems.slice(0, 3).map((m, i) => (
@@ -150,7 +154,7 @@ export function ModernAbout({ onNavigateContact }: ModernAboutProps) {
             className="text-xs uppercase tracking-widest mb-8"
             style={{ ...modernFont, fontWeight: 600, color: modern.accent }}
           >
-            Tools &amp; stack
+            {data.toolsTitle}
           </h2>
           <div className={modernLayout.aboutCardGrid2}>
             {data.toolsCategories.map((cat) => (

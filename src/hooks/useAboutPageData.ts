@@ -38,13 +38,31 @@ export interface AboutPageData {
   heroLead: string;
   bioParagraph1: string;
   bioParagraph2: string;
+  superPowersTitle: string;
   superPowers: string[];
+  highlightsTitle: string;
   highlights: AboutHighlight[];
+  expertiseTitle: string;
   expertiseItems: AboutExpertiseItem[];
+  howIUseAITitle: string;
   howIUseAIItems: AboutHowIUseAiItem[];
+  toolsTitle: string;
   toolsCategories: AboutToolsCategory[];
   sectionOrder: string[];
   resumeUrl: string | null;
+}
+
+/** Default section headings used when the CMS leaves a title blank. */
+export const DEFAULT_ABOUT_SECTION_TITLES = {
+  superPowers: "Leadership strengths",
+  highlights: "Highlights",
+  expertise: "Expertise",
+  howIUseAI: "How I use AI",
+  tools: "Tools & stack",
+} as const;
+
+function resolveTitle(raw: unknown, fallback: string): string {
+  return typeof raw === "string" && raw.trim() ? raw.trim() : fallback;
 }
 
 const defaults: AboutPageData = {
@@ -52,10 +70,15 @@ const defaults: AboutPageData = {
   heroLead: DEFAULT_ABOUT_LEAD,
   bioParagraph1: "",
   bioParagraph2: "",
+  superPowersTitle: DEFAULT_ABOUT_SECTION_TITLES.superPowers,
   superPowers: [],
+  highlightsTitle: DEFAULT_ABOUT_SECTION_TITLES.highlights,
   highlights: [],
+  expertiseTitle: DEFAULT_ABOUT_SECTION_TITLES.expertise,
   expertiseItems: [],
+  howIUseAITitle: DEFAULT_ABOUT_SECTION_TITLES.howIUseAI,
   howIUseAIItems: [],
+  toolsTitle: DEFAULT_ABOUT_SECTION_TITLES.tools,
   toolsCategories: [],
   sectionOrder: [
     "superPowers",
@@ -95,12 +118,17 @@ function mapProfileToAboutPageData(profile: AboutProfileRow): AboutPageData {
     heroLead: resolved.heroLead,
     bioParagraph1: resolved.bioParagraph1,
     bioParagraph2: resolved.bioParagraph2,
+    superPowersTitle: resolveTitle(profile.super_powers_title, DEFAULT_ABOUT_SECTION_TITLES.superPowers),
     superPowers: Array.isArray(profile.super_powers) ? profile.super_powers : [],
+    highlightsTitle: resolveTitle(profile.highlights_title, DEFAULT_ABOUT_SECTION_TITLES.highlights),
     highlights: Array.isArray(profile.highlights) ? profile.highlights : [],
+    expertiseTitle: resolveTitle(profile.expertise_title, DEFAULT_ABOUT_SECTION_TITLES.expertise),
     expertiseItems: Array.isArray(profile.expertise_items) ? profile.expertise_items : [],
+    howIUseAITitle: resolveTitle(profile.how_i_use_ai_title, DEFAULT_ABOUT_SECTION_TITLES.howIUseAI),
     howIUseAIItems: Array.isArray(profile.how_i_use_ai_items)
       ? profile.how_i_use_ai_items
       : [],
+    toolsTitle: resolveTitle(profile.tools_title, DEFAULT_ABOUT_SECTION_TITLES.tools),
     toolsCategories,
     sectionOrder:
       Array.isArray(profile.section_order) && profile.section_order.length > 0

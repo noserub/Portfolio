@@ -8,9 +8,10 @@ interface ProjectDetailProps {
   onBack: () => void;
   onUpdate: (project: ProjectData) => void;
   isEditMode: boolean;
+  onProjectDuplicated?: (copy: ProjectData) => void;
 }
 
-export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: ProjectDetailProps) {
+export function ProjectDetail({ project, onBack, onUpdate, isEditMode, onProjectDuplicated }: ProjectDetailProps) {
   const { effectiveVariant } = useDesignVariant();
   const variant = effectiveVariant(isEditMode);
 
@@ -21,6 +22,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
         onBack={onBack}
         onUpdate={onUpdate}
         isEditMode={isEditMode}
+        onProjectDuplicated={onProjectDuplicated}
       />
     );
   }
@@ -31,6 +33,7 @@ export function ProjectDetail({ project, onBack, onUpdate, isEditMode }: Project
       onBack={onBack}
       onUpdate={onUpdate}
       isEditMode={isEditMode}
+      onProjectDuplicated={onProjectDuplicated}
     />
   );
 }

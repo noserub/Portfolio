@@ -7,7 +7,7 @@ export const DEFAULT_ABOUT_LEAD =
   "I align executives, product, and engineering on strategy, then drive the work from research and design systems through prototypes and production-ready code.";
 
 const ABOUT_PROFILE_SELECT_BASE =
-  "bio_paragraph_1, bio_paragraph_2, super_powers, highlights, expertise_items, how_i_use_ai_items, tools_categories, section_order, resume_url, updated_at";
+  "bio_paragraph_1, bio_paragraph_2, super_powers_title, super_powers, highlights_title, highlights, expertise_title, expertise_items, how_i_use_ai_title, how_i_use_ai_items, tools_title, tools_categories, section_order, resume_url, updated_at";
 
 const ABOUT_PROFILE_SELECT_WITH_HERO =
   `about_hero_headline, about_hero_lead, ${ABOUT_PROFILE_SELECT_BASE}`;
@@ -28,10 +28,15 @@ export type AboutProfileRow = {
   about_hero_lead?: string | null;
   bio_paragraph_1?: string | null;
   bio_paragraph_2?: string | null;
+  super_powers_title?: string | null;
   super_powers?: unknown;
+  highlights_title?: string | null;
   highlights?: unknown;
+  expertise_title?: string | null;
   expertise_items?: unknown;
+  how_i_use_ai_title?: string | null;
   how_i_use_ai_items?: unknown;
+  tools_title?: string | null;
   tools_categories?: unknown;
   section_order?: unknown;
   resume_url?: string | null;
@@ -220,10 +225,25 @@ export function mergeDevAboutLocalStorageDraft(
       bio_paragraph_2:
         (typeof draft.bio_paragraph_2 === "string" ? draft.bio_paragraph_2 : profile?.bio_paragraph_2) ??
         null,
+      super_powers_title:
+        (typeof draft.super_powers_title === "string" ? draft.super_powers_title : profile?.super_powers_title) ??
+        null,
       super_powers: draft.super_powers ?? profile?.super_powers,
+      highlights_title:
+        (typeof draft.highlights_title === "string" ? draft.highlights_title : profile?.highlights_title) ??
+        null,
       highlights: draft.highlights ?? profile?.highlights,
+      expertise_title:
+        (typeof draft.expertise_title === "string" ? draft.expertise_title : profile?.expertise_title) ??
+        null,
       expertise_items: draft.expertise_items ?? profile?.expertise_items,
+      how_i_use_ai_title:
+        (typeof draft.how_i_use_ai_title === "string" ? draft.how_i_use_ai_title : profile?.how_i_use_ai_title) ??
+        null,
       how_i_use_ai_items: draft.how_i_use_ai_items ?? profile?.how_i_use_ai_items,
+      tools_title:
+        (typeof draft.tools_title === "string" ? draft.tools_title : profile?.tools_title) ??
+        null,
       tools_categories: draft.tools_categories ?? profile?.tools_categories,
       section_order: draft.section_order ?? profile?.section_order,
       resume_url:

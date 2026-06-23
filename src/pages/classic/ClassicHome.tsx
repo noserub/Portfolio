@@ -99,6 +99,7 @@ interface DraggableProjectItemProps {
   onUpdate: (project: ProjectData, skipRefetch?: boolean) => void;
   onReplace: (file: File) => void;
   onDelete?: () => void;
+  onDuplicate?: () => void;
   onNavigate?: () => void;
   key?: string | number;
 }
@@ -113,6 +114,7 @@ function DraggableProjectItem({
   onUpdate,
   onReplace,
   onDelete,
+  onDuplicate,
   onNavigate,
 }: DraggableProjectItemProps) {
   const ref = useRef(null);
@@ -231,6 +233,7 @@ function DraggableProjectItem({
         onReplace={onReplace}
         onNavigate={onNavigate}
         onDelete={onDelete}
+        onDuplicate={onDuplicate}
         priority={index < 6}
       />
     </motion.div>
@@ -848,7 +851,7 @@ export function ClassicHome({ onStartClick, isEditMode, onProjectClick, currentP
   // Deployment successful - debug indicators removed
   
   // Supabase projects hook
-  const { projects, loading, createProject, updateProject, deleteProject, reorderProjects, refetch } = useProjects();
+  const { projects, loading, createProject, duplicateProject, updateProject, deleteProject, reorderProjects, refetch } = useProjects();
   
   const { isSupabaseAuthenticated } = useSiteAuth();
 
@@ -2918,6 +2921,23 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     setDeleteConfirmation({ projectId, projectTitle, type });
   };
 
+  const handleDuplicateProject = useCallback(async (projectId: string) => {
+    try {
+      const duplicated = await duplicateProject(projectId);
+      if (duplicated) {
+        console.log('✅ Project duplicated:', duplicated.id);
+        setLocalCaseStudiesOrder(null);
+        toast.success(`Created draft copy: "${duplicated.title}"`);
+      } else {
+        console.error('❌ Failed to duplicate project');
+        toast.error('Could not duplicate case study. Sign in and try again.');
+      }
+    } catch (error) {
+      console.error('❌ Error duplicating project:', error);
+      toast.error('Could not duplicate case study. Please try again.');
+    }
+  }, [duplicateProject]);
+
   const confirmDelete = async () => {
     if (!deleteConfirmation) return;
     
@@ -4246,6 +4266,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                       onUpdate={(p: ProjectData, skipRefetch?: boolean) => handleUpdateProject(p, 'caseStudies', skipRefetch)}
                       onReplace={(file: File) => handleReplaceImage(project.id, file, 'caseStudies')}
                       onDelete={isEditMode ? () => handleDeleteProject(project.id, project.title, 'caseStudies') : undefined}
+                      onDuplicate={isEditMode ? () => handleDuplicateProject(project.id) : undefined}
                       onNavigate={() => handleNavigateToProject(project, 'caseStudies')}
                     />
                   ))}
