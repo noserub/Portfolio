@@ -184,82 +184,83 @@ export function ModernContact({ onBack }: ModernContactProps) {
               </div>
             </div>
           </div>
-        </div>
-      </section>
 
-      <section className={`${modernLayout.sectionX} pb-20 sm:pb-24`}>
-        <div className={modernLayout.container}>
-          <div className="rounded-xl border p-8" style={{ borderColor: modern.border, background: modern.surface }}>
-            <h2 className="text-lg font-semibold mb-6" style={{ color: modern.text }}>
-              Send a message
-            </h2>
+          <div className="modern-contact-form-wrap mt-12 sm:mt-14">
+            <h2 className="modern-contact-form__title">Send a message</h2>
             {isSubmitted ? (
               <div className="modern-form-success flex items-center gap-3 py-8 px-4 rounded-lg" role="status">
                 <CheckCircle className="w-6 h-6 shrink-0 modern-form-success__icon" aria-hidden />
                 <p style={modernFont}>Thanks! Your message has been sent.</p>
               </div>
             ) : (
-              <form onSubmit={handleSubmit} className="space-y-5">
-                <div>
-                  <label htmlFor="name" className="block text-sm mb-2" style={{ color: modern.muted }}>
+              <form onSubmit={handleSubmit} className="modern-contact-form" noValidate>
+                <div className="modern-contact-field">
+                  <label htmlFor="contact-name" className="modern-contact-label">
                     Name
                   </label>
                   <Input
-                    id="name"
+                    id="contact-name"
                     name="name"
+                    autoComplete="name"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="Your name"
                     required
-                    className="border-[var(--modern-border)]"
-                    style={{ background: modern.bg, color: modern.text }}
+                    disabled={isSubmitting}
+                    className="modern-contact-input"
                   />
                 </div>
-                <div>
-                  <label htmlFor="email" className="block text-sm mb-2" style={{ color: modern.muted }}>
+                <div className="modern-contact-field">
+                  <label htmlFor="contact-email" className="modern-contact-label">
                     Email
                   </label>
                   <Input
-                    id="email"
+                    id="contact-email"
                     name="email"
                     type="email"
+                    autoComplete="email"
+                    inputMode="email"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    placeholder="you@example.com"
                     required
-                    className="border-[var(--modern-border)]"
-                    style={{ background: modern.bg, color: modern.text }}
+                    disabled={isSubmitting}
+                    className="modern-contact-input"
                   />
                 </div>
-                <div>
-                  <label htmlFor="message" className="block text-sm mb-2" style={{ color: modern.muted }}>
+                <div className="modern-contact-field">
+                  <label htmlFor="contact-message" className="modern-contact-label">
                     Message
                   </label>
                   <Textarea
-                    id="message"
+                    id="contact-message"
                     name="message"
                     value={formData.message}
                     onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                    placeholder="Tell me about your project or question…"
                     required
-                    rows={5}
-                    className="border-[var(--modern-border)]"
-                    style={{ background: modern.bg, color: modern.text }}
+                    rows={6}
+                    disabled={isSubmitting}
+                    className="modern-contact-input"
                   />
                 </div>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="modern-btn-primary disabled:opacity-60"
+                  className="modern-btn-primary modern-contact-form__submit disabled:opacity-60"
                   style={modernPrimaryButtonStyle}
                 >
-                  <Send className="w-4 h-4" />
+                  <Send className="w-4 h-4" aria-hidden />
                   {isSubmitting ? "Sending…" : "Send message"}
                 </button>
               </form>
             )}
           </div>
+
           <button
             type="button"
             onClick={onBack}
-            className="mt-8 text-sm hover:opacity-80"
+            className="mt-10 text-sm hover:opacity-80"
             style={{ ...modernFont, color: modern.muted }}
           >
             ← Back to home
