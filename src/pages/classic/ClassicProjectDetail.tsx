@@ -44,6 +44,12 @@ import { useProjects } from "../../contexts/ProjectsContext";
 import { mapSupabaseProjectRowToProjectData } from "../../lib/mapSupabaseProjectRowToProjectData";
 import { MediaGallerySection } from "../../components/MediaGallerySection";
 import {
+  applyLayoutToGallerySections,
+  deriveGalleryPositionsFromLayout,
+  SOLUTION_CARDS_LAYOUT_KEY,
+  swapLayoutKeys,
+} from "../../lib/caseStudyLayout";
+import {
   createGallerySection,
   getNextGalleryPosition,
   resolveGallerySections,
@@ -53,7 +59,6 @@ import {
 import type { CaseStudyGallerySection } from "../../types/caseStudySections";
 import {
   filterGallerySectionsForDisplay,
-  parseGallerySectionKey,
   sanitizeGallerySectionsForPersist,
 } from "../../types/caseStudySections";
 import { gallerySectionKey } from "../../types/caseStudySections";
@@ -1258,98 +1263,35 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
     (
       sectionId: string,
       direction: 'up' | 'down',
-      renderedIndex?: number,
-      targetKey?: string,
-      renderedTotal?: number,
+      layoutKeys: string[],
+      currentIndex: number,
     ) => {
-      const sorted = sortGallerySections(gallerySectionsRef.current);
-      const index = sorted.findIndex((s) => s.id === sectionId);
-      if (index === -1) return;
+      const nextLayout = swapLayoutKeys(layoutKeys, currentIndex, direction);
+      if (!nextLayout) return;
 
-      const moving = sorted[index];
-      const totalRenderedItems =
-        typeof renderedTotal === 'number' && Number.isFinite(renderedTotal)
-          ? renderedTotal
-          : sorted.filter((s) => s.visible).length;
-      const baseItemCount = Math.max(
-        0,
-        totalRenderedItems -
-          sorted.filter((s) => s.visible).length -
-          (solutionCardsPosition != null ? 1 : 0),
-      );
-      const maxRenderedIndex = Math.max(0, totalRenderedItems - 1);
-      const currentRenderedIndex =
-        typeof renderedIndex === 'number' && Number.isFinite(renderedIndex)
-          ? Math.min(Math.max(0, renderedIndex), maxRenderedIndex)
-          : Math.min(Math.max(0, moving.position), maxRenderedIndex);
-      const targetRenderedIndex =
-        direction === 'up' ? currentRenderedIndex - 1 : currentRenderedIndex + 1;
+      const { galleryPositions, solutionCardsPosition: layoutSolutionCardsPosition } =
+        deriveGalleryPositionsFromLayout(nextLayout);
 
-      if (targetRenderedIndex < 0 || targetRenderedIndex > maxRenderedIndex) return;
+      const nextSections = applyLayoutToGallerySections(gallerySectionsRef.current, nextLayout);
 
-      const targetGalleryId = targetKey ? parseGallerySectionKey(targetKey) : null;
-      const targetGallery = targetGalleryId
-        ? sorted.find((s) => s.id === targetGalleryId)
-        : undefined;
-      const currentSolutionCardsPosition = solutionCardsPosition ?? undefined;
-      const movingInsertPos = Math.min(Math.max(0, moving.position), baseItemCount);
-
-      const finalIndexForInsertPos = (insertPos: number, otherInsertPositions: number[]) => {
-        const clamped = Math.min(Math.max(0, insertPos), baseItemCount);
-        const lowerOrEqualInsertions = otherInsertPositions.filter((pos) => pos <= clamped).length;
-        return clamped + lowerOrEqualInsertions;
-      };
-
-      const storedPositionForRenderedIndex = (
-        desiredRenderedIndex: number,
-        otherInsertPositions: number[],
-      ) => {
-        let bestPos = Math.min(Math.max(0, desiredRenderedIndex), baseItemCount);
-        let bestDistance = Number.POSITIVE_INFINITY;
-
-        for (let pos = 0; pos <= baseItemCount; pos += 1) {
-          const finalIndex = finalIndexForInsertPos(pos, otherInsertPositions);
-          const distance = Math.abs(finalIndex - desiredRenderedIndex);
-          if (distance < bestDistance) {
-            bestDistance = distance;
-            bestPos = pos;
-          }
-          if (distance === 0) break;
-        }
-
-        return bestPos;
-      };
-
-      const otherInsertPositions = sorted
-        .filter((s) => s.id !== moving.id && s.visible)
-        .map((s) => Math.min(Math.max(0, s.position), baseItemCount));
-
-      if (currentSolutionCardsPosition != null) {
-        otherInsertPositions.push(Math.min(Math.max(0, currentSolutionCardsPosition), baseItemCount));
+      const overrides: Partial<Pick<ProjectData, 'solutionCardsPosition'>> = {};
+      if (
+        layoutKeys.includes(SOLUTION_CARDS_LAYOUT_KEY) &&
+        layoutSolutionCardsPosition != null
+      ) {
+        overrides.solutionCardsPosition = layoutSolutionCardsPosition;
+        setSolutionCardsPosition(layoutSolutionCardsPosition);
       }
 
-      const nextMovingPosition = storedPositionForRenderedIndex(
-        targetRenderedIndex,
-        otherInsertPositions,
-      );
+      // Ensure every visible gallery received a position from the layout pass.
+      const withPositions = nextSections.map((section) => ({
+        ...section,
+        position: galleryPositions.get(section.id) ?? section.position,
+      }));
 
-      let nextSolutionCardsPosition = solutionCardsPosition;
-      if (targetKey === '__SOLUTION_CARDS__' && solutionCardsPosition != null) {
-        nextSolutionCardsPosition = movingInsertPos;
-        setSolutionCardsPosition(nextSolutionCardsPosition);
-      }
-
-      const next = sorted.map((s) => {
-        if (s.id === moving.id) return { ...s, position: nextMovingPosition };
-        if (targetGallery && s.id === targetGallery.id) {
-          return { ...s, position: movingInsertPos };
-        }
-        return s;
-      });
-
-      persistGallerySections(next, { solutionCardsPosition: nextSolutionCardsPosition ?? undefined });
+      persistGallerySections(withPositions, overrides);
     },
-    [persistGallerySections, solutionCardsPosition],
+    [persistGallerySections],
   );
 
   // Add sections after project creation (for Custom/blank or any project)

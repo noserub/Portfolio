@@ -93,9 +93,8 @@ interface CaseStudySectionsProps {
   onMoveUnifiedGallery?: (
     sectionId: string,
     direction: 'up' | 'down',
-    renderedIndex?: number,
-    targetKey?: string,
-    renderedTotal?: number,
+    layoutKeys: string[],
+    currentIndex: number,
   ) => void;
   onRemoveUnifiedGallery?: (sectionId: string) => void;
 }
@@ -1754,16 +1753,30 @@ export function CaseStudySections({
   }> = [];
 
   if (useUnifiedGalleries) {
+    const galleriesByPos = new Map<number, CaseStudyGallerySection[]>();
     for (const gallerySection of visibleUnifiedGalleries) {
-      insertions.push({
-        pos: clampInsertPos(gallerySection.position),
-        item: {
-          title: gallerySectionKey(gallerySection.id),
-          content: "",
-          type: "gallery" as const,
-          position: clampInsertPos(gallerySection.position),
-        },
-      });
+      const pos = clampInsertPos(gallerySection.position);
+      const bucket = galleriesByPos.get(pos) ?? [];
+      bucket.push(gallerySection);
+      galleriesByPos.set(pos, bucket);
+    }
+
+    const sortedPositions = [...galleriesByPos.keys()].sort((a, b) => b - a);
+    for (const pos of sortedPositions) {
+      const galleriesAtPos = galleriesByPos.get(pos) ?? [];
+      // Insert in reverse so the first gallery in layout stays first after equal-position splices.
+      for (let i = galleriesAtPos.length - 1; i >= 0; i -= 1) {
+        const gallerySection = galleriesAtPos[i];
+        insertions.push({
+          pos,
+          item: {
+            title: gallerySectionKey(gallerySection.id),
+            content: "",
+            type: "gallery" as const,
+            position: pos,
+          },
+        });
+      }
     }
   } else {
   if (imageGallerySlot) {
@@ -1862,8 +1875,7 @@ export function CaseStudySections({
         if (unifiedGalleryId && renderUnifiedGallery) {
           const gallerySection = visibleUnifiedGalleries.find((g) => g.id === unifiedGalleryId);
           if (!gallerySection) return null;
-          const targetUpKey = sectionsWithInserts[index - 1]?.title;
-          const targetDownKey = sectionsWithInserts[index + 1]?.title;
+          const layoutKeys = sectionsWithInserts.map((item) => item.title);
           return (
             <div key={section.title} className="relative">
               {isEditMode && onMoveUnifiedGallery && (
@@ -1876,15 +1888,7 @@ export function CaseStudySections({
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={() =>
-                        onMoveUnifiedGallery(
-                          unifiedGalleryId,
-                          'up',
-                          index,
-                          targetUpKey,
-                          sectionsWithInserts.length,
-                        )
-                      }
+                      onClick={() => onMoveUnifiedGallery(unifiedGalleryId, 'up', layoutKeys, index)}
                       disabled={index <= 0}
                       className="rounded-full p-2"
                       title="Move gallery up"
@@ -1894,15 +1898,7 @@ export function CaseStudySections({
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={() =>
-                        onMoveUnifiedGallery(
-                          unifiedGalleryId,
-                          'down',
-                          index,
-                          targetDownKey,
-                          sectionsWithInserts.length,
-                        )
-                      }
+                      onClick={() => onMoveUnifiedGallery(unifiedGalleryId, 'down', layoutKeys, index)}
                       disabled={index >= sectionsWithInserts.length - 1}
                       className="rounded-full p-2"
                       title="Move gallery down"
