@@ -95,6 +95,7 @@ interface CaseStudySectionsProps {
     direction: 'up' | 'down',
     renderedIndex?: number,
     targetKey?: string,
+    renderedTotal?: number,
   ) => void;
   onRemoveUnifiedGallery?: (sectionId: string) => void;
 }
@@ -1875,7 +1876,15 @@ export function CaseStudySections({
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={() => onMoveUnifiedGallery(unifiedGalleryId, 'up', index, targetUpKey)}
+                      onClick={() =>
+                        onMoveUnifiedGallery(
+                          unifiedGalleryId,
+                          'up',
+                          index,
+                          targetUpKey,
+                          sectionsWithInserts.length,
+                        )
+                      }
                       disabled={index <= 0}
                       className="rounded-full p-2"
                       title="Move gallery up"
@@ -1885,7 +1894,15 @@ export function CaseStudySections({
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={() => onMoveUnifiedGallery(unifiedGalleryId, 'down', index, targetDownKey)}
+                      onClick={() =>
+                        onMoveUnifiedGallery(
+                          unifiedGalleryId,
+                          'down',
+                          index,
+                          targetDownKey,
+                          sectionsWithInserts.length,
+                        )
+                      }
                       disabled={index >= sectionsWithInserts.length - 1}
                       className="rounded-full p-2"
                       title="Move gallery down"

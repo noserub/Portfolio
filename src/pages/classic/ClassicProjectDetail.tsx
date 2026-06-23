@@ -1255,19 +1255,29 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
   );
 
   const handleMoveUnifiedGallery = useCallback(
-    (sectionId: string, direction: 'up' | 'down', renderedIndex?: number, targetKey?: string) => {
+    (
+      sectionId: string,
+      direction: 'up' | 'down',
+      renderedIndex?: number,
+      targetKey?: string,
+      renderedTotal?: number,
+    ) => {
       const sorted = sortGallerySections(gallerySectionsRef.current);
       const index = sorted.findIndex((s) => s.id === sectionId);
       if (index === -1) return;
 
       const moving = sorted[index];
+      const totalRenderedItems =
+        typeof renderedTotal === 'number' && Number.isFinite(renderedTotal)
+          ? renderedTotal
+          : sorted.filter((s) => s.visible).length;
       const baseItemCount = Math.max(
         0,
-        totalSections -
+        totalRenderedItems -
           sorted.filter((s) => s.visible).length -
           (solutionCardsPosition != null ? 1 : 0),
       );
-      const maxRenderedIndex = Math.max(0, totalSections - 1);
+      const maxRenderedIndex = Math.max(0, totalRenderedItems - 1);
       const currentRenderedIndex =
         typeof renderedIndex === 'number' && Number.isFinite(renderedIndex)
           ? Math.min(Math.max(0, renderedIndex), maxRenderedIndex)
@@ -1339,7 +1349,7 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
 
       persistGallerySections(next, { solutionCardsPosition: nextSolutionCardsPosition ?? undefined });
     },
-    [persistGallerySections, solutionCardsPosition, totalSections],
+    [persistGallerySections, solutionCardsPosition],
   );
 
   // Add sections after project creation (for Custom/blank or any project)
