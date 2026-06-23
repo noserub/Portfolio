@@ -1,6 +1,7 @@
 import {
   Suspense,
   useCallback,
+  useMemo,
   useRef,
   useState,
   type Dispatch,
@@ -228,6 +229,22 @@ export function ModernHomeHeroEditorPanel({
   const bioDocumentForUi =
     healDegenerateHeroBio(heroText).bioDocument ?? defaultBioDocument();
 
+  const defaultFilterSelectValue = useMemo(() => {
+    const df = homePageContent.ui.defaultCaseStudyFilter;
+    if (df === "all") return "__all__";
+    if (CASE_STUDY_FILTER_TYPE_IDS.includes(df as (typeof CASE_STUDY_FILTER_TYPE_IDS)[number])) {
+      return df;
+    }
+    return "__all__";
+  }, [homePageContent.ui.defaultCaseStudyFilter]);
+
+  const featuredSelectValue = useMemo(() => {
+    const id = homePageContent.ui.featuredCaseStudyId;
+    if (!id) return "__default__";
+    if (caseStudies.some((p) => p.id === id)) return id;
+    return "__default__";
+  }, [homePageContent.ui.featuredCaseStudyId, caseStudies]);
+
   return (
     <ModernEditorShell
       open={open}
@@ -445,19 +462,31 @@ export function ModernHomeHeroEditorPanel({
               hint="Which chip is selected when visitors first land on the home page."
             >
               <Select
-                value={homePageContent.ui.defaultCaseStudyFilter}
-                onValueChange={(v) => patchUi({ defaultCaseStudyFilter: v as DefaultCaseStudyFilter })}
+                value={defaultFilterSelectValue}
+                onValueChange={(v) =>
+                  patchUi({
+                    defaultCaseStudyFilter:
+                      v === "__all__" ? "all" : (v as DefaultCaseStudyFilter),
+                  })
+                }
               >
                 <SelectTrigger className="bg-transparent" style={modernEditorInputStyle}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">{homePageContent.ui.filterAll || "All"}</SelectItem>
-                  {homePageContent.ui.caseStudyFilters.map((f) => (
-                    <SelectItem key={f.id} value={f.id}>
-                      {f.label}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="__all__">{homePageContent.ui.filterAll || "All"}</SelectItem>
+                  {CASE_STUDY_FILTER_TYPE_IDS.map((id) => {
+                    const configured = homePageContent.ui.caseStudyFilters.find((f) => f.id === id);
+                    const label =
+                      configured?.label ??
+                      DEFAULT_CASE_STUDY_FILTERS.find((f) => f.id === id)?.label ??
+                      id;
+                    return (
+                      <SelectItem key={id} value={id}>
+                        {label}
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
             </ModernEditorField>
@@ -466,7 +495,7 @@ export function ModernHomeHeroEditorPanel({
               hint="Wide hero card at the top of the grid. Uses first visible study if this one is hidden by a filter."
             >
               <Select
-                value={homePageContent.ui.featuredCaseStudyId ?? "__default__"}
+                value={featuredSelectValue}
                 onValueChange={(v) =>
                   patchUi({ featuredCaseStudyId: v === "__default__" ? null : v })
                 }
@@ -608,8 +637,14 @@ export function useModernHomeHeroEditor() {
 
   return {
     heroEditorOpen,
-    openHeroEditor: () => setHeroEditorOpen(true),
-    closeHeroEditor: () => setHeroEditorOpen(false),
+    openHeroEditor: () => {
+      setIsEditingHero(true);
+      setHeroEditorOpen(true);
+    },
+    closeHeroEditor: () => {
+      setIsEditingHero(false);
+      setHeroEditorOpen(false);
+    },
     cms,
   };
 }

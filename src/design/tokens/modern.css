@@ -743,6 +743,26 @@ html[data-design="modern"]:not(.dark) {
   padding: 1.25rem;
 }
 
+/* Radix Select portals to document.body — must sit above the editor shell (z-index 100). */
+[data-design="modern"] [data-slot="select-content"] {
+  z-index: 150;
+}
+
+[data-design="modern"] .modern-home-hero-editor [data-slot="select-trigger"] {
+  color: var(--modern-text);
+  background: var(--modern-surface-inset);
+  border-color: var(--modern-border);
+  cursor: pointer;
+}
+
+[data-design="modern"] .modern-home-hero-editor [data-slot="select-trigger"] [data-slot="select-value"] {
+  color: var(--modern-text);
+}
+
+[data-design="modern"] .modern-home-hero-editor [data-slot="select-trigger"][data-placeholder] {
+  color: var(--modern-muted-text);
+}
+
 [data-design="modern"] .modern-case-study-card__protected-badge {
   position: absolute;
   top: 0.75rem;

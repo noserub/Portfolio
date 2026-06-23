@@ -483,7 +483,8 @@ function normalizeDefaultCaseStudyFilter(
   if (!KNOWN_FILTER_ID.has(s)) return "all";
   const id = s as CaseStudyFilterTypeId;
   const allowed = new Set(caseStudyFilters.map((f) => f.id));
-  if (allowed.size > 0 && !allowed.has(id)) return "all";
+  if (allowed.size === 0) return "all";
+  if (!allowed.has(id)) return "all";
   return id;
 }
 

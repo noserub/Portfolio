@@ -94,6 +94,7 @@ function ModernHomeView({
     projectTitle: string;
   } | null>(null);
   const userOverrideRef = useRef(false);
+  const prevDefaultCaseStudyFilterRef = useRef<string | undefined>(undefined);
   const [croppingProjectId, setCroppingProjectId] = useState<string | null>(null);
   const [cropDraft, setCropDraft] = useState<CropDraft | null>(null);
   const cropProjectRef = useRef<ProjectData | null>(null);
@@ -129,10 +130,33 @@ function ModernHomeView({
   }, [isEditMode, caseStudies, homePageContent.ui.caseStudyFilters]);
 
   useEffect(() => {
-    if (homeContentLoading || userOverrideRef.current) return;
+    if (
+      filter !== "all" &&
+      !visibleFilters.some((f) => f.id === filter)
+    ) {
+      setFilter("all");
+    }
+  }, [filter, visibleFilters]);
+
+  useEffect(() => {
+    if (homeContentLoading) return;
     const df = homePageContent.ui.defaultCaseStudyFilter ?? "all";
-    setFilter(df === "all" ? "all" : df);
-  }, [homeContentLoading, homePageContent.ui.defaultCaseStudyFilter]);
+    if (
+      prevDefaultCaseStudyFilterRef.current !== undefined &&
+      prevDefaultCaseStudyFilterRef.current !== df
+    ) {
+      userOverrideRef.current = false;
+    }
+    prevDefaultCaseStudyFilterRef.current = df;
+
+    if (userOverrideRef.current) return;
+
+    let next: string = df === "all" ? "all" : df;
+    if (next !== "all" && !visibleFilters.some((f) => f.id === next)) {
+      next = "all";
+    }
+    setFilter(next);
+  }, [homeContentLoading, homePageContent.ui.defaultCaseStudyFilter, visibleFilters]);
 
   const filtered = displayList;
 
