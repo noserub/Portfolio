@@ -501,15 +501,25 @@ html[data-design="modern"]:not(.dark) .modern-case-study-card__protected-badge {
   margin-bottom: 0;
 }
 
+/* Equal vertical rhythm: subhead → tiles and tiles → form */
+[data-design="modern"] {
+  --modern-contact-stack-gap: 2.5rem;
+}
+
+@media (min-width: 640px) {
+  [data-design="modern"] {
+    --modern-contact-stack-gap: 3rem;
+  }
+}
+
 [data-design="modern"] .modern-contact-blocks {
-  padding-top: 2.5rem;
-  padding-bottom: 2.5rem;
+  padding-top: var(--modern-contact-stack-gap);
+  padding-bottom: 5rem;
 }
 
 @media (min-width: 640px) {
   [data-design="modern"] .modern-contact-blocks {
-    padding-top: 3rem;
-    padding-bottom: 3rem;
+    padding-bottom: 6rem;
   }
 }
 
@@ -550,6 +560,86 @@ html[data-design="modern"]:not(.dark) .modern-case-study-card__protected-badge {
 
 [data-design="modern"] .modern-contact-card--static:hover {
   border-color: var(--modern-border);
+}
+
+/* Contact form — open layout (no nested card); accessible field contrast */
+[data-design="modern"] .modern-contact-form-wrap {
+  max-width: 36rem;
+  margin-top: var(--modern-contact-stack-gap);
+}
+
+[data-design="modern"] .modern-contact-form__title {
+  font-family: Inter, sans-serif;
+  font-weight: 600;
+  font-size: 1.125rem;
+  line-height: 1.35;
+  color: var(--modern-text);
+  margin: 0 0 1.5rem;
+}
+
+[data-design="modern"] .modern-contact-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+[data-design="modern"] .modern-contact-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+[data-design="modern"] .modern-contact-label {
+  font-family: Inter, sans-serif;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--modern-text);
+}
+
+[data-design="modern"] .modern-contact-input {
+  display: block;
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.625rem 0.875rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--modern-surface-border) !important;
+  background: var(--modern-surface) !important;
+  color: var(--modern-text) !important;
+  font-family: Inter, sans-serif;
+  font-size: 1rem;
+  line-height: 1.5;
+  box-shadow: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+[data-design="modern"] .modern-contact-input::placeholder {
+  color: var(--modern-muted-text);
+  opacity: 1;
+}
+
+[data-design="modern"] textarea.modern-contact-input {
+  min-height: 8.5rem;
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+  resize: vertical;
+}
+
+html[data-design="modern"] .modern-contact-input:focus,
+html[data-design="modern"] .modern-contact-input:focus-visible {
+  border-color: var(--modern-accent) !important;
+  outline: none !important;
+  box-shadow: 0 0 0 3px var(--modern-accent-subtle-strong) !important;
+}
+
+html[data-design="modern"] .modern-contact-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+[data-design="modern"] .modern-contact-form__submit {
+  margin-top: 0.25rem;
+  align-self: flex-start;
 }
 
 /* ── About page ────────────────────────────────────────────────────────── */
