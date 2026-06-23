@@ -53,6 +53,7 @@ import {
 import type { CaseStudyGallerySection } from "../../types/caseStudySections";
 import {
   filterGallerySectionsForDisplay,
+  parseGallerySectionKey,
   sanitizeGallerySectionsForPersist,
 } from "../../types/caseStudySections";
 import { gallerySectionKey } from "../../types/caseStudySections";
@@ -1149,7 +1150,10 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
   }, [projectImagesPosition, videosPosition, flowDiagramsPosition, solutionCardsPosition, caseStudyContent]);
 
   const persistGallerySections = useCallback(
-    (sections: CaseStudyGallerySection[]) => {
+    (
+      sections: CaseStudyGallerySection[],
+      overrides: Partial<Pick<ProjectData, 'solutionCardsPosition' | 'sectionPositions'>> = {},
+    ) => {
       const sorted = sortGallerySections(sanitizeGallerySectionsForPersist(sections));
       gallerySectionsRef.current = sorted;
       setGallerySections(sorted);
@@ -1191,8 +1195,8 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
         projectImagesPosition: legacy.projectImagesPosition,
         videosPosition: legacy.videosPosition,
         flowDiagramsPosition: legacy.flowDiagramsPosition,
-        solutionCardsPosition,
-        sectionPositions,
+        solutionCardsPosition: overrides.solutionCardsPosition ?? solutionCardsPosition,
+        sectionPositions: overrides.sectionPositions ?? sectionPositions,
       } as ProjectData);
     },
     [
@@ -1251,22 +1255,91 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
   );
 
   const handleMoveUnifiedGallery = useCallback(
-    (sectionId: string, direction: 'up' | 'down') => {
+    (sectionId: string, direction: 'up' | 'down', renderedIndex?: number, targetKey?: string) => {
       const sorted = sortGallerySections(gallerySectionsRef.current);
       const index = sorted.findIndex((s) => s.id === sectionId);
       if (index === -1) return;
-      const swapIndex = direction === 'up' ? index - 1 : index + 1;
-      if (swapIndex < 0 || swapIndex >= sorted.length) return;
-      const a = sorted[index];
-      const b = sorted[swapIndex];
+
+      const moving = sorted[index];
+      const baseItemCount = Math.max(
+        0,
+        totalSections -
+          sorted.filter((s) => s.visible).length -
+          (solutionCardsPosition != null ? 1 : 0),
+      );
+      const maxRenderedIndex = Math.max(0, totalSections - 1);
+      const currentRenderedIndex =
+        typeof renderedIndex === 'number' && Number.isFinite(renderedIndex)
+          ? Math.min(Math.max(0, renderedIndex), maxRenderedIndex)
+          : Math.min(Math.max(0, moving.position), maxRenderedIndex);
+      const targetRenderedIndex =
+        direction === 'up' ? currentRenderedIndex - 1 : currentRenderedIndex + 1;
+
+      if (targetRenderedIndex < 0 || targetRenderedIndex > maxRenderedIndex) return;
+
+      const targetGalleryId = targetKey ? parseGallerySectionKey(targetKey) : null;
+      const targetGallery = targetGalleryId
+        ? sorted.find((s) => s.id === targetGalleryId)
+        : undefined;
+      const currentSolutionCardsPosition = solutionCardsPosition ?? undefined;
+      const movingInsertPos = Math.min(Math.max(0, moving.position), baseItemCount);
+
+      const finalIndexForInsertPos = (insertPos: number, otherInsertPositions: number[]) => {
+        const clamped = Math.min(Math.max(0, insertPos), baseItemCount);
+        const lowerOrEqualInsertions = otherInsertPositions.filter((pos) => pos <= clamped).length;
+        return clamped + lowerOrEqualInsertions;
+      };
+
+      const storedPositionForRenderedIndex = (
+        desiredRenderedIndex: number,
+        otherInsertPositions: number[],
+      ) => {
+        let bestPos = Math.min(Math.max(0, desiredRenderedIndex), baseItemCount);
+        let bestDistance = Number.POSITIVE_INFINITY;
+
+        for (let pos = 0; pos <= baseItemCount; pos += 1) {
+          const finalIndex = finalIndexForInsertPos(pos, otherInsertPositions);
+          const distance = Math.abs(finalIndex - desiredRenderedIndex);
+          if (distance < bestDistance) {
+            bestDistance = distance;
+            bestPos = pos;
+          }
+          if (distance === 0) break;
+        }
+
+        return bestPos;
+      };
+
+      const otherInsertPositions = sorted
+        .filter((s) => s.id !== moving.id && s.visible)
+        .map((s) => Math.min(Math.max(0, s.position), baseItemCount));
+
+      if (currentSolutionCardsPosition != null) {
+        otherInsertPositions.push(Math.min(Math.max(0, currentSolutionCardsPosition), baseItemCount));
+      }
+
+      const nextMovingPosition = storedPositionForRenderedIndex(
+        targetRenderedIndex,
+        otherInsertPositions,
+      );
+
+      let nextSolutionCardsPosition = solutionCardsPosition;
+      if (targetKey === '__SOLUTION_CARDS__' && solutionCardsPosition != null) {
+        nextSolutionCardsPosition = movingInsertPos;
+        setSolutionCardsPosition(nextSolutionCardsPosition);
+      }
+
       const next = sorted.map((s) => {
-        if (s.id === a.id) return { ...s, position: b.position };
-        if (s.id === b.id) return { ...s, position: a.position };
+        if (s.id === moving.id) return { ...s, position: nextMovingPosition };
+        if (targetGallery && s.id === targetGallery.id) {
+          return { ...s, position: movingInsertPos };
+        }
         return s;
       });
-      persistGallerySections(next);
+
+      persistGallerySections(next, { solutionCardsPosition: nextSolutionCardsPosition ?? undefined });
     },
-    [persistGallerySections],
+    [persistGallerySections, solutionCardsPosition, totalSections],
   );
 
   // Add sections after project creation (for Custom/blank or any project)

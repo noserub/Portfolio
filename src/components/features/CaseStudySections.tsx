@@ -90,7 +90,12 @@ interface CaseStudySectionsProps {
   /** Repeatable image/video galleries with custom titles (preferred over legacy slots). */
   unifiedGallerySections?: CaseStudyGallerySection[];
   renderUnifiedGallery?: (section: CaseStudyGallerySection) => React.ReactNode;
-  onMoveUnifiedGallery?: (sectionId: string, direction: 'up' | 'down') => void;
+  onMoveUnifiedGallery?: (
+    sectionId: string,
+    direction: 'up' | 'down',
+    renderedIndex?: number,
+    targetKey?: string,
+  ) => void;
   onRemoveUnifiedGallery?: (sectionId: string) => void;
 }
 
@@ -1856,7 +1861,8 @@ export function CaseStudySections({
         if (unifiedGalleryId && renderUnifiedGallery) {
           const gallerySection = visibleUnifiedGalleries.find((g) => g.id === unifiedGalleryId);
           if (!gallerySection) return null;
-          const galleryIndex = visibleUnifiedGalleries.findIndex((g) => g.id === unifiedGalleryId);
+          const targetUpKey = sectionsWithInserts[index - 1]?.title;
+          const targetDownKey = sectionsWithInserts[index + 1]?.title;
           return (
             <div key={section.title} className="relative">
               {isEditMode && onMoveUnifiedGallery && (
@@ -1869,8 +1875,8 @@ export function CaseStudySections({
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={() => onMoveUnifiedGallery(unifiedGalleryId, 'up')}
-                      disabled={galleryIndex <= 0}
+                      onClick={() => onMoveUnifiedGallery(unifiedGalleryId, 'up', index, targetUpKey)}
+                      disabled={index <= 0}
                       className="rounded-full p-2"
                       title="Move gallery up"
                     >
@@ -1879,8 +1885,8 @@ export function CaseStudySections({
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={() => onMoveUnifiedGallery(unifiedGalleryId, 'down')}
-                      disabled={galleryIndex >= visibleUnifiedGalleries.length - 1}
+                      onClick={() => onMoveUnifiedGallery(unifiedGalleryId, 'down', index, targetDownKey)}
+                      disabled={index >= sectionsWithInserts.length - 1}
                       className="rounded-full p-2"
                       title="Move gallery down"
                     >
