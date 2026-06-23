@@ -20,9 +20,9 @@ export function Home({
   currentPage,
   onNavigateContact,
 }: HomeProps) {
-  const { effectiveVariant, designVariant } = useDesignVariant();
-  // Edit on the owner's chosen design (WYSIWYG); visitors always see published variant.
-  const variant = isEditMode ? designVariant : effectiveVariant(false);
+  const { effectiveVariant, publishedVariant } = useDesignVariant();
+  // WYSIWYG: edit on the same design visitors see (published variant), not forced classic.
+  const variant = isEditMode ? publishedVariant : effectiveVariant(false);
 
   if (variant === "modern") {
     return (
