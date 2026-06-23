@@ -7,7 +7,7 @@ import { ModernResumeLink } from "../../components/modern/ModernResumeLink";
 import { ModernContactEditorPanel } from "../../components/contact/ModernContactEditorPanel";
 import { useContactMessages } from "../../hooks/useContactMessages";
 import { useContactPageData } from "../../hooks/useContactPageData";
-import { usePortfolioProfileNav } from "../../hooks/usePortfolioProfileNav";
+import { useAboutPageData } from "../../hooks/useAboutPageData";
 import { useSEO } from "../../hooks/useSEO";
 import { formatLinkedInDisplay } from "../../lib/contactPageContent";
 import { modernLayout } from "../../design/modernLayout";
@@ -60,8 +60,9 @@ function ContactInfoCard({
 export function ModernContact({ onBack, isEditMode = false }: ModernContactProps) {
   useSEO("contact");
   const { createMessage } = useContactMessages();
-  const { resumeUrl } = usePortfolioProfileNav();
   const { data: contactPage, reload } = useContactPageData();
+  const { data: aboutPage } = useAboutPageData();
+  const resumeUrl = contactPage.resumeUrl ?? aboutPage.resumeUrl;
   const [contactEditorOpen, setContactEditorOpen] = useState(false);
 
   const [formData, setFormData] = useState({ name: "", email: "", message: "" });

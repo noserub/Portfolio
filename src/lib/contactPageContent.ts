@@ -1,4 +1,5 @@
 import { getPortfolioOwnerUserId } from "./portfolioOwner";
+import { fetchPublishedResumeUrl } from "./aboutPageProfile";
 import { getPublicContactEmail } from "./publicContactEmail";
 import { LINKEDIN_PROFILE_URL } from "./portfolioLinks";
 import { supabase } from "./supabaseClient";
@@ -13,6 +14,7 @@ export interface ContactPageData {
   email: string;
   location: string;
   linkedinUrl: string;
+  resumeUrl: string | null;
 }
 
 export const DEFAULT_CONTACT_PAGE: ContactPageData = {
@@ -20,6 +22,7 @@ export const DEFAULT_CONTACT_PAGE: ContactPageData = {
   email: getPublicContactEmail(),
   location: DEFAULT_CONTACT_LOCATION,
   linkedinUrl: LINKEDIN_PROFILE_URL,
+  resumeUrl: null,
 };
 
 const CONTACT_STORAGE_KEY = "contactPageContent";
@@ -97,11 +100,7 @@ export async function fetchContactPageData(): Promise<ContactPageData> {
       data: { user },
     } = await supabase.auth.getUser();
     const ownerId = getPortfolioOwnerUserId(user?.id);
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("email, linkedin_url")
-      .eq("id", ownerId)
-      .maybeSingle();
+    const profile = await fetchOwnerContactProfile(ownerId);
 
     if (profile?.email?.trim()) {
       next.email = profile.email.trim();
@@ -116,9 +115,18 @@ export async function fetchContactPageData(): Promise<ContactPageData> {
     } else if (local?.linkedinUrl?.trim()) {
       next.linkedinUrl = normalizeLinkedInUrl(local.linkedinUrl);
     }
+
+    const resumeUrl = await fetchPublishedResumeUrl();
+    if (resumeUrl) next.resumeUrl = resumeUrl;
   } catch {
     if (local?.email?.trim()) next.email = local.email.trim();
     if (local?.linkedinUrl?.trim()) next.linkedinUrl = normalizeLinkedInUrl(local.linkedinUrl);
+    try {
+      const resumeUrl = await fetchPublishedResumeUrl();
+      if (resumeUrl) next.resumeUrl = resumeUrl;
+    } catch {
+      /* keep null */
+    }
   }
 
   return next;
@@ -127,4 +135,34 @@ export async function fetchContactPageData(): Promise<ContactPageData> {
 export function isLinkedInColumnMissingError(err: unknown): boolean {
   const msg = String(err);
   return /PGRST204/i.test(msg) && /linkedin_url/i.test(msg);
+}
+
+type OwnerContactProfileRow = {
+  email?: string | null;
+  linkedin_url?: string | null;
+  resume_url?: string | null;
+};
+
+async function fetchOwnerContactProfile(ownerId: string): Promise<OwnerContactProfileRow | null> {
+  const withLinkedIn = await supabase
+    .from("profiles")
+    .select("email, linkedin_url, resume_url")
+    .eq("id", ownerId)
+    .maybeSingle();
+
+  if (!withLinkedIn.error) {
+    return (withLinkedIn.data as OwnerContactProfileRow | null) ?? null;
+  }
+
+  if (isLinkedInColumnMissingError(withLinkedIn.error)) {
+    const fallback = await supabase
+      .from("profiles")
+      .select("email, resume_url")
+      .eq("id", ownerId)
+      .maybeSingle();
+    if (fallback.error) return null;
+    return (fallback.data as OwnerContactProfileRow | null) ?? null;
+  }
+
+  return null;
 }

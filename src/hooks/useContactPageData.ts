@@ -22,5 +22,11 @@ export function useContactPageData() {
     };
   }, [reloadToken]);
 
+  useEffect(() => {
+    const onProfileUpdated = () => reload();
+    window.addEventListener("portfolio-profile-updated", onProfileUpdated);
+    return () => window.removeEventListener("portfolio-profile-updated", onProfileUpdated);
+  }, [reload]);
+
   return { loading, data, reload };
 }

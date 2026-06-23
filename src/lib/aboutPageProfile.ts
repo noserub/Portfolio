@@ -201,6 +201,17 @@ export async function fetchAboutProfileRow(): Promise<AboutProfileRow | null> {
   return withHero.row;
 }
 
+export function resolveResumeUrlFromProfile(profile: AboutProfileRow | null): string | null {
+  const url = typeof profile?.resume_url === "string" ? profile.resume_url.trim() : "";
+  return url || null;
+}
+
+/** Same resume resolution as the About page (owner row + legacy fallback + dev draft). */
+export async function fetchPublishedResumeUrl(): Promise<string | null> {
+  const profile = mergeDevAboutLocalStorageDraft(await fetchAboutProfileRow());
+  return resolveResumeUrlFromProfile(profile);
+}
+
 /** Dev-only: overlay newer localStorage draft so modern preview matches CMS edits. */
 export function mergeDevAboutLocalStorageDraft(
   profile: AboutProfileRow | null,

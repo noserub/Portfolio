@@ -71,7 +71,10 @@ export function ModernAbout({ onNavigateContact, onBack, isEditMode = false }: M
     setSaving(true);
     const ok = await editor.save();
     setSaving(false);
-    if (ok) closeAboutEditor();
+    if (ok) {
+      window.dispatchEvent(new CustomEvent("portfolio-profile-updated"));
+      closeAboutEditor();
+    }
   };
 
   const sectionRenderers: Record<string, () => React.ReactNode> = {

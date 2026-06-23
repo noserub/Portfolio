@@ -6,7 +6,7 @@ import {
   LINKEDIN_PROFILE_URL,
   normalizeOwnerDisplayName,
 } from "../lib/portfolioLinks";
-import { normalizeLinkedInUrl } from "../lib/contactPageContent";
+import { normalizeLinkedInUrl, isLinkedInColumnMissingError } from "../lib/contactPageContent";
 
 export interface PortfolioProfileNav {
   fullName: string;
@@ -63,15 +63,29 @@ export function usePortfolioProfileNav(): PortfolioProfileNav {
           data: { user },
         } = await supabase.auth.getUser();
         const ownerId = getPortfolioOwnerUserId(user?.id);
-        const { data } = await supabase
+
+        const withLinkedIn = await supabase
           .from("profiles")
           .select("full_name, resume_url, linkedin_url")
           .eq("id", ownerId)
           .maybeSingle();
 
+        let data = withLinkedIn.data;
+        if (withLinkedIn.error) {
+          if (!isLinkedInColumnMissingError(withLinkedIn.error)) return;
+          const fallback = await supabase
+            .from("profiles")
+            .select("full_name, resume_url")
+            .eq("id", ownerId)
+            .maybeSingle();
+          if (fallback.error) return;
+          data = fallback.data;
+        }
+
         if (cancelled || !data) return;
 
-        const linkedinRaw = typeof data.linkedin_url === "string" ? data.linkedin_url.trim() : "";
+        const linkedinRaw =
+          typeof data.linkedin_url === "string" ? data.linkedin_url.trim() : "";
         const next = {
           fullName: normalizeOwnerDisplayName(data.full_name as string),
           resumeUrl: (data.resume_url as string) || null,
