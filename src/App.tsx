@@ -366,7 +366,7 @@ function AppShell() {
   const logo = settings?.logo_url;
   
   // Use projects hook for direct persistence when callback isn't available
-  const { updateProject } = useProjects();
+  const { updateProject, refetch: refetchProjects } = useProjects();
   
   // Get contact messages for unread count
   const { getUnreadCount } = useContactMessages();
@@ -448,6 +448,12 @@ function AppShell() {
   
   const [isEditMode, setIsEditMode] = useState(false);
   const [isBlurringBackground, setIsBlurringBackground] = useState(false);
+
+  useEffect(() => {
+    if (isEditMode && isSupabaseAuthenticated) {
+      void refetchProjects();
+    }
+  }, [isEditMode, isSupabaseAuthenticated, refetchProjects]);
   
   // Debug background blur state changes
   useEffect(() => {

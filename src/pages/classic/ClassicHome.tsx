@@ -2198,6 +2198,8 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     
     const filtered = deduplicatedProjects
       .filter(project => {
+        if (isEditMode && !project.published) return true;
+
         // Broaden criteria so new case studies are not hidden
         const title = project.title?.toLowerCase() || '';
         const description = project.description?.toLowerCase() || '';
@@ -2245,7 +2247,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
       });
     
     return filtered;
-  }, [deduplicatedProjects]);
+  }, [deduplicatedProjects, isEditMode]);
   
   // Debug: Log when caseStudies changes
   useEffect(() => {
@@ -3065,10 +3067,19 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
     // Apply project type filter if selected
     let filtered = source;
     if (selectedProjectType) {
-      filtered = source.filter((p) => {
+      const typeMatches = source.filter((p) => {
         const projectType = p.projectType || (p as any).project_type;
         return projectType === selectedProjectType;
       });
+      if (isEditMode) {
+        const draftIds = new Set(
+          source.filter((p) => !p.published).map((p) => p.id),
+        );
+        typeMatches.forEach((p) => draftIds.add(p.id));
+        filtered = source.filter((p) => draftIds.has(p.id));
+      } else {
+        filtered = typeMatches;
+      }
     }
     
     if (isEditMode) {

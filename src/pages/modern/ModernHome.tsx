@@ -107,12 +107,18 @@ function ModernHomeView({
   const applyTypeFilter = useCallback(
     (list: ProjectData[]) => {
       if (filter === "all") return list;
-      return list.filter((p) => {
+      const typeMatches = list.filter((p) => {
         const t = p.projectType || (p as { project_type?: string }).project_type;
         return t === filter;
       });
+      if (!isEditMode) return typeMatches;
+      // Edit mode: always surface drafts even when a category chip is active.
+      const drafts = list.filter((p) => !p.published);
+      const ids = new Set(typeMatches.map((p) => p.id));
+      for (const draft of drafts) ids.add(draft.id);
+      return list.filter((p) => ids.has(p.id));
     },
-    [filter],
+    [filter, isEditMode],
   );
 
   const displayList = useMemo(() => {
@@ -212,6 +218,27 @@ function ModernHomeView({
         toast.success(next ? "Case study published." : "Case study moved to drafts.");
       } else {
         toast.error("Could not update publish status.");
+      }
+    },
+    [updateProject],
+  );
+
+  const handleTogglePasswordProtection = useCallback(
+    async (project: ProjectData) => {
+      const current = Boolean(
+        project.requiresPassword ?? (project as { requires_password?: boolean }).requires_password,
+      );
+      const next = !current;
+      const saved = await updateProject(project.id, { requires_password: next });
+      if (saved) {
+        setLocalCaseStudiesOrder((order) =>
+          order
+            ? order.map((p) => (p.id === project.id ? { ...p, requiresPassword: next } : p))
+            : order,
+        );
+        toast.success(next ? "Password protection enabled." : "Password protection removed.");
+      } else {
+        toast.error("Could not update password protection.");
       }
     },
     [updateProject],
@@ -370,6 +397,9 @@ function ModernHomeView({
       onCropCancel: cancelCrop,
       onEditCaseStudy: () => handleEditCaseStudy(project),
       onTogglePublish: isEditMode ? () => void handleTogglePublish(project) : undefined,
+      onTogglePasswordProtection: isEditMode
+        ? () => void handleTogglePasswordProtection(project)
+        : undefined,
       onDuplicate: isEditMode ? () => void handleDuplicateProject(project.id) : undefined,
       onDelete: isEditMode
         ? () => setDeleteConfirmation({ projectId: project.id, projectTitle: project.title })

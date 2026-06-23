@@ -373,6 +373,12 @@ html[data-design="modern"]:not(.dark) {
   color: var(--modern-accent);
 }
 
+[data-design="modern"] .modern-case-study-card__edit-btn--protected {
+  border-color: #a855f7;
+  background: color-mix(in srgb, #a855f7 14%, transparent);
+  color: #c084fc;
+}
+
 [data-design="modern"] .modern-case-study-card__edit-btn--danger {
   border-color: transparent;
   color: #f87171;

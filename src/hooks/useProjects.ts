@@ -666,10 +666,21 @@ export function useProjectsState() {
     }
   }, [getUserProjects]);
 
-  // Load projects on mount
+  // Load projects when auth session is known (avoids anon public RPC before sign-in restores).
   useEffect(() => {
-    fetchProjects();
-  }, []);
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event) => {
+      if (
+        event === "INITIAL_SESSION" ||
+        event === "SIGNED_IN" ||
+        event === "SIGNED_OUT"
+      ) {
+        void fetchProjects();
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [fetchProjects]);
 
   // Memoize the return object to prevent unnecessary re-renders
   return useMemo(() => ({

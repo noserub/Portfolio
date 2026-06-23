@@ -30,7 +30,23 @@ export function cleanModernProjectUrl(url: string, title?: string): string {
   return url;
 }
 
-function isCaseStudyRow(project: Project): boolean {
+function isDesignOnlyRow(project: Project): boolean {
+  const title = project.title?.toLowerCase() || "";
+  return (
+    title.includes("modern tech") ||
+    title.includes("web design") ||
+    title.includes("abstract art") ||
+    title.includes("product design") ||
+    title.includes("design system")
+  );
+}
+
+function isCaseStudyRow(project: Project, isEditMode = false): boolean {
+  if (isEditMode) {
+    // Owner edit mode: show every draft; published rows still use the case-study heuristic.
+    if (!project.published) return true;
+  }
+
   const title = project.title?.toLowerCase() || "";
   const description = project.description?.toLowerCase() || "";
   const hasImages = (project.case_study_images?.length || 0) > 0;
@@ -48,14 +64,7 @@ function isCaseStudyRow(project: Project): boolean {
     title.includes("research") ||
     title.includes("study");
 
-  const isDesignOnly =
-    title.includes("modern tech") ||
-    title.includes("web design") ||
-    title.includes("abstract art") ||
-    title.includes("product design") ||
-    title.includes("design system");
-
-  return isCaseStudy && !isDesignOnly;
+  return isCaseStudy && !isDesignOnlyRow(project);
 }
 
 function dedupeProjectsByTitle(projects: Project[]): Project[] {
@@ -99,7 +108,7 @@ export function useModernCaseStudies(projects: Project[], loading: boolean, isEd
     if (loading || !projects.length) return [];
 
     return dedupeProjectsByTitle(projects)
-      .filter(isCaseStudyRow)
+      .filter((p) => isCaseStudyRow(p, isEditMode))
       .filter((p) => isEditMode || Boolean(p.published))
       .map(mapRowToModernProjectData)
       .sort((a, b) => {

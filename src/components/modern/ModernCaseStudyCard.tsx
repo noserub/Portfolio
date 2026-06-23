@@ -20,6 +20,7 @@ interface ModernCaseStudyCardProps {
   onCropCancel?: () => void;
   onEditCaseStudy?: () => void;
   onTogglePublish?: () => void;
+  onTogglePasswordProtection?: () => void;
   onDuplicate?: () => void;
   onDelete?: () => void;
 }
@@ -132,12 +133,15 @@ export function ModernCaseStudyCard({
   onCropCancel,
   onEditCaseStudy,
   onTogglePublish,
+  onTogglePasswordProtection,
   onDuplicate,
   onDelete,
 }: ModernCaseStudyCardProps) {
   const isWide = layout === "wide";
   const tag = projectTypeTag(project);
-  const requiresPassword = Boolean(project.requiresPassword);
+  const requiresPassword = Boolean(
+    project.requiresPassword ?? (project as { requires_password?: boolean }).requires_password,
+  );
   const frame = cropDraft ?? getProjectCardFrame(project);
   const cropImageRef = useRef<HTMLDivElement>(null);
 
@@ -252,6 +256,21 @@ export function ModernCaseStudyCard({
             }}
           >
             {project.published ? "Published" : "Draft"}
+          </button>
+        ) : null}
+        {onTogglePasswordProtection ? (
+          <button
+            type="button"
+            className={`modern-case-study-card__edit-btn${requiresPassword ? " modern-case-study-card__edit-btn--protected" : ""}`}
+            style={modernFont}
+            onClick={(e) => {
+              e.stopPropagation();
+              onTogglePasswordProtection();
+            }}
+            title={requiresPassword ? "Password required to view" : "No password required"}
+          >
+            <Lock className="w-3.5 h-3.5" aria-hidden />
+            {requiresPassword ? "Protected" : "Public"}
           </button>
         ) : null}
         {onDuplicate ? (

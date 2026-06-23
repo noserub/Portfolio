@@ -22,6 +22,7 @@ interface ModernDraggableCaseStudyCardProps {
   onCropCancel?: () => void;
   onEditCaseStudy: () => void;
   onTogglePublish: () => void;
+  onTogglePasswordProtection: () => void;
   onDuplicate: () => void;
   onDelete: () => void;
 }
@@ -41,6 +42,7 @@ export function ModernDraggableCaseStudyCard({
   onCropCancel,
   onEditCaseStudy,
   onTogglePublish,
+  onTogglePasswordProtection,
   onDuplicate,
   onDelete,
 }: ModernDraggableCaseStudyCardProps) {
@@ -112,6 +114,7 @@ export function ModernDraggableCaseStudyCard({
         onCropCancel={onCropCancel}
         onEditCaseStudy={onEditCaseStudy}
         onTogglePublish={onTogglePublish}
+        onTogglePasswordProtection={onTogglePasswordProtection}
         onDuplicate={onDuplicate}
         onDelete={onDelete}
       />
