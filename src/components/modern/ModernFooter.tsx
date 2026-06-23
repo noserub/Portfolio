@@ -1,8 +1,9 @@
 import { getPublicContactEmail } from "../../lib/publicContactEmail";
 import { useAppSettings } from "../../hooks/useAppSettings";
+import { usePortfolioProfileNav } from "../../hooks/usePortfolioProfileNav";
 import { modernLayout } from "../../design/modernLayout";
 import { modern, modernFont } from "../../design/modernTokens";
-import { GITHUB_PROFILE_URL, LINKEDIN_PROFILE_URL } from "../../lib/portfolioLinks";
+import { GITHUB_PROFILE_URL } from "../../lib/portfolioLinks";
 import { ModernBrandLogo } from "./ModernBrandLogo";
 
 interface ModernFooterProps {
@@ -12,6 +13,7 @@ interface ModernFooterProps {
 
 export function ModernFooter({ ownerName = "Brian Bureson", logoUrl: logoUrlProp }: ModernFooterProps) {
   const { settings } = useAppSettings();
+  const { linkedinUrl } = usePortfolioProfileNav();
   const year = new Date().getFullYear();
   const email = getPublicContactEmail();
   const logoUrl = logoUrlProp ?? settings?.logo_url;
@@ -37,7 +39,7 @@ export function ModernFooter({ ownerName = "Brian Bureson", logoUrl: logoUrlProp
               </a>
             ) : null}
             <a
-              href={LINKEDIN_PROFILE_URL}
+              href={linkedinUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="text-xs hover:text-[#FAFAFA] transition-colors"

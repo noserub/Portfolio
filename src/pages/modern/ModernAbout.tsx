@@ -1,7 +1,10 @@
-import { ArrowUpRight } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ArrowUpRight, Edit2 } from "lucide-react";
 import { ModernFooter } from "../../components/modern/ModernFooter";
 import { ModernResumeLink } from "../../components/modern/ModernResumeLink";
+import { ModernAboutEditorPanel } from "../../components/about/ModernAboutEditorPanel";
 import { useAboutPageData, DEFAULT_ABOUT_HEADLINE, DEFAULT_ABOUT_LEAD } from "../../hooks/useAboutPageData";
+import { useAboutPageEditor } from "../../hooks/useAboutPageEditor";
 import { useSEO } from "../../hooks/useSEO";
 import { stripHtmlForDisplay } from "../../lib/modernCaseStudies";
 import { MarkdownRenderer } from "../../components/MarkdownRenderer";
@@ -11,6 +14,8 @@ import { modern, modernFont, modernPrimaryButtonStyle } from "../../design/moder
 
 interface ModernAboutProps {
   onNavigateContact: () => void;
+  onBack?: () => void;
+  isEditMode?: boolean;
 }
 
 function AboutBioSkeleton() {
@@ -31,21 +36,50 @@ function AboutBioSkeleton() {
   );
 }
 
-export function ModernAbout({ onNavigateContact }: ModernAboutProps) {
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return (
+    <h2
+      className="text-xs uppercase tracking-widest mb-8"
+      style={{ ...modernFont, fontWeight: 600, color: modern.accent }}
+    >
+      {children}
+    </h2>
+  );
+}
+
+export function ModernAbout({ onNavigateContact, onBack, isEditMode = false }: ModernAboutProps) {
   useSEO("about");
-  const { loading, data } = useAboutPageData();
+  const [aboutEditorOpen, setAboutEditorOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const { loading, data, reload } = useAboutPageData();
+  const editor = useAboutPageEditor();
+
+  useEffect(() => {
+    if (!isEditMode) setAboutEditorOpen(false);
+  }, [isEditMode]);
+
+  useEffect(() => {
+    if (aboutEditorOpen) void editor.reload();
+  }, [aboutEditorOpen, editor.reload]);
+
+  const closeAboutEditor = () => {
+    setAboutEditorOpen(false);
+    reload();
+  };
+
+  const handleAboutEditorDone = async () => {
+    setSaving(true);
+    const ok = await editor.save();
+    setSaving(false);
+    if (ok) closeAboutEditor();
+  };
 
   const sectionRenderers: Record<string, () => React.ReactNode> = {
     superPowers: () =>
       data.superPowers.length > 0 ? (
         <section key="superPowers" className={`${modernLayout.sectionX} ${modernLayout.aboutSection}`}>
           <div className={modernLayout.container}>
-            <h2
-              className="text-xs uppercase tracking-widest mb-8"
-              style={{ ...modernFont, fontWeight: 600, color: modern.accent }}
-            >
-              {data.superPowersTitle}
-            </h2>
+            <SectionTitle>{data.superPowersTitle}</SectionTitle>
             <div className="space-y-3">
               {data.superPowers.map((power, i) => (
                 <div key={i} className={modernLayout.aboutListItem}>
@@ -66,12 +100,7 @@ export function ModernAbout({ onNavigateContact }: ModernAboutProps) {
       return highlights.length > 0 ? (
         <section key="highlights" className={`${modernLayout.sectionX} ${modernLayout.aboutSection}`}>
           <div className={modernLayout.container}>
-            <h2
-              className="text-xs uppercase tracking-widest mb-8"
-              style={{ ...modernFont, fontWeight: 600, color: modern.accent }}
-            >
-              {data.highlightsTitle}
-            </h2>
+            <SectionTitle>{data.highlightsTitle}</SectionTitle>
             <div className={modernLayout.aboutCardGrid3}>
               {highlights.map((h) => (
                 <div key={h.title} className={modernLayout.aboutInlineCard}>
@@ -91,16 +120,31 @@ export function ModernAbout({ onNavigateContact }: ModernAboutProps) {
         </section>
       ) : null;
     },
+    leadership: () =>
+      data.leadershipItems.length > 0 ? (
+        <section key="leadership" className={`${modernLayout.sectionX} ${modernLayout.aboutSection}`}>
+          <div className={modernLayout.container}>
+            <SectionTitle>{data.leadershipTitle}</SectionTitle>
+            <div className={modernLayout.aboutCardGrid3}>
+              {data.leadershipItems.map((item) => (
+                <div key={item.title} className={modernLayout.aboutInlineCard}>
+                  <h3 className="mb-2" style={{ ...modernFont, fontWeight: 500, fontSize: "0.9375rem", color: modern.text }}>
+                    {item.title}
+                  </h3>
+                  <p className="text-sm leading-relaxed" style={{ ...modernFont, color: modern.muted }}>
+                    {stripHtmlForDisplay(item.text)}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : null,
     expertise: () =>
       data.expertiseItems.length > 0 ? (
         <section key="expertise" className={`${modernLayout.sectionX} ${modernLayout.aboutSection}`}>
           <div className={modernLayout.container}>
-            <h2
-              className="text-xs uppercase tracking-widest mb-8"
-              style={{ ...modernFont, fontWeight: 600, color: modern.accent }}
-            >
-              {data.expertiseTitle}
-            </h2>
+            <SectionTitle>{data.expertiseTitle}</SectionTitle>
             <div className={`${modernLayout.aboutCardGrid2} lg-cols-3`}>
               {data.expertiseItems.map((ex) => (
                 <div key={ex.title} className={modernLayout.aboutInlineCard}>
@@ -120,14 +164,9 @@ export function ModernAbout({ onNavigateContact }: ModernAboutProps) {
       data.howIUseAIItems.length > 0 ? (
         <section key="howIUseAI" className={`${modernLayout.sectionX} ${modernLayout.aboutSection}`}>
           <div className={modernLayout.container}>
-            <h2
-              className="text-xs uppercase tracking-widest mb-8"
-              style={{ ...modernFont, fontWeight: 600, color: modern.accent }}
-            >
-              {data.howIUseAITitle}
-            </h2>
+            <SectionTitle>{data.howIUseAITitle}</SectionTitle>
             <div className={modernLayout.aboutCardGrid3}>
-              {data.howIUseAIItems.slice(0, 3).map((m, i) => (
+              {data.howIUseAIItems.map((m, i) => (
                 <div key={m.title} className={modernLayout.aboutInlineCard}>
                   <div className="text-[10px] mb-3" style={{ ...modernFont, fontWeight: 600, color: modern.accent }}>
                     {String(i + 1).padStart(2, "0")}
@@ -144,64 +183,133 @@ export function ModernAbout({ onNavigateContact }: ModernAboutProps) {
           </div>
         </section>
       ) : null,
+    process: () =>
+      data.processItems.length > 0 ? (
+        <section key="process" className={`${modernLayout.sectionX} ${modernLayout.aboutSection}`}>
+          <div className={modernLayout.container}>
+            <SectionTitle>{data.processTitle}</SectionTitle>
+            {data.processSubheading ? (
+              <p className="mb-8 text-sm leading-relaxed max-w-2xl" style={{ ...modernFont, color: modern.muted }}>
+                {stripHtmlForDisplay(data.processSubheading)}
+              </p>
+            ) : null}
+            <div className="space-y-4">
+              {data.processItems.map((step) => (
+                <div key={step.title} className={modernLayout.aboutInlineCard}>
+                  <div className="flex items-baseline gap-3 mb-2">
+                    <span className="text-[10px]" style={{ ...modernFont, fontWeight: 600, color: modern.accent }}>
+                      {step.num}
+                    </span>
+                    <h3 style={{ ...modernFont, fontWeight: 500, fontSize: "0.9375rem", color: modern.text }}>
+                      {step.title}
+                    </h3>
+                  </div>
+                  <ul className="list-disc pl-5 space-y-1">
+                    {step.items.map((item) => (
+                      <li key={item} className="text-sm leading-relaxed" style={{ ...modernFont, color: modern.muted }}>
+                        {stripHtmlForDisplay(item)}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : null,
+    certifications: () =>
+      data.certificationsItems.length > 0 ? (
+        <section key="certifications" className={`${modernLayout.sectionX} ${modernLayout.aboutSection}`}>
+          <div className={modernLayout.container}>
+            <SectionTitle>{data.certificationsTitle}</SectionTitle>
+            <div className={`${modernLayout.aboutCardGrid2} max-w-2xl`}>
+              {data.certificationsItems.map((cert) => (
+                <div key={cert.title} className={modernLayout.aboutInlineCard}>
+                  {cert.badge ? (
+                    <div className="text-[10px] uppercase tracking-widest mb-2" style={{ ...modernFont, color: modern.accent }}>
+                      {cert.badge}
+                    </div>
+                  ) : null}
+                  <h3 className="mb-1" style={{ ...modernFont, fontWeight: 500, fontSize: "0.9375rem", color: modern.text }}>
+                    {cert.title}
+                  </h3>
+                  {cert.org ? (
+                    <p className="text-sm" style={{ ...modernFont, color: modern.muted }}>
+                      {cert.org}
+                    </p>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : null,
+    tools: () =>
+      data.toolsCategories.length > 0 ? (
+        <section key="tools" className={`${modernLayout.sectionX} ${modernLayout.aboutSection}`}>
+          <div className={modernLayout.container}>
+            <SectionTitle>{data.toolsTitle}</SectionTitle>
+            <div className={modernLayout.aboutCardGrid2}>
+              {data.toolsCategories.map((cat) => (
+                <div key={cat.title}>
+                  <p
+                    className="text-[10px] uppercase tracking-widest mb-4"
+                    style={{ ...modernFont, fontWeight: 500, color: modern.muted }}
+                  >
+                    {cat.title}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {(cat.tools || []).map((tool) => (
+                      <span key={tool} className="modern-about-tool-pill text-xs px-3 py-1.5 rounded-full border">
+                        {tool}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : null,
   };
 
-  const toolsSection =
-    data.toolsCategories.length > 0 ? (
-      <section key="tools" className={`${modernLayout.sectionX} ${modernLayout.aboutSection}`}>
-        <div className={modernLayout.container}>
-          <h2
-            className="text-xs uppercase tracking-widest mb-8"
-            style={{ ...modernFont, fontWeight: 600, color: modern.accent }}
-          >
-            {data.toolsTitle}
-          </h2>
-          <div className={modernLayout.aboutCardGrid2}>
-            {data.toolsCategories.map((cat) => (
-              <div key={cat.title}>
-                <p
-                  className="text-[10px] uppercase tracking-widest mb-4"
-                  style={{ ...modernFont, fontWeight: 500, color: modern.muted }}
-                >
-                  {cat.title}
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {(cat.tools || []).map((tool) => (
-                    <span key={tool} className="modern-about-tool-pill text-xs px-3 py-1.5 rounded-full border">
-                      {tool}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-    ) : null;
-
-  const pinnedBottomIds = new Set(["tools", "certifications"]);
-  const sectionOrder = data.sectionOrder.filter(
-    (id) => sectionRenderers[id] && !pinnedBottomIds.has(id),
-  );
+  const sectionOrder = data.sectionOrder.filter((id) => sectionRenderers[id]);
 
   return (
     <main className="min-h-screen" style={{ background: modern.bg }}>
+      <ModernAboutEditorPanel
+        open={isEditMode && aboutEditorOpen}
+        loading={editor.loading}
+        draft={editor.draft}
+        onPatch={editor.patch}
+        onCancel={closeAboutEditor}
+        onDone={() => void handleAboutEditorDone()}
+        saving={saving}
+      />
+
       <section className={`relative overflow-hidden ${modernLayout.sectionX} ${modernLayout.heroPt} ${modernLayout.aboutHero}`}>
         <div className="absolute inset-0 pointer-events-none modern-hero-glow modern-hero-glow--about" />
         <div className={`relative ${modernLayout.container}`}>
+          {isEditMode ? (
+            <div className="mb-6">
+              <button
+                type="button"
+                className="modern-home-hero-editor__btn modern-home-hero-editor__btn--primary"
+                style={modernFont}
+                onClick={() => setAboutEditorOpen(true)}
+              >
+                <Edit2 className="w-3.5 h-3.5" aria-hidden />
+                Edit about content
+              </button>
+            </div>
+          ) : null}
           <p className="text-xs uppercase tracking-widest mb-4" style={{ ...modernFont, fontWeight: 600, color: modern.accent }}>
             About Brian
           </p>
           {loading ? (
             <div className="space-y-4 mb-0" aria-hidden>
-              <div
-                className="h-10 w-full max-w-xl rounded-md animate-pulse"
-                style={{ background: modern.surface }}
-              />
-              <div
-                className="h-16 w-full max-w-2xl rounded-md animate-pulse"
-                style={{ background: modern.surface }}
-              />
+              <div className="h-10 w-full max-w-xl rounded-md animate-pulse" style={{ background: modern.surface }} />
+              <div className="h-16 w-full max-w-2xl rounded-md animate-pulse" style={{ background: modern.surface }} />
             </div>
           ) : (
             <>
@@ -281,8 +389,6 @@ export function ModernAbout({ onNavigateContact }: ModernAboutProps) {
       </section>
 
       {sectionOrder.map((id) => sectionRenderers[id]?.())}
-
-      {toolsSection}
 
       <ModernFooter />
     </main>

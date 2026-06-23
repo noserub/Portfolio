@@ -7,7 +7,7 @@ export const DEFAULT_ABOUT_LEAD =
   "I align executives, product, and engineering on strategy, then drive the work from research and design systems through prototypes and production-ready code.";
 
 const ABOUT_PROFILE_SELECT_BASE =
-  "bio_paragraph_1, bio_paragraph_2, super_powers_title, super_powers, highlights_title, highlights, expertise_title, expertise_items, how_i_use_ai_title, how_i_use_ai_items, tools_title, tools_categories, section_order, resume_url, updated_at";
+  "bio_paragraph_1, bio_paragraph_2, super_powers_title, super_powers, highlights_title, highlights, leadership_title, leadership_items, expertise_title, expertise_items, how_i_use_ai_title, how_i_use_ai_items, process_title, process_subheading, process_items, certifications_title, certifications_items, tools_title, tools_categories, section_order, resume_url, updated_at";
 
 const ABOUT_PROFILE_SELECT_WITH_HERO =
   `about_hero_headline, about_hero_lead, ${ABOUT_PROFILE_SELECT_BASE}`;
@@ -32,10 +32,17 @@ export type AboutProfileRow = {
   super_powers?: unknown;
   highlights_title?: string | null;
   highlights?: unknown;
+  leadership_title?: string | null;
+  leadership_items?: unknown;
   expertise_title?: string | null;
   expertise_items?: unknown;
   how_i_use_ai_title?: string | null;
   how_i_use_ai_items?: unknown;
+  process_title?: string | null;
+  process_subheading?: string | null;
+  process_items?: unknown;
+  certifications_title?: string | null;
+  certifications_items?: unknown;
   tools_title?: string | null;
   tools_categories?: unknown;
   section_order?: unknown;

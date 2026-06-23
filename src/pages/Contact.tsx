@@ -8,10 +8,14 @@ interface ContactProps {
 }
 
 export function Contact({ onBack, isEditMode = false }: ContactProps) {
-  const { effectiveVariant } = useDesignVariant();
-  const variant = effectiveVariant(isEditMode);
+  const { effectiveVariant, publishedVariant } = useDesignVariant();
+  const isModernSite = publishedVariant === "modern";
 
-  if (variant === "modern") {
+  if (isModernSite) {
+    return <ModernContact onBack={onBack} isEditMode={isEditMode} />;
+  }
+
+  if (!isEditMode && effectiveVariant(false) === "modern") {
     return <ModernContact onBack={onBack} />;
   }
 

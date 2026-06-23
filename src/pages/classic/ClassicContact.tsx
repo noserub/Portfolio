@@ -18,9 +18,11 @@ const devLog = (...args: unknown[]) => {
 interface ContactProps {
   onBack: () => void;
   isEditMode?: boolean;
+  /** Skip PageLayout chrome — used inside modern edit overlay. */
+  embedded?: boolean;
 }
 
-export function ClassicContact({ onBack, isEditMode = false }: ContactProps) {
+export function ClassicContact({ onBack, isEditMode = false, embedded }: ContactProps) {
   // Apply SEO for contact page
   useSEO('contact');
   
@@ -409,8 +411,7 @@ export function ClassicContact({ onBack, isEditMode = false }: ContactProps) {
     });
   };
 
-  return (
-    <PageLayout title="Get in touch" onBack={onBack} children={
+  const contactPageBody = (
       <>
         <div 
           className="mx-auto min-w-0 max-w-7xl"
@@ -827,7 +828,16 @@ export function ClassicContact({ onBack, isEditMode = false }: ContactProps) {
         </div>
       </div>
       </>
-    } />
+  );
+
+  if (embedded) {
+    return contactPageBody;
+  }
+
+  return (
+    <PageLayout title="Get in touch" onBack={onBack}>
+      {contactPageBody}
+    </PageLayout>
   );
 }
 

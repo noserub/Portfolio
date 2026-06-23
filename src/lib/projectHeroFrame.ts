@@ -6,22 +6,30 @@ export type ImageCropFrame = {
   position: { x: number; y: number };
 };
 
+function toCropNumber(value: unknown, fallback: number): number {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim() !== "") {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return fallback;
+}
+
 function normalizeFrame(
   scale: unknown,
   position: { x?: unknown; y?: unknown } | undefined,
   fallback: ImageCropFrame,
 ): ImageCropFrame {
-  const safeScale =
-    typeof scale === "number" && Number.isFinite(scale) ? scale : fallback.scale;
-  const x =
-    typeof position?.x === "number" && Number.isFinite(position.x)
-      ? position.x
-      : fallback.position.x;
-  const y =
-    typeof position?.y === "number" && Number.isFinite(position.y)
-      ? position.y
-      : fallback.position.y;
-  return { scale: safeScale, position: { x, y } };
+  const safeScale = toCropNumber(scale, fallback.scale);
+  const x = toCropNumber(position?.x, fallback.position.x);
+  const y = toCropNumber(position?.y, fallback.position.y);
+  return {
+    scale: safeScale > 0 ? safeScale : fallback.scale,
+    position: {
+      x: Math.max(0, Math.min(100, x)),
+      y: Math.max(0, Math.min(100, y)),
+    },
+  };
 }
 
 const DEFAULT_FRAME: ImageCropFrame = { scale: 1, position: { x: 50, y: 50 } };
@@ -62,7 +70,7 @@ export function getProjectHeroFrame(
   return getProjectDetailHeroFrame(project);
 }
 
-/** Contain + CSS scale — smooth zoom without flipping to cover past 100%. */
+/** Contain + CSS scale — used for hero/detail and galleries where the full image may be shown. */
 export function croppedImageStyle(
   scale: number,
   position: { x: number; y: number },
@@ -77,11 +85,49 @@ export function croppedImageStyle(
   };
 }
 
+/** Contain + scale — full image visible at 100%; zoom in to fill the frame (classic card behavior). */
+export function croppedCardImageStyle(
+  scale: number,
+  position: { x: number; y: number },
+): CSSProperties {
+  const safeScale = typeof scale === "number" && Number.isFinite(scale) ? scale : 1;
+  const x = typeof position.x === "number" ? position.x : 50;
+  const y = typeof position.y === "number" ? position.y : 50;
+  const focal = `${x}% ${y}%`;
+  return {
+    objectFit: "contain",
+    transform: `scale(${safeScale})`,
+    transformOrigin: focal,
+  };
+}
+
+/** Scale (contain mode) so the image fills the card frame with no letterboxing. */
+export function computeCardFitToFrameScale(
+  containerWidth: number,
+  containerHeight: number,
+  naturalWidth: number,
+  naturalHeight: number,
+): number {
+  if (containerWidth <= 0 || containerHeight <= 0 || naturalWidth <= 0 || naturalHeight <= 0) {
+    return 1;
+  }
+  const imageAspect = naturalWidth / naturalHeight;
+  const containerAspect = containerWidth / containerHeight;
+  const scale =
+    imageAspect > containerAspect
+      ? imageAspect / containerAspect
+      : containerAspect / imageAspect;
+  return Math.max(0.5, Math.min(4, scale));
+}
+
+export const CARD_CROP_MIN_SCALE = 0.5;
+export const CARD_CROP_MAX_SCALE = 4;
+
 export function projectCardImageStyle(
   project: Pick<ProjectData, "scale" | "position">,
 ): CSSProperties {
   const { scale, position } = getProjectCardFrame(project);
-  return croppedImageStyle(scale, position);
+  return croppedCardImageStyle(scale, position);
 }
 
 export function projectDetailHeroImageStyle(

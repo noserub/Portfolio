@@ -21,12 +21,30 @@ export function resolvePublishedDesignVariant(): DesignVariant {
   return parseVariant(import.meta.env.VITE_DESIGN_VARIANT) ?? "modern";
 }
 
+/** Pages that still use classic CMS shells in edit mode (modern editors not ported yet). */
+const CLASSIC_CMS_EDIT_PAGES = new Set<string>();
+
+/**
+ * `data-design` for CSS tokens — may differ from chrome on legacy CMS pages during edit.
+ * Published variant is used for all pages in edit mode (WYSIWYG).
+ */
+export function resolvePageDesignVariant(
+  isEditMode: boolean,
+  currentPage: string,
+  publishedVariant: DesignVariant,
+  previewVariant: DesignVariant,
+): DesignVariant {
+  if (!isEditMode) return previewVariant;
+  if (CLASSIC_CMS_EDIT_PAGES.has(currentPage)) return "classic";
+  return publishedVariant;
+}
+
 interface DesignVariantContextValue {
   /** Owner preference when signed in; published variant when signed out. */
   designVariant: DesignVariant;
   /** No-op for signed-out visitors. */
   setDesignVariant: (variant: DesignVariant) => void;
-  /** Edit mode → classic; signed out → published; signed in → owner preference. */
+  /** Edit mode → published (WYSIWYG); signed out → published; signed in → owner preference. */
   effectiveVariant: (isEditMode: boolean) => DesignVariant;
   publishedVariant: DesignVariant;
 }
@@ -64,7 +82,7 @@ export function DesignVariantProvider({ children }: { children: React.ReactNode 
 
   const effectiveVariant = useCallback(
     (isEditMode: boolean): DesignVariant => {
-      if (isEditMode) return "classic";
+      if (isEditMode) return publishedVariant;
       if (!isAuthInitialized) return publishedVariant;
       return isSupabaseAuthenticated ? ownerVariant : publishedVariant;
     },

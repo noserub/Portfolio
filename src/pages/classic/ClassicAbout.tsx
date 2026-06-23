@@ -32,9 +32,11 @@ interface AboutProps {
   onBack: () => void;
   onHoverChange?: (isHovering: boolean) => void;
   isEditMode?: boolean;
+  /** Skip PageLayout chrome — used inside modern edit sheet. */
+  embedded?: boolean;
 }
 
-export function ClassicAbout({ onBack, onHoverChange, isEditMode }: AboutProps) {
+export function ClassicAbout({ onBack, onHoverChange, isEditMode, embedded }: AboutProps) {
   // Apply SEO for about page
   useSEO('about');
   
@@ -1024,11 +1026,7 @@ export function ClassicAbout({ onBack, onHoverChange, isEditMode }: AboutProps) 
     </motion.div>
   );
 
-  return (
-    <PageLayout 
-      title="About" 
-      onBack={onBack}
-    >
+  const aboutPageBody = (
       <div 
         className="space-y-16 flex flex-col"
         style={{
@@ -3171,6 +3169,15 @@ export function ClassicAbout({ onBack, onHoverChange, isEditMode }: AboutProps) 
           </motion.div>
         </motion.div>
       </div>
+  );
+
+  if (embedded) {
+    return aboutPageBody;
+  }
+
+  return (
+    <PageLayout title="About" onBack={onBack}>
+      {aboutPageBody}
     </PageLayout>
   );
 }

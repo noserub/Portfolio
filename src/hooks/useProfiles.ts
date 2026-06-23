@@ -36,6 +36,8 @@ export interface Profile {
   about_highlights_leadership_decorative_icons?: boolean;
   /** URL opened by the Resume button on the About page */
   resume_url?: string | null;
+  /** LinkedIn profile URL (Contact page, footer) */
+  linkedin_url?: string | null;
 }
 
 export interface ProfileInsert {
@@ -68,9 +70,11 @@ export interface ProfileInsert {
   research_insights?: any[];
   about_highlights_leadership_decorative_icons?: boolean;
   resume_url?: string | null;
+  linkedin_url?: string | null;
 }
 
 export interface ProfileUpdate {
+  email?: string;
   full_name?: string;
   avatar_url?: string;
   bio_paragraph_1?: string;
@@ -98,6 +102,7 @@ export interface ProfileUpdate {
   research_insights?: any[];
   about_highlights_leadership_decorative_icons?: boolean;
   resume_url?: string | null;
+  linkedin_url?: string | null;
 }
 
 function stripUndefined<T extends Record<string, unknown>>(obj: T): Partial<T> {

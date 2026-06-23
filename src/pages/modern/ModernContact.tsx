@@ -1,74 +1,83 @@
 import { useEffect, useState } from "react";
-import { Mail, MapPin, ArrowUpRight, Send, CheckCircle, FileText, Linkedin } from "lucide-react";
+import { Mail, MapPin, ArrowUpRight, Send, CheckCircle, FileText, Linkedin, Edit2 } from "lucide-react";
 import { Input } from "../../components/ui/input";
 import { Textarea } from "../../components/ui/textarea";
 import { ModernFooter } from "../../components/modern/ModernFooter";
 import { ModernResumeLink } from "../../components/modern/ModernResumeLink";
+import { ModernContactEditorPanel } from "../../components/contact/ModernContactEditorPanel";
 import { useContactMessages } from "../../hooks/useContactMessages";
+import { useContactPageData } from "../../hooks/useContactPageData";
 import { usePortfolioProfileNav } from "../../hooks/usePortfolioProfileNav";
 import { useSEO } from "../../hooks/useSEO";
-import { getPortfolioOwnerUserId } from "../../lib/portfolioOwner";
-import { getPublicContactEmail } from "../../lib/publicContactEmail";
-import { LINKEDIN_PROFILE_URL } from "../../lib/portfolioLinks";
-import { supabase } from "../../lib/supabaseClient";
+import { formatLinkedInDisplay } from "../../lib/contactPageContent";
 import { modernLayout } from "../../design/modernLayout";
 import { modern, modernFont, modernPrimaryButtonStyle } from "../../design/modernTokens";
 
 interface ModernContactProps {
   onBack: () => void;
+  isEditMode?: boolean;
 }
 
-export function ModernContact({ onBack }: ModernContactProps) {
+function ContactInfoCard({
+  isEditMode,
+  onEdit,
+  children,
+  className,
+}: {
+  isEditMode: boolean;
+  onEdit: () => void;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  if (!isEditMode) return <>{children}</>;
+
+  return (
+    <div
+      className={`relative ${className ?? ""}`}
+      onClick={onEdit}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onEdit();
+        }
+      }}
+      role="button"
+      tabIndex={0}
+      aria-label="Edit contact info"
+    >
+      {children}
+      <span
+        className="absolute top-3 right-3 inline-flex items-center justify-center w-7 h-7 rounded-md opacity-70 hover:opacity-100 transition-opacity"
+        style={{ background: "rgba(255,255,255,0.08)", color: modern.muted }}
+        aria-hidden
+      >
+        <Edit2 className="w-3.5 h-3.5" />
+      </span>
+    </div>
+  );
+}
+
+export function ModernContact({ onBack, isEditMode = false }: ModernContactProps) {
   useSEO("contact");
   const { createMessage } = useContactMessages();
   const { resumeUrl } = usePortfolioProfileNav();
+  const { data: contactPage, reload } = useContactPageData();
+  const [contactEditorOpen, setContactEditorOpen] = useState(false);
 
-  const [pageSubtitle, setPageSubtitle] = useState(
-    "Have a question or want to work together? I'd love to hear from you.",
-  );
-  const [contactInfo, setContactInfo] = useState({
-    email: getPublicContactEmail(),
-    location: "Colorado, USA",
-  });
   const [formData, setFormData] = useState({ name: "", email: "", message: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
   useEffect(() => {
-    const load = async () => {
-      const saved = localStorage.getItem("contactPageContent");
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          if (parsed.pageSubtitle) setPageSubtitle(parsed.pageSubtitle);
-          if (parsed.contactInfo?.location) {
-            setContactInfo((prev) => ({ ...prev, location: parsed.contactInfo.location }));
-          }
-        } catch {
-          /* ignore */
-        }
-      }
+    if (!isEditMode) setContactEditorOpen(false);
+  }, [isEditMode]);
 
-      try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        const userId = getPortfolioOwnerUserId(user?.id);
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("email")
-          .eq("id", userId)
-          .maybeSingle();
+  const openContactEditor = () => setContactEditorOpen(true);
 
-        if (profile?.email) {
-          setContactInfo((prev) => ({ ...prev, email: profile.email as string }));
-        }
-      } catch {
-        /* ignore */
-      }
-    };
-    void load();
-  }, []);
+  const closeContactEditor = () => {
+    setContactEditorOpen(false);
+    reload();
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,11 +104,32 @@ export function ModernContact({ onBack }: ModernContactProps) {
     }
   };
 
+  const linkedInDisplay = formatLinkedInDisplay(contactPage.linkedinUrl);
+
   return (
     <main className="min-h-screen" style={{ background: modern.bg }}>
+      <ModernContactEditorPanel
+        open={isEditMode && contactEditorOpen}
+        onCancel={closeContactEditor}
+        onSaved={closeContactEditor}
+      />
+
       <section className={`relative overflow-hidden ${modernLayout.sectionX} ${modernLayout.heroPt} ${modernLayout.contactHero}`}>
         <div className="absolute inset-0 pointer-events-none modern-hero-glow modern-hero-glow--about" />
         <div className={`relative ${modernLayout.container}`}>
+          {isEditMode ? (
+            <div className="mb-6">
+              <button
+                type="button"
+                className="modern-home-hero-editor__btn modern-home-hero-editor__btn--primary"
+                style={modernFont}
+                onClick={openContactEditor}
+              >
+                <Edit2 className="w-3.5 h-3.5" aria-hidden />
+                Edit contact content
+              </button>
+            </div>
+          ) : null}
           <p className="text-xs uppercase tracking-widest mb-4" style={{ ...modernFont, fontWeight: 600, color: modern.accent }}>
             Contact
           </p>
@@ -115,7 +145,7 @@ export function ModernContact({ onBack }: ModernContactProps) {
             Let&apos;s work together.
           </h1>
           <p className={`${modernLayout.contactSubtitle} leading-relaxed`} style={{ ...modernFont, fontSize: "1rem", color: modern.muted }}>
-            {pageSubtitle}
+            {contactPage.pageSubtitle}
           </p>
         </div>
       </section>
@@ -123,39 +153,45 @@ export function ModernContact({ onBack }: ModernContactProps) {
       <section className={`${modernLayout.sectionX} ${modernLayout.contactBlocks}`}>
         <div className={modernLayout.container}>
           <div className={`${modernLayout.contactInfoGrid} modern-contact-info-grid--auto`}>
-            <a
-              href={`mailto:${contactInfo.email}`}
-              className={`group ${modernLayout.contactCard}`}
-            >
-              <div className="flex items-center justify-between mb-4">
-                <Mail size={18} style={{ color: modern.accent }} />
-                <ArrowUpRight size={14} className="text-[#666666] modern-icon-accent-hover transition-colors" />
-              </div>
-              <div className="text-[10px] uppercase tracking-widest mb-1" style={{ ...modernFont, color: modern.muted }}>
-                Email
-              </div>
-              <div className="text-sm break-all" style={{ ...modernFont, color: modern.text }}>
-                {contactInfo.email}
-              </div>
-            </a>
+            <ContactInfoCard isEditMode={isEditMode} onEdit={openContactEditor}>
+              <a
+                href={`mailto:${contactPage.email}`}
+                className={`group block ${modernLayout.contactCard}`}
+                onClick={isEditMode ? (e) => e.preventDefault() : undefined}
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <Mail size={18} style={{ color: modern.accent }} />
+                  <ArrowUpRight size={14} className="text-[#666666] modern-icon-accent-hover transition-colors" />
+                </div>
+                <div className="text-[10px] uppercase tracking-widest mb-1" style={{ ...modernFont, color: modern.muted }}>
+                  Email
+                </div>
+                <div className="text-sm break-all" style={{ ...modernFont, color: modern.text }}>
+                  {contactPage.email}
+                </div>
+              </a>
+            </ContactInfoCard>
 
-            <a
-              href={LINKEDIN_PROFILE_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`group ${modernLayout.contactCard}`}
-            >
-              <div className="flex items-center justify-between mb-4">
-                <Linkedin size={18} style={{ color: modern.accent }} />
-                <ArrowUpRight size={14} className="text-[#666666] modern-icon-accent-hover transition-colors" />
-              </div>
-              <div className="text-[10px] uppercase tracking-widest mb-1" style={{ ...modernFont, color: modern.muted }}>
-                LinkedIn
-              </div>
-              <div className="text-sm leading-snug" style={{ ...modernFont, color: modern.text }}>
-                linkedin.com/in/bureson
-              </div>
-            </a>
+            <ContactInfoCard isEditMode={isEditMode} onEdit={openContactEditor}>
+              <a
+                href={contactPage.linkedinUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`group block ${modernLayout.contactCard}`}
+                onClick={isEditMode ? (e) => e.preventDefault() : undefined}
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <Linkedin size={18} style={{ color: modern.accent }} />
+                  <ArrowUpRight size={14} className="text-[#666666] modern-icon-accent-hover transition-colors" />
+                </div>
+                <div className="text-[10px] uppercase tracking-widest mb-1" style={{ ...modernFont, color: modern.muted }}>
+                  LinkedIn
+                </div>
+                <div className="text-sm leading-snug break-all" style={{ ...modernFont, color: modern.text }}>
+                  {linkedInDisplay}
+                </div>
+              </a>
+            </ContactInfoCard>
 
             {resumeUrl ? (
               <ModernResumeLink resumeUrl={resumeUrl} className={`group ${modernLayout.contactCard}`}>
@@ -172,17 +208,19 @@ export function ModernContact({ onBack }: ModernContactProps) {
               </ModernResumeLink>
             ) : null}
 
-            <div className={`${modernLayout.contactCard} modern-contact-card--static`}>
-              <div className="flex items-center justify-between mb-4">
-                <MapPin size={18} style={{ color: modern.accent }} />
+            <ContactInfoCard isEditMode={isEditMode} onEdit={openContactEditor}>
+              <div className={`${modernLayout.contactCard} modern-contact-card--static`}>
+                <div className="flex items-center justify-between mb-4">
+                  <MapPin size={18} style={{ color: modern.accent }} />
+                </div>
+                <div className="text-[10px] uppercase tracking-widest mb-1" style={{ ...modernFont, color: modern.muted }}>
+                  Location
+                </div>
+                <div className="text-sm" style={{ ...modernFont, color: modern.text }}>
+                  {contactPage.location}
+                </div>
               </div>
-              <div className="text-[10px] uppercase tracking-widest mb-1" style={{ ...modernFont, color: modern.muted }}>
-                Location
-              </div>
-              <div className="text-sm" style={{ ...modernFont, color: modern.text }}>
-                {contactInfo.location}
-              </div>
-            </div>
+            </ContactInfoCard>
           </div>
 
           <div className="modern-contact-form-wrap">

@@ -7,7 +7,7 @@ interface HomeProps {
   onStartClick: () => void;
   isEditMode: boolean;
   onProjectClick: (project: ProjectData, updateCallback: (project: ProjectData) => void) => void;
-  onProjectUpdate?: (project: ProjectData) => void;
+  onProjectUpdate?: (project: ProjectData) => void | Promise<void>;
   currentPage: string;
   onNavigateContact: () => void;
 }
@@ -20,9 +20,8 @@ export function Home({
   currentPage,
   onNavigateContact,
 }: HomeProps) {
-  const { effectiveVariant, publishedVariant } = useDesignVariant();
-  // WYSIWYG: edit on the same design visitors see (published variant), not forced classic.
-  const variant = isEditMode ? publishedVariant : effectiveVariant(false);
+  const { effectiveVariant } = useDesignVariant();
+  const variant = effectiveVariant(isEditMode);
 
   if (variant === "modern") {
     return (

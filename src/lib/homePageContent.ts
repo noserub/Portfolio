@@ -137,6 +137,8 @@ export type DefaultCaseStudyFilter = "all" | CaseStudyFilterTypeId;
 export interface HomePageUI {
   caseStudiesTitle: string;
   filterAll: string;
+  /** Modern home hero: secondary outline button (navigates to contact). */
+  contactCtaLabel: string;
   /** Which category filters appear on the home case studies row (subset/order/labels). */
   caseStudyFilters: CaseStudyFilterEntry[];
   /** Which filter is selected for visitors until they click another (must match an enabled category or `"all"`). */
@@ -172,6 +174,7 @@ export const DEFAULT_CASE_STUDY_FILTERS: CaseStudyFilterEntry[] = [
 export const DEFAULT_UI: HomePageUI = {
   caseStudiesTitle: "Case studies",
   filterAll: "All",
+  contactCtaLabel: "Get in touch",
   caseStudyFilters: DEFAULT_CASE_STUDY_FILTERS.map((f) => ({ ...f })),
   defaultCaseStudyFilter: "all",
   featuredCaseStudyId: null,
@@ -527,6 +530,7 @@ function mergeUI(raw: unknown): HomePageUI {
   return {
     caseStudiesTitle: String(o.caseStudiesTitle ?? DEFAULT_UI.caseStudiesTitle),
     filterAll: String(o.filterAll ?? DEFAULT_UI.filterAll),
+    contactCtaLabel: String(o.contactCtaLabel ?? DEFAULT_UI.contactCtaLabel),
     caseStudyFilters,
     defaultCaseStudyFilter,
     featuredCaseStudyId:

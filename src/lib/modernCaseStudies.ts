@@ -94,23 +94,39 @@ export function projectTypeTag(project: ProjectData): string {
   return "Case Study";
 }
 
-export function useModernCaseStudies(projects: Project[], loading: boolean) {
+export function useModernCaseStudies(projects: Project[], loading: boolean, isEditMode = false) {
   const caseStudies = useMemo(() => {
     if (loading || !projects.length) return [];
 
     return dedupeProjectsByTitle(projects)
       .filter(isCaseStudyRow)
-      .filter((p) => Boolean(p.published))
+      .filter((p) => isEditMode || Boolean(p.published))
       .map(mapRowToModernProjectData)
       .sort((a, b) => {
+        if (isEditMode) {
+          const aPub = Boolean(a.published);
+          const bPub = Boolean(b.published);
+          if (aPub && !bPub) return -1;
+          if (!aPub && bPub) return 1;
+        }
         const aOrder = a.sortOrder ?? 0;
         const bOrder = b.sortOrder ?? 0;
         if (aOrder !== bOrder) return aOrder - bOrder;
         return String(a.id).localeCompare(String(b.id));
       });
-  }, [projects, loading]);
+  }, [projects, loading, isEditMode]);
 
   return caseStudies;
+}
+
+/** Layout for flat index in the modern home grid (featured wide + 2-col rest). */
+export function modernCaseStudyCardLayout(index: number, total: number): "regular" | "wide" {
+  if (total <= 0) return "regular";
+  if (index === 0) return "wide";
+  const restCount = total - 1;
+  const isLast = index === total - 1;
+  if (isLast && restCount % 2 === 1) return "wide";
+  return "regular";
 }
 
 export interface CaseStudyGridLayout {

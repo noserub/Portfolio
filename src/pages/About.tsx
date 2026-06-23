@@ -10,11 +10,21 @@ interface AboutProps {
 }
 
 export function About({ onBack, onHoverChange, isEditMode, onNavigateContact }: AboutProps) {
-  const { effectiveVariant } = useDesignVariant();
-  const variant = effectiveVariant(Boolean(isEditMode));
+  const { effectiveVariant, publishedVariant } = useDesignVariant();
+  const isModernSite = publishedVariant === "modern";
 
-  if (variant === "modern") {
-    return <ModernAbout onNavigateContact={onNavigateContact} />;
+  if (isModernSite) {
+    return (
+      <ModernAbout
+        onNavigateContact={onNavigateContact}
+        onBack={onBack}
+        isEditMode={isEditMode}
+      />
+    );
+  }
+
+  if (!isEditMode && effectiveVariant(false) === "modern") {
+    return <ModernAbout onNavigateContact={onNavigateContact} onBack={onBack} />;
   }
 
   return (

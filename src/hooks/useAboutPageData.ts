@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   DEFAULT_ABOUT_HEADLINE,
   DEFAULT_ABOUT_LEAD,
@@ -7,11 +7,18 @@ import {
   resolveAboutDisplayFields,
   type AboutProfileRow,
 } from "../lib/aboutPageProfile";
+import {
+  mapProfileToAboutEditorDraft,
+  DEFAULT_ABOUT_SECTION_ORDER,
+  DEFAULT_ABOUT_SECTION_TITLES,
+} from "../lib/aboutPageEditorModel";
 
 export { DEFAULT_ABOUT_HEADLINE, DEFAULT_ABOUT_LEAD };
 
 /** @deprecated Use DEFAULT_ABOUT_LEAD */
 export const DEFAULT_ABOUT_SUBHEAD = DEFAULT_ABOUT_LEAD;
+
+export { DEFAULT_ABOUT_SECTION_TITLES };
 
 export interface AboutHighlight {
   title: string;
@@ -42,27 +49,21 @@ export interface AboutPageData {
   superPowers: string[];
   highlightsTitle: string;
   highlights: AboutHighlight[];
+  leadershipTitle: string;
+  leadershipItems: AboutHighlight[];
   expertiseTitle: string;
   expertiseItems: AboutExpertiseItem[];
   howIUseAITitle: string;
   howIUseAIItems: AboutHowIUseAiItem[];
+  processTitle: string;
+  processSubheading: string;
+  processItems: { num: string; title: string; items: string[] }[];
+  certificationsTitle: string;
+  certificationsItems: { badge: string; title: string; org: string }[];
   toolsTitle: string;
   toolsCategories: AboutToolsCategory[];
   sectionOrder: string[];
   resumeUrl: string | null;
-}
-
-/** Default section headings used when the CMS leaves a title blank. */
-export const DEFAULT_ABOUT_SECTION_TITLES = {
-  superPowers: "Leadership strengths",
-  highlights: "Highlights",
-  expertise: "Expertise",
-  howIUseAI: "How I use AI",
-  tools: "Tools & stack",
-} as const;
-
-function resolveTitle(raw: unknown, fallback: string): string {
-  return typeof raw === "string" && raw.trim() ? raw.trim() : fallback;
 }
 
 const defaults: AboutPageData = {
@@ -74,76 +75,62 @@ const defaults: AboutPageData = {
   superPowers: [],
   highlightsTitle: DEFAULT_ABOUT_SECTION_TITLES.highlights,
   highlights: [],
+  leadershipTitle: "Leadership & impact",
+  leadershipItems: [],
   expertiseTitle: DEFAULT_ABOUT_SECTION_TITLES.expertise,
   expertiseItems: [],
   howIUseAITitle: DEFAULT_ABOUT_SECTION_TITLES.howIUseAI,
   howIUseAIItems: [],
+  processTitle: "Process",
+  processSubheading: "",
+  processItems: [],
+  certificationsTitle: "Certifications",
+  certificationsItems: [],
   toolsTitle: DEFAULT_ABOUT_SECTION_TITLES.tools,
   toolsCategories: [],
-  sectionOrder: [
-    "superPowers",
-    "highlights",
-    "expertise",
-    "howIUseAI",
-    "tools",
-  ],
+  sectionOrder: [...DEFAULT_ABOUT_SECTION_ORDER],
   resumeUrl: null,
 };
 
-function normalizeToolsCategories(raw: unknown): AboutToolsCategory[] {
-  if (!Array.isArray(raw)) return [];
-
-  return raw
-    .map((entry) => {
-      if (!entry || typeof entry !== "object") return null;
-      const row = entry as Record<string, unknown>;
-      const titleRaw =
-        (typeof row.title === "string" ? row.title : null) ??
-        (typeof row.category === "string" ? row.category : null);
-      const title = titleRaw?.trim() ?? "";
-      const tools = Array.isArray(row.tools)
-        ? row.tools.filter((t): t is string => typeof t === "string" && t.trim().length > 0)
-        : [];
-      if (!title || tools.length === 0) return null;
-      return { title, tools };
-    })
-    .filter((cat): cat is AboutToolsCategory => cat !== null);
-}
-
 function mapProfileToAboutPageData(profile: AboutProfileRow): AboutPageData {
   const resolved = resolveAboutDisplayFields(profile);
-  const toolsCategories = normalizeToolsCategories(profile.tools_categories);
+  const editor = mapProfileToAboutEditorDraft(profile);
   return {
     headline: resolved.headline,
     heroLead: resolved.heroLead,
     bioParagraph1: resolved.bioParagraph1,
     bioParagraph2: resolved.bioParagraph2,
-    superPowersTitle: resolveTitle(profile.super_powers_title, DEFAULT_ABOUT_SECTION_TITLES.superPowers),
-    superPowers: Array.isArray(profile.super_powers) ? profile.super_powers : [],
-    highlightsTitle: resolveTitle(profile.highlights_title, DEFAULT_ABOUT_SECTION_TITLES.highlights),
-    highlights: Array.isArray(profile.highlights) ? profile.highlights : [],
-    expertiseTitle: resolveTitle(profile.expertise_title, DEFAULT_ABOUT_SECTION_TITLES.expertise),
-    expertiseItems: Array.isArray(profile.expertise_items) ? profile.expertise_items : [],
-    howIUseAITitle: resolveTitle(profile.how_i_use_ai_title, DEFAULT_ABOUT_SECTION_TITLES.howIUseAI),
-    howIUseAIItems: Array.isArray(profile.how_i_use_ai_items)
-      ? profile.how_i_use_ai_items
-      : [],
-    toolsTitle: resolveTitle(profile.tools_title, DEFAULT_ABOUT_SECTION_TITLES.tools),
-    toolsCategories,
-    sectionOrder:
-      Array.isArray(profile.section_order) && profile.section_order.length > 0
-        ? profile.section_order
-        : defaults.sectionOrder,
-    resumeUrl: (profile.resume_url as string) || null,
+    superPowersTitle: editor.superPowersTitle,
+    superPowers: editor.superPowers,
+    highlightsTitle: editor.highlightsTitle,
+    highlights: editor.highlights,
+    leadershipTitle: editor.leadershipTitle,
+    leadershipItems: editor.leadershipItems,
+    expertiseTitle: editor.expertiseTitle,
+    expertiseItems: editor.expertiseItems,
+    howIUseAITitle: editor.howIUseAITitle,
+    howIUseAIItems: editor.howIUseAIItems,
+    processTitle: editor.processTitle,
+    processSubheading: editor.processSubheading,
+    processItems: editor.processItems,
+    certificationsTitle: editor.certificationsTitle,
+    certificationsItems: editor.certificationsItems,
+    toolsTitle: editor.toolsTitle,
+    toolsCategories: editor.toolsCategories,
+    sectionOrder: editor.sectionOrder,
+    resumeUrl: editor.resumeUrl.trim() || null,
   };
 }
 
 export function useAboutPageData() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<AboutPageData>(defaults);
+  const [reloadToken, setReloadToken] = useState(0);
+  const reload = useCallback(() => setReloadToken((n) => n + 1), []);
 
   useEffect(() => {
     let cancelled = false;
+    setLoading(true);
 
     async function load() {
       try {
@@ -166,7 +153,7 @@ export function useAboutPageData() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [reloadToken]);
 
-  return { loading, data };
+  return { loading, data, reload };
 }

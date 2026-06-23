@@ -1,8 +1,8 @@
-import { useCallback, useRef } from "react";
-import { ArrowRight, ArrowUpRight, Crop, Edit2, Lock } from "lucide-react";
+import { forwardRef, useCallback, useRef } from "react";
+import { ArrowRight, ArrowUpRight, Copy, Crop, Edit2, Lock, Trash2 } from "lucide-react";
 import type { ProjectData } from "../ProjectImage";
 import { projectTypeTag } from "../../lib/modernCaseStudies";
-import { croppedImageStyle, getProjectCardFrame } from "../../lib/projectHeroFrame";
+import { croppedCardImageStyle, computeCardFitToFrameScale, getProjectCardFrame } from "../../lib/projectHeroFrame";
 import { modern, modernFont } from "../../design/modernTokens";
 import { CardImageCropControls } from "./CardImageCropControls";
 
@@ -19,6 +19,9 @@ interface ModernCaseStudyCardProps {
   onCropDone?: () => void;
   onCropCancel?: () => void;
   onEditCaseStudy?: () => void;
+  onTogglePublish?: () => void;
+  onDuplicate?: () => void;
+  onDelete?: () => void;
 }
 
 function CaseStudyProtectedBadge() {
@@ -30,24 +33,36 @@ function CaseStudyProtectedBadge() {
   );
 }
 
-function CaseStudyCardImage({
-  project,
-  title,
-  requiresPassword,
-  cropFrame,
-  isCropping,
-  onCropDrag,
-}: {
-  project: ProjectData;
-  title: string;
-  requiresPassword?: boolean;
-  cropFrame: { scale: number; position: { x: number; y: number } };
-  isCropping?: boolean;
-  onCropDrag?: (position: { x: number; y: number }) => void;
-}) {
+const CaseStudyCardImage = forwardRef<
+  HTMLDivElement,
+  {
+    project: ProjectData;
+    title: string;
+    requiresPassword?: boolean;
+    cropFrame: { scale: number; position: { x: number; y: number } };
+    isCropping?: boolean;
+    onCropDrag?: (position: { x: number; y: number }) => void;
+    cropOverlay?: React.ReactNode;
+  }
+>(function CaseStudyCardImage(
+  { project, title, requiresPassword, cropFrame, isCropping, onCropDrag, cropOverlay },
+  forwardedRef,
+) {
   const cover = project.url;
   const mediaRef = useRef<HTMLDivElement>(null);
   const draggingRef = useRef(false);
+
+  const setMediaRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      mediaRef.current = node;
+      if (typeof forwardedRef === "function") {
+        forwardedRef(node);
+      } else if (forwardedRef) {
+        forwardedRef.current = node;
+      }
+    },
+    [forwardedRef],
+  );
 
   const handlePointerDown = (e: React.PointerEvent) => {
     if (!isCropping || !onCropDrag) return;
@@ -78,7 +93,7 @@ function CaseStudyCardImage({
 
   return (
     <div
-      ref={mediaRef}
+      ref={setMediaRef}
       className={`modern-case-study-card__image${isCropping ? " modern-case-study-card__image--cropping" : ""}`}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
@@ -90,7 +105,7 @@ function CaseStudyCardImage({
           src={cover}
           alt={title}
           className="w-full h-full pointer-events-none select-none"
-          style={croppedImageStyle(cropFrame.scale, cropFrame.position)}
+          style={croppedCardImageStyle(cropFrame.scale, cropFrame.position)}
           draggable={false}
         />
       ) : (
@@ -99,9 +114,10 @@ function CaseStudyCardImage({
         </div>
       )}
       {requiresPassword && !isCropping ? <CaseStudyProtectedBadge /> : null}
+      {cropOverlay}
     </div>
   );
-}
+});
 
 export function ModernCaseStudyCard({
   project,
@@ -115,11 +131,15 @@ export function ModernCaseStudyCard({
   onCropDone,
   onCropCancel,
   onEditCaseStudy,
+  onTogglePublish,
+  onDuplicate,
+  onDelete,
 }: ModernCaseStudyCardProps) {
   const isWide = layout === "wide";
   const tag = projectTypeTag(project);
   const requiresPassword = Boolean(project.requiresPassword);
   const frame = cropDraft ?? getProjectCardFrame(project);
+  const cropImageRef = useRef<HTMLDivElement>(null);
 
   const handleCropDrag = useCallback(
     (position: { x: number; y: number }) => {
@@ -132,31 +152,138 @@ export function ModernCaseStudyCard({
     onCropDraftChange?.({ scale: 1, position: { x: 50, y: 50 } });
   }, [onCropDraftChange]);
 
+  const handleFitToFrame = useCallback(() => {
+    const container = cropImageRef.current;
+    if (!container || !onCropDraftChange) return;
+
+    const applyFit = (img: HTMLImageElement) => {
+      const rect = container.getBoundingClientRect();
+      const scale = computeCardFitToFrameScale(
+        rect.width,
+        rect.height,
+        img.naturalWidth,
+        img.naturalHeight,
+      );
+      onCropDraftChange({ scale, position: { x: 50, y: 50 } });
+    };
+
+    const img = container.querySelector("img");
+    if (!img) return;
+    if (img.complete && img.naturalWidth > 0) {
+      applyFit(img);
+      return;
+    }
+    img.addEventListener("load", () => applyFit(img), { once: true });
+  }, [onCropDraftChange]);
+
+  const cropOverlay =
+    isCropping && onCropDone && onCropCancel ? (
+      <CardImageCropControls
+        variant="overlay"
+        scale={frame.scale}
+        onScaleChange={(scale) => onCropDraftChange?.({ scale, position: frame.position })}
+        onFitToFrame={handleFitToFrame}
+        onReset={handleReset}
+        onDone={onCropDone}
+        onCancel={onCropCancel}
+      />
+    ) : null;
+
   const cardClass = `group modern-case-study-card${isWide ? " modern-case-study-card--wide" : ""}${
     isEditMode ? " modern-case-study-card--edit" : ""
-  }${isCropping ? " modern-case-study-card--cropping" : ""}`;
+  }${isEditMode && !project.published ? " modern-case-study-card--draft" : ""}${
+    isCropping ? " modern-case-study-card--cropping" : ""
+  }`;
 
   const mediaColumn = (
     <div className="modern-case-study-card__media-col">
       <CaseStudyCardImage
+        ref={cropImageRef}
         project={project}
         title={project.title}
         requiresPassword={requiresPassword}
         cropFrame={frame}
         isCropping={isCropping}
         onCropDrag={isCropping ? handleCropDrag : undefined}
+        cropOverlay={cropOverlay}
       />
-      {isCropping && onCropDone && onCropCancel ? (
-        <CardImageCropControls
-          scale={frame.scale}
-          onScaleChange={(scale) => onCropDraftChange?.({ scale, position: frame.position })}
-          onReset={handleReset}
-          onDone={onCropDone}
-          onCancel={onCropCancel}
-        />
-      ) : null}
     </div>
   );
+
+  const editBar =
+    isEditMode && !isCropping ? (
+      <div
+        className={`modern-case-study-card__edit-bar${isWide ? " modern-case-study-card__edit-bar--wide-inline" : ""}`}
+        role="toolbar"
+        aria-label="Case study card actions"
+      >
+        <button
+          type="button"
+          className="modern-case-study-card__edit-btn"
+          style={modernFont}
+          onClick={(e) => {
+            e.stopPropagation();
+            onStartCrop?.();
+          }}
+        >
+          <Crop className="w-3.5 h-3.5" aria-hidden />
+          Adjust cover
+        </button>
+        <button
+          type="button"
+          className="modern-case-study-card__edit-btn modern-case-study-card__edit-btn--primary"
+          style={modernFont}
+          onClick={(e) => {
+            e.stopPropagation();
+            onEditCaseStudy?.();
+          }}
+        >
+          <Edit2 className="w-3.5 h-3.5" aria-hidden />
+          Edit case study
+        </button>
+        {onTogglePublish ? (
+          <button
+            type="button"
+            className={`modern-case-study-card__edit-btn${project.published ? " modern-case-study-card__edit-btn--published" : ""}`}
+            style={modernFont}
+            onClick={(e) => {
+              e.stopPropagation();
+              onTogglePublish();
+            }}
+          >
+            {project.published ? "Published" : "Draft"}
+          </button>
+        ) : null}
+        {onDuplicate ? (
+          <button
+            type="button"
+            className="modern-case-study-card__edit-btn"
+            style={modernFont}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDuplicate();
+            }}
+          >
+            <Copy className="w-3.5 h-3.5" aria-hidden />
+            Duplicate
+          </button>
+        ) : null}
+        {onDelete ? (
+          <button
+            type="button"
+            className="modern-case-study-card__edit-btn modern-case-study-card__edit-btn--danger"
+            style={modernFont}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete();
+            }}
+          >
+            <Trash2 className="w-3.5 h-3.5" aria-hidden />
+            Delete
+          </button>
+        ) : null}
+      </div>
+    ) : null;
 
   const bodyContent = isWide ? (
     <div className="flex-1 flex flex-col justify-center p-5 min-w-0">
@@ -196,6 +323,7 @@ export function ModernCaseStudyCard({
           />
         ) : null}
       </div>
+      {editBar}
     </div>
   ) : (
     <div className="modern-case-study-card__body">
@@ -226,42 +354,12 @@ export function ModernCaseStudyCard({
     </div>
   );
 
-  const editBar =
-    isEditMode && !isCropping ? (
-      <div className="modern-case-study-card__edit-bar" role="toolbar" aria-label="Case study card actions">
-        <button
-          type="button"
-          className="modern-case-study-card__edit-btn"
-          style={modernFont}
-          onClick={(e) => {
-            e.stopPropagation();
-            onStartCrop?.();
-          }}
-        >
-          <Crop className="w-3.5 h-3.5" aria-hidden />
-          Adjust cover
-        </button>
-        <button
-          type="button"
-          className="modern-case-study-card__edit-btn modern-case-study-card__edit-btn--primary"
-          style={modernFont}
-          onClick={(e) => {
-            e.stopPropagation();
-            onEditCaseStudy?.();
-          }}
-        >
-          <Edit2 className="w-3.5 h-3.5" aria-hidden />
-          Edit case study
-        </button>
-      </div>
-    ) : null;
-
   if (isEditMode) {
     return (
       <div className={cardClass}>
         {mediaColumn}
         {bodyContent}
-        {editBar}
+        {!isWide && !isCropping ? editBar : null}
       </div>
     );
   }

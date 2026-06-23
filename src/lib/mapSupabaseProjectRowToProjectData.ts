@@ -1,5 +1,14 @@
 import type { ProjectData } from "../components/ProjectImage";
 
+function toCropNumber(value: unknown, fallback: number): number {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim() !== "") {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return fallback;
+}
+
 export function parseColumnsValue(value: unknown, allowed: number[], fallback: number): number {
   const num = Number(value);
   return allowed.includes(num) ? num : fallback;
@@ -7,9 +16,21 @@ export function parseColumnsValue(value: unknown, allowed: number[], fallback: n
 
 /** Map a `projects` row (snake_case) from Supabase/RPC to UI `ProjectData`. */
 export function mapSupabaseProjectRowToProjectData(data: Record<string, unknown>): ProjectData {
+  const positionFromRow = {
+    x: toCropNumber(
+      data.position_x ?? (data.position as { x?: unknown } | undefined)?.x,
+      50,
+    ),
+    y: toCropNumber(
+      data.position_y ?? (data.position as { y?: unknown } | undefined)?.y,
+      50,
+    ),
+  };
+
   return {
     ...data,
-    position: { x: (data.position_x as number) || 50, y: (data.position_y as number) || 50 },
+    position: positionFromRow,
+    scale: toCropNumber(data.scale, 1),
     heroScale:
       data.hero_scale != null && data.hero_scale !== ""
         ? Number(data.hero_scale)

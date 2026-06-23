@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, Suspense } from "react";
+import React, { useState, useEffect, useRef, Suspense, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
@@ -15,7 +15,7 @@ import {
   SEOEditor, 
   ComponentLibrary 
 } from "./components";
-import { useDesignVariant } from "./design/DesignVariantContext";
+import { useDesignVariant, resolvePageDesignVariant } from "./design/DesignVariantContext";
 import { ModernAppChrome } from "./layouts/modern/ModernAppChrome";
 import { ModernFooter } from "./components/modern/ModernFooter";
 import { SiteOverflowMenu } from "./components/SiteOverflowMenu";
@@ -205,9 +205,9 @@ function buildProjectUpdatePayloadForSupabase(
     title: sanitizedProject.title,
     description: sanitizedProject.description,
     url: sanitizedProject.url,
-    position_x: sanitizedProject.position?.x || 50,
-    position_y: sanitizedProject.position?.y || 50,
-    scale: sanitizedProject.scale || 1,
+    position_x: sanitizedProject.position?.x ?? 50,
+    position_y: sanitizedProject.position?.y ?? 50,
+    scale: sanitizedProject.scale ?? 1,
     hero_scale:
       sanitizedProject.heroScale != null && Number.isFinite(sanitizedProject.heroScale)
         ? sanitizedProject.heroScale
@@ -278,7 +278,7 @@ function buildProjectUpdatePayloadForSupabase(
 
 function AppShell() {
   const { isSupabaseAuthenticated } = useSiteAuth();
-  const { designVariant, setDesignVariant, effectiveVariant } = useDesignVariant();
+  const { designVariant, setDesignVariant, effectiveVariant, publishedVariant } = useDesignVariant();
   const [isDiagnosticMode, setIsDiagnosticMode] = useState(false);
   const [isEmergencyMode, setIsEmergencyMode] = useState(false);
   
@@ -1687,10 +1687,15 @@ function AppShell() {
     { key: "contact" as const, label: "Contact", visible: isEditMode || pageVisibility.contact },
   ].filter((page) => page.visible);
   const chromeVariant = effectiveVariant(isEditMode);
+  const previewVariant = effectiveVariant(false);
+  const pageDesignVariant = useMemo(
+    () => resolvePageDesignVariant(isEditMode, currentPage, publishedVariant, previewVariant),
+    [isEditMode, currentPage, publishedVariant, previewVariant],
+  );
 
   useEffect(() => {
-    document.documentElement.dataset.design = chromeVariant;
-  }, [chromeVariant]);
+    document.documentElement.dataset.design = pageDesignVariant;
+  }, [pageDesignVariant]);
 
   /** Pill nav below header (desktop) / fixed bottom (mobile): only after leaving home — not on the landing screen. */
   const showPillNav =
