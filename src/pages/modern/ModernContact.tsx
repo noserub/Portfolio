@@ -185,7 +185,7 @@ export function ModernContact({ onBack }: ModernContactProps) {
             </div>
           </div>
 
-          <div className="modern-contact-form-wrap mt-12 sm:mt-14">
+          <div className="modern-contact-form-wrap">
             <h2 className="modern-contact-form__title">Send a message</h2>
             {isSubmitted ? (
               <div className="modern-form-success flex items-center gap-3 py-8 px-4 rounded-lg" role="status">

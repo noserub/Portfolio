@@ -555,6 +555,13 @@ html[data-design="modern"]:not(.dark) .modern-case-study-card__protected-badge {
 /* Contact form — open layout (no nested card); accessible field contrast */
 [data-design="modern"] .modern-contact-form-wrap {
   max-width: 36rem;
+  margin-top: 4.5rem;
+}
+
+@media (min-width: 640px) {
+  [data-design="modern"] .modern-contact-form-wrap {
+    margin-top: 6rem;
+  }
 }
 
 [data-design="modern"] .modern-contact-form__title {
