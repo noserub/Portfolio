@@ -7,7 +7,7 @@ export interface AtmosphereDot {
 }
 
 const CLUSTER_X = 0.72;
-const CLUSTER_Y = 0.44;
+const CLUSTER_Y = 0.5;
 
 function pseudoRandom(seed: number): number {
   const x = Math.sin(seed * 127.1 + seed * 311.7) * 43758.5453;
@@ -31,7 +31,7 @@ export function buildAtmosphereDots(): AtmosphereDot[] {
       const jitterX = (pseudoRandom(seed++) - 0.5) * 0.024;
       const jitterY = (pseudoRandom(seed++) - 0.5) * 0.024;
       const x = 0.03 + nx * 0.94 + jitterX;
-      const y = 0.05 + ny * 0.9 + jitterY;
+      const y = 0.01 + ny * 0.98 + jitterY;
 
       dots.push({
         x,

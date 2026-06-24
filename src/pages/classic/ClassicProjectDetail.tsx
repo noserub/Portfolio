@@ -56,7 +56,7 @@ import {
   sortGallerySections,
   syncLegacyGalleryFieldsFromSections,
 } from "../../lib/caseStudySections";
-import type { CaseStudyGallerySection } from "../../types/caseStudySections";
+import type { CaseStudyGallerySection, GalleryImageItem } from "../../types/caseStudySections";
 import {
   filterGallerySectionsForDisplay,
   sanitizeGallerySectionsForPersist,
@@ -1139,8 +1139,19 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
     (project.sectionPositions as any)?.__RESEARCH_COLUMNS__,
     (project as any).section_positions?.__RESEARCH_COLUMNS__
   ]);
-  const [lightboxImage, setLightboxImage] = useState(null);
-  const [flowDiagramLightboxImage, setFlowDiagramLightboxImage] = useState(null);
+  const [lightboxImage, setLightboxImage] = useState<GalleryImageItem | null>(null);
+  const [lightboxImages, setLightboxImages] = useState<GalleryImageItem[]>([]);
+  const [flowDiagramLightboxImage, setFlowDiagramLightboxImage] = useState<GalleryImageItem | null>(null);
+
+  const openImageLightbox = useCallback((image: GalleryImageItem, images: GalleryImageItem[]) => {
+    setLightboxImage(image);
+    setLightboxImages(images);
+  }, []);
+
+  const closeImageLightbox = useCallback(() => {
+    setLightboxImage(null);
+    setLightboxImages([]);
+  }, []);
   const [isEditingHeroImage, setIsEditingHeroImage] = useState(false);
   // Helper: compute next available position index for gallery-type sections
   const getNextPosition = useCallback(() => {
@@ -4773,7 +4784,15 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
               background: heroMediaBackground,
               cursor: isEditingHeroImage ? 'crosshair' : (project.url ? 'pointer' : 'default')
             }}
-            onClick={() => !isEditMode && !isEditingHeroImage && project.url && setLightboxImage({ id: 'hero', url: project.url, alt: project.title })}
+            onClick={() =>
+              !isEditMode &&
+              !isEditingHeroImage &&
+              project.url &&
+              openImageLightbox(
+                { id: "hero", url: project.url, alt: project.title },
+                [{ id: "hero", url: project.url, alt: project.title }],
+              )
+            }
             onMouseDown={handleHeroMouseDown}
             onMouseMove={handleHeroMouseMove}
             onMouseUp={handleHeroMouseUp}
@@ -5170,7 +5189,7 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
                 showDecorativeIcons={caseStudyDecorativeIcons}
                 onSectionChange={handleUpdateGallerySection}
                 onRemove={() => handleRemoveGallerySection(section.id)}
-                onImageClick={(image) => setLightboxImage(image)}
+                onImageClick={(image) => openImageLightbox(image, section.gallery.imageItems)}
               />
             )}
             onMoveUnifiedGallery={handleMoveUnifiedGallery}
@@ -5240,7 +5259,7 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
                         persistUpdate(updatedProject);
                         console.log('✅ [ProjectDetail] onUpdate callback completed');
                       }}
-                      onImageClick={(image) => setLightboxImage(image)}
+                      onImageClick={(image) => openImageLightbox(image, caseStudyImages)}
                       isEditMode={isEditMode}
                       aspectRatio={galleryAspectRatio}
                       onAspectRatioChange={(newRatio) => {
@@ -5707,14 +5726,17 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
       {lightboxImage && (
         <Lightbox
           isOpen={true}
-          onClose={() => setLightboxImage(null)}
+          onClose={closeImageLightbox}
           imageUrl={lightboxImage.url}
           imageAlt={lightboxImage.alt}
           imageCaption={lightboxImage.caption}
-          images={caseStudyImages.map(img => ({ url: img.url, alt: img.alt, caption: img.caption }))}
-          currentIndex={caseStudyImages.findIndex(img => img.id === lightboxImage.id)}
+          images={lightboxImages.map((img) => ({ url: img.url, alt: img.alt, caption: img.caption }))}
+          currentIndex={Math.max(
+            0,
+            lightboxImages.findIndex((img) => img.id === lightboxImage.id),
+          )}
           onNavigate={(newIndex) => {
-            const newImage = caseStudyImages[newIndex];
+            const newImage = lightboxImages[newIndex];
             if (newImage) {
               setLightboxImage(newImage);
             }

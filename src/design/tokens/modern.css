@@ -37,6 +37,8 @@
   --modern-border-hover: #606060;
   --modern-surface-border: #606060;
   --modern-nav-bg: rgba(10, 10, 10, 0.9);
+  --modern-nav-height: 3.5rem;
+  --modern-hero-atmosphere-feather: 10%;
   --modern-accent-subtle: rgba(132, 189, 0, 0.12);
   --modern-accent-subtle-strong: rgba(132, 189, 0, 0.18);
   --modern-accent-glow: rgba(132, 189, 0, 0.07);
@@ -135,6 +137,10 @@ html[data-design="modern"]:not(.dark) {
 
 [data-design="modern"] .modern-hero-pb {
   padding-bottom: 5rem;
+}
+
+[data-design="modern"] .modern-hero-section {
+  border-bottom: 1px solid var(--border);
 }
 
 @media (min-width: 640px) {
@@ -1725,19 +1731,43 @@ html[data-design="modern"] .modern-contact-input:disabled {
 [data-design="modern"] .modern-hero-atmosphere {
   display: none;
   position: absolute;
-  top: 0;
+  top: var(--modern-nav-height);
   bottom: 0;
   left: -1.5rem;
   right: -1.5rem;
   z-index: 0;
   pointer-events: none;
   -webkit-mask-image:
-    linear-gradient(to right, rgba(0, 0, 0, 0.2) 0%, rgba(0, 0, 0, 0.55) 14%, #000 36%, #000 100%),
-    linear-gradient(to bottom, transparent 0%, #000 12%, #000 88%, transparent 100%);
-  mask-image:
-    linear-gradient(to right, rgba(0, 0, 0, 0.2) 0%, rgba(0, 0, 0, 0.55) 14%, #000 36%, #000 100%),
-    linear-gradient(to bottom, transparent 0%, #000 12%, #000 88%, transparent 100%);
+    linear-gradient(
+      to bottom,
+      transparent 0%,
+      #000 var(--modern-hero-atmosphere-feather),
+      #000 calc(100% - var(--modern-hero-atmosphere-feather)),
+      transparent 100%
+    ),
+    linear-gradient(
+      to right,
+      rgba(0, 0, 0, 0.2) 0%,
+      rgba(0, 0, 0, 0.55) 14%,
+      #000 36%,
+      #000 100%
+    );
   -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(
+      to bottom,
+      transparent 0%,
+      #000 var(--modern-hero-atmosphere-feather),
+      #000 calc(100% - var(--modern-hero-atmosphere-feather)),
+      transparent 100%
+    ),
+    linear-gradient(
+      to right,
+      rgba(0, 0, 0, 0.2) 0%,
+      rgba(0, 0, 0, 0.55) 14%,
+      #000 36%,
+      #000 100%
+    );
   mask-composite: intersect;
 }
 

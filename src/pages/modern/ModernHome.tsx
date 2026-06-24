@@ -430,7 +430,7 @@ function ModernHomeView({
   return (
     <main className="min-h-screen" style={{ background: modern.bg }}>
       <section
-        className={`relative overflow-hidden ${modernLayout.sectionX} ${modernLayout.heroPt} ${modernLayout.heroPb}`}
+        className={`modern-hero-section relative overflow-hidden ${modernLayout.sectionX} ${modernLayout.heroPt} ${modernLayout.heroPb}`}
       >
         <ModernHeroAtmosphere />
         <div className={`relative z-[1] ${modernLayout.container}`}>
@@ -492,8 +492,6 @@ function ModernHomeView({
           </div>
         </div>
       </section>
-
-      <div className={modernLayout.hr} aria-hidden />
 
       <section className={`${modernLayout.sectionX} ${modernLayout.statsSection}`}>
         <div className={`${modernLayout.container} ${modernLayout.statsGrid}`}>

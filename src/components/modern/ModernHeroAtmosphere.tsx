@@ -42,10 +42,11 @@ function drawFrame(
   const pulse = 0.5 + 0.5 * Math.sin(elapsed * 0.55);
 
   const glowCx = width * 0.68;
-  const glowCy = height * 0.42;
-  const glowR = Math.max(width, height) * 0.48;
+  const glowCy = height * 0.5;
+  const glowR = Math.max(width, height) * 0.52;
   const glow = ctx.createRadialGradient(glowCx, glowCy, 0, glowCx, glowCy, glowR);
-  glow.addColorStop(0, withAlpha(colors.accent, 0.067 + pulse * 0.022));
+  const glowPeak = 0.067 + pulse * 0.022;
+  glow.addColorStop(0, withAlpha(colors.accent, glowPeak));
   glow.addColorStop(0.4, withAlpha(colors.accent, 0.021));
   glow.addColorStop(1, "transparent");
   ctx.fillStyle = glow;
@@ -59,8 +60,10 @@ function drawFrame(
     const driftX = Math.sin(elapsed * 0.4 + dot.phase) * driftAmp;
     const driftY = Math.cos(elapsed * 0.36 + dot.phase * 1.05) * driftAmp;
 
-    const x = (clustered.x + driftX) * width;
-    const y = (clustered.y + driftY) * height;
+    const nx = clustered.x + driftX;
+    const ny = clustered.y + driftY;
+    const x = nx * width;
+    const y = ny * height;
 
     const readAlpha = atmosphereReadabilityAlpha(x, width);
     const baseAlpha = (0.15 + dot.depth * 0.18) * readAlpha;
