@@ -2,6 +2,8 @@ import { useEffect, useRef } from "react";
 import {
   atmosphereClusterBreath,
   atmosphereReadabilityAlpha,
+  atmosphereVerticalEdgeAlpha,
+  atmosphereVerticalEdgeMaskGradient,
   buildAtmosphereDots,
   clusterPosition,
 } from "../../lib/modernHeroAtmosphere";
@@ -27,6 +29,48 @@ function withAlpha(color: string, alpha: number): string {
   return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`;
 }
 
+function parseLengthPx(css: string, fallback: number, rootFontSizePx: number): number {
+  const trimmed = css.trim();
+  if (!trimmed) return fallback;
+  if (trimmed.endsWith("rem")) {
+    const rem = Number.parseFloat(trimmed);
+    return Number.isFinite(rem) ? rem * rootFontSizePx : fallback;
+  }
+  if (trimmed.endsWith("px")) {
+    const px = Number.parseFloat(trimmed);
+    return Number.isFinite(px) ? px : fallback;
+  }
+  const value = Number.parseFloat(trimmed);
+  return Number.isFinite(value) ? value : fallback;
+}
+
+function drawGlow(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  colors: { accent: string },
+  pulse: number,
+) {
+  const glowCx = width * 0.68;
+  const glowCy = height * 0.5;
+  const glowRx = Math.max(width, height) * 0.38;
+  const glowRy = height * 0.96;
+  const glowPeak = 0.067 + pulse * 0.022;
+
+  ctx.save();
+  ctx.translate(glowCx, glowCy);
+  ctx.scale(1, glowRy / glowRx);
+  const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, glowRx);
+  glow.addColorStop(0, withAlpha(colors.accent, glowPeak));
+  glow.addColorStop(0.45, withAlpha(colors.accent, 0.024));
+  glow.addColorStop(1, "transparent");
+  ctx.fillStyle = glow;
+  ctx.beginPath();
+  ctx.arc(0, 0, glowRx, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
 function drawFrame(
   ctx: CanvasRenderingContext2D,
   width: number,
@@ -34,22 +78,20 @@ function drawFrame(
   elapsed: number,
   colors: { accent: string; muted: string },
   reducedMotion: boolean,
+  navHeightPx: number,
 ) {
   ctx.clearRect(0, 0, width, height);
 
   const breath = reducedMotion ? 0.35 : atmosphereClusterBreath(elapsed);
-  const driftAmp = reducedMotion ? 0 : 0.01;
+  const driftAmp = reducedMotion ? 0 : 0.012;
   const pulse = 0.5 + 0.5 * Math.sin(elapsed * 0.55);
 
-  const glowCx = width * 0.68;
-  const glowCy = height * 0.42;
-  const glowR = Math.max(width, height) * 0.48;
-  const glow = ctx.createRadialGradient(glowCx, glowCy, 0, glowCx, glowCy, glowR);
-  glow.addColorStop(0, withAlpha(colors.accent, 0.067 + pulse * 0.022));
-  glow.addColorStop(0.4, withAlpha(colors.accent, 0.021));
-  glow.addColorStop(1, "transparent");
-  ctx.fillStyle = glow;
+  drawGlow(ctx, width, height, colors, pulse);
+
+  ctx.globalCompositeOperation = "destination-in";
+  ctx.fillStyle = atmosphereVerticalEdgeMaskGradient(ctx, height, navHeightPx);
   ctx.fillRect(0, 0, width, height);
+  ctx.globalCompositeOperation = "source-over";
 
   const sorted = [...DOTS].sort((a, b) => a.depth - b.depth);
 
@@ -59,11 +101,14 @@ function drawFrame(
     const driftX = Math.sin(elapsed * 0.4 + dot.phase) * driftAmp;
     const driftY = Math.cos(elapsed * 0.36 + dot.phase * 1.05) * driftAmp;
 
-    const x = (clustered.x + driftX) * width;
-    const y = (clustered.y + driftY) * height;
+    const nx = clustered.x + driftX;
+    const ny = clustered.y + driftY;
+    const x = nx * width;
+    const y = ny * height;
 
     const readAlpha = atmosphereReadabilityAlpha(x, width);
-    const baseAlpha = (0.15 + dot.depth * 0.18) * readAlpha;
+    const edgeAlpha = atmosphereVerticalEdgeAlpha(ny, height, navHeightPx);
+    const baseAlpha = (0.15 + dot.depth * 0.18) * readAlpha * edgeAlpha;
     const radius = 0.85 + dot.depth * 0.75;
 
     const useAccent = dot.accent && readAlpha > 0.35;
@@ -95,16 +140,18 @@ export function ModernHeroAtmosphere() {
       typeof window !== "undefined" &&
       window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-    const readColors = () => {
+    const readTheme = () => {
       const root = canvas.closest("[data-design]") ?? document.documentElement;
       const style = getComputedStyle(root);
+      const rootFontSizePx = Number.parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
       return {
         accent: parseColor(style.getPropertyValue("--modern-accent"), "#84bd00"),
         muted: parseColor(style.getPropertyValue("--modern-muted-text"), "#8c8c8c"),
+        navHeightPx: parseLengthPx(style.getPropertyValue("--modern-nav-height"), 56, rootFontSizePx),
       };
     };
 
-    let colors = readColors();
+    let theme = readTheme();
 
     const resize = () => {
       const rect = host.getBoundingClientRect();
@@ -124,7 +171,7 @@ export function ModernHeroAtmosphere() {
     ro.observe(host);
 
     const themeObserver = new MutationObserver(() => {
-      colors = readColors();
+      theme = readTheme();
     });
     themeObserver.observe(document.documentElement, {
       attributes: true,
@@ -136,7 +183,15 @@ export function ModernHeroAtmosphere() {
       const elapsed = (now - startRef.current) / 1000;
       const ctx = canvas.getContext("2d");
       if (ctx) {
-        drawFrame(ctx, canvas.clientWidth, canvas.clientHeight, elapsed, colors, reducedMotion);
+        drawFrame(
+          ctx,
+          canvas.clientWidth,
+          canvas.clientHeight,
+          elapsed,
+          theme,
+          reducedMotion,
+          theme.navHeightPx,
+        );
       }
       frameRef.current = requestAnimationFrame(paint);
     };
