@@ -2,6 +2,8 @@ import { useEffect, useRef } from "react";
 import {
   atmosphereClusterBreath,
   atmosphereReadabilityAlpha,
+  atmosphereVerticalEdgeAlpha,
+  atmosphereVerticalEdgeMaskGradient,
   buildAtmosphereDots,
   clusterPosition,
 } from "../../lib/modernHeroAtmosphere";
@@ -27,6 +29,21 @@ function withAlpha(color: string, alpha: number): string {
   return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`;
 }
 
+function parseLengthPx(css: string, fallback: number, rootFontSizePx: number): number {
+  const trimmed = css.trim();
+  if (!trimmed) return fallback;
+  if (trimmed.endsWith("rem")) {
+    const rem = Number.parseFloat(trimmed);
+    return Number.isFinite(rem) ? rem * rootFontSizePx : fallback;
+  }
+  if (trimmed.endsWith("px")) {
+    const px = Number.parseFloat(trimmed);
+    return Number.isFinite(px) ? px : fallback;
+  }
+  const value = Number.parseFloat(trimmed);
+  return Number.isFinite(value) ? value : fallback;
+}
+
 function drawFrame(
   ctx: CanvasRenderingContext2D,
   width: number,
@@ -34,6 +51,7 @@ function drawFrame(
   elapsed: number,
   colors: { accent: string; muted: string },
   reducedMotion: boolean,
+  navHeightPx: number,
 ) {
   ctx.clearRect(0, 0, width, height);
 
@@ -52,6 +70,11 @@ function drawFrame(
   ctx.fillStyle = glow;
   ctx.fillRect(0, 0, width, height);
 
+  ctx.globalCompositeOperation = "destination-in";
+  ctx.fillStyle = atmosphereVerticalEdgeMaskGradient(ctx, height, navHeightPx);
+  ctx.fillRect(0, 0, width, height);
+  ctx.globalCompositeOperation = "source-over";
+
   const sorted = [...DOTS].sort((a, b) => a.depth - b.depth);
 
   for (const dot of sorted) {
@@ -66,7 +89,8 @@ function drawFrame(
     const y = ny * height;
 
     const readAlpha = atmosphereReadabilityAlpha(x, width);
-    const baseAlpha = (0.15 + dot.depth * 0.18) * readAlpha;
+    const edgeAlpha = atmosphereVerticalEdgeAlpha(ny, height, navHeightPx);
+    const baseAlpha = (0.15 + dot.depth * 0.18) * readAlpha * edgeAlpha;
     const radius = 0.85 + dot.depth * 0.75;
 
     const useAccent = dot.accent && readAlpha > 0.35;
@@ -98,16 +122,18 @@ export function ModernHeroAtmosphere() {
       typeof window !== "undefined" &&
       window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-    const readColors = () => {
+    const readTheme = () => {
       const root = canvas.closest("[data-design]") ?? document.documentElement;
       const style = getComputedStyle(root);
+      const rootFontSizePx = Number.parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
       return {
         accent: parseColor(style.getPropertyValue("--modern-accent"), "#84bd00"),
         muted: parseColor(style.getPropertyValue("--modern-muted-text"), "#8c8c8c"),
+        navHeightPx: parseLengthPx(style.getPropertyValue("--modern-nav-height"), 56, rootFontSizePx),
       };
     };
 
-    let colors = readColors();
+    let theme = readTheme();
 
     const resize = () => {
       const rect = host.getBoundingClientRect();
@@ -127,7 +153,7 @@ export function ModernHeroAtmosphere() {
     ro.observe(host);
 
     const themeObserver = new MutationObserver(() => {
-      colors = readColors();
+      theme = readTheme();
     });
     themeObserver.observe(document.documentElement, {
       attributes: true,
@@ -139,7 +165,15 @@ export function ModernHeroAtmosphere() {
       const elapsed = (now - startRef.current) / 1000;
       const ctx = canvas.getContext("2d");
       if (ctx) {
-        drawFrame(ctx, canvas.clientWidth, canvas.clientHeight, elapsed, colors, reducedMotion);
+        drawFrame(
+          ctx,
+          canvas.clientWidth,
+          canvas.clientHeight,
+          elapsed,
+          theme,
+          reducedMotion,
+          theme.navHeightPx,
+        );
       }
       frameRef.current = requestAnimationFrame(paint);
     };

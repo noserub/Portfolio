@@ -9,6 +9,9 @@ export interface AtmosphereDot {
 const CLUSTER_X = 0.72;
 const CLUSTER_Y = 0.5;
 
+/** Fraction of canvas height for symmetric bleed ramps at top/bottom dividers. */
+export const ATMOSPHERE_EDGE_FEATHER = 0.12;
+
 function pseudoRandom(seed: number): number {
   const x = Math.sin(seed * 127.1 + seed * 311.7) * 43758.5453;
   return x - Math.floor(x);
@@ -73,4 +76,45 @@ export function clusterPosition(
     x: x + (CLUSTER_X - x) * pull,
     y: y + (CLUSTER_Y - y) * pull,
   };
+}
+
+/**
+ * Symmetric bleed into the top (nav border) and bottom (section border) dividers.
+ * Ramps use the same depth on both edges; only the anchor Y differs (nav line vs section bottom).
+ */
+export function atmosphereVerticalEdgeAlpha(
+  normalizedY: number,
+  canvasHeightPx: number,
+  navHeightPx: number,
+): number {
+  const y = Math.max(0, Math.min(1, normalizedY));
+  if (canvasHeightPx <= 0) return 1;
+
+  const navYNorm = Math.min(1, navHeightPx / canvasHeightPx);
+  const feather = ATMOSPHERE_EDGE_FEATHER;
+
+  if (y < navYNorm + feather) {
+    if (y <= navYNorm) return 0;
+    return (y - navYNorm) / feather;
+  }
+
+  if (y > 1 - feather) return (1 - y) / feather;
+
+  return 1;
+}
+
+export function atmosphereVerticalEdgeMaskGradient(
+  ctx: CanvasRenderingContext2D,
+  height: number,
+  navHeightPx: number,
+): CanvasGradient {
+  const navNorm = Math.min(1, navHeightPx / Math.max(1, height));
+  const feather = ATMOSPHERE_EDGE_FEATHER;
+  const gradient = ctx.createLinearGradient(0, 0, 0, height);
+  gradient.addColorStop(0, "rgba(0, 0, 0, 0)");
+  gradient.addColorStop(navNorm, "rgba(0, 0, 0, 0)");
+  gradient.addColorStop(Math.min(1, navNorm + feather), "rgba(0, 0, 0, 1)");
+  gradient.addColorStop(Math.max(navNorm + feather, 1 - feather), "rgba(0, 0, 0, 1)");
+  gradient.addColorStop(1, "rgba(0, 0, 0, 0)");
+  return gradient;
 }
