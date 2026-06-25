@@ -70,6 +70,8 @@ export interface ProjectData {
   sortOrder?: number;
   /** When true, show icons on case study sidebars, media blocks, and My role subsection cards. Default off. */
   caseStudyDecorativeIcons?: boolean;
+  /** External CTAs below hero (Try live site, design system, etc.). */
+  projectLinks?: Array<{ label: string; href: string; variant: "primary" | "secondary" | "ghost" }>;
   /** Repeatable gallery sections (images/videos) with custom titles and layout. */
   caseStudySections?: CaseStudyGallerySection[];
   /** ISO timestamps from Supabase `projects` (for JSON-LD dates when present). */

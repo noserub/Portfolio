@@ -42,6 +42,7 @@ export interface Project {
   case_study_decorative_icons?: boolean;
   case_study_sidebars?: Record<string, unknown>;
   case_study_sections?: unknown[];
+  project_links?: Array<{ label: string; href: string; variant: string }>;
 }
 
 export interface ProjectInsert {
@@ -79,6 +80,7 @@ export interface ProjectInsert {
   case_study_decorative_icons?: boolean;
   case_study_sidebars?: Record<string, unknown>;
   case_study_sections?: unknown[];
+  project_links?: Array<{ label: string; href: string; variant: string }>;
 }
 
 export interface ProjectUpdate {
@@ -115,6 +117,7 @@ export interface ProjectUpdate {
   case_study_decorative_icons?: boolean;
   case_study_sidebars?: Record<string, unknown>;
   case_study_sections?: unknown[];
+  project_links?: Array<{ label: string; href: string; variant: string }>;
 }
 
 /** Shared project list + mutations. Prefer consuming via `ProjectsProvider` + `useProjects` from `contexts/ProjectsContext` so the app only mounts one instance (avoids duplicate full-table fetches). */
@@ -321,6 +324,7 @@ export function useProjectsState() {
             (source as { caseStudySections?: unknown[] }).caseStudySections ??
             []
         ),
+        project_links: deepClone((source as { project_links?: unknown[] }).project_links ?? []),
       };
 
       const { data, error } = await supabase
@@ -374,7 +378,7 @@ export function useProjectsState() {
         'case_study_content','case_study_images','flow_diagram_images','video_items','gallery_aspect_ratio',
         'flow_diagram_aspect_ratio','video_aspect_ratio','gallery_columns','flow_diagram_columns','video_columns','key_features_columns',
         'project_images_position','videos_position','flow_diagrams_position','solution_cards_position','section_positions','sort_order','project_type',
-        'case_study_decorative_icons', 'case_study_sections'
+        'case_study_decorative_icons', 'case_study_sections', 'project_links'
       ];
       const payload: Record<string, any> = {};
       for (const key of allowedKeys) {

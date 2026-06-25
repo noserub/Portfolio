@@ -10,6 +10,8 @@ import { Lightbox } from "../../components/Lightbox";
 import { ProjectData } from "../../components/ProjectImage";
 import { getProjectDetailHeroFrame, projectDetailHeroImageStyle } from "../../lib/projectHeroFrame";
 import { CaseStudySections } from "../../components/features/CaseStudySections";
+import { CaseStudyProjectLinks } from "../../components/features/CaseStudyProjectLinks";
+import { CaseStudyProjectLinksEditor } from "../../components/features/CaseStudyProjectLinksEditor";
 import { PageLayout } from "../../components/layout/PageLayout";
 import {
   DropdownMenu,
@@ -35,6 +37,7 @@ import {
   type SEOData,
 } from "../../utils/seoManager";
 import { cleanMarkdownContent, isContentCorrupted, stripSidebarMarkdownSections } from "../../utils/cleanMarkdownContent";
+import { getProjectLinksFromProject, coerceProjectLinksForEditor, normalizeProjectLinks, projectLinksPersistedEqual, type ProjectLink } from "../../lib/projectLinks";
 import { uploadImage } from "../../utils/imageHelpers";
 import { Search } from "lucide-react";
 import { Label } from "../../components/ui/label";
@@ -507,6 +510,20 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
     );
   }, [project.id, project.caseStudyDecorativeIcons, (project as any).case_study_decorative_icons]);
 
+  const [projectLinks, setProjectLinks] = useState<ProjectLink[]>(() =>
+    coerceProjectLinksForEditor(getProjectLinksFromProject(project as Record<string, unknown>)),
+  );
+  const projectLinksRef = useRef(projectLinks);
+  projectLinksRef.current = projectLinks;
+
+  // Only re-sync from the server when switching case studies — not on every parent persist,
+  // otherwise empty draft rows disappear immediately after "Add link".
+  useEffect(() => {
+    setProjectLinks(
+      coerceProjectLinksForEditor(getProjectLinksFromProject(project as Record<string, unknown>)),
+    );
+  }, [project.id]);
+
   const persistUpdate = useCallback(
     (updated: ProjectData) => {
       if (!isEditModeRef.current) {
@@ -517,13 +534,37 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
         updated.caseStudyDecorativeIcons ??
         (updated as any).case_study_decorative_icons ??
         caseStudyDecorativeIcons;
+      const persistedLinks = normalizeProjectLinks(
+        (updated as any).projectLinks ??
+          (updated as any).project_links ??
+          projectLinksRef.current,
+      );
       pushProjectUpdate({
         ...updated,
         caseStudyDecorativeIcons: icons,
         case_study_decorative_icons: icons,
+        projectLinks: persistedLinks,
+        project_links: persistedLinks,
       } as ProjectData);
     },
     [pushProjectUpdate, caseStudyDecorativeIcons],
+  );
+
+  const handleProjectLinksChange = useCallback(
+    (next: ProjectLink[]) => {
+      const drafts = coerceProjectLinksForEditor(next);
+      const persisted = normalizeProjectLinks(drafts);
+      setProjectLinks(drafts);
+
+      if (!projectLinksPersistedEqual(persisted, projectLinksRef.current)) {
+        persistUpdate({
+          ...project,
+          projectLinks: persisted,
+          project_links: persisted,
+        } as ProjectData);
+      }
+    },
+    [project, persistUpdate],
   );
 
   const handleDuplicateCaseStudy = useCallback(async () => {
@@ -1741,6 +1782,8 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
       research_insights_columns: d.researchInsightsColumns,
       caseStudyDecorativeIcons,
       case_study_decorative_icons: caseStudyDecorativeIcons,
+      projectLinks: normalizeProjectLinks(projectLinks),
+      project_links: normalizeProjectLinks(projectLinks),
       caseStudySections: sanitizeGallerySectionsForPersist(gallerySectionsRef.current),
       case_study_sections: sanitizeGallerySectionsForPersist(gallerySectionsRef.current),
       heroScale,
@@ -1749,7 +1792,7 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
       hero_position_x: heroPosition.x,
       hero_position_y: heroPosition.y,
     } as ProjectData;
-  }, [project, caseStudyDecorativeIcons, heroScale, heroPosition]);
+  }, [project, caseStudyDecorativeIcons, projectLinks, heroScale, heroPosition]);
 
   // Clean up corrupted content on mount and use cleaned content for parsing
   // ALSO strip legacy sidebar blocks on LOAD if JSON sidebars exist
@@ -4569,6 +4612,10 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
                 </p>
               </div>
             </div>
+
+            <div className="border-t border-border pt-6 mt-6">
+              <CaseStudyProjectLinksEditor links={projectLinks} onChange={handleProjectLinksChange} />
+            </div>
             
             {/* SEO Settings Section */}
             <div className="border-t border-border pt-6 mt-6">
@@ -4897,6 +4944,8 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
             )}
           </div>
         </motion.div>
+
+        <CaseStudyProjectLinks links={projectLinks} />
 
         {/* Case Study Content - Separate Cards for Each Section - Order 4 on mobile (after hero and sidebars) */}
         {isEditMode && isEditing ? (
