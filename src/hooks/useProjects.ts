@@ -393,6 +393,9 @@ export function useProjectsState() {
       // Pass JSON sidebars if present under snake_case key
       const sidebars = (updates as any).case_study_sidebars || (updates as any).caseStudySidebars;
       if (sidebars !== undefined) payload['case_study_sidebars'] = sidebars;
+      // camelCase bridge for project links
+      const projectLinks = (updates as any).project_links ?? (updates as any).projectLinks;
+      if (projectLinks !== undefined) payload['project_links'] = projectLinks;
 
       console.log('🛰️ useProjects: filtered payload keys:', Object.keys(payload));
       console.log('🛰️ useProjects: filtered payload:', JSON.stringify(payload, null, 2));

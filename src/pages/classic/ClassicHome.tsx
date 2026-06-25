@@ -60,6 +60,7 @@ import {
   portfolioDecorLimeColor,
 } from "../../lib/modernSurfaces";
 import { getPortfolioOwnerUserId } from "../../lib/portfolioOwner";
+import { normalizeProjectLinks } from "../../lib/projectLinks";
 import { lazyWithRetry } from "../../utils/lazyWithRetry";
 import { useSiteAuth } from "../../contexts/SiteAuthContext";
 import { BioDocumentRenderer } from "../../components/HomeBioDocument";
@@ -2606,8 +2607,9 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         case_study_decorative_icons: Boolean(
           cleanProject.caseStudyDecorativeIcons ?? (cleanProject as any).case_study_decorative_icons
         ),
-        project_links:
-          (cleanProject as any).projectLinks ?? (cleanProject as any).project_links ?? [],
+        project_links: normalizeProjectLinks(
+          (cleanProject as any).projectLinks ?? (cleanProject as any).project_links,
+        ),
       };
 
       const resolvedSortOrder =

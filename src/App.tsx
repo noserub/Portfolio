@@ -43,6 +43,7 @@ import { getPortfolioOwnerUserId, hasVitePublicPortfolioOwnerId } from "./lib/po
 import { devLog } from "./lib/devLog";
 import { useSiteAuth } from "./contexts/SiteAuthContext";
 import { mapSupabaseProjectRowToProjectData, parseColumnsValue } from "./lib/mapSupabaseProjectRowToProjectData";
+import { normalizeProjectLinks } from "./lib/projectLinks";
 import { slugFromProjectTitle } from "./lib/projectSlug";
 import { useAppSettings } from "./hooks/useAppSettings";
 import { ProjectsProvider, useProjects } from "./contexts/ProjectsContext";
@@ -273,11 +274,9 @@ function buildProjectUpdatePayloadForSupabase(
     sanitizedProject.caseStudyDecorativeIcons ?? (sanitizedProject as any).case_study_decorative_icons,
   );
 
-  const rawProjectLinks =
-    sanitizedProject.projectLinks ?? (sanitizedProject as any).project_links;
-  if (rawProjectLinks !== undefined) {
-    projectData.project_links = rawProjectLinks;
-  }
+  projectData.project_links = normalizeProjectLinks(
+    sanitizedProject.projectLinks ?? (sanitizedProject as any).project_links,
+  );
 
   return projectData;
 }

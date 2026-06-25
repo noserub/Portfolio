@@ -554,9 +554,12 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
     (next: ProjectLink[]) => {
       const drafts = coerceProjectLinksForEditor(next);
       const persisted = normalizeProjectLinks(drafts);
+      const savedOnServer = normalizeProjectLinks(
+        getProjectLinksFromProject(project as Record<string, unknown>),
+      );
       setProjectLinks(drafts);
 
-      if (!projectLinksPersistedEqual(persisted, projectLinksRef.current)) {
+      if (!projectLinksPersistedEqual(persisted, savedOnServer)) {
         persistUpdate({
           ...project,
           projectLinks: persisted,
