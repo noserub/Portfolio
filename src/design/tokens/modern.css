@@ -1719,6 +1719,65 @@ html[data-design="modern"] .modern-contact-input:disabled {
   border-color: var(--modern-accent);
 }
 
+/* Case study external CTAs (below hero) */
+.case-study-project-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 0 0 2rem;
+}
+
+.case-study-project-link {
+  text-decoration: none;
+}
+
+.case-study-project-link--ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--muted-foreground, #8c8c8c);
+  background: transparent;
+  transition: color 150ms ease;
+}
+
+.case-study-project-link--ghost:hover {
+  color: var(--foreground, #fafafa);
+}
+
+[data-design="modern"] [data-modern-project-detail] .case-study-project-link--ghost:hover {
+  color: var(--modern-accent);
+}
+
+/* Classic theme fallbacks when modern button classes are inactive */
+.case-study-project-link--primary:not(.modern-btn-primary) {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
+
+.case-study-project-link--secondary:not(.modern-btn-outline) {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.375rem;
+  border: 1px solid hsl(var(--border));
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: hsl(var(--muted-foreground));
+  background: transparent;
+}
+
 [data-design="modern"] .modern-hero-glow {
   background: radial-gradient(
     ellipse 60% 50% at 50% 0%,

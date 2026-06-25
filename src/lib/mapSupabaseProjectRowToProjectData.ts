@@ -1,4 +1,5 @@
 import type { ProjectData } from "../components/ProjectImage";
+import { normalizeProjectLinks } from "./projectLinks";
 
 function toCropNumber(value: unknown, fallback: number): number {
   if (typeof value === "number" && Number.isFinite(value)) return value;
@@ -71,6 +72,7 @@ export function mapSupabaseProjectRowToProjectData(data: Record<string, unknown>
     requiresPassword: data.requires_password as boolean | undefined,
     projectType: (data.project_type as ProjectData["projectType"]) || null,
     caseStudyDecorativeIcons: Boolean((data as { case_study_decorative_icons?: unknown }).case_study_decorative_icons),
+    projectLinks: normalizeProjectLinks((data as { project_links?: unknown }).project_links),
     caseStudySections: (data as { case_study_sections?: unknown }).case_study_sections as ProjectData['caseStudySections'],
     sortOrder:
       data.sort_order !== undefined && data.sort_order !== null
@@ -102,6 +104,7 @@ export function mapSupabaseProjectRowToProjectData(data: Record<string, unknown>
     section_positions: undefined,
     requires_password: undefined,
     case_study_decorative_icons: undefined,
+    project_links: undefined,
     case_study_sections: undefined,
     sort_order: undefined,
     created_at: undefined,

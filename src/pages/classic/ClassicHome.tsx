@@ -2188,6 +2188,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
       caseStudyDecorativeIcons: Boolean(
         project.caseStudyDecorativeIcons ?? project.case_study_decorative_icons
       ),
+      projectLinks: (project as any).projectLinks ?? (project as any).project_links ?? [],
       // Ensure position is an object
       position: project.position || { x: project.position_x || 50, y: project.position_y || 50 }
     };
@@ -2605,6 +2606,8 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
         case_study_decorative_icons: Boolean(
           cleanProject.caseStudyDecorativeIcons ?? (cleanProject as any).case_study_decorative_icons
         ),
+        project_links:
+          (cleanProject as any).projectLinks ?? (cleanProject as any).project_links ?? [],
       };
 
       const resolvedSortOrder =
@@ -2683,6 +2686,8 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
               research_insights_columns: (cleanProject as any).research_insights_columns,
               caseStudyDecorativeIcons: cleanProject.caseStudyDecorativeIcons,
               case_study_decorative_icons: cleanProject.caseStudyDecorativeIcons,
+              projectLinks: (cleanProject as any).projectLinks ?? (cleanProject as any).project_links ?? [],
+              project_links: (cleanProject as any).projectLinks ?? (cleanProject as any).project_links ?? [],
               lastModified: new Date().toISOString()
             };
             

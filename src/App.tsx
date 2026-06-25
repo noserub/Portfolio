@@ -273,6 +273,12 @@ function buildProjectUpdatePayloadForSupabase(
     sanitizedProject.caseStudyDecorativeIcons ?? (sanitizedProject as any).case_study_decorative_icons,
   );
 
+  const rawProjectLinks =
+    sanitizedProject.projectLinks ?? (sanitizedProject as any).project_links;
+  if (rawProjectLinks !== undefined) {
+    projectData.project_links = rawProjectLinks;
+  }
+
   return projectData;
 }
 
