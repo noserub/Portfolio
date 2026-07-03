@@ -1,11 +1,10 @@
-import React from 'react';
-
 export const config = {
   runtime: 'edge',
 };
 
 export default async function handler(req: Request) {
-  const { ImageResponse } = await import('@vercel/og'); // dynamic ESM import
+  const React = (await import('react')).default;
+  const { ImageResponse } = await import('@vercel/og');
 
   const { searchParams } = new URL(req.url);
   const title = searchParams.get('title') || 'Brian Bureson – Portfolio';
@@ -36,11 +35,9 @@ export default async function handler(req: Request) {
           borderRadius: 24,
         },
       },
-      title
-    )
+      title,
+    ),
   );
 
   return new ImageResponse(element, { width: 1200, height: 630 });
 }
-
-

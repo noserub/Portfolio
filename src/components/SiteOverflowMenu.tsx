@@ -2,6 +2,7 @@ import {
   BookOpen,
   Key,
   LogOut,
+  Mail,
   Moon,
   MoreHorizontal,
   RefreshCw,
@@ -41,6 +42,8 @@ export interface SiteOverflowMenuProps {
   onShowPasswordReset: () => void;
   onShowSEOEditor: () => void;
   onShowComponentLibrary: () => void;
+  onNavigateMessages?: () => void;
+  unreadMessageCount?: number;
   onSignOut: () => void;
 }
 
@@ -70,6 +73,8 @@ export function SiteOverflowMenu({
   onShowPasswordReset,
   onShowSEOEditor,
   onShowComponentLibrary,
+  onNavigateMessages,
+  unreadMessageCount = 0,
   onSignOut,
 }: SiteOverflowMenuProps) {
   const triggerClass =
@@ -142,6 +147,22 @@ export function SiteOverflowMenu({
         {isSupabaseAuthenticated ? (
           <>
             <DropdownMenuSeparator />
+            {onNavigateMessages ? (
+              <DropdownMenuItem
+                onClick={() => {
+                  onNavigateMessages();
+                  blurActiveElement();
+                }}
+              >
+                <Mail className="w-4 h-4 mr-2" />
+                Messages
+                {unreadMessageCount > 0 ? (
+                  <span className="ml-auto text-xs font-semibold text-red-500">
+                    {unreadMessageCount > 99 ? "99+" : unreadMessageCount}
+                  </span>
+                ) : null}
+              </DropdownMenuItem>
+            ) : null}
             <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground">Design</DropdownMenuLabel>
             <DropdownMenuItem
               onClick={() => {

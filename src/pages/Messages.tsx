@@ -44,6 +44,9 @@ import {
 } from '../components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
+import { useDesignVariant } from '../design/DesignVariantContext';
+import { modernLayout } from '../design/modernLayout';
+import { modern } from '../design/modernTokens';
 
 interface MessagesProps {
   onBack: () => void;
@@ -53,6 +56,8 @@ interface MessagesProps {
 type FilterType = 'all' | 'unread' | 'read' | 'archived';
 
 export function Messages({ onBack, isEditMode = false }: MessagesProps) {
+  const { publishedVariant } = useDesignVariant();
+  const isModernSite = publishedVariant === "modern";
   const {
     messages,
     loading,
@@ -62,7 +67,7 @@ export function Messages({ onBack, isEditMode = false }: MessagesProps) {
     markAsUnread,
     markAllAsRead,
     deleteMessage,
-    getUnreadCount,
+    unreadCount,
     updateMessage,
   } = useContactMessages();
 
@@ -111,7 +116,6 @@ export function Messages({ onBack, isEditMode = false }: MessagesProps) {
     return true;
   });
 
-  const unreadCount = getUnreadCount();
   const archivedCount = messages.filter(m => m.is_archived).length;
 
   // Handle message selection
@@ -300,10 +304,16 @@ export function Messages({ onBack, isEditMode = false }: MessagesProps) {
     return formatDistanceToNow(date, { addSuffix: true });
   };
 
-  return (
-    <PageLayout>
-      <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 py-8 max-w-7xl">
+  const messagesBody = (
+    <div
+      className={
+        isModernSite
+          ? `min-h-screen ${modernLayout.sectionX} ${modernLayout.heroPt} pb-16`
+          : "min-h-screen bg-background"
+      }
+      style={isModernSite ? { background: modern.bg } : undefined}
+    >
+      <div className={isModernSite ? `${modernLayout.container} py-8` : "container mx-auto px-4 py-8 max-w-7xl"}>
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-4">
@@ -790,7 +800,16 @@ export function Messages({ onBack, isEditMode = false }: MessagesProps) {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-      </div>
+    </div>
+  );
+
+  if (isModernSite) {
+    return messagesBody;
+  }
+
+  return (
+    <PageLayout title="Messages" onBack={onBack}>
+      {messagesBody}
     </PageLayout>
   );
 }

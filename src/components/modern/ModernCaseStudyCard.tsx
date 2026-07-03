@@ -1,8 +1,9 @@
-import { forwardRef, useCallback, useRef } from "react";
+import { forwardRef, useCallback, useRef, type MouseEvent } from "react";
 import { ArrowRight, ArrowUpRight, Copy, Crop, Edit2, Lock, Trash2 } from "lucide-react";
 import type { ProjectData } from "../ProjectImage";
 import { projectTypeTag } from "../../lib/modernCaseStudies";
 import { croppedCardImageStyle, computeCardFitToFrameScale, getProjectCardFrame } from "../../lib/projectHeroFrame";
+import { slugFromProjectTitle } from "../../lib/projectSlug";
 import { modern, modernFont } from "../../design/modernTokens";
 import { CardImageCropControls } from "./CardImageCropControls";
 
@@ -23,6 +24,17 @@ interface ModernCaseStudyCardProps {
   onTogglePasswordProtection?: () => void;
   onDuplicate?: () => void;
   onDelete?: () => void;
+}
+
+function shouldLetBrowserHandleNavigation(event: MouseEvent<HTMLAnchorElement>) {
+  return (
+    event.defaultPrevented ||
+    event.button !== 0 ||
+    event.metaKey ||
+    event.ctrlKey ||
+    event.shiftKey ||
+    event.altKey
+  );
 }
 
 function CaseStudyProtectedBadge() {
@@ -138,6 +150,8 @@ export function ModernCaseStudyCard({
   onDelete,
 }: ModernCaseStudyCardProps) {
   const isWide = layout === "wide";
+  const projectSlug = slugFromProjectTitle(project.title);
+  const href = projectSlug ? `/project/${projectSlug}` : "/";
   const tag = projectTypeTag(project);
   const requiresPassword = Boolean(
     project.requiresPassword ?? (project as { requires_password?: boolean }).requires_password,
@@ -384,9 +398,18 @@ export function ModernCaseStudyCard({
   }
 
   return (
-    <button type="button" onClick={onClick} className={cardClass}>
+    <a
+      href={href}
+      onClick={(event) => {
+        if (shouldLetBrowserHandleNavigation(event)) return;
+        event.preventDefault();
+        onClick();
+      }}
+      className={cardClass}
+      aria-label={`View case study: ${project.title}`}
+    >
       {mediaColumn}
       {bodyContent}
-    </button>
+    </a>
   );
 }

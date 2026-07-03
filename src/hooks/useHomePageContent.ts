@@ -13,7 +13,6 @@ import {
   type MutableRefObject,
   type SetStateAction,
 } from "react";
-import { toast } from "sonner";
 import {
   createDefaultHomePageContent,
   FLUSH_HOME_PAGE_CMS_EVENT,
@@ -27,7 +26,17 @@ import {
   toPersistedPayload,
   type HomePageContentV2,
 } from "../lib/homePageContent";
-import { getPortfolioOwnerUserId } from "../lib/portfolioOwner";
+import { tryWriteLocalStorage } from "../lib/localStorageQuota";
+import { getPostgrestErrorMessage } from "../lib/supabaseClient";
+import { getPortfolioOwnerUserId, getProfileWriterUserId } from "../lib/portfolioOwner";
+
+export type HomePagePersistResult = {
+  ok: boolean;
+  localSaved: boolean;
+  cloudSynced: boolean;
+  warning?: string;
+  error?: string;
+};
 
 export interface UseHomePageContentOptions {
   /** Call when server-applied content should reset bio editor (TipTap). */
@@ -241,21 +250,36 @@ export function useHomePageContent(options: UseHomePageContentOptions) {
     };
   }, [bumpBio, setIsEditingHero]);
 
-  const persistHomePageNow = useCallback(async (content: HomePageContentV2) => {
+  const persistHomePageNow = useCallback(async (content: HomePageContentV2): Promise<HomePagePersistResult> => {
     if (!shouldPersistHomePageContent(content)) {
-      return;
+      return {
+        ok: false,
+        localSaved: false,
+        cloudSynced: false,
+        error: "Nothing to save yet. Add headline or intro copy first.",
+      };
     }
+
     const payload = toPersistedPayload({ ...content, _clientSavedAt: Date.now() });
-    localStorage.setItem("heroText", JSON.stringify(payload));
+    const serialized = JSON.stringify(payload);
+    const localWrite = tryWriteLocalStorage("heroText", serialized);
+    const localSaved = localWrite.ok;
+    let localStorageWarning: string | undefined;
+
+    if (!localWrite.ok) {
+      localStorageWarning = localWrite.quotaError
+        ? "Browser storage is full on this device. Trying to save to the cloud instead."
+        : "Could not keep a local copy on this device. Trying to save to the cloud instead.";
+    } else if (localWrite.freedKeys?.length) {
+      localStorageWarning = `Removed ${localWrite.freedKeys.length} old local cache entries to free browser storage.`;
+    }
 
     const applyRowFromServer = (row: { hero_text: unknown; updated_at: string | null }) => {
       const next = migrateLegacyWelcomeGreeting(parseStoredHomeContent(row.hero_text ?? {}));
-      localStorage.setItem("heroText", JSON.stringify(toPersistedPayload(next)));
+      tryWriteLocalStorage("heroText", JSON.stringify(toPersistedPayload(next)));
       setShowHeroCloudNotice(false);
       setHeroDraftAheadOfCloud(false);
       if (!isEditingHeroRef.current) {
-        // Prevent save loops: Supabase echoes can differ only by metadata/timestamp.
-        // Only update React state if meaningful home content actually changed.
         const currentFp = homeContentFingerprint(homePageContentRef.current);
         const nextFp = homeContentFingerprint(next);
         if (currentFp !== nextFp) {
@@ -271,81 +295,111 @@ export function useHomePageContent(options: UseHomePageContentOptions) {
         data: { user },
       } = await supabase.auth.getUser();
 
-      if (user?.id) {
-        const ownerId = getPortfolioOwnerUserId(user?.id);
-        if (user?.id && user.id !== ownerId) {
-          console.warn(
-            "⚠️ Home hero save skipped: auth user must match VITE_PUBLIC_PORTFOLIO_OWNER_ID to update the published row.",
-            { authId: user.id, ownerId },
-          );
-          toast.error(
-            "Home content is published from a fixed profile id. Set VITE_PUBLIC_PORTFOLIO_OWNER_ID to your Supabase user id so saves match what visitors see.",
-            { id: "home-hero-owner-mismatch", duration: 8000 },
-          );
-          return;
+      if (!user?.id) {
+        if (localSaved) {
+          return {
+            ok: true,
+            localSaved: true,
+            cloudSynced: false,
+            warning: localStorageWarning ?? "Not signed in. Home content is saved on this device only.",
+          };
         }
+        return {
+          ok: false,
+          localSaved: false,
+          cloudSynced: false,
+          error:
+            localStorageWarning ??
+            "Not signed in and browser storage is full. Sign in to save home content to the cloud.",
+        };
+      }
 
-        console.log(
-          "💾 Home page: localStorage ✓ · syncing profiles.hero_text to Supabase for published row",
-          ownerId,
-        );
+      const writerId = getProfileWriterUserId(user.id);
+      const publishedOwnerId = getPortfolioOwnerUserId(user.id);
+      let ownerMismatchWarning: string | undefined;
 
-        const { data: updatedRow, error: updateError } = await supabase
-          .from("profiles")
-          .update({ hero_text: payload })
-          .eq("id", ownerId)
-          .select("hero_text, updated_at")
-          .single();
-
-        if (updateError) {
-          console.log("📝 Profile not found, creating new profile...");
-          const { data: insertedRow, error: insertError } = await supabase
-            .from("profiles")
-            .insert({
-              id: ownerId,
-              email: user?.email?.trim() || import.meta.env.VITE_SITE_OWNER_SIGNIN_EMAIL?.trim() || "",
-              full_name: "Brian Bureson",
-              hero_text: payload,
-            })
-            .select("hero_text, updated_at")
-            .single();
-
-          if (insertError) {
-            console.warn("⚠️ Failed to save to Supabase (egress limits?):", insertError.message);
-            setHeroDraftAheadOfCloud(true);
-            toast.error(
-              "Could not sync the hero section to the cloud. Your text is still saved on this device.",
-            );
-          } else if (insertedRow) {
-            console.log("✅ Home page: Supabase hero_text saved (new profile row)");
-            applyRowFromServer(insertedRow as { hero_text: unknown; updated_at: string | null });
-          }
-        } else if (updatedRow) {
-          console.log("✅ Home page: Supabase hero_text saved (confirmed from server)");
-          applyRowFromServer(updatedRow as { hero_text: unknown; updated_at: string | null });
-        }
-      } else {
-        console.log(
-          "💾 Home page: localStorage ✓ · not signed in — cloud sync skipped (edits stay on this browser)",
+      if (writerId !== publishedOwnerId) {
+        ownerMismatchWarning =
+          "Saved to your account, but visitors read VITE_PUBLIC_PORTFOLIO_OWNER_ID. Set that env var to your Supabase user id so published home content matches.";
+        console.warn(
+          "⚠️ Home hero: writer id ≠ published owner id — cloud save uses signed-in profile row.",
+          { writerId, publishedOwnerId },
         );
       }
+
+      console.log(
+        "💾 Home page: localStorage ✓ · syncing profiles.hero_text to Supabase",
+        writerId,
+      );
+
+      const { data: updatedRow, error: updateError } = await supabase
+        .from("profiles")
+        .update({ hero_text: payload })
+        .eq("id", writerId)
+        .select("hero_text, updated_at")
+        .maybeSingle();
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      if (updatedRow) {
+        console.log("✅ Home page: Supabase hero_text saved (confirmed from server)");
+        applyRowFromServer(updatedRow as { hero_text: unknown; updated_at: string | null });
+        return {
+          ok: true,
+          localSaved,
+          cloudSynced: true,
+          warning: [ownerMismatchWarning, localStorageWarning].filter(Boolean).join(" ") || undefined,
+        };
+      }
+
+      console.log("📝 Profile not found, creating new profile...");
+      const { data: insertedRow, error: insertError } = await supabase
+        .from("profiles")
+        .insert({
+          id: writerId,
+          email: user.email?.trim() || import.meta.env.VITE_SITE_OWNER_SIGNIN_EMAIL?.trim() || "",
+          full_name: "Brian Bureson",
+          hero_text: payload,
+        })
+        .select("hero_text, updated_at")
+        .single();
+
+      if (insertError) {
+        throw insertError;
+      }
+
+      if (insertedRow) {
+        console.log("✅ Home page: Supabase hero_text saved (new profile row)");
+        applyRowFromServer(insertedRow as { hero_text: unknown; updated_at: string | null });
+      }
+
+      return {
+        ok: true,
+        localSaved,
+        cloudSynced: true,
+        warning: [ownerMismatchWarning, localStorageWarning].filter(Boolean).join(" ") || undefined,
+      };
     } catch (error) {
-      console.warn("⚠️ Supabase save failed (egress limits?):", error);
-      console.log("💾 Home page: localStorage still has your draft; Supabase sync failed");
+      console.warn("⚠️ Supabase home hero save failed:", error);
       setHeroDraftAheadOfCloud(true);
-      try {
-        const { supabase } = await import("../lib/supabaseClient");
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (user?.id) {
-          toast.error(
-            "Could not sync the hero section to the cloud. Your text is still saved on this device.",
-          );
-        }
-      } catch {
-        /* ignore */
+      const message = getPostgrestErrorMessage(error);
+      if (localSaved) {
+        return {
+          ok: true,
+          localSaved: true,
+          cloudSynced: false,
+          warning: localStorageWarning,
+          error: `Could not sync to the cloud: ${message}`,
+        };
       }
+      return {
+        ok: false,
+        localSaved: false,
+        cloudSynced: false,
+        error: `Could not save home content: ${message}`,
+      };
     }
   }, [bumpBio, isEditingHeroRef, homeContentFingerprint]);
 

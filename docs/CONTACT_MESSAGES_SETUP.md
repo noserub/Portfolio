@@ -32,96 +32,40 @@ A messages management UI will be added to your app in edit mode.
 
 ## Email Notifications Setup
 
-The database trigger automatically sends email notifications when new messages arrive. You need to configure an email service.
+When someone submits the contact form, the app:
 
-### Option A: Using Resend (Recommended - Easy Setup)
+1. Saves the message to Supabase (`contact_messages`)
+2. Calls `/api/send-contact-email` (Vercel serverless function) to email you via [Resend](https://resend.com)
+
+### Setup (Vercel + Resend)
 
 1. **Sign up for Resend**
    - Go to [resend.com](https://resend.com)
    - Create a free account (100 emails/day free tier)
 
-2. **Get your API key**
-   - Go to API Keys in Resend dashboard
-   - Create a new API key
+2. **Verify your sending domain**
+   - In Resend, add and verify `bureson.com` (DNS records)
+   - The default sender is `Portfolio <noreply@bureson.com>`
+
+3. **Create a Resend API key**
+   - Resend dashboard → API Keys → Create
    - Copy the key
 
-3. **Set up Supabase Edge Function**
-   - In Supabase Dashboard, go to **Edge Functions**
-   - Create a new function called `send-contact-email`
-   - Use the code from `supabase/functions/send-contact-email/index.ts` (see below)
-   - Set the `RESEND_API_KEY` secret in Supabase Dashboard → Settings → Edge Functions → Secrets
+4. **Add environment variables in Vercel**
+   - Project → Settings → Environment Variables
+   - `RESEND_API_KEY` = your Resend API key (Production + Preview)
+   - Optional: `CONTACT_NOTIFY_TO` = inbox for submissions (defaults to `VITE_SITE_OWNER_SIGNIN_EMAIL` or `brian.bureson@gmail.com`)
+   - Optional: `CONTACT_FROM_EMAIL` = verified sender (defaults to `Portfolio <noreply@bureson.com>`)
 
-4. **Configure database settings**
-   - In Supabase Dashboard, go to **SQL Editor**
-   - Run these SQL commands (replace with your actual values):
-   ```sql
-   -- Set your Supabase project URL
-   ALTER DATABASE postgres SET app.supabase_url = 'https://YOUR_PROJECT_ID.supabase.co';
-   
-   -- Set your anon key (found in Settings -> API)
-   ALTER DATABASE postgres SET app.supabase_anon_key = 'YOUR_ANON_KEY_HERE';
-   ```
-   - Replace `YOUR_PROJECT_ID` with your actual Supabase project ID
-   - Replace `YOUR_ANON_KEY_HERE` with your Supabase anon key (found in Settings → API)
+5. **Local dev**
+   - Add the same vars to `.env.local` (not committed)
+   - `npm run dev` serves `/api/send-contact-email` via a Vite dev middleware
 
-### Option B: Using Supabase Edge Functions with Resend
+6. **Redeploy** after adding env vars
 
-Create a Supabase Edge Function that handles email sending:
+### Legacy: Supabase database trigger (optional)
 
-**File:** `supabase/functions/send-contact-email/index.ts`
-```typescript
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-
-const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
-
-serve(async (req) => {
-  try {
-    const { to, subject, text, html, from, reply_to } = await req.json()
-
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${RESEND_API_KEY}`,
-      },
-      body: JSON.stringify({
-        from: from || 'Portfolio <noreply@bureson.com>',
-        to: [to],
-        subject: subject,
-        text: text,
-        html: html,
-        reply_to: reply_to,
-      }),
-    })
-
-    const data = await response.json()
-
-    if (!response.ok) {
-      throw new Error(data.message || 'Failed to send email')
-    }
-
-    return new Response(
-      JSON.stringify({ success: true, data }),
-      { headers: { 'Content-Type': 'application/json' } }
-    )
-  } catch (error) {
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
-    )
-  }
-})
-```
-
-### Option C: Using Other Email Services
-
-You can use any email service that provides an HTTP API:
-- **SendGrid** - Similar setup to Resend
-- **Mailgun** - Another popular option
-- **AWS SES** - If you're using AWS
-- **Postmark** - Great deliverability
-
-Just update the webhook URL and API key configuration.
+Migration `0023` includes an optional DB trigger + Edge Function path. The Vercel API route above is the supported setup for this site; you do not need to configure `app.supabase_url` unless you prefer the trigger approach.
 
 ## Testing Email Notifications
 

@@ -335,7 +335,7 @@ export function ModernAbout({ onNavigateContact, onBack, isEditMode = false }: M
           )}
           <div className={modernLayout.aboutActions}>
             <button type="button" onClick={onNavigateContact} className="modern-btn-primary" style={modernPrimaryButtonStyle}>
-              Get in touch
+              Discuss a partnership
             </button>
             {data.resumeUrl ? (
               <ModernResumeLink resumeUrl={data.resumeUrl} className="modern-btn-outline" style={modernFont}>

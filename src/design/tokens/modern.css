@@ -1597,6 +1597,31 @@ html[data-design="modern"] .modern-contact-input:disabled {
   box-shadow: none;
 }
 
+[data-design="modern"] .modern-nav-messages-toggle {
+  position: relative;
+}
+
+[data-design="modern"] .modern-nav-messages-toggle--unread {
+  color: var(--modern-accent);
+}
+
+[data-design="modern"] .modern-nav-messages-badge {
+  position: absolute;
+  top: -0.2rem;
+  right: -0.2rem;
+  min-width: 1rem;
+  height: 1rem;
+  padding: 0 0.25rem;
+  border-radius: 9999px;
+  background: #ef4444;
+  color: #fff;
+  font-family: Inter, sans-serif;
+  font-size: 0.625rem;
+  font-weight: 700;
+  line-height: 1rem;
+  text-align: center;
+}
+
 [data-design="modern"] .modern-nav-link {
   display: inline-flex;
   align-items: center;

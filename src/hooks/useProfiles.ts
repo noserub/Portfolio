@@ -38,6 +38,10 @@ export interface Profile {
   resume_url?: string | null;
   /** LinkedIn profile URL (Contact page, footer) */
   linkedin_url?: string | null;
+  /** Contact page subtitle (modern theme) */
+  contact_page_subtitle?: string | null;
+  /** Contact page location card */
+  contact_location?: string | null;
 }
 
 export interface ProfileInsert {
@@ -71,6 +75,8 @@ export interface ProfileInsert {
   about_highlights_leadership_decorative_icons?: boolean;
   resume_url?: string | null;
   linkedin_url?: string | null;
+  contact_page_subtitle?: string | null;
+  contact_location?: string | null;
 }
 
 export interface ProfileUpdate {
@@ -103,6 +109,8 @@ export interface ProfileUpdate {
   about_highlights_leadership_decorative_icons?: boolean;
   resume_url?: string | null;
   linkedin_url?: string | null;
+  contact_page_subtitle?: string | null;
+  contact_location?: string | null;
 }
 
 function stripUndefined<T extends Record<string, unknown>>(obj: T): Partial<T> {

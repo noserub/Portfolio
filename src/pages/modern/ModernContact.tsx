@@ -8,7 +8,12 @@ import { ModernContactEditorPanel } from "../../components/contact/ModernContact
 import { useContactMessages } from "../../hooks/useContactMessages";
 import { useContactPageData } from "../../hooks/useContactPageData";
 import { useSEO } from "../../hooks/useSEO";
-import { formatLinkedInDisplay } from "../../lib/contactPageContent";
+import {
+  CONTACT_PAGE_HEADLINE,
+  DEFAULT_CONTACT_MESSAGE_PLACEHOLDER,
+  DEFAULT_CONTACT_SUBMIT_LABEL,
+  formatLinkedInDisplay,
+} from "../../lib/contactPageContent";
 import { modernLayout } from "../../design/modernLayout";
 import { modern, modernFont, modernPrimaryButtonStyle } from "../../design/modernTokens";
 
@@ -159,7 +164,7 @@ export function ModernContact({ onBack, isEditMode = false }: ModernContactProps
               color: modern.text,
             }}
           >
-            Let&apos;s work together.
+            {CONTACT_PAGE_HEADLINE}
           </h1>
           <p className={`${modernLayout.contactSubtitle} leading-relaxed`} style={{ ...modernFont, fontSize: "1rem", color: modern.muted }}>
             {contactPage.pageSubtitle}
@@ -296,7 +301,7 @@ export function ModernContact({ onBack, isEditMode = false }: ModernContactProps
                     name="message"
                     value={formData.message}
                     onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                    placeholder="Tell me about your project or question…"
+                    placeholder={DEFAULT_CONTACT_MESSAGE_PLACEHOLDER}
                     required
                     rows={6}
                     disabled={isSubmitting}
@@ -310,7 +315,7 @@ export function ModernContact({ onBack, isEditMode = false }: ModernContactProps
                   style={modernPrimaryButtonStyle}
                 >
                   <Send className="w-4 h-4" aria-hidden />
-                  {isSubmitting ? "Sending…" : "Send message"}
+                  {isSubmitting ? "Sending…" : DEFAULT_CONTACT_SUBMIT_LABEL}
                 </button>
               </form>
             )}
