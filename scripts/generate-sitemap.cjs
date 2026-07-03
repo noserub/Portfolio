@@ -331,7 +331,7 @@ async function fetchPublishedSlugsFromSupabase() {
     process.env.SUPABASE_PUBLISHABLE_KEY;
   const key = serviceKey || publicKey;
   if (!url || !key) {
-    return [];
+    return { projects: [], profile: {} };
   }
 
   const { createClient } = require('@supabase/supabase-js');
@@ -387,7 +387,8 @@ async function fetchPublishedSlugsFromSupabase() {
 
 function mergeProjectEntries(supabaseEntries, localProjects) {
   const bySlug = new Map();
-  for (const e of supabaseEntries) {
+  const dbEntries = Array.isArray(supabaseEntries) ? supabaseEntries : [];
+  for (const e of dbEntries) {
     bySlug.set(e.slug, {
       path: `/project/${e.slug}`,
       title: e.title,
@@ -963,7 +964,7 @@ function writeStaticRouteHtml(routes, baseUrl, siteContent, projectEntries) {
 
 async function main() {
   const baseUrl = (process.env.SITE_URL || 'https://www.bureson.com').replace(/\/+$/, '');
-  const { projects: fromDb, profile } = await fetchPublishedSlugsFromSupabase();
+  const { projects: fromDb = [], profile = {} } = await fetchPublishedSlugsFromSupabase();
   const localProjects = loadLocalProjects();
   const projectEntries = mergeProjectEntries(fromDb, localProjects);
   const routes = getSitemapRoutes(projectEntries);
