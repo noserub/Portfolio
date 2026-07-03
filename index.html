@@ -19,6 +19,34 @@
     <link rel="preconnect" href="https://www.google-analytics.com" crossorigin />
     <link rel="dns-prefetch" href="https://www.google-analytics.com" />
     <meta charset="UTF-8" />
+    <!-- Apply theme + design before first paint to avoid white flash while JS/CSS load -->
+    <script>
+      (function () {
+        try {
+          var root = document.documentElement;
+          var themeSource = localStorage.getItem('themeSource');
+          var savedTheme = localStorage.getItem('theme');
+          var isDark =
+            themeSource === 'system' || !themeSource
+              ? window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+              : savedTheme === 'dark';
+          if (isDark) root.classList.add('dark');
+          root.dataset.design = 'modern';
+          root.style.backgroundColor = isDark ? '#0a0a0a' : '#fafafa';
+          root.style.color = isDark ? '#fafafa' : '#0a0a0a';
+        } catch (e) {}
+      })();
+    </script>
+    <style>
+      html[data-design="modern"] body {
+        background-color: #0a0a0a;
+        color: #fafafa;
+      }
+      html[data-design="modern"]:not(.dark) body {
+        background-color: #fafafa;
+        color: #0a0a0a;
+      }
+    </style>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="format-detection" content="telephone=no" />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
@@ -35,9 +63,13 @@
     <meta property="og:title" content="Brian Bureson - Product Design Leader" />
     <meta property="og:description" content="Denver-based product design leader focused on UX strategy, AI-native product design, and measurable business outcomes." />
     <meta property="og:url" content="https://www.bureson.com/" />
+    <meta property="og:image" content="https://www.bureson.com/api/og?title=Brian%20Bureson%20-%20Product%20Design%20Leader" />
+    <meta property="og:image:alt" content="Brian Bureson - Product Design Leader" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Brian Bureson - Product Design Leader" />
     <meta name="twitter:description" content="Portfolio and case studies from Brian Bureson, product design leader in Denver." />
+    <meta name="twitter:image" content="https://www.bureson.com/api/og?title=Brian%20Bureson%20-%20Product%20Design%20Leader" />
+    <meta name="twitter:image:alt" content="Brian Bureson - Product Design Leader" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/favicon.svg" />
     

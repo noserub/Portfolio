@@ -31,6 +31,17 @@ function slugify(title) {
 const DEFAULT_LINKEDIN_URL = 'https://www.linkedin.com/in/bureson/';
 const DEFAULT_GITHUB_URL = 'https://github.com/noserub';
 const DEFAULT_AUTHOR = process.env.SITE_DEFAULT_AUTHOR || 'Brian Bureson';
+const DEFAULT_CONTACT_EMAIL =
+  process.env.VITE_PUBLIC_CONTACT_EMAIL || process.env.VITE_SITE_OWNER_SIGNIN_EMAIL || '';
+const DEFAULT_HOME_HEADING = 'I build things.';
+const DEFAULT_HOME_LEAD =
+  'Principal Product Designer focused on high-stakes, zero-failure systems across complex hardware, regulated software, and frontier AI.';
+const DEFAULT_ABOUT_HEADLINE = 'AI-first design leader who still ships.';
+const DEFAULT_ABOUT_LEAD =
+  'I align executives, product, and engineering on strategy, then drive the work from research and design systems through prototypes and production-ready code.';
+const DEFAULT_CONTACT_SUBTITLE =
+  "Have a question or want to work together? I'd love to hear from you.";
+const DEFAULT_CONTACT_LOCATION = 'Colorado, USA';
 
 function parseSameAsEnv(raw) {
   if (!raw || !String(raw).trim()) return [];
@@ -64,6 +75,156 @@ function stripHtml(html) {
     .replace(/&quot;/gi, '"')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+function escapeHtml(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function trimString(value) {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function toObject(raw) {
+  if (raw == null) return null;
+  if (typeof raw === 'string') {
+    const trimmed = raw.trim();
+    if (!trimmed) return null;
+    try {
+      return toObject(JSON.parse(trimmed));
+    } catch {
+      return null;
+    }
+  }
+  if (typeof raw !== 'object' || Array.isArray(raw)) return null;
+  return raw;
+}
+
+function coerceStringArray(raw) {
+  if (!Array.isArray(raw)) return [];
+  return raw.map((item) => trimString(item)).filter(Boolean);
+}
+
+function excerptText(raw, maxLen = 320) {
+  const clean = stripHtml(raw);
+  if (!clean) return '';
+  if (clean.length <= maxLen) return clean;
+  return `${clean.slice(0, maxLen - 1).trimEnd()}…`;
+}
+
+function normalizeUrl(raw, fallback = '') {
+  const trimmed = trimString(raw);
+  if (!trimmed) return fallback;
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  return `https://${trimmed}`;
+}
+
+function extractBioParagraphs(rawDoc) {
+  const doc = toObject(rawDoc);
+  const paragraphs = Array.isArray(doc?.paragraphs) ? doc.paragraphs : [];
+  return paragraphs
+    .map((paragraph) => {
+      const runs = Array.isArray(paragraph?.runs) ? paragraph.runs : [];
+      return runs
+        .map((run) => trimString(run?.text))
+        .filter(Boolean)
+        .join(' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    })
+    .filter(Boolean);
+}
+
+function normalizeStats(raw) {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((item) => ({
+      number: trimString(item?.number),
+      label: trimString(item?.label),
+      description: trimString(item?.description),
+    }))
+    .filter((item) => item.number || item.label || item.description);
+}
+
+function parseHomeContentForPrerender(raw) {
+  const obj = toObject(raw);
+  const defaultStats = [
+    { number: '1', label: 'Full stack web app', description: 'Solo developer' },
+    { number: '4', label: 'AI native apps designed', description: 'with RAG & MCP hooks' },
+    { number: '6', label: '0-1 product launches', description: 'From ambiguity to product' },
+    { number: '9', label: 'US patents', description: 'Innovation and IP contribution' },
+  ];
+  if (!obj) {
+    return {
+      heading: DEFAULT_HOME_HEADING,
+      paragraphs: [DEFAULT_HOME_LEAD],
+      stats: defaultStats,
+      caseStudiesTitle: 'Case studies',
+      contactCtaLabel: 'Get in touch',
+    };
+  }
+
+  const heroObj = toObject(obj.hero) || obj;
+  const greetings = coerceStringArray(heroObj.greetings);
+  const heroHeadlineMode = trimString(heroObj.heroHeadlineMode);
+  const staticPrefix = trimString(heroObj.heroHeadlinePrefix);
+  const staticMain = trimString(heroObj.heroHeadlineMain);
+  const heading =
+    heroHeadlineMode === 'static' && (staticPrefix || staticMain)
+      ? [staticPrefix, staticMain].filter(Boolean).join(' ')
+      : trimString(greetings[0]) || trimString(heroObj.greeting) || DEFAULT_HOME_HEADING;
+
+  const paragraphs = extractBioParagraphs(heroObj.bioDocument);
+  const subtitle = trimString(heroObj.subtitle);
+  const description = trimString(heroObj.description);
+  if (paragraphs.length === 0) {
+    if (subtitle) paragraphs.push(subtitle);
+    if (description) paragraphs.push(description);
+  }
+
+  const uiObj = toObject(obj.ui) || {};
+  const stats = normalizeStats(obj.stats);
+
+  return {
+    heading: heading || DEFAULT_HOME_HEADING,
+    paragraphs: paragraphs.length ? paragraphs : [DEFAULT_HOME_LEAD],
+    stats: stats.length ? stats : defaultStats,
+    caseStudiesTitle: trimString(uiObj.caseStudiesTitle) || 'Case studies',
+    contactCtaLabel: trimString(uiObj.contactCtaLabel) || 'Get in touch',
+  };
+}
+
+function resolveAboutPrerender(profile) {
+  const headline = trimString(profile.aboutHeroHeadline) || DEFAULT_ABOUT_HEADLINE;
+  const dedicatedLead = trimString(profile.aboutHeroLead);
+  const bioParagraph1 = trimString(profile.bioParagraph1);
+  const bioParagraph2 = trimString(profile.bioParagraph2);
+  const hasDedicatedHero = Boolean(trimString(profile.aboutHeroHeadline) || dedicatedLead);
+  const lead = !hasDedicatedHero && bioParagraph1 ? bioParagraph1 : dedicatedLead || DEFAULT_ABOUT_LEAD;
+  const paragraphs = [];
+  if (hasDedicatedHero && bioParagraph1) paragraphs.push(bioParagraph1);
+  if (bioParagraph2) paragraphs.push(bioParagraph2);
+  return {
+    headline,
+    lead,
+    paragraphs,
+    resumeUrl: trimString(profile.resumeUrl),
+  };
+}
+
+function resolveContactPrerender(profile) {
+  return {
+    subtitle: DEFAULT_CONTACT_SUBTITLE,
+    email: trimString(profile.email) || DEFAULT_CONTACT_EMAIL,
+    linkedinUrl: normalizeUrl(profile.linkedinUrl, DEFAULT_LINKEDIN_URL),
+    location: DEFAULT_CONTACT_LOCATION,
+    resumeUrl: trimString(profile.resumeUrl),
+  };
 }
 
 function llmsLinkLine(title, url, description) {
@@ -104,24 +265,60 @@ function loadLocalProjects() {
   return [];
 }
 
-async function fetchProfileForLlms(supabase, ownerId) {
-  if (!ownerId) return {};
+async function fetchProfileForBuild(supabase, ownerId) {
+  const profile = {
+    resumeUrl: '',
+    heroText: null,
+    email: '',
+    linkedinUrl: '',
+    aboutHeroHeadline: '',
+    aboutHeroLead: '',
+    bioParagraph1: '',
+    bioParagraph2: '',
+  };
+  if (!ownerId) return profile;
+
   try {
     const { data, error } = await supabase
       .from('profiles')
-      .select('resume_url')
+      .select('resume_url, hero_text, email, bio_paragraph_1, bio_paragraph_2')
       .eq('id', ownerId)
       .maybeSingle();
     if (error) {
-      console.warn('⚠️ llms.txt: profile query failed:', error.message);
-      return {};
+      console.warn('⚠️ build profile query failed:', error.message);
+    } else if (data) {
+      profile.resumeUrl = trimString(data.resume_url);
+      profile.heroText = data.hero_text ?? null;
+      profile.email = trimString(data.email);
+      profile.bioParagraph1 = trimString(data.bio_paragraph_1);
+      profile.bioParagraph2 = trimString(data.bio_paragraph_2);
     }
-    return {
-      resumeUrl: typeof data?.resume_url === 'string' ? data.resume_url.trim() : '',
-    };
-  } catch (_) {
-    return {};
-  }
+  } catch (_) {}
+
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('about_hero_headline, about_hero_lead')
+      .eq('id', ownerId)
+      .maybeSingle();
+    if (!error && data) {
+      profile.aboutHeroHeadline = trimString(data.about_hero_headline);
+      profile.aboutHeroLead = trimString(data.about_hero_lead);
+    }
+  } catch (_) {}
+
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('linkedin_url')
+      .eq('id', ownerId)
+      .maybeSingle();
+    if (!error && data) {
+      profile.linkedinUrl = trimString(data.linkedin_url);
+    }
+  } catch (_) {}
+
+  return profile;
 }
 
 async function fetchPublishedSlugsFromSupabase() {
@@ -158,10 +355,10 @@ async function fetchPublishedSlugsFromSupabase() {
       q = q.eq('user_id', ownerId);
     }
     ({ data, error } = await q);
-    profile = await fetchProfileForLlms(supabase, ownerId);
+    profile = await fetchProfileForBuild(supabase, ownerId);
   } else {
     ({ data, error } = await supabase.rpc('get_projects_public'));
-    profile = await fetchProfileForLlms(supabase, ownerId);
+    profile = await fetchProfileForBuild(supabase, ownerId);
   }
 
   if (error) {
@@ -398,6 +595,7 @@ function getSitemapRoutes(projectEntries) {
   const projectPaths = projectEntries.map((e) => ({
     path: e.path,
     title: e.title,
+    description: e.description || '',
     priority: '0.9',
     changefreq: 'monthly',
     lastmod: e.lastmod || now,
@@ -447,6 +645,176 @@ function upsertTag(html, selectorPattern, replacement, insertBefore = '</head>')
   return html.replace(insertBefore, `${replacement}\n${insertBefore}`);
 }
 
+const SEO_PRERENDER_HIDE_STYLE =
+  'position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;';
+
+function prerenderShell(innerHtml) {
+  return [
+    `<div style="max-width:960px;margin:0 auto;padding:96px 24px 48px;font-family:Inter,Arial,sans-serif;line-height:1.6;">`,
+    innerHtml,
+    '</div>',
+  ].join('');
+}
+
+function renderHomePrerender(baseUrl, siteContent, projectEntries) {
+  const home = parseHomeContentForPrerender(siteContent.heroText);
+  const stats = home.stats
+    .map(
+      (stat) =>
+        `<li><strong>${escapeHtml(stat.number || '')}</strong> ${escapeHtml(stat.label || '')}${
+          stat.description ? ` - ${escapeHtml(stat.description)}` : ''
+        }</li>`,
+    )
+    .join('');
+  const projectList = projectEntries
+    .map(
+      (project) =>
+        `<li><a href="${escapeHtmlAttr(`${baseUrl}${project.path}`)}">${escapeHtml(project.title)}</a>${
+          project.description ? `: ${escapeHtml(project.description)}` : ''
+        }</li>`,
+    )
+    .join('');
+  const paragraphs = home.paragraphs.map((p) => `<p>${escapeHtml(p)}</p>`).join('');
+
+  return prerenderShell(`
+    <header>
+      <nav aria-label="Primary">
+        <a href="${escapeHtmlAttr(`${baseUrl}/about`)}">About</a>
+        &nbsp;|&nbsp;
+        <a href="${escapeHtmlAttr(`${baseUrl}/contact`)}">${escapeHtml(home.contactCtaLabel)}</a>
+      </nav>
+      <h1>${escapeHtml(home.heading)}</h1>
+      ${paragraphs}
+    </header>
+    <section aria-labelledby="home-stats">
+      <h2 id="home-stats">Highlights</h2>
+      <ul>${stats}</ul>
+    </section>
+    <section aria-labelledby="home-case-studies">
+      <h2 id="home-case-studies">${escapeHtml(home.caseStudiesTitle)}</h2>
+      <ul>${projectList}</ul>
+    </section>
+  `);
+}
+
+function renderAboutPrerender(baseUrl, siteContent) {
+  const about = resolveAboutPrerender(siteContent);
+  const paragraphs = about.paragraphs.map((p) => `<p>${escapeHtml(p)}</p>`).join('');
+  const resumeHtml = about.resumeUrl
+    ? `<p><a href="${escapeHtmlAttr(about.resumeUrl)}" target="_blank" rel="noopener noreferrer">View resume</a></p>`
+    : '';
+
+  return prerenderShell(`
+    <nav aria-label="Primary">
+      <a href="${escapeHtmlAttr(`${baseUrl}/`)}">Home</a>
+      &nbsp;|&nbsp;
+      <a href="${escapeHtmlAttr(`${baseUrl}/contact`)}">Contact</a>
+    </nav>
+    <main>
+      <h1>${escapeHtml(about.headline)}</h1>
+      <p>${escapeHtml(about.lead)}</p>
+      ${paragraphs}
+      ${resumeHtml}
+    </main>
+  `);
+}
+
+function renderContactPrerender(baseUrl, siteContent) {
+  const contact = resolveContactPrerender(siteContent);
+  const emailHtml = contact.email
+    ? `<li><strong>Email:</strong> <a href="mailto:${escapeHtmlAttr(contact.email)}">${escapeHtml(contact.email)}</a></li>`
+    : '';
+  const linkedinHtml = contact.linkedinUrl
+    ? `<li><strong>LinkedIn:</strong> <a href="${escapeHtmlAttr(contact.linkedinUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(contact.linkedinUrl)}</a></li>`
+    : '';
+  const resumeHtml = contact.resumeUrl
+    ? `<li><strong>Resume:</strong> <a href="${escapeHtmlAttr(contact.resumeUrl)}" target="_blank" rel="noopener noreferrer">View resume</a></li>`
+    : '';
+
+  return prerenderShell(`
+    <nav aria-label="Primary">
+      <a href="${escapeHtmlAttr(`${baseUrl}/`)}">Home</a>
+      &nbsp;|&nbsp;
+      <a href="${escapeHtmlAttr(`${baseUrl}/about`)}">About</a>
+    </nav>
+    <main>
+      <h1>Let&apos;s work together.</h1>
+      <p>${escapeHtml(contact.subtitle)}</p>
+      <ul>
+        ${emailHtml}
+        ${linkedinHtml}
+        ${resumeHtml}
+        <li><strong>Location:</strong> ${escapeHtml(contact.location)}</li>
+      </ul>
+    </main>
+  `);
+}
+
+function renderProjectPrerender(baseUrl, route) {
+  const fallbackDescription = route.description || excerptText(route.caseStudyContent, 420);
+  const detailText = excerptText(route.caseStudyContent, 900);
+  const detailParagraphs = (detailText ? [detailText] : [])
+    .map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`)
+    .join('');
+
+  return prerenderShell(`
+    <nav aria-label="Primary">
+      <a href="${escapeHtmlAttr(`${baseUrl}/`)}">Home</a>
+      &nbsp;|&nbsp;
+      <a href="${escapeHtmlAttr(`${baseUrl}/about`)}">About</a>
+      &nbsp;|&nbsp;
+      <a href="${escapeHtmlAttr(`${baseUrl}/contact`)}">Contact</a>
+    </nav>
+    <main>
+      <article>
+        <h1>${escapeHtml(route.title || 'Case Study')}</h1>
+        ${fallbackDescription ? `<p>${escapeHtml(fallbackDescription)}</p>` : ''}
+        ${detailParagraphs}
+      </article>
+    </main>
+  `);
+}
+
+function renderRoutePrerenderHtml(route, baseUrl, siteContent, projectEntries) {
+  if (route.path === '/') {
+    return renderHomePrerender(baseUrl, siteContent, projectEntries);
+  }
+  if (route.path === '/about') {
+    return renderAboutPrerender(baseUrl, siteContent);
+  }
+  if (route.path === '/contact') {
+    return renderContactPrerender(baseUrl, siteContent);
+  }
+  return renderProjectPrerender(baseUrl, route);
+}
+
+function injectSeoPrerender(html, prerenderHtml) {
+  if (!prerenderHtml) return html;
+
+  const prerenderBlock = [
+    `<div id="seo-prerender" data-seo-prerender="true" aria-hidden="true" style="${SEO_PRERENDER_HIDE_STYLE}">`,
+    prerenderHtml,
+    '</div>',
+  ].join('');
+
+  // Keep #root empty so React mounts without paint-then-replace flash.
+  if (/<div id="seo-prerender"[\s\S]*?<\/div>\s*<div id="root">[\s\S]*?<\/div>/i.test(html)) {
+    return html.replace(
+      /<div id="seo-prerender"[\s\S]*?<\/div>\s*<div id="root">[\s\S]*?<\/div>/i,
+      `${prerenderBlock}\n      <div id="root"></div>`,
+    );
+  }
+
+  if (/<div id="root">[\s\S]*?<\/div>/i.test(html)) {
+    return html.replace(
+      /<div id="root">[\s\S]*?<\/div>/i,
+      `${prerenderBlock}\n      <div id="root"></div>`,
+    );
+  }
+
+  return html;
+}
+
 function metadataForRoute(route, baseUrl) {
   if (route.path === '/') {
     return {
@@ -473,18 +841,25 @@ function metadataForRoute(route, baseUrl) {
     };
   }
   const projectTitle = route.title || 'Case Study';
+  const projectDescription = route.description
+    ? String(route.description).trim()
+    : '';
   return {
     title: `${projectTitle} - Brian Bureson`,
-    description: `Case study from Brian Bureson's product design portfolio: ${projectTitle}.`,
+    description:
+      projectDescription || `Case study from Brian Bureson's product design portfolio: ${projectTitle}.`,
     canonical: `${baseUrl}${route.path}`,
   };
 }
 
-function htmlForRoute(baseHtml, route, baseUrl) {
+function htmlForRoute(baseHtml, route, baseUrl, siteContent, projectEntries) {
   const meta = metadataForRoute(route, baseUrl);
   const title = escapeHtmlAttr(meta.title);
   const description = escapeHtmlAttr(meta.description);
   const canonical = escapeHtmlAttr(meta.canonical);
+  const socialImage = escapeHtmlAttr(
+    `${baseUrl}/api/og?title=${encodeURIComponent(meta.title)}`,
+  );
 
   let html = baseHtml;
   html = upsertTag(html, /<title>[\s\S]*?<\/title>/i, `<title>${title}</title>`);
@@ -515,6 +890,16 @@ function htmlForRoute(baseHtml, route, baseUrl) {
   );
   html = upsertTag(
     html,
+    /<meta\s+property=["']og:image["']\s+content=["'][^"']*["']\s*\/?>/i,
+    `<meta property="og:image" content="${socialImage}" />`,
+  );
+  html = upsertTag(
+    html,
+    /<meta\s+property=["']og:image:alt["']\s+content=["'][^"']*["']\s*\/?>/i,
+    `<meta property="og:image:alt" content="${title}" />`,
+  );
+  html = upsertTag(
+    html,
     /<meta\s+name=["']twitter:title["']\s+content=["'][^"']*["']\s*\/?>/i,
     `<meta name="twitter:title" content="${title}" />`,
   );
@@ -523,11 +908,31 @@ function htmlForRoute(baseHtml, route, baseUrl) {
     /<meta\s+name=["']twitter:description["']\s+content=["'][^"']*["']\s*\/?>/i,
     `<meta name="twitter:description" content="${description}" />`,
   );
+  html = upsertTag(
+    html,
+    /<meta\s+name=["']twitter:image["']\s+content=["'][^"']*["']\s*\/?>/i,
+    `<meta name="twitter:image" content="${socialImage}" />`,
+  );
+  html = upsertTag(
+    html,
+    /<meta\s+name=["']twitter:image:alt["']\s+content=["'][^"']*["']\s*\/?>/i,
+    `<meta name="twitter:image:alt" content="${title}" />`,
+  );
+  html = upsertTag(
+    html,
+    /<meta\s+name=["']twitter:card["']\s+content=["'][^"']*["']\s*\/?>/i,
+    `<meta name="twitter:card" content="summary_large_image" />`,
+  );
+
+  html = injectSeoPrerender(
+    html,
+    renderRoutePrerenderHtml(route, baseUrl, siteContent, projectEntries),
+  );
 
   return html;
 }
 
-function writeStaticRouteHtml(routes, baseUrl) {
+function writeStaticRouteHtml(routes, baseUrl, siteContent, projectEntries) {
   const indexHtmlPath = path.join(distDir, 'index.html');
   if (!fs.existsSync(indexHtmlPath)) {
     console.warn('⚠️ Static route HTML skipped: dist/index.html not found');
@@ -537,13 +942,21 @@ function writeStaticRouteHtml(routes, baseUrl) {
   const baseHtml = fs.readFileSync(indexHtmlPath, 'utf8');
   for (const route of routes) {
     if (route.path === '/') {
-      fs.writeFileSync(indexHtmlPath, htmlForRoute(baseHtml, route, baseUrl), 'utf8');
+      fs.writeFileSync(
+        indexHtmlPath,
+        htmlForRoute(baseHtml, route, baseUrl, siteContent, projectEntries),
+        'utf8',
+      );
       continue;
     }
 
     const routeDir = path.join(distDir, route.path.replace(/^\/+/, ''));
     ensureDir(routeDir);
-    fs.writeFileSync(path.join(routeDir, 'index.html'), htmlForRoute(baseHtml, route, baseUrl), 'utf8');
+    fs.writeFileSync(
+      path.join(routeDir, 'index.html'),
+      htmlForRoute(baseHtml, route, baseUrl, siteContent, projectEntries),
+      'utf8',
+    );
   }
   console.log(`✅ Generated ${routes.length} static HTML route(s) with route-specific canonical URLs`);
 }
@@ -554,6 +967,16 @@ async function main() {
   const localProjects = loadLocalProjects();
   const projectEntries = mergeProjectEntries(fromDb, localProjects);
   const routes = getSitemapRoutes(projectEntries);
+  const siteContent = {
+    heroText: profile.heroText,
+    resumeUrl: profile.resumeUrl,
+    email: profile.email,
+    linkedinUrl: profile.linkedinUrl,
+    aboutHeroHeadline: profile.aboutHeroHeadline,
+    aboutHeroLead: profile.aboutHeroLead,
+    bioParagraph1: profile.bioParagraph1,
+    bioParagraph2: profile.bioParagraph2,
+  };
 
   if (fromDb.length) {
     console.log(`✅ Sitemap: ${fromDb.length} published project URL(s) from Supabase`);
@@ -571,7 +994,7 @@ async function main() {
     path.join(distDir, 'llms-full.txt'),
     generateLlmsFullTxt(baseUrl, projectEntries, profile),
   );
-  writeStaticRouteHtml(routes, baseUrl);
+  writeStaticRouteHtml(routes, baseUrl, siteContent, projectEntries);
   console.log('✅ Generated sitemap.xml, robots.txt, llms.txt, and llms-full.txt');
 }
 
