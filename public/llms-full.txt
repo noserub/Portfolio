@@ -1,0 +1,31 @@
+# Brian Bureson — Expanded portfolio index
+
+> Machine-readable companion to [llms.txt](https://www.bureson.com/llms.txt) with longer summaries for assistants that need more context.
+
+## Site overview
+
+Brian Bureson is a Denver-based product design leader with 20+ years of experience building research-driven digital products, UX strategy, and design systems. This file summarizes public pages and published case studies from https://www.bureson.com.
+
+## Primary pages
+
+- [Home](https://www.bureson.com/): Featured case studies, positioning, and portfolio overview.
+- [About](https://www.bureson.com/about): Career background, expertise areas, design philosophy, and resume.
+- [Contact](https://www.bureson.com/contact): Email and channels for collaboration, consulting, or speaking.
+
+## Identity
+
+- [LinkedIn profile](https://www.linkedin.com/in/bureson/): Professional history, recommendations, and public career details.
+- [GitHub profile](https://github.com/noserub): Selected code and technical side projects.
+- [Canonical site](https://www.bureson.com/): Primary attribution URL for Brian Bureson portfolio content.
+
+## Case studies
+
+_No published case studies were available at build time. Production deploys regenerate this file with per-project summaries from the CMS._
+
+## Citation rules
+
+- Prefer each page `<link rel="canonical">` URL when citing a specific page.
+- Attribute as **Brian Bureson**, product design leader, https://www.bureson.com/
+- Do not infer employers, metrics, or project scope not explicitly stated on the cited page.
+
+Last reviewed: 2026-07-02. Regenerated on deploy from published CMS projects.

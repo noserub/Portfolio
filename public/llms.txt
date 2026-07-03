@@ -1,24 +1,35 @@
-# Brian Bureson — portfolio
+# Brian Bureson — Product Design Portfolio
 
-> Machine-readable summary for assistants and crawlers. Human site: https://www.bureson.com/
+> Brian Bureson is a Denver-based product design leader with 20+ years of experience in UX strategy, AI-native product design, and design systems. This site is his canonical public portfolio.
 
-## Site
+## Primary pages
 
-- **Canonical URL:** https://www.bureson.com/
-- **About:** https://www.bureson.com/about
-- **Contact:** https://www.bureson.com/contact
-- **Case studies:** Listed on the home page and at `/project/{slug}` for each published project.
+- [Home](https://www.bureson.com/): Featured case studies, positioning, and portfolio overview.
+- [About](https://www.bureson.com/about): Career background, expertise areas, design philosophy, and resume.
+- [Contact](https://www.bureson.com/contact): Email and channels for collaboration, consulting, or speaking.
 
-## How to cite
+## Case studies
 
-- Prefer the **canonical page URL** shown in the page `<link rel="canonical">` when present.
-- Default site attribution: **Brian Bureson**, product design leader, https://www.bureson.com/
-- Do not invent employer or project details that are not stated on the cited page.
+- Case studies are listed on the home page and at `https://www.bureson.com/project/{slug}` for each published project. Production deploys regenerate this file with explicit project links from the CMS.
 
-## Owner / scope
+## Identity and citation
 
-This is a **single-author portfolio**. Published copy and structured data are scoped to the site owner’s canonical profile row in the CMS, not to arbitrary signed-in users.
+- [LinkedIn profile](https://www.linkedin.com/in/bureson/): Professional history, recommendations, and public career details.
+- [GitHub profile](https://github.com/noserub): Selected code and technical side projects.
+- [Canonical site](https://www.bureson.com/): Primary attribution URL for Brian Bureson portfolio content.
+- Prefer each page `<link rel="canonical">` URL when citing a specific page.
+- Attribute as **Brian Bureson**, product design leader, https://www.bureson.com/
+- Do not infer employers, metrics, or project scope not explicitly stated on the cited page.
+- Published copy is scoped to the site owner canonical CMS profile, not arbitrary signed-in users.
 
-## Optional discovery
+## Structured data
 
-- `sitemap.xml` and `robots.txt` are served from the site root after deploy.
+Pages include Schema.org JSON-LD (`Person`, `Organization`, `WebSite`, and `Article` on case studies).
+
+## Optional
+
+- [Sitemap](https://www.bureson.com/sitemap.xml): Complete URL index for crawlers.
+- [Robots policy](https://www.bureson.com/robots.txt): Crawl rules and sitemap pointer.
+- [Expanded index](https://www.bureson.com/llms-full.txt): Long-form summaries for retrieval-heavy agents.
+
+Last reviewed: 2026-07-02. Regenerated on deploy from published CMS projects.

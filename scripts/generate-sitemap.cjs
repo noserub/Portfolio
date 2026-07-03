@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 /*
-  Generates sitemap.xml and robots.txt into dist/ after build.
+  Generates sitemap.xml, robots.txt, llms.txt, and llms-full.txt into dist/ after build.
   Static routes plus /project/{slug} from published Supabase projects when
   SUPABASE_SERVICE_ROLE_KEY + VITE_SUPABASE_URL (or SUPABASE_URL) are set.
   Falls back to portfolio-backup-*.json titles when Supabase is unavailable.
-*/
+ */
 const fs = require('fs');
 const path = require('path');
 
@@ -28,6 +28,50 @@ function slugify(title) {
     .trim();
 }
 
+const DEFAULT_LINKEDIN_URL = 'https://www.linkedin.com/in/bureson/';
+const DEFAULT_GITHUB_URL = 'https://github.com/noserub';
+const DEFAULT_AUTHOR = process.env.SITE_DEFAULT_AUTHOR || 'Brian Bureson';
+
+function parseSameAsEnv(raw) {
+  if (!raw || !String(raw).trim()) return [];
+  return [
+    ...new Set(
+      String(raw)
+        .split(/[\n,]+/)
+        .map((s) => s.trim())
+        .filter((s) => /^https?:\/\//i.test(s)),
+    ),
+  ];
+}
+
+function truncateForLlms(text, maxLen = 120) {
+  const clean = String(text || '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!clean) return '';
+  if (clean.length <= maxLen) return clean;
+  return `${clean.slice(0, maxLen - 1).trimEnd()}…`;
+}
+
+function stripHtml(html) {
+  return String(html || '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&#39;/gi, "'")
+    .replace(/&quot;/gi, '"')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function llmsLinkLine(title, url, description) {
+  const safeTitle = String(title || 'Page').replace(/\[/g, '(').replace(/\]/g, ')');
+  const desc = truncateForLlms(description, 120);
+  return desc ? `- [${safeTitle}](${url}): ${desc}` : `- [${safeTitle}](${url})`;
+}
+
 function loadLocalProjects() {
   try {
     const candidates = fs
@@ -45,11 +89,39 @@ function loadLocalProjects() {
       const data = JSON.parse(raw);
       const caseStudies = Array.isArray(data?.caseStudies) ? data.caseStudies : [];
       return caseStudies
-        .map((p) => (p && typeof p.title === 'string' ? p.title : ''))
+        .map((p) => {
+          if (!p || typeof p.title !== 'string' || !p.title.trim()) return null;
+          return {
+            title: p.title.trim(),
+            description: typeof p.description === 'string' ? p.description.trim() : '',
+            caseStudyContent:
+              typeof p.case_study_content === 'string' ? p.case_study_content : '',
+          };
+        })
         .filter(Boolean);
     }
   } catch (_) {}
   return [];
+}
+
+async function fetchProfileForLlms(supabase, ownerId) {
+  if (!ownerId) return {};
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('resume_url')
+      .eq('id', ownerId)
+      .maybeSingle();
+    if (error) {
+      console.warn('⚠️ llms.txt: profile query failed:', error.message);
+      return {};
+    }
+    return {
+      resumeUrl: typeof data?.resume_url === 'string' ? data.resume_url.trim() : '',
+    };
+  } catch (_) {
+    return {};
+  }
 }
 
 async function fetchPublishedSlugsFromSupabase() {
@@ -75,19 +147,26 @@ async function fetchPublishedSlugsFromSupabase() {
 
   let data;
   let error;
+  let profile = {};
   if (serviceKey) {
-    let q = supabase.from('projects').select('title, updated_at').eq('published', true);
+    let q = supabase
+      .from('projects')
+      .select('title, description, updated_at, sort_order, case_study_content')
+      .eq('published', true)
+      .order('sort_order', { ascending: true, nullsFirst: false });
     if (ownerId) {
       q = q.eq('user_id', ownerId);
     }
     ({ data, error } = await q);
+    profile = await fetchProfileForLlms(supabase, ownerId);
   } else {
     ({ data, error } = await supabase.rpc('get_projects_public'));
+    profile = await fetchProfileForLlms(supabase, ownerId);
   }
 
   if (error) {
     console.warn('⚠️ Sitemap: Supabase public projects query failed:', error.message);
-    return [];
+    return { projects: [], profile };
   }
 
   const out = [];
@@ -97,27 +176,215 @@ async function fetchPublishedSlugsFromSupabase() {
     out.push({
       slug,
       title: row.title,
+      description: typeof row.description === 'string' ? row.description.trim() : '',
+      caseStudyContent:
+        typeof row.case_study_content === 'string' ? row.case_study_content : '',
       lastmod:
         typeof row.updated_at === 'string' && row.updated_at
           ? row.updated_at.split('T')[0]
           : null,
     });
   }
-  return out;
+  return { projects: out, profile };
 }
 
-function mergeProjectEntries(supabaseEntries, localTitles) {
+function mergeProjectEntries(supabaseEntries, localProjects) {
   const bySlug = new Map();
   for (const e of supabaseEntries) {
-    bySlug.set(e.slug, { path: `/project/${e.slug}`, title: e.title, lastmod: e.lastmod });
+    bySlug.set(e.slug, {
+      path: `/project/${e.slug}`,
+      title: e.title,
+      description: e.description || '',
+      caseStudyContent: e.caseStudyContent || '',
+      lastmod: e.lastmod,
+    });
   }
   const now = new Date().toISOString().split('T')[0];
-  for (const t of localTitles) {
-    const slug = slugify(t);
+  for (const p of localProjects) {
+    const slug = slugify(p.title);
     if (!slug || bySlug.has(slug)) continue;
-    bySlug.set(slug, { path: `/project/${slug}`, title: t, lastmod: now });
+    bySlug.set(slug, {
+      path: `/project/${slug}`,
+      title: p.title,
+      description: p.description || '',
+      caseStudyContent: p.caseStudyContent || '',
+      lastmod: now,
+    });
   }
   return [...bySlug.values()];
+}
+
+function identityLinks(baseUrl, profile) {
+  const sameAs = parseSameAsEnv(process.env.VITE_PUBLIC_SAME_AS);
+  const linkedin = sameAs.find((u) => /linkedin\.com/i.test(u)) || DEFAULT_LINKEDIN_URL;
+  const github = sameAs.find((u) => /github\.com/i.test(u)) || DEFAULT_GITHUB_URL;
+  const resume = profile.resumeUrl || sameAs.find((u) => /drive\.google\.com|\.pdf(?:\?|$)/i.test(u)) || '';
+
+  const links = [
+    llmsLinkLine(
+      'LinkedIn profile',
+      linkedin,
+      'Professional history, recommendations, and public career details.',
+    ),
+    llmsLinkLine('GitHub profile', github, 'Selected code and technical side projects.'),
+  ];
+  if (resume) {
+    links.push(
+      llmsLinkLine('Resume (PDF)', resume, 'Downloadable resume with roles, skills, and experience.'),
+    );
+  }
+  links.push(
+    llmsLinkLine(
+      'Canonical site',
+      `${baseUrl}/`,
+      'Primary attribution URL for Brian Bureson portfolio content.',
+    ),
+  );
+  return links;
+}
+
+function generateLlmsTxt(baseUrl, projectEntries, profile) {
+  const reviewed = new Date().toISOString().split('T')[0];
+  const lines = [
+    `# ${DEFAULT_AUTHOR} — Product Design Portfolio`,
+    '',
+    `> ${DEFAULT_AUTHOR} is a Denver-based product design leader with 20+ years of experience in UX strategy, AI-native product design, and design systems. This site is his canonical public portfolio.`,
+    '',
+    '## Primary pages',
+    '',
+    llmsLinkLine(
+      'Home',
+      `${baseUrl}/`,
+      'Featured case studies, positioning, and portfolio overview.',
+    ),
+    llmsLinkLine(
+      'About',
+      `${baseUrl}/about`,
+      'Career background, expertise areas, design philosophy, and resume.',
+    ),
+    llmsLinkLine(
+      'Contact',
+      `${baseUrl}/contact`,
+      'Email and channels for collaboration, consulting, or speaking.',
+    ),
+    '',
+    '## Case studies',
+    '',
+  ];
+
+  if (projectEntries.length) {
+    for (const project of projectEntries) {
+      const url = `${baseUrl}${project.path}`;
+      const description =
+        project.description ||
+        `Case study from ${DEFAULT_AUTHOR}'s product design portfolio: ${project.title}.`;
+      lines.push(llmsLinkLine(project.title, url, description));
+    }
+  } else {
+    lines.push(
+      `- Case studies are published at \`${baseUrl}/project/{slug}\` after deploy when Supabase project data is available.`,
+    );
+  }
+
+  lines.push(
+    '',
+    '## Identity and citation',
+    '',
+    ...identityLinks(baseUrl, profile),
+    '',
+    '- Prefer each page `<link rel="canonical">` URL when citing a specific page.',
+    `- Attribute as **${DEFAULT_AUTHOR}**, product design leader, ${baseUrl}/`,
+    '- Do not infer employers, metrics, or project scope not explicitly stated on the cited page.',
+    '- Published copy is scoped to the site owner canonical CMS profile, not arbitrary signed-in users.',
+    '',
+    '## Structured data',
+    '',
+    'Pages include Schema.org JSON-LD (`Person`, `Organization`, `WebSite`, and `Article` on case studies).',
+    '',
+    '## Optional',
+    '',
+    llmsLinkLine('Sitemap', `${baseUrl}/sitemap.xml`, 'Complete URL index for crawlers.'),
+    llmsLinkLine('Robots policy', `${baseUrl}/robots.txt`, 'Crawl rules and sitemap pointer.'),
+    llmsLinkLine(
+      'Expanded index',
+      `${baseUrl}/llms-full.txt`,
+      'Long-form summaries for retrieval-heavy agents.',
+    ),
+    '',
+    `Last reviewed: ${reviewed}. Regenerated on deploy from published CMS projects.`,
+    '',
+  );
+
+  return lines.join('\n');
+}
+
+function generateLlmsFullTxt(baseUrl, projectEntries, profile) {
+  const reviewed = new Date().toISOString().split('T')[0];
+  const lines = [
+    `# ${DEFAULT_AUTHOR} — Expanded portfolio index`,
+    '',
+    `> Machine-readable companion to [llms.txt](${baseUrl}/llms.txt) with longer summaries for assistants that need more context.`,
+    '',
+    '## Site overview',
+    '',
+    `${DEFAULT_AUTHOR} is a Denver-based product design leader with 20+ years of experience building research-driven digital products, UX strategy, and design systems. This file summarizes public pages and published case studies from ${baseUrl}.`,
+    '',
+    '## Primary pages',
+    '',
+    llmsLinkLine(
+      'Home',
+      `${baseUrl}/`,
+      'Featured case studies, positioning, and portfolio overview.',
+    ),
+    llmsLinkLine(
+      'About',
+      `${baseUrl}/about`,
+      'Career background, expertise areas, design philosophy, and resume.',
+    ),
+    llmsLinkLine(
+      'Contact',
+      `${baseUrl}/contact`,
+      'Email and channels for collaboration, consulting, or speaking.',
+    ),
+    '',
+    '## Identity',
+    '',
+    ...identityLinks(baseUrl, profile),
+    '',
+    '## Case studies',
+    '',
+  ];
+
+  if (!projectEntries.length) {
+    lines.push('_No published case studies were available at build time._', '');
+  } else {
+    for (const project of projectEntries) {
+      const url = `${baseUrl}${project.path}`;
+      lines.push(`### ${project.title}`, '');
+      lines.push(llmsLinkLine(project.title, url, 'Canonical case study page.'));
+      if (project.description) {
+        lines.push('', truncateForLlms(project.description, 500), '');
+      }
+      const excerpt = truncateForLlms(stripHtml(project.caseStudyContent), 800);
+      if (excerpt) {
+        lines.push('', excerpt, '');
+      }
+      lines.push('');
+    }
+  }
+
+  lines.push(
+    '## Citation rules',
+    '',
+    '- Prefer each page `<link rel="canonical">` URL when citing a specific page.',
+    `- Attribute as **${DEFAULT_AUTHOR}**, product design leader, ${baseUrl}/`,
+    '- Do not infer employers, metrics, or project scope not explicitly stated on the cited page.',
+    '',
+    `Last reviewed: ${reviewed}. Regenerated on deploy from published CMS projects.`,
+    '',
+  );
+
+  return lines.join('\n');
 }
 
 function getSitemapRoutes(projectEntries) {
@@ -283,9 +550,9 @@ function writeStaticRouteHtml(routes, baseUrl) {
 
 async function main() {
   const baseUrl = (process.env.SITE_URL || 'https://www.bureson.com').replace(/\/+$/, '');
-  const fromDb = await fetchPublishedSlugsFromSupabase();
-  const localTitles = loadLocalProjects();
-  const projectEntries = mergeProjectEntries(fromDb, localTitles);
+  const { projects: fromDb, profile } = await fetchPublishedSlugsFromSupabase();
+  const localProjects = loadLocalProjects();
+  const projectEntries = mergeProjectEntries(fromDb, localProjects);
   const routes = getSitemapRoutes(projectEntries);
 
   if (fromDb.length) {
@@ -299,8 +566,13 @@ async function main() {
   ensureDir(distDir);
   fs.writeFileSync(path.join(distDir, 'sitemap.xml'), generateSitemap(baseUrl, routes));
   fs.writeFileSync(path.join(distDir, 'robots.txt'), generateRobots(baseUrl));
+  fs.writeFileSync(path.join(distDir, 'llms.txt'), generateLlmsTxt(baseUrl, projectEntries, profile));
+  fs.writeFileSync(
+    path.join(distDir, 'llms-full.txt'),
+    generateLlmsFullTxt(baseUrl, projectEntries, profile),
+  );
   writeStaticRouteHtml(routes, baseUrl);
-  console.log('✅ Generated sitemap.xml and robots.txt');
+  console.log('✅ Generated sitemap.xml, robots.txt, llms.txt, and llms-full.txt');
 }
 
 main().catch((e) => {
