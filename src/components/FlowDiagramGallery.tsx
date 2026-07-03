@@ -751,11 +751,7 @@ export function FlowDiagramGallery({
               className="flex justify-center mt-8"
             >
               <button
-                onClick={() => {
-                  setShowAllImages(false);
-                  // Scroll to top of gallery when collapsing
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                }}
+                onClick={() => setShowAllImages(false)}
                 className="flex items-center gap-1 text-sm font-medium transition-all relative cursor-pointer hover:translate-x-0.5"
               >
                 <motion.span

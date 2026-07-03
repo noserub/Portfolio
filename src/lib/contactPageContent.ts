@@ -2,12 +2,20 @@ import { getPortfolioOwnerUserId } from "./portfolioOwner";
 import { fetchPublishedResumeUrl } from "./aboutPageProfile";
 import { getPublicContactEmail } from "./publicContactEmail";
 import { LINKEDIN_PROFILE_URL } from "./portfolioLinks";
-import { supabase } from "./supabaseClient";
+import { getPostgrestErrorMessage, supabase } from "./supabaseClient";
+import { tryWriteLocalStorage } from "./localStorageQuota";
+
+export const CONTACT_PAGE_HEADLINE = "Start a product conversation.";
 
 export const DEFAULT_CONTACT_SUBTITLE =
-  "Have a question or want to work together? I'd love to hear from you.";
+  "Working on an AI product, a 0→1 concept, or a complex workflow? Tell me what you're building and what kind of collaboration you're exploring.";
 
 export const DEFAULT_CONTACT_LOCATION = "Colorado, USA";
+
+export const DEFAULT_CONTACT_MESSAGE_PLACEHOLDER =
+  "What are you building, what stage are you at, and where do you need help?";
+
+export const DEFAULT_CONTACT_SUBMIT_LABEL = "Send partnership inquiry";
 
 export interface ContactPageData {
   pageSubtitle: string;
@@ -28,6 +36,17 @@ export const DEFAULT_CONTACT_PAGE: ContactPageData = {
 const CONTACT_STORAGE_KEY = "contactPageContent";
 const CONTACT_PAGE_CACHE_KEY = "contactPageData";
 const CONTACT_PAGE_CACHE_VERSION = 2;
+
+/** Set false when remote DB has not applied migration 0044 yet. */
+let contactPageFieldsAvailable = true;
+
+export function areContactPageFieldsAvailable(): boolean {
+  return contactPageFieldsAvailable;
+}
+
+export function setContactPageFieldsAvailable(available: boolean): void {
+  contactPageFieldsAvailable = available;
+}
 
 export function readContactPageCache(): ContactPageData | null {
   if (typeof window === "undefined") return null;
@@ -120,7 +139,7 @@ function readLocalContactDraft(): Partial<ContactPageData> | null {
 
 export function writeLocalContactDraft(data: ContactPageData) {
   if (typeof window === "undefined") return;
-  localStorage.setItem(
+  tryWriteLocalStorage(
     CONTACT_STORAGE_KEY,
     JSON.stringify({
       pageSubtitle: data.pageSubtitle,
@@ -158,6 +177,22 @@ export async function fetchContactPageData(): Promise<ContactPageData> {
       next.email = local.email.trim();
     }
 
+    const profileSubtitle =
+      typeof profile?.contact_page_subtitle === "string" ? profile.contact_page_subtitle.trim() : "";
+    if (profileSubtitle) {
+      next.pageSubtitle = profileSubtitle;
+    } else if (local?.pageSubtitle?.trim()) {
+      next.pageSubtitle = local.pageSubtitle.trim();
+    }
+
+    const profileLocation =
+      typeof profile?.contact_location === "string" ? profile.contact_location.trim() : "";
+    if (profileLocation) {
+      next.location = profileLocation;
+    } else if (local?.location?.trim()) {
+      next.location = local.location.trim();
+    }
+
     const profileLinkedIn =
       typeof profile?.linkedin_url === "string" ? profile.linkedin_url.trim() : "";
     if (profileLinkedIn) {
@@ -185,31 +220,134 @@ export async function fetchContactPageData(): Promise<ContactPageData> {
 }
 
 export function isLinkedInColumnMissingError(err: unknown): boolean {
-  const msg = String(err);
+  const msg = getPostgrestErrorMessage(err);
   return /PGRST204/i.test(msg) && /linkedin_url/i.test(msg);
+}
+
+export function isContactPageFieldsMissingError(err: unknown): boolean {
+  const msg = getPostgrestErrorMessage(err);
+  return (
+    /PGRST204/i.test(msg) &&
+    (/contact_page_subtitle/i.test(msg) || /contact_location/i.test(msg))
+  );
+}
+
+export function omitContactPageFields<T extends Record<string, unknown>>(
+  payload: T,
+): Omit<T, "contact_page_subtitle" | "contact_location"> {
+  const { contact_page_subtitle: _subtitle, contact_location: _location, ...rest } = payload;
+  return rest;
+}
+
+export type ContactProfileUpdate = {
+  email?: string;
+  linkedin_url?: string;
+  contact_page_subtitle?: string;
+  contact_location?: string;
+};
+
+/** Persist contact page fields to the owner profile with migration-safe fallbacks. */
+export async function persistContactPageProfileUpdate(
+  data: ContactPageData,
+  updateProfile: (updates: ContactProfileUpdate) => Promise<unknown>,
+): Promise<{ savedToCloud: boolean; warning?: string }> {
+  const normalized: ContactPageData = {
+    ...data,
+    email: data.email.trim(),
+    linkedinUrl: normalizeLinkedInUrl(data.linkedinUrl),
+  };
+
+  writeLocalContactDraft(normalized);
+
+  let payload: ContactProfileUpdate = {};
+  if (normalized.email) payload.email = normalized.email;
+  if (normalized.linkedinUrl) payload.linkedin_url = normalized.linkedinUrl;
+  if (areContactPageFieldsAvailable()) {
+    payload.contact_page_subtitle = normalized.pageSubtitle.trim();
+    payload.contact_location = normalized.location.trim();
+  }
+
+  const save = async (body: ContactProfileUpdate) => {
+    if (Object.keys(body).length === 0) return;
+    await updateProfile(body);
+  };
+
+  try {
+    await save(payload);
+    return { savedToCloud: true };
+  } catch (err) {
+    if (isContactPageFieldsMissingError(err)) {
+      setContactPageFieldsAvailable(false);
+      const reduced = omitContactPageFields(payload) as ContactProfileUpdate;
+      await save(reduced);
+      return {
+        savedToCloud: true,
+        warning:
+          "Email and LinkedIn saved. Run migration 0044 to publish contact subtitle and location for all visitors.",
+      };
+    }
+
+    if (isLinkedInColumnMissingError(err)) {
+      const { linkedin_url: _linkedin, ...withoutLinkedIn } = payload;
+      try {
+        await save(withoutLinkedIn);
+        return {
+          savedToCloud: true,
+          warning:
+            "Contact copy saved. Run migration 0042 to persist LinkedIn URL for all visitors.",
+        };
+      } catch (retryErr) {
+        if (isContactPageFieldsMissingError(retryErr)) {
+          setContactPageFieldsAvailable(false);
+          const core = omitContactPageFields(withoutLinkedIn) as ContactProfileUpdate;
+          await save(core);
+          return {
+            savedToCloud: true,
+            warning: "Partial save. Run latest database migrations for full contact page sync.",
+          };
+        }
+        throw retryErr;
+      }
+    }
+
+    throw err;
+  }
 }
 
 type OwnerContactProfileRow = {
   email?: string | null;
   linkedin_url?: string | null;
   resume_url?: string | null;
+  contact_page_subtitle?: string | null;
+  contact_location?: string | null;
 };
 
+const OWNER_CONTACT_PROFILE_SELECT =
+  "email, linkedin_url, resume_url, contact_page_subtitle, contact_location";
+
 async function fetchOwnerContactProfile(ownerId: string): Promise<OwnerContactProfileRow | null> {
-  const withLinkedIn = await supabase
+  const full = await supabase
     .from("profiles")
-    .select("email, linkedin_url, resume_url")
+    .select(OWNER_CONTACT_PROFILE_SELECT)
     .eq("id", ownerId)
     .maybeSingle();
 
-  if (!withLinkedIn.error) {
-    return (withLinkedIn.data as OwnerContactProfileRow | null) ?? null;
+  if (!full.error) {
+    setContactPageFieldsAvailable(true);
+    return (full.data as OwnerContactProfileRow | null) ?? null;
   }
 
-  if (isLinkedInColumnMissingError(withLinkedIn.error)) {
+  if (isContactPageFieldsMissingError(full.error)) {
+    setContactPageFieldsAvailable(false);
+  }
+
+  if (isLinkedInColumnMissingError(full.error) || isContactPageFieldsMissingError(full.error)) {
+    const fallbackSelect = isLinkedInColumnMissingError(full.error)
+      ? "email, resume_url"
+      : "email, linkedin_url, resume_url";
     const fallback = await supabase
       .from("profiles")
-      .select("email, resume_url")
+      .select(fallbackSelect)
       .eq("id", ownerId)
       .maybeSingle();
     if (fallback.error) return null;

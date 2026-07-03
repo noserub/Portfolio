@@ -211,9 +211,29 @@ export function ModernHomeHeroEditorPanel({
     });
 
     try {
-      if (merged && homeContentHydratedRef.current) {
-        await persistHomePageNow(merged);
+      if (!merged) {
+        toast.error("Could not save home content. Try again.");
+        return;
       }
+
+      const result = await persistHomePageNow(merged);
+
+      if (!result.ok) {
+        toast.error(result.error ?? "Could not save home content.");
+        return;
+      }
+
+      if (result.error) {
+        toast.error(result.error);
+      } else if (result.cloudSynced) {
+        toast.success("Home content saved.");
+        if (result.warning) toast.warning(result.warning);
+      } else if (result.warning) {
+        toast.warning(result.warning);
+      } else {
+        toast.message("Home content saved on this device.");
+      }
+
       onClose();
     } finally {
       setSaving(false);
@@ -223,7 +243,6 @@ export function ModernHomeHeroEditorPanel({
     clearDebouncedHeroSave,
     setHomePageContent,
     greetingsTextValue,
-    homeContentHydratedRef,
     persistHomePageNow,
     onClose,
   ]);
@@ -309,24 +328,24 @@ export function ModernHomeHeroEditorPanel({
             </h3>
             <div className="space-y-2">
               <Label className="text-xs" style={{ color: modern.muted }}>
-                Primary button (About)
+                Primary button (Contact)
               </Label>
               <Input
-                value={heroText.buttonText}
-                onChange={(e) => patchHero({ buttonText: e.target.value })}
-                placeholder="About Brian"
+                value={homePageContent.ui.contactCtaLabel}
+                onChange={(e) => patchUi({ contactCtaLabel: e.target.value })}
+                placeholder="Discuss a partnership"
                 className="bg-transparent"
                 style={{ borderColor: modern.border, color: modern.text }}
               />
             </div>
             <div className="space-y-2">
               <Label className="text-xs" style={{ color: modern.muted }}>
-                Secondary button (Contact)
+                Secondary button (About)
               </Label>
               <Input
-                value={homePageContent.ui.contactCtaLabel}
-                onChange={(e) => patchUi({ contactCtaLabel: e.target.value })}
-                placeholder="Get in touch"
+                value={heroText.buttonText}
+                onChange={(e) => patchHero({ buttonText: e.target.value })}
+                placeholder="How I partner"
                 className="bg-transparent"
                 style={{ borderColor: modern.border, color: modern.text }}
               />

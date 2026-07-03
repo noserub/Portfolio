@@ -1,4 +1,4 @@
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import { ArrowRight, Edit2, Plus } from "lucide-react";
 import { toast } from "sonner";
 import type { ProjectData } from "../../components/ProjectImage";
@@ -62,6 +62,17 @@ interface ModernHomeViewProps extends ModernHomeProps {
   homePageContent: HomePageContentV2;
   homeContentLoading: boolean;
   onEditHomeContent?: () => void;
+}
+
+function shouldLetBrowserHandleNavigation(event: MouseEvent<HTMLAnchorElement>) {
+  return (
+    event.defaultPrevented ||
+    event.button !== 0 ||
+    event.metaKey ||
+    event.ctrlKey ||
+    event.shiftKey ||
+    event.altKey
+  );
 }
 
 function ModernHomeView({
@@ -471,23 +482,31 @@ function ModernHomeView({
             </div>
 
             <div className="mt-8 sm:mt-10 flex flex-wrap items-center gap-3">
-              <button
-                type="button"
-                onClick={onStartClick}
+              <a
+                href="/contact"
+                onClick={(event) => {
+                  if (shouldLetBrowserHandleNavigation(event)) return;
+                  event.preventDefault();
+                  onNavigateContact();
+                }}
                 className="modern-btn-primary"
                 style={modernPrimaryButtonStyle}
               >
-                {heroText.buttonText?.trim() || "About Brian"}
+                {homePageContent.ui.contactCtaLabel?.trim() || "Discuss a partnership"}
                 <ArrowRight size={15} />
-              </button>
-              <button
-                type="button"
-                onClick={onNavigateContact}
+              </a>
+              <a
+                href="/about"
+                onClick={(event) => {
+                  if (shouldLetBrowserHandleNavigation(event)) return;
+                  event.preventDefault();
+                  onStartClick();
+                }}
                 className="modern-btn-outline"
                 style={modernFont}
               >
-                {homePageContent.ui.contactCtaLabel?.trim() || "Get in touch"}
-              </button>
+                {heroText.buttonText?.trim() || "How I partner"}
+              </a>
             </div>
           </div>
         </div>

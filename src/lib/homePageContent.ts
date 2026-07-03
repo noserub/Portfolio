@@ -3,6 +3,8 @@
  * v2 wraps hero + stats + UI labels; legacy flat objects are migrated on read.
  */
 
+import { tryWriteLocalStorage } from "./localStorageQuota";
+
 export const HOME_PAGE_CONTENT_VERSION = 2 as const;
 
 /** Dispatched when leaving edit → preview so the home hero flushes any pending debounced save. */
@@ -218,7 +220,7 @@ export const DEFAULT_CASE_STUDY_FILTERS: CaseStudyFilterEntry[] = [
 export const DEFAULT_UI: HomePageUI = {
   caseStudiesTitle: "Case studies",
   filterAll: "All",
-  contactCtaLabel: "Get in touch",
+  contactCtaLabel: "Discuss a partnership",
   caseStudyFilters: DEFAULT_CASE_STUDY_FILTERS.map((f) => ({ ...f })),
   defaultCaseStudyFilter: "all",
   featuredCaseStudyId: null,
@@ -368,7 +370,7 @@ export function defaultHeroTextState(): HeroTextState {
     word2: f.word2,
     word3: f.word3,
     word4: f.word4,
-    buttonText: "About Brian",
+    buttonText: "How I partner",
     accentGradient: true,
     bioParagraphGapRem: 1,
     bioLineHeight: 1.625,
@@ -736,8 +738,7 @@ export function persistHomePageToLocalStorageSync(c: HomePageContentV2): boolean
   if (!shouldPersistHomePageContent(c)) return false;
   if (typeof globalThis === "undefined" || !("localStorage" in globalThis)) return false;
   const payload = toPersistedPayload({ ...c, _clientSavedAt: Date.now() });
-  globalThis.localStorage.setItem("heroText", JSON.stringify(payload));
-  return true;
+  return tryWriteLocalStorage("heroText", JSON.stringify(payload)).ok;
 }
 
 /** Parsed `heroText` from localStorage, or null if missing / invalid / empty. */

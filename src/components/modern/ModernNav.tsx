@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, type MouseEvent, type ReactNode } from "react";
 import { Menu, Moon, Sun, X } from "lucide-react";
 import { modernLayout } from "../../design/modernLayout";
 import { ModernBrandLogo } from "./ModernBrandLogo";
@@ -26,6 +26,17 @@ function drawerLinkClass(active: boolean) {
   return `${modernLayout.navMobileDrawerLink}${active ? " modern-nav-drawer-link--active" : ""}`;
 }
 
+function shouldLetBrowserHandleNavigation(event: MouseEvent<HTMLAnchorElement>) {
+  return (
+    event.defaultPrevented ||
+    event.button !== 0 ||
+    event.metaKey ||
+    event.ctrlKey ||
+    event.shiftKey ||
+    event.altKey
+  );
+}
+
 export function ModernNav({
   ownerName,
   logoUrl,
@@ -48,10 +59,16 @@ export function ModernNav({
 
   const handleWork = () => {
     if (currentPage === "home" && onScrollToWork) {
+      window.history.replaceState(window.history.state, "", "/#case-studies");
       onScrollToWork();
     } else {
       onNavigateHome();
-      if (onScrollToWork) window.setTimeout(onScrollToWork, 150);
+      if (onScrollToWork) {
+        window.setTimeout(() => {
+          window.history.replaceState(window.history.state, "", "/#case-studies");
+          onScrollToWork();
+        }, 150);
+      }
     }
     closeMobile();
   };
@@ -75,58 +92,86 @@ export function ModernNav({
 
   const desktopLinks = (
     <>
-      <button type="button" onClick={handleWork} className={navLinkClass(isWorkActive)}>
+      <a
+        href="/#case-studies"
+        onClick={(event) => {
+          if (shouldLetBrowserHandleNavigation(event)) return;
+          event.preventDefault();
+          handleWork();
+        }}
+        className={navLinkClass(isWorkActive)}
+      >
         Work
-      </button>
+      </a>
       {showAbout ? (
-        <button
-          type="button"
-          onClick={onNavigateAbout}
+        <a
+          href="/about"
+          onClick={(event) => {
+            if (shouldLetBrowserHandleNavigation(event)) return;
+            event.preventDefault();
+            onNavigateAbout();
+          }}
           className={navLinkClass(currentPage === "about")}
         >
           About
-        </button>
+        </a>
       ) : null}
       {showContact ? (
-        <button
-          type="button"
-          onClick={onNavigateContact}
+        <a
+          href="/contact"
+          onClick={(event) => {
+            if (shouldLetBrowserHandleNavigation(event)) return;
+            event.preventDefault();
+            onNavigateContact();
+          }}
           className={navLinkClass(currentPage === "contact")}
         >
           Contact
-        </button>
+        </a>
       ) : null}
     </>
   );
 
   const mobileDrawerLinks = (
     <>
-      <button type="button" onClick={handleWork} className={drawerLinkClass(isWorkActive)}>
+      <a
+        href="/#case-studies"
+        onClick={(event) => {
+          if (shouldLetBrowserHandleNavigation(event)) return;
+          event.preventDefault();
+          handleWork();
+        }}
+        className={drawerLinkClass(isWorkActive)}
+      >
         Work
-      </button>
+      </a>
       {showAbout ? (
-        <button
-          type="button"
-          onClick={() => {
+        <a
+          href="/about"
+          onClick={(event) => {
+            if (shouldLetBrowserHandleNavigation(event)) return;
+            event.preventDefault();
             onNavigateAbout();
             closeMobile();
           }}
           className={drawerLinkClass(currentPage === "about")}
         >
           About
-        </button>
+        </a>
       ) : null}
       {showContact ? (
-        <button
-          type="button"
-          onClick={() => {
+        <a
+          href="/contact"
+          onClick={(event) => {
+            if (shouldLetBrowserHandleNavigation(event)) return;
+            event.preventDefault();
             onNavigateContact();
             closeMobile();
           }}
           className={drawerLinkClass(currentPage === "contact")}
         >
           Contact
-        </button>
+        </a>
       ) : null}
     </>
   );
@@ -150,14 +195,18 @@ export function ModernNav({
             </button>
           </div>
 
-          <button
-            type="button"
-            onClick={onNavigateHome}
+          <a
+            href="/"
+            onClick={(event) => {
+              if (shouldLetBrowserHandleNavigation(event)) return;
+              event.preventDefault();
+              onNavigateHome();
+            }}
             className="modern-nav-brand shrink-0"
             aria-label={`${ownerName} — home`}
           >
             <ModernBrandLogo logoUrl={logoUrl} variant="header" />
-          </button>
+          </a>
 
           <div className={modernLayout.navDesktop}>
             {desktopLinks}

@@ -135,8 +135,10 @@ const DEFAULT_SEO_DATA: AllSEOData = {
     },
     contact: {
       title: 'Contact - Brian Bureson',
-      description: 'Get in touch with Brian Bureson for design collaboration, consulting, or speaking opportunities.',
-      keywords: 'contact Brian Bureson, design collaboration, UX consulting',
+      description:
+        'Get in touch with Brian Bureson about design partnerships, AI product direction, and 0→1 product collaboration.',
+      keywords:
+        'contact Brian Bureson, design partnership, AI product design, UX consulting, product collaboration',
       ogTitle: '',
       ogDescription: '',
       ogImage: '',

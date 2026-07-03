@@ -3668,7 +3668,7 @@ I designed the first touch screen insulin pump interface, revolutionizing how pe
                         });
                       });
 
-                      if (merged && homeContentHydratedRef.current) {
+                      if (merged) {
                         await persistHomePageNow(merged);
                       }
 

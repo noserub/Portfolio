@@ -10,11 +10,11 @@ import {
 import {
   DEFAULT_CONTACT_PAGE,
   fetchContactPageData,
-  isLinkedInColumnMissingError,
-  normalizeLinkedInUrl,
+  persistContactPageProfileUpdate,
   writeLocalContactDraft,
   type ContactPageData,
 } from "../../lib/contactPageContent";
+import { getPostgrestErrorMessage } from "../../lib/supabaseClient";
 import { useProfiles } from "../../hooks/useProfiles";
 
 interface ModernContactEditorPanelProps {
@@ -44,42 +44,20 @@ export function ModernContactEditorPanel({ open, onCancel, onSaved }: ModernCont
     if (saving) return;
     setSaving(true);
     try {
-      const normalized: ContactPageData = {
-        ...draft,
-        email: draft.email.trim(),
-        linkedinUrl: normalizeLinkedInUrl(draft.linkedinUrl),
-      };
-
-      writeLocalContactDraft(normalized);
-
-      const profileUpdates: { email?: string; linkedin_url?: string } = {};
-      if (normalized.email) profileUpdates.email = normalized.email;
-      if (normalized.linkedinUrl) profileUpdates.linkedin_url = normalized.linkedinUrl;
-
-      if (Object.keys(profileUpdates).length > 0) {
-        try {
-          await updateCurrentUserProfile(profileUpdates);
-        } catch (err) {
-          if (isLinkedInColumnMissingError(err)) {
-            if (profileUpdates.email) {
-              await updateCurrentUserProfile({ email: profileUpdates.email });
-            }
-            toast.warning(
-              "Email saved. Run the latest database migration to persist LinkedIn URL for all visitors.",
-            );
-            window.dispatchEvent(new CustomEvent("portfolio-profile-updated"));
-            onSaved();
-            return;
-          }
-          throw err;
-        }
+      const result = await persistContactPageProfileUpdate(draft, updateCurrentUserProfile);
+      if (result.warning) {
+        toast.warning(result.warning);
+      } else if (result.savedToCloud) {
+        toast.success("Contact page updated.");
+      } else {
+        writeLocalContactDraft(draft);
+        toast.message("Contact page saved on this device.");
       }
-
-      toast.success("Contact page updated.");
       window.dispatchEvent(new CustomEvent("portfolio-profile-updated"));
       onSaved();
-    } catch {
-      toast.error("Could not save contact page. Try again.");
+    } catch (err) {
+      writeLocalContactDraft(draft);
+      toast.error(`Could not save contact page: ${getPostgrestErrorMessage(err)}`);
     } finally {
       setSaving(false);
     }
@@ -138,7 +116,7 @@ export function ModernContactEditorPanel({ open, onCancel, onSaved }: ModernCont
             />
           </ModernEditorField>
           <p className="text-xs" style={{ color: modernEditorInputStyle.color, opacity: 0.65 }}>
-            Email and LinkedIn are saved to your profile so visitors see the same links. Subtitle and location are stored in this browser until synced to the database.
+            Email, LinkedIn, subtitle, and location are saved to your profile so visitors see the same contact page.
           </p>
         </>
       )}

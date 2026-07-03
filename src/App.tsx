@@ -681,8 +681,12 @@ function AppShell() {
     if (effectiveTheme === 'dark') root.classList.add('dark');
     else root.classList.remove('dark');
 
-    localStorage.setItem('theme', theme);
-    localStorage.setItem('themeSource', themeSource);
+    try {
+      localStorage.setItem('theme', theme);
+      localStorage.setItem('themeSource', themeSource);
+    } catch {
+      /* Quota full — theme already applied on documentElement */
+    }
   }, [theme, themeSource]);
 
   // Listen for system theme changes when themeSource is 'system'
@@ -718,7 +722,11 @@ function AppShell() {
       // Check if this is first load (no case studies exist)
       const caseStudiesData = localStorage.getItem('caseStudies');
       if (!caseStudiesData) {
-        localStorage.setItem('caseStudies', JSON.stringify([]));
+        try {
+          localStorage.setItem('caseStudies', JSON.stringify([]));
+        } catch {
+          /* Quota full — projects load from Supabase */
+        }
       }
       
       // FIX SECTION POSITIONS: Only run once ever

@@ -3,12 +3,14 @@ import App from "./App.tsx";
 import "./index.css";
 import { SiteAuthProvider } from "./contexts/SiteAuthContext";
 import { DesignVariantProvider } from "./design/DesignVariantContext";
+import { ensureLocalStorageWritable } from "./lib/localStorageQuota";
 
 function removeSeoPrerender() {
   document.getElementById("seo-prerender")?.remove();
 }
 
 removeSeoPrerender();
+ensureLocalStorageWritable();
 
 createRoot(document.getElementById("root")!).render(
   <SiteAuthProvider>
