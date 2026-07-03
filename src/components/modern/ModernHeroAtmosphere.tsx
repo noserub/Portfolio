@@ -1,32 +1,32 @@
 import { useEffect, useRef } from "react";
 import {
+  ATMOSPHERE_ANIMATION_SPEED,
+  ATMOSPHERE_DRIFT_AMPLITUDE,
+  applyPointerToMotion,
   atmosphereClusterBreath,
+  atmosphereNebulaMotion,
+  atmospherePointerParticleOffset,
+  atmospherePointerSparkWeight,
   atmosphereReadabilityAlpha,
   atmosphereVerticalEdgeAlpha,
   atmosphereVerticalEdgeMaskGradient,
+  blendHex,
   buildAtmosphereDots,
   clusterPosition,
+  deriveNebulaPalette,
+  lerp,
+  type AtmospherePointerInfluence,
+  type NebulaGlowMotion,
+  type NebulaPalette,
+  withAlphaHex,
 } from "../../lib/modernHeroAtmosphere";
 
 const DOTS = buildAtmosphereDots();
+const POINTER_SMOOTHING = 0.065;
 
 function parseColor(css: string, fallback: string): string {
   const v = css.trim();
   return v || fallback;
-}
-
-function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
-  const normalized = hex.replace("#", "");
-  if (normalized.length !== 6) return null;
-  const n = Number.parseInt(normalized, 16);
-  if (Number.isNaN(n)) return null;
-  return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
-}
-
-function withAlpha(color: string, alpha: number): string {
-  const rgb = hexToRgb(color);
-  if (!rgb) return color;
-  return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`;
 }
 
 function parseLengthPx(css: string, fallback: number, rootFontSizePx: number): number {
@@ -44,25 +44,28 @@ function parseLengthPx(css: string, fallback: number, rootFontSizePx: number): n
   return Number.isFinite(value) ? value : fallback;
 }
 
-function drawGlow(
+function drawNebulaLayer(
   ctx: CanvasRenderingContext2D,
   width: number,
   height: number,
-  colors: { accent: string },
-  pulse: number,
+  cxNorm: number,
+  cyNorm: number,
+  radiusScale: number,
+  color: string,
+  peakAlpha: number,
+  midAlpha: number,
 ) {
-  const glowCx = width * 0.68;
-  const glowCy = height * 0.5;
-  const glowRx = Math.max(width, height) * 0.38;
-  const glowRy = height * 0.96;
-  const glowPeak = 0.067 + pulse * 0.022;
+  const glowCx = width * cxNorm;
+  const glowCy = height * cyNorm;
+  const glowRx = Math.max(width, height) * radiusScale;
+  const glowRy = height * (radiusScale * 2.52);
 
   ctx.save();
   ctx.translate(glowCx, glowCy);
   ctx.scale(1, glowRy / glowRx);
   const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, glowRx);
-  glow.addColorStop(0, withAlpha(colors.accent, glowPeak));
-  glow.addColorStop(0.45, withAlpha(colors.accent, 0.024));
+  glow.addColorStop(0, withAlphaHex(color, peakAlpha));
+  glow.addColorStop(0.42, withAlphaHex(color, midAlpha));
   glow.addColorStop(1, "transparent");
   ctx.fillStyle = glow;
   ctx.beginPath();
@@ -71,22 +74,78 @@ function drawGlow(
   ctx.restore();
 }
 
+function drawNebulaGlows(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  palette: NebulaPalette,
+  motion: NebulaGlowMotion,
+  pointer: AtmospherePointerInfluence,
+  useAdditiveBlend: boolean,
+) {
+  const sparkWeight = atmospherePointerSparkWeight(pointer);
+
+  const washBase = blendHex(palette.wash, palette.core, 0.18 + motion.washMix * 0.14);
+  const whisperBase = blendHex(palette.whisper, palette.wash, 0.22 + motion.whisperMix * 0.16);
+  const coreBase = blendHex(palette.core, palette.wash, 0.08 + motion.washMix * 0.06);
+
+  const washColor = blendHex(washBase, palette.spark, sparkWeight * 0.48);
+  const whisperColor = blendHex(whisperBase, palette.spark, sparkWeight * 0.62);
+  const coreColor = blendHex(coreBase, palette.spark, sparkWeight * 0.16);
+
+  const washPeak = 0.028 + motion.washMix * 0.014 + sparkWeight * 0.008;
+  const whisperPeak = 0.02 + motion.whisperMix * 0.011 + sparkWeight * 0.01;
+  const corePeak = 0.062 + motion.pulse * 0.026 + sparkWeight * 0.004;
+
+  ctx.save();
+  if (useAdditiveBlend) {
+    ctx.globalCompositeOperation = "lighter";
+  }
+
+  drawNebulaLayer(ctx, width, height, motion.whisperX, motion.whisperY, 0.44, whisperColor, whisperPeak, whisperPeak * 0.34);
+  drawNebulaLayer(ctx, width, height, motion.washX, motion.washY, 0.36, washColor, washPeak, washPeak * 0.38);
+
+  if (sparkWeight > 0.08) {
+    drawNebulaLayer(
+      ctx,
+      width,
+      height,
+      pointer.x,
+      pointer.y,
+      0.12,
+      palette.spark,
+      0.022 + sparkWeight * 0.018,
+      0.008 + sparkWeight * 0.006,
+    );
+  }
+
+  ctx.globalCompositeOperation = "source-over";
+  drawNebulaLayer(ctx, width, height, motion.coreX, motion.coreY, 0.3, coreColor, corePeak, corePeak * 0.36);
+  ctx.restore();
+}
+
 function drawFrame(
   ctx: CanvasRenderingContext2D,
   width: number,
   height: number,
   elapsed: number,
-  colors: { accent: string; muted: string },
+  palette: NebulaPalette,
+  muted: string,
   reducedMotion: boolean,
   navHeightPx: number,
+  isDarkTheme: boolean,
+  pointer: AtmospherePointerInfluence,
 ) {
   ctx.clearRect(0, 0, width, height);
 
+  const animTime = elapsed * ATMOSPHERE_ANIMATION_SPEED;
   const breath = reducedMotion ? 0.35 : atmosphereClusterBreath(elapsed);
-  const driftAmp = reducedMotion ? 0 : 0.012;
-  const pulse = 0.5 + 0.5 * Math.sin(elapsed * 0.55);
+  const driftAmp = reducedMotion ? 0 : ATMOSPHERE_DRIFT_AMPLITUDE;
+  const baseMotion = atmosphereNebulaMotion(elapsed, reducedMotion);
+  const motion = applyPointerToMotion(baseMotion, pointer);
+  const sparkWeight = atmospherePointerSparkWeight(pointer);
 
-  drawGlow(ctx, width, height, colors, pulse);
+  drawNebulaGlows(ctx, width, height, palette, motion, pointer, isDarkTheme);
 
   ctx.globalCompositeOperation = "destination-in";
   ctx.fillStyle = atmosphereVerticalEdgeMaskGradient(ctx, height, navHeightPx);
@@ -98,11 +157,12 @@ function drawFrame(
   for (const dot of sorted) {
     const clustered = clusterPosition(dot.x, dot.y, breath);
 
-    const driftX = Math.sin(elapsed * 0.4 + dot.phase) * driftAmp;
-    const driftY = Math.cos(elapsed * 0.36 + dot.phase * 1.05) * driftAmp;
+    const driftX = Math.sin(animTime * 0.46 + dot.phase) * driftAmp;
+    const driftY = Math.cos(animTime * 0.4 + dot.phase * 1.05) * driftAmp;
+    const pointerOffset = atmospherePointerParticleOffset(clustered.x, clustered.y, dot.depth, pointer);
 
-    const nx = clustered.x + driftX;
-    const ny = clustered.y + driftY;
+    const nx = clustered.x + driftX + pointerOffset.dx;
+    const ny = clustered.y + driftY + pointerOffset.dy;
     const x = nx * width;
     const y = ny * height;
 
@@ -112,11 +172,16 @@ function drawFrame(
     const radius = 0.85 + dot.depth * 0.75;
 
     const useAccent = dot.accent && readAlpha > 0.35;
-    const alpha = useAccent ? Math.min(0.48, baseAlpha * 1.65) : Math.min(0.34, baseAlpha);
+    const alpha = useAccent ? Math.min(0.5, baseAlpha * 1.7) : Math.min(0.34, baseAlpha);
 
-    ctx.fillStyle = useAccent
-      ? withAlpha(colors.accent, alpha)
-      : withAlpha(colors.muted, alpha);
+    let dotColor = muted;
+    if (useAccent) {
+      const tint = 0.2 + 0.22 * (0.5 + 0.5 * Math.sin(animTime * 0.09 + dot.phase));
+      const greenTint = blendHex(palette.core, palette.wash, tint);
+      dotColor = blendHex(greenTint, palette.spark, sparkWeight * 0.28);
+    }
+
+    ctx.fillStyle = withAlphaHex(dotColor, alpha);
 
     ctx.beginPath();
     ctx.arc(x, y, radius, 0, Math.PI * 2);
@@ -128,6 +193,8 @@ export function ModernHeroAtmosphere() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const frameRef = useRef<number>(0);
   const startRef = useRef<number>(0);
+  const pointerRef = useRef<AtmospherePointerInfluence>({ active: 0, x: 0.72, y: 0.5 });
+  const pointerTargetRef = useRef<AtmospherePointerInfluence>({ active: 0, x: 0.72, y: 0.5 });
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -136,22 +203,59 @@ export function ModernHeroAtmosphere() {
     const host = canvas.closest(".modern-hero-atmosphere");
     if (!host) return;
 
+    const heroSection = host.closest(".modern-hero-section");
+    if (!heroSection) return;
+
     const reducedMotion =
       typeof window !== "undefined" &&
       window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    const finePointer =
+      typeof window !== "undefined" &&
+      window.matchMedia("(pointer: fine)").matches;
+
+    const pointerEnabled = finePointer && !reducedMotion;
 
     const readTheme = () => {
       const root = canvas.closest("[data-design]") ?? document.documentElement;
       const style = getComputedStyle(root);
       const rootFontSizePx = Number.parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+      const accent = parseColor(style.getPropertyValue("--modern-accent"), "#84bd00");
+      const isDarkTheme = document.documentElement.classList.contains("dark");
       return {
-        accent: parseColor(style.getPropertyValue("--modern-accent"), "#84bd00"),
+        palette: deriveNebulaPalette(accent),
         muted: parseColor(style.getPropertyValue("--modern-muted-text"), "#8c8c8c"),
         navHeightPx: parseLengthPx(style.getPropertyValue("--modern-nav-height"), 56, rootFontSizePx),
+        isDarkTheme,
       };
     };
 
     let theme = readTheme();
+
+    const updatePointerTarget = (clientX: number, clientY: number, active: number) => {
+      const rect = heroSection.getBoundingClientRect();
+      if (rect.width <= 0 || rect.height <= 0) return;
+      pointerTargetRef.current = {
+        active,
+        x: Math.max(0, Math.min(1, (clientX - rect.left) / rect.width)),
+        y: Math.max(0, Math.min(1, (clientY - rect.top) / rect.height)),
+      };
+    };
+
+    const onPointerMove = (event: PointerEvent) => {
+      if (!pointerEnabled || event.pointerType !== "mouse") return;
+      updatePointerTarget(event.clientX, event.clientY, 1);
+    };
+
+    const onPointerEnter = (event: PointerEvent) => {
+      if (!pointerEnabled || event.pointerType !== "mouse") return;
+      updatePointerTarget(event.clientX, event.clientY, 1);
+    };
+
+    const onPointerLeave = () => {
+      if (!pointerEnabled) return;
+      pointerTargetRef.current = { ...pointerTargetRef.current, active: 0 };
+    };
 
     const resize = () => {
       const rect = host.getBoundingClientRect();
@@ -178,9 +282,22 @@ export function ModernHeroAtmosphere() {
       attributeFilter: ["class", "data-design"],
     });
 
+    if (pointerEnabled) {
+      heroSection.addEventListener("pointermove", onPointerMove);
+      heroSection.addEventListener("pointerenter", onPointerEnter);
+      heroSection.addEventListener("pointerleave", onPointerLeave);
+    }
+
     const paint = (now: number) => {
       if (!startRef.current) startRef.current = now;
       const elapsed = (now - startRef.current) / 1000;
+
+      const target = pointerTargetRef.current;
+      const pointer = pointerRef.current;
+      pointer.active = lerp(pointer.active, target.active, POINTER_SMOOTHING);
+      pointer.x = lerp(pointer.x, target.x, POINTER_SMOOTHING);
+      pointer.y = lerp(pointer.y, target.y, POINTER_SMOOTHING);
+
       const ctx = canvas.getContext("2d");
       if (ctx) {
         drawFrame(
@@ -188,9 +305,12 @@ export function ModernHeroAtmosphere() {
           canvas.clientWidth,
           canvas.clientHeight,
           elapsed,
-          theme,
+          theme.palette,
+          theme.muted,
           reducedMotion,
           theme.navHeightPx,
+          theme.isDarkTheme,
+          pointer,
         );
       }
       frameRef.current = requestAnimationFrame(paint);
@@ -202,6 +322,11 @@ export function ModernHeroAtmosphere() {
       cancelAnimationFrame(frameRef.current);
       ro.disconnect();
       themeObserver.disconnect();
+      if (pointerEnabled) {
+        heroSection.removeEventListener("pointermove", onPointerMove);
+        heroSection.removeEventListener("pointerenter", onPointerEnter);
+        heroSection.removeEventListener("pointerleave", onPointerLeave);
+      }
     };
   }, []);
 
