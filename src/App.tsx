@@ -373,9 +373,8 @@ function AppShell() {
   // Use projects hook for direct persistence when callback isn't available
   const { updateProject, refetch: refetchProjects } = useProjects();
   
-  // Get contact messages for unread count
-  const { getUnreadCount } = useContactMessages();
-  const unreadMessageCount = getUnreadCount();
+  // Get contact messages for unread count (shared provider — updates nav badge live)
+  const { unreadCount: unreadMessageCount } = useContactMessages();
   const { chromeOffscreen } = useScrollHideChrome();
 
   // Load settings on mount
@@ -1262,6 +1261,11 @@ function AppShell() {
     setTimeout(forceScrollToTop, 0);
   };
 
+  const navigateMessages = () => {
+    setCurrentPage("messages");
+    setTimeout(forceScrollToTop, 0);
+  };
+
   const scrollToCaseStudies = () => {
     document.getElementById("case-studies")?.scrollIntoView({ behavior: "smooth" });
   };
@@ -1744,6 +1748,8 @@ function AppShell() {
       onShowPasswordReset={() => setShowPasswordReset(true)}
       onShowSEOEditor={() => setShowSEOEditor(true)}
       onShowComponentLibrary={() => setShowComponentLibrary(true)}
+      onNavigateMessages={isSupabaseAuthenticated ? navigateMessages : undefined}
+      unreadMessageCount={unreadMessageCount}
       onSignOut={handleSignOut}
     />
   );
@@ -1792,6 +1798,8 @@ function AppShell() {
           logoUrl={logo}
           showAbout={isEditMode || pageVisibility.about}
           showContact={isEditMode || pageVisibility.contact}
+          showMessages={isSupabaseAuthenticated}
+          unreadMessageCount={unreadMessageCount}
           overflowMenu={siteOverflowMenu("modern")}
           isDarkMode={resolvedTheme === 'dark'}
           onThemeToggle={handleThemeToggle}
@@ -1801,6 +1809,7 @@ function AppShell() {
             setTimeout(forceScrollToTop, 0);
           }}
           onNavigateContact={navigateContact}
+          onNavigateMessages={navigateMessages}
           onScrollToWork={scrollToCaseStudies}
         />
       )}
@@ -1920,7 +1929,7 @@ function AppShell() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => setCurrentPage("messages")}
+              onClick={navigateMessages}
               className={`rounded-full shadow-lg backdrop-blur-sm p-2.5 relative ${
                 isEditMode 
                   ? "bg-primary/10 text-primary hover:bg-primary/20" 

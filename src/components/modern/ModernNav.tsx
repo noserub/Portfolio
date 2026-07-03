@@ -1,5 +1,5 @@
 import { useEffect, useState, type MouseEvent, type ReactNode } from "react";
-import { Menu, Moon, Sun, X } from "lucide-react";
+import { Mail, Menu, Moon, Sun, X } from "lucide-react";
 import { modernLayout } from "../../design/modernLayout";
 import { ModernBrandLogo } from "./ModernBrandLogo";
 
@@ -9,12 +9,15 @@ interface ModernNavProps {
   currentPage: string;
   showAbout: boolean;
   showContact: boolean;
+  showMessages?: boolean;
+  unreadMessageCount?: number;
   overflowMenu?: ReactNode;
   isDarkMode: boolean;
   onThemeToggle: () => void;
   onNavigateHome: () => void;
   onNavigateAbout: () => void;
   onNavigateContact: () => void;
+  onNavigateMessages?: () => void;
   onScrollToWork?: () => void;
 }
 
@@ -43,19 +46,28 @@ export function ModernNav({
   currentPage,
   showAbout,
   showContact,
+  showMessages = false,
+  unreadMessageCount = 0,
   overflowMenu,
   isDarkMode,
   onThemeToggle,
   onNavigateHome,
   onNavigateAbout,
   onNavigateContact,
+  onNavigateMessages,
   onScrollToWork,
 }: ModernNavProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const isWorkActive = currentPage === "home" || currentPage === "project-detail";
+  const isMessagesActive = currentPage === "messages";
 
   const closeMobile = () => setMobileOpen(false);
+
+  const handleMessages = () => {
+    onNavigateMessages?.();
+    closeMobile();
+  };
 
   const handleWork = () => {
     if (currentPage === "home" && onScrollToWork) {
@@ -176,6 +188,29 @@ export function ModernNav({
     </>
   );
 
+  const messagesButton = showMessages ? (
+    <button
+      type="button"
+      className={`modern-nav-theme-toggle modern-nav-messages-toggle relative${
+        unreadMessageCount > 0 ? " modern-nav-messages-toggle--unread" : ""
+      }`}
+      onClick={handleMessages}
+      aria-label={
+        unreadMessageCount > 0
+          ? `Messages, ${unreadMessageCount} unread`
+          : "Messages"
+      }
+      aria-current={isMessagesActive ? "page" : undefined}
+    >
+      <Mail size={16} />
+      {unreadMessageCount > 0 ? (
+        <span className="modern-nav-messages-badge" aria-hidden>
+          {unreadMessageCount > 99 ? "99+" : unreadMessageCount}
+        </span>
+      ) : null}
+    </button>
+  ) : null;
+
   return (
     <>
       <nav
@@ -210,6 +245,7 @@ export function ModernNav({
 
           <div className={modernLayout.navDesktop}>
             {desktopLinks}
+            {messagesButton}
             <button
               type="button"
               className="modern-nav-theme-toggle"
@@ -222,6 +258,7 @@ export function ModernNav({
           </div>
 
           <div className={modernLayout.navMobileTrailing}>
+            {messagesButton}
             <button
               type="button"
               className="modern-nav-theme-toggle"

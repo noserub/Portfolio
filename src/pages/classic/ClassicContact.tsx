@@ -666,14 +666,6 @@ export function ClassicContact({ onBack, isEditMode = false, embedded }: Contact
                         </button>
                       </motion.div>
                     </div>
-
-                    {isEditMode && (
-                      <div className="mt-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
-                        <p className="text-xs text-yellow-900 dark:text-yellow-100">
-                          💡 <strong>Edit Mode:</strong> This is a demo form. In production, you'd connect this to a backend service or email API.
-                        </p>
-                      </div>
-                    )}
                   </form>
                 ) : (
                   <motion.div
