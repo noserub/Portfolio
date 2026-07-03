@@ -1,7 +1,7 @@
 import { handleContactEmailApiPost } from "../src/lib/contactEmailApi";
 
 export const config = {
-  runtime: "edge",
+  runtime: "nodejs",
 };
 
 const corsHeaders = {

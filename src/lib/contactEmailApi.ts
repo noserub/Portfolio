@@ -1,4 +1,8 @@
-import { isValidEmail } from "./utils";
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function isValidEmail(email: string): boolean {
+  return EMAIL_REGEX.test(email);
+}
 
 export type ContactEmailInput = {
   name: string;
