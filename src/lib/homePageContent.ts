@@ -25,6 +25,9 @@ export interface BioDocument {
 
 export type HeroRetypeMode = "full" | "suffix-only";
 
+/** Modern home: animated typewriter vs fixed two-line headline (prefix + accent line). */
+export type HeroHeadlineMode = "animated" | "static";
+
 export interface HeroGreetingAnimationPlan {
   mode: HeroRetypeMode;
   greetings: string[];
@@ -36,6 +39,12 @@ export interface HeroGreetingAnimationPlan {
 export interface HeroTextState {
   greeting: string;
   greetings?: string[];
+  /** Modern home headline presentation. Classic home ignores this and always animates. */
+  heroHeadlineMode?: HeroHeadlineMode;
+  /** Static mode line 1 (smaller, muted), e.g. "AI Product". */
+  heroHeadlinePrefix?: string;
+  /** Static mode line 2 (large accent), e.g. "Design Leader". */
+  heroHeadlineMain?: string;
   /** When suffix-only, only the last word is deleted/retyped between lines with a shared prefix. */
   heroRetypeMode?: HeroRetypeMode;
   greetingFont?: string;
@@ -114,6 +123,41 @@ export function getHeroGreetingAnimationPlan(
     sharedPrefix,
     suffixes: parsed.map((entry) => entry!.suffix),
   };
+}
+
+export const DEFAULT_HERO_HEADLINE_PREFIX = "AI Product";
+export const DEFAULT_HERO_HEADLINE_MAIN = "Design Leader";
+
+export function getHeroHeadlineMode(hero: HeroTextState): HeroHeadlineMode {
+  return hero.heroHeadlineMode === "static" ? "static" : "animated";
+}
+
+/** Infer prefix line from animated greetings (suffix-only shared prefix or first line minus last word). */
+export function inferHeroHeadlinePrefixFromGreetings(hero: HeroTextState): string | null {
+  const lines = (hero.greetings?.length ? hero.greetings : [hero.greeting])
+    .map((line) => line?.trim())
+    .filter(Boolean) as string[];
+  if (lines.length === 0) return null;
+
+  const plan = getHeroGreetingAnimationPlan(lines, hero.heroRetypeMode ?? "full");
+  if (plan.mode === "suffix-only" && plan.sharedPrefix) {
+    return plan.sharedPrefix.trimEnd();
+  }
+
+  const first = lines[0];
+  const lastSpace = first.lastIndexOf(" ");
+  if (lastSpace > 0) return first.slice(0, lastSpace);
+  return first;
+}
+
+/** Resolved static headline lines for display and CMS fallbacks. */
+export function resolveStaticHeroHeadline(hero: HeroTextState): { prefix: string; main: string } {
+  const prefix =
+    hero.heroHeadlinePrefix?.trim() ||
+    inferHeroHeadlinePrefixFromGreetings(hero) ||
+    DEFAULT_HERO_HEADLINE_PREFIX;
+  const main = hero.heroHeadlineMain?.trim() || DEFAULT_HERO_HEADLINE_MAIN;
+  return { prefix, main };
 }
 
 export interface HomePageStat {
@@ -416,6 +460,15 @@ function mergeHero(partial: Partial<HeroTextState> | Record<string, unknown>): H
         ? [h.greeting]
         : base.greetings,
     greeting: h.greeting || (h.greetings && h.greetings[0]) || base.greeting,
+    heroHeadlineMode: h.heroHeadlineMode === "static" ? "static" : "animated",
+    heroHeadlinePrefix:
+      typeof h.heroHeadlinePrefix === "string" && h.heroHeadlinePrefix.trim()
+        ? h.heroHeadlinePrefix.trim()
+        : undefined,
+    heroHeadlineMain:
+      typeof h.heroHeadlineMain === "string" && h.heroHeadlineMain.trim()
+        ? h.heroHeadlineMain.trim()
+        : undefined,
     heroRetypeMode: h.heroRetypeMode === "suffix-only" ? "suffix-only" : "full",
     accentGradient: h.accentGradient !== false,
     bioParagraphGapRem:
@@ -653,6 +706,10 @@ export function toPersistedPayload(content: HomePageContentV2): HomePagePersiste
 }
 
 export function heroHasMinimumContent(hero: HeroTextState): boolean {
+  if (getHeroHeadlineMode(hero) === "static") {
+    const { prefix, main } = resolveStaticHeroHeadline(hero);
+    if (prefix.trim() && main.trim()) return true;
+  }
   return (hero.greetings?.length ?? 0) > 0 || Boolean(hero.greeting?.trim());
 }
 

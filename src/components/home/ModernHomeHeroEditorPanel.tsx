@@ -18,9 +18,12 @@ import {
   DEFAULT_CASE_STUDY_FILTERS,
   defaultBioDocument,
   healDegenerateHeroBio,
+  inferHeroHeadlinePrefixFromGreetings,
   mergeHeroGreetingsFromDraftLines,
+  resolveStaticHeroHeadline,
   type CaseStudyFilterEntry,
   type DefaultCaseStudyFilter,
+  type HeroHeadlineMode,
   type HomePageContentV2,
   type HomePageStat,
   type HeroTextState,
@@ -228,6 +231,26 @@ export function ModernHomeHeroEditorPanel({
   const heroText = homePageContent.hero;
   const bioDocumentForUi =
     healDegenerateHeroBio(heroText).bioDocument ?? defaultBioDocument();
+  const headlineMode: HeroHeadlineMode =
+    heroText.heroHeadlineMode === "static" ? "static" : "animated";
+  const staticHeadlinePreview = resolveStaticHeroHeadline(heroText);
+
+  const setHeadlineMode = useCallback(
+    (mode: HeroHeadlineMode) => {
+      if (mode === "static") {
+        const inferredPrefix = inferHeroHeadlinePrefixFromGreetings(heroText);
+        const resolved = resolveStaticHeroHeadline(heroText);
+        patchHero({
+          heroHeadlineMode: "static",
+          heroHeadlinePrefix: heroText.heroHeadlinePrefix?.trim() || inferredPrefix || resolved.prefix,
+          heroHeadlineMain: heroText.heroHeadlineMain?.trim() || resolved.main,
+        });
+        return;
+      }
+      patchHero({ heroHeadlineMode: "animated" });
+    },
+    [heroText, patchHero],
+  );
 
   const defaultFilterSelectValue = useMemo(() => {
     const df = homePageContent.ui.defaultCaseStudyFilter;
@@ -312,50 +335,100 @@ export function ModernHomeHeroEditorPanel({
 
           <section className="space-y-3 pt-2 border-t" style={{ borderColor: modern.border }}>
             <h3 className="text-sm font-semibold" style={modernFont}>
-              Animated headline
+              Headline
             </h3>
-            <Label className="text-xs" style={{ color: modern.muted }}>
-              One greeting per line
-            </Label>
-            <Textarea
-              value={greetingsTextValue}
-              onChange={(e) => setGreetingsTextValue(e.target.value)}
-              onFocus={() => {
-                setGreetingsTextValue((heroText.greetings || [heroText.greeting]).join("\n"));
-              }}
-              onBlur={() => {
-                const greetings = greetingsTextValue
-                  ?.split("\n")
-                  .map((g) => g.trim())
-                  .filter(Boolean);
-                if (greetings.length > 0) {
-                  patchHero({ greetings, greeting: greetings[0] });
-                }
-              }}
-              rows={5}
-              className="font-mono text-sm bg-transparent"
-              style={{ borderColor: modern.border, color: modern.text }}
-            />
             <div
               className="flex items-center justify-between gap-4 rounded-lg border px-3 py-2"
               style={{ borderColor: modern.border }}
             >
               <div>
-                <Label htmlFor="modern-hero-retype-suffix" className="text-sm" style={modernFont}>
-                  Retype only last word
+                <Label htmlFor="modern-hero-headline-static" className="text-sm" style={modernFont}>
+                  Static headline
                 </Label>
                 <p className="text-xs mt-0.5" style={{ color: modern.muted }}>
-                  Keeps the first line fixed; only the last word cycles on line two.
+                  Fixed two-line headline. Turn off for animated typewriter.
                 </p>
               </div>
               <Switch
-                id="modern-hero-retype-suffix"
-                checked={heroText.heroRetypeMode === "suffix-only"}
-                onCheckedChange={(checked) =>
-                  patchHero({ heroRetypeMode: checked ? "suffix-only" : "full" })
-                }
+                id="modern-hero-headline-static"
+                checked={headlineMode === "static"}
+                onCheckedChange={(checked) => setHeadlineMode(checked ? "static" : "animated")}
               />
             </div>
+
+            {headlineMode === "static" ? (
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label className="text-xs" style={{ color: modern.muted }}>
+                    Line 1 (smaller, muted)
+                  </Label>
+                  <Input
+                    value={heroText.heroHeadlinePrefix ?? staticHeadlinePreview.prefix}
+                    onChange={(e) => patchHero({ heroHeadlinePrefix: e.target.value })}
+                    placeholder="AI Product"
+                    className="bg-transparent"
+                    style={{ borderColor: modern.border, color: modern.text }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs" style={{ color: modern.muted }}>
+                    Line 2 (large accent)
+                  </Label>
+                  <Input
+                    value={heroText.heroHeadlineMain ?? staticHeadlinePreview.main}
+                    onChange={(e) => patchHero({ heroHeadlineMain: e.target.value })}
+                    placeholder="Design Leader"
+                    className="bg-transparent"
+                    style={{ borderColor: modern.border, color: modern.text }}
+                  />
+                </div>
+              </div>
+            ) : (
+              <>
+                <Label className="text-xs" style={{ color: modern.muted }}>
+                  One greeting per line
+                </Label>
+                <Textarea
+                  value={greetingsTextValue}
+                  onChange={(e) => setGreetingsTextValue(e.target.value)}
+                  onFocus={() => {
+                    setGreetingsTextValue((heroText.greetings || [heroText.greeting]).join("\n"));
+                  }}
+                  onBlur={() => {
+                    const greetings = greetingsTextValue
+                      ?.split("\n")
+                      .map((g) => g.trim())
+                      .filter(Boolean);
+                    if (greetings.length > 0) {
+                      patchHero({ greetings, greeting: greetings[0] });
+                    }
+                  }}
+                  rows={5}
+                  className="font-mono text-sm bg-transparent"
+                  style={{ borderColor: modern.border, color: modern.text }}
+                />
+                <div
+                  className="flex items-center justify-between gap-4 rounded-lg border px-3 py-2"
+                  style={{ borderColor: modern.border }}
+                >
+                  <div>
+                    <Label htmlFor="modern-hero-retype-suffix" className="text-sm" style={modernFont}>
+                      Retype only last word
+                    </Label>
+                    <p className="text-xs mt-0.5" style={{ color: modern.muted }}>
+                      Keeps the first line fixed; only the last word cycles on line two.
+                    </p>
+                  </div>
+                  <Switch
+                    id="modern-hero-retype-suffix"
+                    checked={heroText.heroRetypeMode === "suffix-only"}
+                    onCheckedChange={(checked) =>
+                      patchHero({ heroRetypeMode: checked ? "suffix-only" : "full" })
+                    }
+                  />
+                </div>
+              </>
+            )}
           </section>
 
           <section className="space-y-3 pt-2 border-t" style={{ borderColor: modern.border }}>
