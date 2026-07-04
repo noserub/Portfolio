@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { seoPositioning } from '../lib/seoPositioning';
 import {
   getSEOData,
   getCaseStudySEO,
@@ -64,7 +65,7 @@ export function useSEO(pageKey: 'home' | 'about' | 'caseStudies' | 'contact') {
           );
           const personSchema = generatePersonSchema(seoData.sitewide, {
             name: seoData.sitewide.defaultAuthor,
-            jobTitle: 'Product Design Leader',
+            jobTitle: seoPositioning.personJobTitle,
             description: pageSEO?.description,
             image: pageSEO?.ogImage || seoData.sitewide.defaultOGImage,
             sameAs: sameAs.length ? sameAs : undefined,

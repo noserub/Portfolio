@@ -10,7 +10,7 @@ export const CONTACT_PAGE_HEADLINE = "Start a product conversation.";
 export const DEFAULT_CONTACT_SUBTITLE =
   "Working on an AI product, a 0→1 concept, or a complex workflow? Tell me what you're building and what kind of collaboration you're exploring.";
 
-export const DEFAULT_CONTACT_LOCATION = "Colorado, USA";
+export const DEFAULT_CONTACT_LOCATION = "Denver, Colorado";
 
 export const DEFAULT_CONTACT_MESSAGE_PLACEHOLDER =
   "What are you building, what stage are you at, and where do you need help?";

@@ -1,4 +1,4 @@
-// SEO Manager - Manages SEO metadata for all pages
+import { seoPositioning } from '../lib/seoPositioning';
 import { supabase } from '../lib/supabaseClient';
 import { getPortfolioOwnerUserId } from '../lib/portfolioOwner';
 
@@ -80,10 +80,10 @@ function seoPageTypeToDb(appPageType: string): string {
 
 const DEFAULT_SEO_DATA: AllSEOData = {
   sitewide: {
-    siteName: 'Brian Bureson - Product Design Leader',
+    siteName: seoPositioning.siteName,
     siteUrl: getSiteUrl(),
     defaultAuthor: 'Brian Bureson',
-    defaultOGImage: `${getSiteUrl()}/api/og?title=Brian%20Bureson%20-%20Product%20Design%20Leader`,
+    defaultOGImage: `${getSiteUrl()}/api/og?title=${encodeURIComponent(seoPositioning.siteName)}`,
     defaultTwitterCard: 'summary_large_image',
     faviconType: 'text',
     faviconText: 'BB',
@@ -95,11 +95,11 @@ const DEFAULT_SEO_DATA: AllSEOData = {
   },
   pages: {
     home: {
-      title: 'Brian Bureson - Product Design Leader',
-      description: 'Portfolio of Brian Bureson, an experienced product design leader specializing in user-centered design, design systems, and innovative digital experiences.',
-      keywords: 'product design, UX design, design leadership, portfolio, Brian Bureson, user experience, design systems',
+      title: seoPositioning.homeTitle,
+      description: seoPositioning.homeDescription,
+      keywords: seoPositioning.homeKeywords,
       ogTitle: '',
-      ogDescription: '',
+      ogDescription: seoPositioning.homeOgDescription,
       ogImage: '',
       twitterCard: 'summary_large_image',
       twitterTitle: '',
@@ -108,9 +108,9 @@ const DEFAULT_SEO_DATA: AllSEOData = {
       canonicalUrl: '',
     },
     about: {
-      title: 'About - Brian Bureson',
-      description: 'Learn more about Brian Bureson, a Denver-based product design leader with a passion for creating meaningful user experiences and leading design teams.',
-      keywords: 'about Brian Bureson, Denver product designer, design leader, UX designer, product designer',
+      title: seoPositioning.aboutTitle,
+      description: seoPositioning.aboutDescription,
+      keywords: seoPositioning.aboutKeywords,
       ogTitle: '',
       ogDescription: '',
       ogImage: '',
@@ -121,9 +121,9 @@ const DEFAULT_SEO_DATA: AllSEOData = {
       canonicalUrl: '',
     },
     caseStudies: {
-      title: 'Case Studies - Brian Bureson',
-      description: 'Explore detailed case studies of Brian Bureson\'s product design work, featuring UX research, design systems, and user-centered solutions.',
-      keywords: 'case studies, UX case studies, product design portfolio, design projects',
+      title: seoPositioning.caseStudiesTitle,
+      description: seoPositioning.caseStudiesDescription,
+      keywords: 'enterprise AI case studies, UX case studies, product design portfolio, AI product design',
       ogTitle: '',
       ogDescription: '',
       ogImage: '',
@@ -134,11 +134,9 @@ const DEFAULT_SEO_DATA: AllSEOData = {
       canonicalUrl: '',
     },
     contact: {
-      title: 'Contact - Brian Bureson',
-      description:
-        'Get in touch with Brian Bureson about design partnerships, AI product direction, and 0→1 product collaboration.',
-      keywords:
-        'contact Brian Bureson, design partnership, AI product design, UX consulting, product collaboration',
+      title: seoPositioning.contactTitle,
+      description: seoPositioning.contactDescription,
+      keywords: seoPositioning.contactKeywords,
       ogTitle: '',
       ogDescription: '',
       ogImage: '',

@@ -2,6 +2,7 @@
 // Critical for LLM/AI search engines
 
 import { SEOData, SitewideSEO } from './seoManager';
+import { seoPositioning, personHomeLocationSchema, PERSON_KNOWS_ABOUT } from '../lib/seoPositioning';
 
 /** Split newline/comma-separated sameAs text into valid http(s) URLs (deduped). */
 export function parseSameAsRaw(raw?: string | null): string[] {
@@ -53,6 +54,17 @@ export interface PersonSchema {
     '@id'?: string;
     name: string;
   };
+  homeLocation?: {
+    '@type': 'Place';
+    name?: string;
+    address?: {
+      '@type': 'PostalAddress';
+      addressLocality?: string;
+      addressRegion?: string;
+      addressCountry?: string;
+    };
+  };
+  knowsAbout?: string[];
 }
 
 export interface OrganizationSchema {
@@ -151,11 +163,13 @@ export function generatePersonSchema(
     '@type': 'Person',
     '@id': ids.person,
     name: personData?.name || sitewide.defaultAuthor,
-    jobTitle: personData?.jobTitle || 'Product Design Leader',
-    description: personData?.description || `Portfolio of ${sitewide.defaultAuthor}, an experienced product design leader.`,
+    jobTitle: personData?.jobTitle || seoPositioning.personJobTitle,
+    description: personData?.description || `Portfolio of ${sitewide.defaultAuthor}, an enterprise AI product design leader.`,
     url: sitewide.siteUrl,
     image: personData?.image || sitewide.defaultOGImage,
     email: personData?.email,
+    homeLocation: personHomeLocationSchema(),
+    knowsAbout: [...PERSON_KNOWS_ABOUT],
     ...(sameAsList.length > 0 ? { sameAs: sameAsList } : {}),
     worksFor: {
       '@type': 'Organization',
@@ -184,7 +198,7 @@ export function generateOrganizationSchema(sitewide: SitewideSEO): OrganizationS
     url: sitewide.siteUrl,
     ...(logo ? { logo } : {}),
     ...(sameAs.length > 0 ? { sameAs } : {}),
-    description: `Portfolio website of ${sitewide.defaultAuthor}, a product design leader.`,
+    description: `Portfolio of ${sitewide.defaultAuthor}, an enterprise AI product design leader.`,
   };
 }
 
@@ -266,7 +280,7 @@ export function generateWebSiteSchema(sitewide: SitewideSEO): WebSiteSchema {
     '@id': ids.website,
     name: sitewide.siteName,
     url: sitewide.siteUrl,
-    description: `Portfolio website of ${sitewide.defaultAuthor}, a product design leader.`,
+    description: `Portfolio of ${sitewide.defaultAuthor}, an enterprise AI product design leader.`,
   };
 }
 

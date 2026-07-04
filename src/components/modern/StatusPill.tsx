@@ -7,7 +7,7 @@ interface StatusPillProps {
 }
 
 export function StatusPill({
-  location = "Colorado, USA",
+  location = "Denver, Colorado",
   status = "Open to new opportunities",
   className,
 }: StatusPillProps) {

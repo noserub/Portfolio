@@ -11,6 +11,7 @@ import { MarkdownRenderer } from "../../components/MarkdownRenderer";
 import { modernLayout } from "../../design/modernLayout";
 import { MODERN_ABOUT_HIGHLIGHTS } from "../../design/modernAboutContent";
 import { modern, modernFont, modernPrimaryButtonStyle } from "../../design/modernTokens";
+import { SEO_LOCATION_LABEL } from "../../lib/seoPositioning";
 
 interface ModernAboutProps {
   onNavigateContact: () => void;
@@ -372,7 +373,7 @@ export function ModernAbout({ onNavigateContact, onBack, isEditMode = false }: M
               <div className={modernLayout.aboutInfoStack}>
                 {[
                   { label: "Company", value: "Oracle" },
-                  { label: "Location", value: "Colorado, USA" },
+                  { label: "Location", value: SEO_LOCATION_LABEL },
                 ].map((item) => (
                   <div key={item.label} className={modernLayout.aboutInfoItem}>
                     <div className="text-[10px] uppercase tracking-widest mb-1" style={{ ...modernFont, color: modern.muted }}>
@@ -385,6 +386,12 @@ export function ModernAbout({ onNavigateContact, onBack, isEditMode = false }: M
                     </div>
                   </div>
                 ))}
+                <p
+                  className="leading-relaxed pt-2"
+                  style={{ ...modernFont, fontSize: "0.875rem", color: modern.muted }}
+                >
+                  Open to local and remote enterprise AI product design leadership roles.
+                </p>
               </div>
             </div>
           </div>

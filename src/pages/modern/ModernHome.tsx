@@ -41,6 +41,7 @@ import { supabase } from "../../lib/supabaseClient";
 import { lazyWithRetry } from "../../utils/lazyWithRetry";
 import { modernLayout } from "../../design/modernLayout";
 import { modern, modernFont, modernPrimaryButtonStyle } from "../../design/modernTokens";
+import { SEO_LOCATION_LABEL } from "../../lib/seoPositioning";
 
 const UnifiedProjectCreator = lazyWithRetry(() =>
   import("../../components/UnifiedProjectCreator").then((m) => ({
@@ -466,7 +467,7 @@ function ModernHomeView({
             >
               <span className="w-2 h-2 rounded-full shrink-0" style={{ background: modern.accent }} />
               <span className="text-xs leading-none" style={{ ...modernFont, color: modern.muted }}>
-                {fullName} · Colorado, USA
+                {fullName} · {SEO_LOCATION_LABEL}
               </span>
             </div>
 

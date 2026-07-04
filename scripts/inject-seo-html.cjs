@@ -8,13 +8,14 @@ const path = require('path');
 
 const ROOT = process.cwd();
 const indexPath = path.join(ROOT, 'index.html');
+const seoPositioning = require(path.join(ROOT, 'src/data/seo-positioning.json'));
 
 require('dotenv').config({ path: path.join(ROOT, '.env.local') });
 require('dotenv').config({ path: path.join(ROOT, '.env') });
 
 const defaultSiteUrl = (process.env.SITE_URL || 'https://www.bureson.com').replace(/\/+$/, '');
 const defaultAuthor = process.env.SITE_DEFAULT_AUTHOR || 'Brian Bureson';
-const siteName = process.env.SITE_NAME || 'Brian Bureson - Product Design Leader';
+const siteName = process.env.SITE_NAME || seoPositioning.siteName;
 
 function parseSameAsEnv(raw) {
   if (!raw || !String(raw).trim()) return [];
@@ -47,7 +48,7 @@ function generateStaticStructuredData(metaDescription) {
   const sameAs = parseSameAsEnv(process.env.VITE_PUBLIC_SAME_AS);
   const desc =
     metaDescription ||
-    `${defaultAuthor} is a product design leader. Portfolio, case studies, and contact at ${defaultSiteUrl}.`;
+    `${defaultAuthor} is an enterprise AI product design leader. Portfolio, case studies, and contact at ${defaultSiteUrl}.`;
   const orgLogo =
     (process.env.VITE_PUBLIC_ORGANIZATION_LOGO_URL || '').trim() ||
     `${defaultSiteUrl}/api/og?title=${encodeURIComponent(siteName)}`;
@@ -58,7 +59,7 @@ function generateStaticStructuredData(metaDescription) {
     '@id': ids.organization,
     name: siteName,
     url: defaultSiteUrl,
-    description: `Portfolio website of ${defaultAuthor}, a product design leader.`,
+    description: `Portfolio of ${defaultAuthor}, an enterprise AI product design leader.`,
     ...(orgLogo ? { logo: orgLogo } : {}),
     ...(sameAs.length ? { sameAs } : {}),
   };
@@ -69,7 +70,7 @@ function generateStaticStructuredData(metaDescription) {
     '@id': ids.website,
     name: siteName,
     url: defaultSiteUrl,
-    description: `Portfolio website of ${defaultAuthor}, a product design leader.`,
+    description: `Portfolio of ${defaultAuthor}, an enterprise AI product design leader.`,
   };
 
   const personSchema = {
@@ -77,10 +78,28 @@ function generateStaticStructuredData(metaDescription) {
     '@type': 'Person',
     '@id': ids.person,
     name: defaultAuthor,
-    jobTitle: 'Product Design Leader',
+    jobTitle: seoPositioning.personJobTitle,
     description: desc,
     url: defaultSiteUrl,
     ...(sameAs.length ? { sameAs } : {}),
+    homeLocation: {
+      '@type': 'Place',
+      name: seoPositioning.locationLabel,
+      address: {
+        '@type': 'PostalAddress',
+        addressLocality: seoPositioning.locationLocality,
+        addressRegion: seoPositioning.locationRegion,
+        addressCountry: seoPositioning.locationCountry,
+      },
+    },
+    knowsAbout: [
+      'Enterprise AI',
+      'Product Design',
+      'UX Strategy',
+      'Design Systems',
+      'Generative AI',
+      'AI Agents',
+    ],
     worksFor: {
       '@type': 'Organization',
       '@id': ids.organization,

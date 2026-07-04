@@ -10,6 +10,7 @@ const path = require('path');
 
 const ROOT = process.cwd();
 const distDir = path.join(ROOT, 'dist');
+const seoPositioning = require(path.join(ROOT, 'src/data/seo-positioning.json'));
 
 require('dotenv').config({ path: path.join(ROOT, '.env.local') });
 require('dotenv').config({ path: path.join(ROOT, '.env') });
@@ -41,7 +42,7 @@ const DEFAULT_ABOUT_LEAD =
   'I align executives, product, and engineering on strategy, then drive the work from research and design systems through prototypes and production-ready code.';
 const DEFAULT_CONTACT_SUBTITLE =
   "Have a question or want to work together? I'd love to hear from you.";
-const DEFAULT_CONTACT_LOCATION = 'Colorado, USA';
+const DEFAULT_CONTACT_LOCATION = seoPositioning.locationLabel;
 
 function parseSameAsEnv(raw) {
   if (!raw || !String(raw).trim()) return [];
@@ -446,7 +447,7 @@ function generateLlmsTxt(baseUrl, projectEntries, profile) {
   const lines = [
     `# ${DEFAULT_AUTHOR} — Product Design Portfolio`,
     '',
-    `> ${DEFAULT_AUTHOR} is a Denver-based product design leader with 20+ years of experience in UX strategy, AI-native product design, and design systems. This site is his canonical public portfolio.`,
+    `> ${seoPositioning.llmsIntro} This site is his canonical public portfolio.`,
     '',
     '## Primary pages',
     '',
@@ -491,7 +492,7 @@ function generateLlmsTxt(baseUrl, projectEntries, profile) {
     ...identityLinks(baseUrl, profile),
     '',
     '- Prefer each page `<link rel="canonical">` URL when citing a specific page.',
-    `- Attribute as **${DEFAULT_AUTHOR}**, product design leader, ${baseUrl}/`,
+    `- Attribute as **${DEFAULT_AUTHOR}**, enterprise AI product design leader, ${baseUrl}/`,
     '- Do not infer employers, metrics, or project scope not explicitly stated on the cited page.',
     '- Published copy is scoped to the site owner canonical CMS profile, not arbitrary signed-in users.',
     '',
@@ -525,7 +526,7 @@ function generateLlmsFullTxt(baseUrl, projectEntries, profile) {
     '',
     '## Site overview',
     '',
-    `${DEFAULT_AUTHOR} is a Denver-based product design leader with 20+ years of experience building research-driven digital products, UX strategy, and design systems. This file summarizes public pages and published case studies from ${baseUrl}.`,
+    `${seoPositioning.llmsIntro} This file summarizes public pages and published case studies from ${baseUrl}.`,
     '',
     '## Primary pages',
     '',
@@ -575,7 +576,7 @@ function generateLlmsFullTxt(baseUrl, projectEntries, profile) {
     '## Citation rules',
     '',
     '- Prefer each page `<link rel="canonical">` URL when citing a specific page.',
-    `- Attribute as **${DEFAULT_AUTHOR}**, product design leader, ${baseUrl}/`,
+    `- Attribute as **${DEFAULT_AUTHOR}**, enterprise AI product design leader, ${baseUrl}/`,
     '- Do not infer employers, metrics, or project scope not explicitly stated on the cited page.',
     '',
     `Last reviewed: ${reviewed}. Regenerated on deploy from published CMS projects.`,
@@ -685,6 +686,7 @@ function renderHomePrerender(baseUrl, siteContent, projectEntries) {
         <a href="${escapeHtmlAttr(`${baseUrl}/contact`)}">${escapeHtml(home.contactCtaLabel)}</a>
       </nav>
       <h1>${escapeHtml(home.heading)}</h1>
+      <p>${escapeHtml(seoPositioning.homePrerenderIntro)}</p>
       ${paragraphs}
     </header>
     <section aria-labelledby="home-stats">
@@ -819,25 +821,22 @@ function injectSeoPrerender(html, prerenderHtml) {
 function metadataForRoute(route, baseUrl) {
   if (route.path === '/') {
     return {
-      title: 'Brian Bureson - Product Design Leader',
-      description:
-        'Brian Bureson is a Denver-based product design leader with 20+ years of experience building research-driven digital products, UX strategy, and design systems.',
+      title: seoPositioning.homeTitle,
+      description: seoPositioning.homeDescription,
       canonical: `${baseUrl}/`,
     };
   }
   if (route.path === '/about') {
     return {
-      title: 'About - Brian Bureson',
-      description:
-        'Learn more about Brian Bureson, a Denver-based product design leader focused on UX strategy, AI-native product design, and design systems.',
+      title: seoPositioning.aboutTitle,
+      description: seoPositioning.aboutDescription,
       canonical: `${baseUrl}/about`,
     };
   }
   if (route.path === '/contact') {
     return {
-      title: 'Contact - Brian Bureson',
-      description:
-        'Get in touch with Brian Bureson for design collaboration, consulting, or speaking opportunities.',
+      title: seoPositioning.contactTitle,
+      description: seoPositioning.contactDescription,
       canonical: `${baseUrl}/contact`,
     };
   }
