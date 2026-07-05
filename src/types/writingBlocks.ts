@@ -29,6 +29,8 @@ export interface FigureBlock extends WritingBlockBase {
   caption?: string;
   layout: FigureLayout;
   crop?: ImageCropFrame | null;
+  /** When true, readers can click the figure to open a full-size lightbox. */
+  lightbox?: boolean;
 }
 
 export interface RelatedBlock extends WritingBlockBase {
@@ -64,6 +66,7 @@ export function createWritingBlock(type: WritingBlockType): WritingBlock {
         alt: '',
         caption: '',
         layout: 'inline',
+        lightbox: false,
         visible: true,
       };
     case 'related':
@@ -105,6 +108,7 @@ function isWritingBlock(value: unknown): value is WritingBlock {
         return false;
       }
       if (block.crop != null && typeof block.crop !== 'object') return false;
+      if (block.lightbox != null && typeof block.lightbox !== 'boolean') return false;
       return true;
     case 'related':
       return (

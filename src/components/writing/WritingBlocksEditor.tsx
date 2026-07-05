@@ -270,6 +270,7 @@ export function WritingBlocksEditor({
                   ...blockDraft,
                   url,
                   crop: url ? blockDraft.crop : null,
+                  lightbox: url ? blockDraft.lightbox : false,
                 })
               }
               crop={blockDraft.crop}
@@ -310,6 +311,20 @@ export function WritingBlocksEditor({
                 ? 'Wide figures break out to the full content width. Inline stays inside the reading column with a height cap.'
                 : 'Inline figures stay in the reading column with rounded corners and a max height.'}
             </p>
+            {blockDraft.url ? (
+              <div className="flex items-center gap-3">
+                <Switch
+                  id={`figure-lightbox-${block.id}`}
+                  checked={Boolean(blockDraft.lightbox)}
+                  onCheckedChange={(checked) =>
+                    setBlockDraft({ ...blockDraft, lightbox: checked })
+                  }
+                />
+                <Label htmlFor={`figure-lightbox-${block.id}`} className="font-normal">
+                  Click for full view
+                </Label>
+              </div>
+            ) : null}
           </div>
         );
       case 'related':

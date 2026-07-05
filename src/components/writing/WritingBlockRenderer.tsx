@@ -1,9 +1,21 @@
 import { ArrowRight, ExternalLink } from 'lucide-react';
+import { lazy, Suspense, useState } from 'react';
 import { WritingImage } from './WritingImage';
 import { MarkdownRenderer } from '../MarkdownRenderer';
 import { writingLayout } from '../../design/writingLayout';
 import type { WritingBlock } from '../../types/writingBlocks';
 import { slugFromProjectTitle } from '../../lib/projectSlug';
+import { resolveStoragePublicUrl } from '../../utils/imageOptimizer';
+
+const Lightbox = lazy(() =>
+  import('../Lightbox').then((m) => ({ default: m.default })),
+);
+
+type FigureLightboxState = {
+  url: string;
+  alt: string;
+  caption?: string;
+};
 
 export interface RelatedLinkTarget {
   id: string;
@@ -40,6 +52,48 @@ export function WritingBlockRenderer({
   posts = [],
 }: WritingBlockRendererProps) {
   const visible = blocks.filter((b) => b.visible);
+  const [figureLightbox, setFigureLightbox] = useState<FigureLightboxState | null>(null);
+
+  const renderFigureImage = (block: Extract<WritingBlock, { type: 'figure' }>) => {
+    const mediaClassName =
+      block.layout === 'fullBleed'
+        ? 'modern-writing-figure__media modern-writing-figure__media--bleed'
+        : 'modern-writing-figure__media';
+    const imgClassName =
+      block.layout === 'fullBleed'
+        ? 'modern-writing-figure__img modern-writing-figure__img--bleed'
+        : 'modern-writing-figure__img';
+
+    const image = (
+      <WritingImage
+        src={block.url}
+        alt={block.alt || ''}
+        crop={block.crop}
+        wrapperClassName={mediaClassName}
+        className={imgClassName}
+      />
+    );
+
+    if (!block.lightbox) return image;
+
+    const label = block.alt.trim() || block.caption?.trim() || 'View full image';
+    return (
+      <button
+        type="button"
+        className="modern-writing-figure__trigger"
+        onClick={() =>
+          setFigureLightbox({
+            url: block.url,
+            alt: block.alt.trim() || block.caption?.trim() || 'Figure',
+            caption: block.caption?.trim() || undefined,
+          })
+        }
+        aria-label={label}
+      >
+        {image}
+      </button>
+    );
+  };
 
   return (
     <div className={writingLayout.proseWrap}>
@@ -73,21 +127,7 @@ export function WritingBlockRenderer({
                     : writingLayout.figureInline
                 }
               >
-                <WritingImage
-                  src={block.url}
-                  alt={block.alt || ''}
-                  crop={block.crop}
-                  wrapperClassName={
-                    block.layout === 'fullBleed'
-                      ? 'modern-writing-figure__media modern-writing-figure__media--bleed'
-                      : 'modern-writing-figure__media'
-                  }
-                  className={
-                    block.layout === 'fullBleed'
-                      ? 'modern-writing-figure__img modern-writing-figure__img--bleed'
-                      : 'modern-writing-figure__img'
-                  }
-                />
+                {renderFigureImage(block)}
                 {block.caption ? (
                   <figcaption className={writingLayout.figureCaption}>{block.caption}</figcaption>
                 ) : null}
@@ -112,6 +152,17 @@ export function WritingBlockRenderer({
             return null;
         }
       })}
+      {figureLightbox ? (
+        <Suspense fallback={null}>
+          <Lightbox
+            isOpen={Boolean(figureLightbox)}
+            onClose={() => setFigureLightbox(null)}
+            imageUrl={resolveStoragePublicUrl(figureLightbox.url)}
+            imageAlt={figureLightbox.alt}
+            imageCaption={figureLightbox.caption}
+          />
+        </Suspense>
+      ) : null}
     </div>
   );
 }
