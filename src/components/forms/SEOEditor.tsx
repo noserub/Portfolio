@@ -179,8 +179,16 @@ export function SEOEditor({ isOpen, onClose }: SEOEditorProps) {
     setHasChanges(true);
   };
 
+  const updateWritingPostDefaults = (field: keyof SEOData, value: string) => {
+    setSeoData((prev) => ({
+      ...prev,
+      writingPostDefaults: { ...prev.writingPostDefaults, [field]: value },
+    }));
+    setHasChanges(true);
+  };
+
   const renderPageSEOForm = (
-    pageName: keyof AllSEOData['pages'],
+    pageName: keyof AllSEOData['pages'] | 'caseStudyTemplate' | 'writingPostTemplate',
     pageData: SEOData,
     updateFn: (field: keyof SEOData, value: string) => void
   ) => (
@@ -373,8 +381,10 @@ export function SEOEditor({ isOpen, onClose }: SEOEditorProps) {
               <TabsTrigger value="home" className="text-muted-foreground data-[state=active]:text-pink-500 data-[state=active]:bg-gray-100 dark:data-[state=active]:bg-gray-800 data-[state=active]:font-bold">Home</TabsTrigger>
               <TabsTrigger value="about" className="text-muted-foreground data-[state=active]:text-pink-500 data-[state=active]:bg-gray-100 dark:data-[state=active]:bg-gray-800 data-[state=active]:font-bold">About</TabsTrigger>
               <TabsTrigger value="caseStudies" className="text-muted-foreground data-[state=active]:text-pink-500 data-[state=active]:bg-gray-100 dark:data-[state=active]:bg-gray-800 data-[state=active]:font-bold">Case Studies</TabsTrigger>
+              <TabsTrigger value="writing" className="text-muted-foreground data-[state=active]:text-pink-500 data-[state=active]:bg-gray-100 dark:data-[state=active]:bg-gray-800 data-[state=active]:font-bold">Writing</TabsTrigger>
               <TabsTrigger value="contact" className="text-muted-foreground data-[state=active]:text-pink-500 data-[state=active]:bg-gray-100 dark:data-[state=active]:bg-gray-800 data-[state=active]:font-bold">Contact</TabsTrigger>
               <TabsTrigger value="caseStudyTemplate" className="text-muted-foreground data-[state=active]:text-pink-500 data-[state=active]:bg-gray-100 dark:data-[state=active]:bg-gray-800 data-[state=active]:font-bold">Case Study Template</TabsTrigger>
+              <TabsTrigger value="writingPostTemplate" className="text-muted-foreground data-[state=active]:text-pink-500 data-[state=active]:bg-gray-100 dark:data-[state=active]:bg-gray-800 data-[state=active]:font-bold">Writing Template</TabsTrigger>
             </TabsList>
 
             {/* Sitewide Settings */}
@@ -682,6 +692,12 @@ export function SEOEditor({ isOpen, onClose }: SEOEditorProps) {
               )}
             </TabsContent>
 
+            <TabsContent value="writing">
+              {renderPageSEOForm('writingIndex', seoData.pages.writingIndex, (field, value) =>
+                updatePageSEO('writingIndex', field, value)
+              )}
+            </TabsContent>
+
             <TabsContent value="contact">
               {renderPageSEOForm('contact', seoData.pages.contact, (field, value) => 
                 updatePageSEO('contact', field, value)
@@ -697,6 +713,17 @@ export function SEOEditor({ isOpen, onClose }: SEOEditorProps) {
               </div>
               {renderPageSEOForm('caseStudyTemplate', seoData.caseStudyDefaults, (field, value) => 
                 updateCaseStudyDefaults(field, value)
+              )}
+            </TabsContent>
+
+            <TabsContent value="writingPostTemplate">
+              <div className="mb-4 p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                <p className="text-sm text-blue-300">
+                  Default SEO settings for individual writing posts. Override per post from the post editor in edit mode.
+                </p>
+              </div>
+              {renderPageSEOForm('writingPostTemplate', seoData.writingPostDefaults, (field, value) =>
+                updateWritingPostDefaults(field, value)
               )}
             </TabsContent>
           </Tabs>

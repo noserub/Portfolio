@@ -11,7 +11,7 @@ import {
   AnimatedBackground, 
   AbstractPattern, 
   SignIn, 
-  CaseStudyPasswordPrompt, 
+  CaseStudyPasswordPrompt,
   SEOEditor, 
   ComponentLibrary 
 } from "./components";
@@ -32,6 +32,8 @@ const Messages = lazyWithRetry(() =>
 const LiteBriteMusic = lazyWithRetry(() =>
   import("./pages/LiteBriteMusic").then((m) => ({ default: m.default })),
 );
+const Writing = lazyWithRetry(() => import("./pages/Writing"));
+const WritingPostPage = lazyWithRetry(() => import("./pages/WritingPost"));
 const SupabaseTest = lazyWithRetry(() => import("./components/SupabaseTest"));
 import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
@@ -39,12 +41,17 @@ import { ProjectData } from "./components/ProjectImage";
 import { Toaster } from "./components/ui/sonner";
 import { migrateResearchInsights, migrateProjectsArray, runSafetyChecks } from "./utils";
 import { FLUSH_HOME_PAGE_CMS_EVENT } from "./lib/homePageContent";
-import { getPortfolioOwnerUserId, hasVitePublicPortfolioOwnerId } from "./lib/portfolioOwner";
+import { getPortfolioOwnerUserId, getProfileWriterUserId, hasVitePublicPortfolioOwnerId } from "./lib/portfolioOwner";
 import { devLog } from "./lib/devLog";
+import { safeLocalStorageSet } from "./lib/safeLocalStorage";
+import { PasswordRecovery } from "./components/PasswordRecovery";
 import { useSiteAuth } from "./contexts/SiteAuthContext";
 import { mapSupabaseProjectRowToProjectData, parseColumnsValue } from "./lib/mapSupabaseProjectRowToProjectData";
 import { normalizeProjectLinks } from "./lib/projectLinks";
 import { slugFromProjectTitle } from "./lib/projectSlug";
+import { findWritingPostBySlug, type WritingPost } from "./lib/writingPosts";
+import { useWritingPosts } from "./hooks/useWritingPosts";
+import { parseWritingIndexGrid, type WritingIndexGrid } from "./lib/writingIndexGrid";
 import { useAppSettings } from "./hooks/useAppSettings";
 import { ProjectsProvider, useProjects } from "./contexts/ProjectsContext";
 import { useContactMessages } from "./hooks/useContactMessages";
@@ -85,6 +92,8 @@ type Page =
   | "home"
   | "about"
   | "contact"
+  | "writing"
+  | "writing-detail"
   | "project-detail"
   | "supabase-test"
   | "messages"
@@ -331,9 +340,11 @@ function AppShell() {
     if (pathname === '/' || pathname === '') {
       return "home";
     } else if (pathname.startsWith('/project/')) {
-      // Initialize directly into project-detail so deep links don't flash home first.
-      // The slug resolver effect will hydrate `selectedProject` asynchronously.
       return "project-detail";
+    } else if (pathname.startsWith('/writing/')) {
+      return "writing-detail";
+    } else if (pathname === '/writing') {
+      return "writing";
     } else if (pathname.startsWith('/')) {
       const page = pathname.substring(1) as Page;
       if (['about', 'contact', 'messages', 'lite-brite'].includes(page)) {
@@ -348,9 +359,13 @@ function AppShell() {
   const [isInitialized, setIsInitialized] = useState(true); // Start initialized to render immediately
   const [currentPage, setCurrentPage] = useState(getInitialPage()); // Use URL-based initial state
   const [selectedProject, setSelectedProject] = useState(null);
+  const [selectedWritingPost, setSelectedWritingPost] = useState<WritingPost | null>(null);
   const [projectUpdateCallback, setProjectUpdateCallback] = useState(null);
   const [isResolvingProjectRoute, setIsResolvingProjectRoute] = useState(() =>
     window.location.pathname.startsWith('/project/'),
+  );
+  const [isResolvingWritingRoute, setIsResolvingWritingRoute] = useState(() =>
+    window.location.pathname.startsWith('/writing/'),
   );
   
   // Utility: force scroll to top cross-browser
@@ -372,6 +387,8 @@ function AppShell() {
   
   // Use projects hook for direct persistence when callback isn't available
   const { updateProject, refetch: refetchProjects } = useProjects();
+  const { updatePost: updateWritingPost, deletePost: deleteWritingPost, refetch: refetchWritingPosts } =
+    useWritingPosts();
   
   // Get contact messages for unread count
   const { getUnreadCount } = useContactMessages();
@@ -479,10 +496,18 @@ function AppShell() {
     }
   }, [isSupabaseAuthenticated, isEditMode, pendingProtectedProject]);
   
-  const [pageVisibility, setPageVisibility] = useState({
+  const [pageVisibility, setPageVisibility] = useState<{
+    about: boolean;
+    contact: boolean;
+    writing: boolean;
+    writing_index_grid: WritingIndexGrid;
+  }>({
       about: true,
-      contact: true
+      contact: true,
+      writing: true,
+      writing_index_grid: 'double',
   });
+  const [pageVisibilityReady, setPageVisibilityReady] = useState(false);
   
 
 
@@ -493,6 +518,17 @@ function AppShell() {
   // Function to load page visibility (can be called manually)
   const loadPageVisibility = async () => {
     let authUser: { id: string } | null = null;
+    const localWritingPreference = (() => {
+      try {
+        const saved = localStorage.getItem('pageVisibility');
+        if (!saved) return undefined;
+        const parsed = JSON.parse(saved) as { writing?: boolean };
+        return typeof parsed.writing === 'boolean' ? parsed.writing : undefined;
+      } catch {
+        return undefined;
+      }
+    })();
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
       authUser = user ?? null;
@@ -510,20 +546,40 @@ function AppShell() {
 
       if (publicData && !publicError) {
         devLog('✅ Page visibility loaded from Supabase');
+        const localGrid = (() => {
+          try {
+            const saved = localStorage.getItem('pageVisibility');
+            if (!saved) return undefined;
+            const parsed = JSON.parse(saved) as { writing_index_grid?: unknown };
+            return parseWritingIndexGrid(parsed.writing_index_grid);
+          } catch {
+            return undefined;
+          }
+        })();
+        const dbGrid = parseWritingIndexGrid(publicData.writing_index_grid);
         setPageVisibility({
           about: publicData.about ?? true,
           contact: publicData.contact ?? true,
+          writing:
+            typeof publicData.writing === 'boolean'
+              ? publicData.writing
+              : localWritingPreference ?? true,
+          writing_index_grid:
+            publicData.writing_index_grid != null ? dbGrid : localGrid ?? dbGrid,
         });
         return;
       }
 
       if (publicError?.code === 'PGRST116') {
+        const writerUserId = getProfileWriterUserId(user?.id);
         const { data: insertData, error: insertError } = await supabase
           .from('page_visibility')
           .insert({
-            user_id: ownerUserId,
+            user_id: authUser ? writerUserId : ownerUserId,
             about: true,
             contact: true,
+            writing: true,
+            writing_index_grid: 'double',
           })
           .select()
           .single();
@@ -533,6 +589,8 @@ function AppShell() {
           setPageVisibility({
             about: insertData.about ?? true,
             contact: insertData.contact ?? true,
+            writing: insertData.writing ?? true,
+            writing_index_grid: parseWritingIndexGrid(insertData.writing_index_grid),
           });
           return;
         }
@@ -543,7 +601,12 @@ function AppShell() {
       // env, or local `npm run dev` without a session — same stuck-hidden Contact/About issue).
       if (!authUser && (hasVitePublicPortfolioOwnerId() || import.meta.env.DEV)) {
         devLog('📄 Page visibility: no row for anonymous — defaulting pages visible');
-        setPageVisibility({ about: true, contact: true });
+        setPageVisibility({
+          about: true,
+          contact: true,
+          writing: true,
+          writing_index_grid: 'double',
+        });
         return;
       }
 
@@ -554,19 +617,28 @@ function AppShell() {
         setPageVisibility({
           about: parsed.about ?? true,
           contact: parsed.contact ?? true,
+          writing: parsed.writing ?? true,
+          writing_index_grid: parseWritingIndexGrid(parsed.writing_index_grid),
         });
       } else {
         devLog('📄 Using default page visibility');
         setPageVisibility({
           about: true,
           contact: true,
+          writing: true,
+          writing_index_grid: 'double',
         });
       }
     } catch (error) {
       console.error('❌ Error loading page visibility:', error);
       if (!authUser && (hasVitePublicPortfolioOwnerId() || import.meta.env.DEV)) {
         devLog('📄 Page visibility: load error — defaulting pages visible (anonymous)');
-        setPageVisibility({ about: true, contact: true });
+        setPageVisibility({
+          about: true,
+          contact: true,
+          writing: true,
+          writing_index_grid: 'double',
+        });
         return;
       }
       // Fallback to localStorage on error
@@ -575,15 +647,21 @@ function AppShell() {
         const parsed = JSON.parse(saved);
         setPageVisibility({
           about: parsed.about ?? true,
-          contact: parsed.contact ?? true
+          contact: parsed.contact ?? true,
+          writing: parsed.writing ?? true,
+          writing_index_grid: parseWritingIndexGrid(parsed.writing_index_grid),
         });
       } else {
         // Ultimate fallback to defaults
         setPageVisibility({
-      about: true,
-      contact: true
+          about: true,
+          contact: true,
+          writing: true,
+          writing_index_grid: 'double',
         });
       }
+    } finally {
+      setPageVisibilityReady(true);
     }
   };
 
@@ -602,43 +680,57 @@ function AppShell() {
 
   // Save page visibility to both localStorage and Supabase
   useEffect(() => {
+    if (!pageVisibilityReady) return;
+
     const savePageVisibility = async () => {
       try {
         // Always save to localStorage first
-        localStorage.setItem('pageVisibility', JSON.stringify(pageVisibility));
+        safeLocalStorageSet('pageVisibility', JSON.stringify(pageVisibility));
         devLog('💾 Page visibility saved to localStorage');
 
         const { data: { user } } = await supabase.auth.getUser();
         const ownerUserId = getPortfolioOwnerUserId(user?.id);
+        const writerUserId = getProfileWriterUserId(user?.id);
 
-        devLog('💾 Saving page visibility to Supabase:', ownerUserId);
+        devLog('💾 Saving page visibility to Supabase:', { ownerUserId, writerUserId });
 
-        const { error: updateError } = await supabase
+        const { data: updatedRow, error: updateError } = await supabase
           .from('page_visibility')
           .update({
             about: pageVisibility.about,
             contact: pageVisibility.contact,
+            writing: pageVisibility.writing,
+            writing_index_grid: pageVisibility.writing_index_grid,
             updated_at: new Date().toISOString(),
           })
-          .eq('user_id', ownerUserId);
+          .eq('user_id', writerUserId)
+          .select('id, writing_index_grid')
+          .maybeSingle();
 
         if (updateError) {
-          const { error: insertError } = await supabase
+          console.warn('⚠️ Failed to save page visibility to Supabase:', updateError.message);
+          devLog('💾 Page visibility local only (update error)');
+        } else if (!updatedRow) {
+          const { data: insertedRow, error: insertError } = await supabase
             .from('page_visibility')
             .insert({
-              user_id: ownerUserId,
+              user_id: writerUserId,
               about: pageVisibility.about,
               contact: pageVisibility.contact,
-            });
+              writing: pageVisibility.writing,
+              writing_index_grid: pageVisibility.writing_index_grid,
+            })
+            .select('id, writing_index_grid')
+            .single();
 
           if (insertError) {
             console.warn('⚠️ Failed to save page visibility to Supabase (RLS issue):', insertError.message);
             devLog('💾 Page visibility local only (RLS)');
           } else {
-            devLog('✅ Page visibility created in Supabase');
+            devLog('✅ Page visibility created in Supabase', insertedRow);
           }
         } else {
-          devLog('✅ Page visibility updated in Supabase');
+          devLog('✅ Page visibility updated in Supabase', updatedRow);
         }
       } catch (error) {
         console.warn('⚠️ Page visibility save failed:', error);
@@ -647,7 +739,7 @@ function AppShell() {
     };
     
     savePageVisibility();
-  }, [pageVisibility]);
+  }, [pageVisibility, pageVisibilityReady]);
 
   const resolvedTheme: 'light' | 'dark' =
     themeSource === 'system' ? (systemPrefersDark ? 'dark' : 'light') : theme;
@@ -824,7 +916,9 @@ function AppShell() {
       const initialPath = window.location.pathname;
       const isHydratingProjectDeepLink =
         initialPath.startsWith('/project/') && currentPage === "home" && !selectedProject;
-      if (isHydratingProjectDeepLink) {
+      const isHydratingWritingDeepLink =
+        initialPath.startsWith('/writing/') && currentPage === "home" && !selectedWritingPost;
+      if (isHydratingProjectDeepLink || isHydratingWritingDeepLink) {
         return;
       }
     }
@@ -835,6 +929,18 @@ function AppShell() {
       
       if (currentPage === "home") {
         newPath = '/';
+      } else if (currentPage === "writing-detail") {
+        if (selectedWritingPost) {
+          newPath = `/writing/${selectedWritingPost.slug}`;
+        } else {
+          const currentPath = window.location.pathname;
+          if (currentPath.startsWith('/writing/')) {
+            return;
+          }
+          return;
+        }
+      } else if (currentPage === "writing") {
+        newPath = '/writing';
       } else if (currentPage === "project-detail") {
         if (selectedProject) {
           // Create friendly URL from project title
@@ -863,23 +969,32 @@ function AppShell() {
       
       // Only update URL if it's different to avoid infinite loops
       if (window.location.pathname !== newPath) {
-        window.history.pushState({ page: currentPage, project: selectedProject?.id }, '', newPath);
+        window.history.pushState(
+          { page: currentPage, project: selectedProject?.id, writingPost: selectedWritingPost?.id },
+          '',
+          newPath,
+        );
       }
     };
 
     // Only update URL if we're not in the middle of initial page load
     // This prevents premature URL updates that cause routing issues
-    const isInitialLoad = !selectedProject && currentPage === "project-detail";
+    const isInitialLoad =
+      (!selectedProject && currentPage === "project-detail") ||
+      (!selectedWritingPost && currentPage === "writing-detail");
     if (!isInitialLoad) {
       updateURL();
     }
-  }, [currentPage, selectedProject]);
+  }, [currentPage, selectedProject, selectedWritingPost]);
 
   // Calculate current route for Analytics component
   const getCurrentRoute = (): string => {
     // Skip tracking on initial load for project-detail without project
     if (!selectedProject && currentPage === "project-detail") {
       return '/';
+    }
+    if (!selectedWritingPost && currentPage === "writing-detail") {
+      return '/writing';
     }
     
     // Get the current path from pathname or default to home
@@ -894,6 +1009,10 @@ function AppShell() {
         .replace(/-+/g, '-')
         .trim();
       return `/project/${friendlySlug}`;
+    } else if (currentPage === "writing") {
+      return '/writing';
+    } else if (currentPage === "writing-detail" && selectedWritingPost) {
+      return `/writing/${selectedWritingPost.slug}`;
     } else if (currentPage === "about") {
       return '/about';
     } else if (currentPage === "contact") {
@@ -1067,8 +1186,41 @@ function AppShell() {
     return rawSlug.split('?')[0]?.split('#')[0]?.replace(/\/+$/, '') || '';
   };
 
+  const getWritingSlugFromPathname = (pathname: string): string => {
+    const rawSlug = pathname.split('/writing/')[1] || '';
+    return rawSlug.split('?')[0]?.split('#')[0]?.replace(/\/+$/, '') || '';
+  };
+
   // Listen for browser back/forward buttons + initial URL routing
   useEffect(() => {
+    const resolveWritingRoute = async (pathname: string) => {
+      const writingSlug = getWritingSlugFromPathname(pathname);
+      setCurrentPage("writing-detail");
+      setSelectedWritingPost(null);
+      setIsResolvingWritingRoute(true);
+
+      if (!writingSlug) {
+        setCurrentPage("writing");
+        setSelectedWritingPost(null);
+        setIsResolvingWritingRoute(false);
+        return;
+      }
+
+      try {
+        const post = await findWritingPostBySlug(writingSlug, { includeDrafts: isEditMode });
+        if (post) {
+          setSelectedWritingPost(post);
+          setCurrentPage("writing-detail");
+        } else {
+          console.warn('Writing post not found:', writingSlug);
+          setCurrentPage("writing");
+          setSelectedWritingPost(null);
+        }
+      } finally {
+        setIsResolvingWritingRoute(false);
+      }
+    };
+
     const resolveProjectRoute = async (pathname: string) => {
       const projectSlug = getProjectSlugFromPathname(pathname);
       setCurrentPage("project-detail");
@@ -1100,24 +1252,35 @@ function AppShell() {
       const pathname = window.location.pathname;
       
       if (pathname === '/' || pathname === '') {
-        // Home page
         setCurrentPage("home");
         setSelectedProject(null);
+        setSelectedWritingPost(null);
         setIsResolvingProjectRoute(false);
+        setIsResolvingWritingRoute(false);
       } else if (pathname.startsWith('/project/')) {
         await resolveProjectRoute(pathname);
+      } else if (pathname.startsWith('/writing/')) {
+        await resolveWritingRoute(pathname);
+      } else if (pathname === '/writing') {
+        setCurrentPage("writing");
+        setSelectedProject(null);
+        setSelectedWritingPost(null);
+        setIsResolvingProjectRoute(false);
+        setIsResolvingWritingRoute(false);
       } else if (pathname.startsWith('/')) {
-        // Other pages
         const page = pathname.substring(1) as Page;
         if (['about', 'contact', 'messages', 'lite-brite'].includes(page)) {
           setCurrentPage(page);
           setSelectedProject(null);
+          setSelectedWritingPost(null);
           setIsResolvingProjectRoute(false);
+          setIsResolvingWritingRoute(false);
         } else {
-          // Unknown route, redirect to home
           setCurrentPage("home");
           setSelectedProject(null);
+          setSelectedWritingPost(null);
           setIsResolvingProjectRoute(false);
+          setIsResolvingWritingRoute(false);
         }
       }
       // Ensure scroll top after navigation caused by browser buttons
@@ -1268,7 +1431,51 @@ function AppShell() {
   const navigateHome = () => {
     setCurrentPage("home");
     setSelectedProject(null);
+    setSelectedWritingPost(null);
     setTimeout(forceScrollToTop, 0);
+  };
+
+  const navigateWriting = () => {
+    setCurrentPage("writing");
+    setSelectedWritingPost(null);
+    setSelectedProject(null);
+    setTimeout(forceScrollToTop, 0);
+  };
+
+  const navigateToWritingPost = (post: WritingPost) => {
+    setSelectedWritingPost(post);
+    setCurrentPage("writing-detail");
+    setSelectedProject(null);
+    setTimeout(forceScrollToTop, 0);
+  };
+
+  const handleSaveWritingPost = async (
+    id: string,
+    patch: import('./lib/writingPosts').WritingPostUpdate,
+  ) => {
+    if (!isEditMode) return false;
+    const ok = await updateWritingPost(id, patch);
+    if (ok) {
+      await refetchWritingPosts(true);
+      const slug = patch.slug || selectedWritingPost?.slug;
+      if (slug) {
+        const refreshed = await findWritingPostBySlug(slug, { includeDrafts: true });
+        if (refreshed) setSelectedWritingPost(refreshed);
+      }
+    }
+    return ok;
+  };
+
+  const handleDeleteWritingPost = async (id: string) => {
+    if (!isEditMode) return false;
+    const { ok, error } = await deleteWritingPost(id);
+    if (ok) {
+      setSelectedWritingPost(null);
+      await refetchWritingPosts(true);
+    } else if (error) {
+      console.warn('Writing post delete failed:', error);
+    }
+    return ok;
   };
 
   const navigateToProject = async (project: ProjectData, updateCallback: (project: ProjectData) => void) => {
@@ -1551,14 +1758,15 @@ function AppShell() {
   };
 
   /** Called after `SignIn` succeeds (`signInWithPassword`); session is established in Supabase. */
-  const handleSignIn = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+  const handleSignIn = () => {
     setShowSignIn(false);
-    if (user) {
-      setIsEditMode(true);
-    }
+    setIsEditMode(true);
+  };
+
+  const handlePasswordRecoveryComplete = async () => {
+    await supabase.auth.getSession();
+    setShowSignIn(false);
+    setIsEditMode(true);
   };
 
   const handleSignOut = async () => {
@@ -1576,7 +1784,7 @@ function AppShell() {
   };
 
   // Handle page visibility changes
-  const handlePageVisibilityChange = async (page: keyof typeof pageVisibility) => {
+  const handlePageVisibilityChange = async (page: 'about' | 'contact' | 'writing') => {
     const newVisibility = { ...pageVisibility, [page]: !pageVisibility[page] };
     setPageVisibility(newVisibility);
     
@@ -1694,6 +1902,7 @@ function AppShell() {
   }
 
   const pillNavPages = [
+    { key: "writing" as const, label: "Writing", visible: isEditMode || pageVisibility.writing },
     { key: "about" as const, label: "About", visible: isEditMode || pageVisibility.about },
     { key: "contact" as const, label: "Contact", visible: isEditMode || pageVisibility.contact },
   ].filter((page) => page.visible);
@@ -1715,6 +1924,7 @@ function AppShell() {
     currentPage !== "home" &&
     currentPage !== "lite-brite" &&
     currentPage !== "project-detail" &&
+    currentPage !== "writing-detail" &&
     currentPage !== "supabase-test";
 
   const siteOverflowMenu = (variant: "classic" | "modern") => (
@@ -1753,6 +1963,8 @@ function AppShell() {
         )}
       
       {/* Sign In Modal */}
+      <PasswordRecovery onComplete={() => void handlePasswordRecoveryComplete()} />
+
       {showSignIn && (
         <SignIn 
           onSignIn={handleSignIn} 
@@ -1782,12 +1994,14 @@ function AppShell() {
         <ModernAppChrome
           currentPage={currentPage}
           logoUrl={logo}
+          showWriting={isEditMode || pageVisibility.writing}
           showAbout={isEditMode || pageVisibility.about}
           showContact={isEditMode || pageVisibility.contact}
           overflowMenu={siteOverflowMenu("modern")}
           isDarkMode={resolvedTheme === 'dark'}
           onThemeToggle={handleThemeToggle}
           onNavigateHome={navigateHome}
+          onNavigateWriting={navigateWriting}
           onNavigateAbout={() => {
             setCurrentPage("about");
             setTimeout(forceScrollToTop, 0);
@@ -1997,10 +2211,11 @@ function AppShell() {
               className="bg-card border border-border rounded-2xl shadow-2xl p-8 max-w-md w-full"
               onClick={(e) => e.stopPropagation()}
             >
-              <h2 className="text-2xl font-bold mb-4">Case Study Password</h2>
+              <h2 className="text-2xl font-bold mb-4">Case study view password</h2>
               <p className="text-sm text-muted-foreground mb-6">
-                Set or reset the password required to view password-protected case studies. 
-                Default password is "0p3n".
+                Set or reset the password visitors need to open password-protected case studies.
+                This is not your edit mode / site owner sign-in password.
+                Default is &quot;0p3n&quot;.
               </p>
 
               <form
@@ -2085,6 +2300,35 @@ function AppShell() {
               currentPage={currentPage}
               onNavigateContact={navigateContact}
             />
+          )}
+          {currentPage === "writing" && (isEditMode || pageVisibility.writing) && (
+            <Writing
+              isEditMode={isEditMode}
+              logoUrl={logo}
+              onPostClick={navigateToWritingPost}
+              onCreatePost={navigateToWritingPost}
+              indexGrid={pageVisibility.writing_index_grid}
+              onIndexGridChange={
+                isEditMode
+                  ? (grid) =>
+                      setPageVisibility((prev) => ({ ...prev, writing_index_grid: grid }))
+                  : undefined
+              }
+            />
+          )}
+          {currentPage === "writing-detail" && selectedWritingPost && (
+            <WritingPostPage
+              post={selectedWritingPost}
+              isEditMode={isEditMode}
+              logoUrl={logo}
+              onBack={navigateWriting}
+              onSave={handleSaveWritingPost}
+              onDelete={handleDeleteWritingPost}
+              onCreatePost={navigateToWritingPost}
+            />
+          )}
+          {currentPage === "writing-detail" && !selectedWritingPost && (
+            <RouteFallback />
           )}
           {currentPage === "about" && (isEditMode || pageVisibility.about) && (
             <About onBack={navigateHome} onHoverChange={setIsBlurringBackground} isEditMode={isEditMode} onNavigateContact={navigateContact} />

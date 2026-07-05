@@ -1,5 +1,6 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { devLog } from './devLog'
+import { ensureLocalStorageHeadroom, isQuotaExceededError } from './safeLocalStorage'
 
 // Get environment variables
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
@@ -8,6 +9,37 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 // Use placeholder values if environment variables are not set
 const url = supabaseUrl || 'https://placeholder.supabase.co'
 const key = supabaseAnonKey || 'placeholder-key'
+
+/** Supabase auth storage with sessionStorage fallback when localStorage quota is full. */
+const supabaseAuthStorage = {
+  getItem(storageKey: string): string | null {
+    if (typeof window === 'undefined') return null
+    return window.localStorage.getItem(storageKey) ?? window.sessionStorage.getItem(storageKey)
+  },
+  setItem(storageKey: string, value: string): void {
+    if (typeof window === 'undefined') return
+    try {
+      window.localStorage.setItem(storageKey, value)
+      window.sessionStorage.removeItem(storageKey)
+      return
+    } catch (err) {
+      if (!isQuotaExceededError(err)) throw err
+    }
+    ensureLocalStorageHeadroom()
+    try {
+      window.localStorage.setItem(storageKey, value)
+      window.sessionStorage.removeItem(storageKey)
+      return
+    } catch {
+      window.sessionStorage.setItem(storageKey, value)
+    }
+  },
+  removeItem(storageKey: string): void {
+    if (typeof window === 'undefined') return
+    window.localStorage.removeItem(storageKey)
+    window.sessionStorage.removeItem(storageKey)
+  },
+}
 
 if (import.meta.env.DEV) {
   devLog('🔍 Supabase env:', {
@@ -75,7 +107,8 @@ export const supabase: SupabaseClient<Database> = _supabase ?? (
       autoRefreshToken: true,
       persistSession: true,
       detectSessionInUrl: true,
-      storageKey: 'sb-portfolio'
+      storageKey: 'sb-portfolio',
+      storage: supabaseAuthStorage,
     }
   })
 )

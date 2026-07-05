@@ -1,6 +1,6 @@
 interface MarkdownRendererProps {
   content: string;
-  variant?: 'default' | 'compact';
+  variant?: 'default' | 'compact' | 'writing';
 }
 
 export function MarkdownRenderer({ content, variant = 'default' }: MarkdownRendererProps) {
@@ -370,6 +370,27 @@ export function MarkdownRenderer({ content, variant = 'default' }: MarkdownRende
         <style>{compactStyles}</style>
         <div 
           className="markdown-content-compact text-sm"
+          dangerouslySetInnerHTML={{ __html: htmlContent }}
+        />
+      </>
+    );
+  }
+
+  if (variant === 'writing') {
+    return (
+      <>
+        <style>{customStyles}</style>
+        <div
+          className="markdown-content prose prose-lg max-w-none
+          prose-headings:font-['Montserrat',sans-serif]
+          prose-h2:text-2xl prose-h2:font-semibold prose-h2:mt-12 prose-h2:mb-4 prose-h2:scroll-mt-28
+          prose-h3:text-xl prose-h3:font-semibold prose-h3:mt-8 prose-h3:mb-3
+          prose-p:text-lg prose-p:leading-[1.75] prose-p:text-muted-foreground
+          prose-ul:my-4 prose-ul:space-y-2
+          prose-li:text-lg prose-li:leading-relaxed prose-li:text-muted-foreground
+          prose-strong:text-foreground prose-strong:font-semibold
+          prose-hr:my-10 prose-hr:border-border/50
+          dark:prose-invert"
           dangerouslySetInnerHTML={{ __html: htmlContent }}
         />
       </>

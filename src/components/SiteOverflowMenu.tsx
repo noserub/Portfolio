@@ -28,12 +28,12 @@ export interface SiteOverflowMenuProps {
   isEditMode: boolean;
   isSupabaseAuthenticated: boolean;
   designVariant: DesignVariant;
-  pageVisibility: { about: boolean; contact: boolean };
+  pageVisibility: { about: boolean; contact: boolean; writing: boolean };
   systemPrefersDark: boolean;
   themeSource: "system" | "user";
   resolvedTheme: "light" | "dark";
   onEditModeClick: () => void;
-  onPageVisibilityChange: (page: "about" | "contact") => void;
+  onPageVisibilityChange: (page: "about" | "contact" | "writing") => void;
   onDesignVariantChange: (variant: DesignVariant) => void;
   onThemeLight: () => void;
   onThemeDark: () => void;
@@ -107,32 +107,53 @@ export function SiteOverflowMenu({
               Page Visibility
             </DropdownMenuLabel>
             <DropdownMenuItem
-              onClick={(e) => {
-                e.preventDefault();
-                onPageVisibilityChange("about");
-                blurActiveElement();
-              }}
+              onSelect={(e) => e.preventDefault()}
               className="flex items-center justify-between"
             >
-              <span>About Page</span>
+              <span
+                className="flex-1 cursor-pointer"
+                onClick={() => onPageVisibilityChange("writing")}
+              >
+                Writing Page
+              </span>
               <Switch
-                checked={pageVisibility.about}
-                onCheckedChange={() => onPageVisibilityChange("about")}
+                checked={pageVisibility.writing}
+                onCheckedChange={() => onPageVisibilityChange("writing")}
+                onClick={(e) => e.stopPropagation()}
                 className="ml-2"
               />
             </DropdownMenuItem>
             <DropdownMenuItem
-              onClick={(e) => {
-                e.preventDefault();
-                onPageVisibilityChange("contact");
-                blurActiveElement();
-              }}
+              onSelect={(e) => e.preventDefault()}
               className="flex items-center justify-between"
             >
-              <span>Contact Page</span>
+              <span
+                className="flex-1 cursor-pointer"
+                onClick={() => onPageVisibilityChange("about")}
+              >
+                About Page
+              </span>
+              <Switch
+                checked={pageVisibility.about}
+                onCheckedChange={() => onPageVisibilityChange("about")}
+                onClick={(e) => e.stopPropagation()}
+                className="ml-2"
+              />
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onSelect={(e) => e.preventDefault()}
+              className="flex items-center justify-between"
+            >
+              <span
+                className="flex-1 cursor-pointer"
+                onClick={() => onPageVisibilityChange("contact")}
+              >
+                Contact Page
+              </span>
               <Switch
                 checked={pageVisibility.contact}
                 onCheckedChange={() => onPageVisibilityChange("contact")}
+                onClick={(e) => e.stopPropagation()}
                 className="ml-2"
               />
             </DropdownMenuItem>

@@ -2,9 +2,11 @@ import { useEffect } from 'react';
 import {
   getSEOData,
   getCaseStudySEO,
+  getWritingPostSEO,
   applyPageSEO,
   loadSEODataFromSupabase,
   loadCaseStudySEOFromSupabase,
+  loadWritingPostSEOFromSupabase,
 } from '../utils/seoManager';
 import {
   generateWebSiteSchema,
@@ -184,4 +186,117 @@ export function useCaseStudySEO(
       isCancelled = true;
     };
   }, [caseStudyId, caseStudyTitle, meta?.createdAt, meta?.updatedAt]);
+}
+
+export function useWritingIndexSEO() {
+  useEffect(() => {
+    let isCancelled = false;
+
+    const apply = async () => {
+      try {
+        const seoData = await loadSEODataFromSupabase();
+        if (isCancelled) return;
+        const pageSEO = seoData.pages.writingIndex;
+        if (pageSEO) {
+          const withFallbacks = {
+            ...pageSEO,
+            ogTitle: pageSEO.ogTitle || pageSEO.title,
+            ogDescription: pageSEO.ogDescription || pageSEO.description,
+            twitterTitle: pageSEO.twitterTitle || pageSEO.title,
+            twitterDescription: pageSEO.twitterDescription || pageSEO.description,
+          };
+          applyPageSEO(withFallbacks, seoData.sitewide);
+        }
+
+        const schemas: object[] = [generateOrganizationSchema(seoData.sitewide)];
+        schemas.push(
+          generateBreadcrumbListSchema(
+            [
+              { name: 'Home', url: '/' },
+              { name: 'Writing', url: '/writing' },
+            ],
+            seoData.sitewide.siteUrl,
+          ),
+        );
+        injectMultipleStructuredData(schemas);
+      } catch (error) {
+        console.error('❌ SEO: Error applying writing index SEO:', error);
+      }
+    };
+
+    apply();
+    const timeoutId = setTimeout(apply, 100);
+    return () => {
+      isCancelled = true;
+      clearTimeout(timeoutId);
+    };
+  }, []);
+}
+
+export type WritingPostSeoMeta = {
+  createdAt?: string;
+  updatedAt?: string;
+  slug?: string;
+};
+
+export function useWritingPostSEO(
+  postId: string,
+  postTitle?: string,
+  meta?: WritingPostSeoMeta,
+) {
+  useEffect(() => {
+    let isCancelled = false;
+
+    const applyWritingPostSEO = async () => {
+      try {
+        const seoData = await loadSEODataFromSupabase();
+        if (isCancelled) return;
+        const postSEO = await loadWritingPostSEOFromSupabase(postId, postTitle);
+        if (isCancelled) return;
+
+        applyPageSEO(postSEO, seoData.sitewide, { ogType: 'article' });
+
+        const schemas: object[] = [generateOrganizationSchema(seoData.sitewide)];
+        const slug = meta?.slug || '';
+        const articleUrl =
+          postSEO.canonicalUrl ||
+          (slug ? `${seoData.sitewide.siteUrl}/writing/${slug}` : undefined);
+
+        const articleExtras: Parameters<typeof generateArticleSchema>[2] = {
+          headline: postTitle || postSEO.title,
+          description: postSEO.description,
+          image: postSEO.ogImage || postSEO.twitterImage,
+          url: articleUrl,
+        };
+        if (meta?.createdAt) articleExtras.datePublished = meta.createdAt;
+        if (meta?.updatedAt) articleExtras.dateModified = meta.updatedAt;
+
+        schemas.push(generateArticleSchema(postSEO, seoData.sitewide, articleExtras));
+        schemas.push(
+          generateBreadcrumbListSchema(
+            [
+              { name: 'Home', url: '/' },
+              { name: 'Writing', url: '/writing' },
+              {
+                name: postTitle || 'Post',
+                url: articleUrl || (slug ? `/writing/${slug}` : '/writing'),
+              },
+            ],
+            seoData.sitewide.siteUrl,
+          ),
+        );
+        injectMultipleStructuredData(schemas);
+      } catch (error) {
+        console.error('❌ SEO: Error applying writing post SEO:', error);
+        const localSeoData = getSEOData();
+        const localPostSEO = getWritingPostSEO(postId, postTitle);
+        applyPageSEO(localPostSEO, localSeoData.sitewide, { ogType: 'article' });
+      }
+    };
+
+    applyWritingPostSEO();
+    return () => {
+      isCancelled = true;
+    };
+  }, [postId, postTitle, meta?.createdAt, meta?.updatedAt, meta?.slug]);
 }

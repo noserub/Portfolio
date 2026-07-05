@@ -7,12 +7,14 @@ interface ModernNavProps {
   ownerName: string;
   logoUrl?: string | null;
   currentPage: string;
+  showWriting: boolean;
   showAbout: boolean;
   showContact: boolean;
   overflowMenu?: ReactNode;
   isDarkMode: boolean;
   onThemeToggle: () => void;
   onNavigateHome: () => void;
+  onNavigateWriting: () => void;
   onNavigateAbout: () => void;
   onNavigateContact: () => void;
   onScrollToWork?: () => void;
@@ -30,12 +32,14 @@ export function ModernNav({
   ownerName,
   logoUrl,
   currentPage,
+  showWriting,
   showAbout,
   showContact,
   overflowMenu,
   isDarkMode,
   onThemeToggle,
   onNavigateHome,
+  onNavigateWriting,
   onNavigateAbout,
   onNavigateContact,
   onScrollToWork,
@@ -43,6 +47,7 @@ export function ModernNav({
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const isWorkActive = currentPage === "home" || currentPage === "project-detail";
+  const isWritingActive = currentPage === "writing" || currentPage === "writing-detail";
 
   const closeMobile = () => setMobileOpen(false);
 
@@ -78,6 +83,15 @@ export function ModernNav({
       <button type="button" onClick={handleWork} className={navLinkClass(isWorkActive)}>
         Work
       </button>
+      {showWriting ? (
+        <button
+          type="button"
+          onClick={onNavigateWriting}
+          className={navLinkClass(isWritingActive)}
+        >
+          Writing
+        </button>
+      ) : null}
       {showAbout ? (
         <button
           type="button"
@@ -104,6 +118,18 @@ export function ModernNav({
       <button type="button" onClick={handleWork} className={drawerLinkClass(isWorkActive)}>
         Work
       </button>
+      {showWriting ? (
+        <button
+          type="button"
+          onClick={() => {
+            onNavigateWriting();
+            closeMobile();
+          }}
+          className={drawerLinkClass(isWritingActive)}
+        >
+          Writing
+        </button>
+      ) : null}
       {showAbout ? (
         <button
           type="button"

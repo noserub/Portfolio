@@ -8,8 +8,7 @@ import React, {
 } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabaseClient";
-
-const LEGACY_AUTH_FLAG_KEY = "isAuthenticated";
+import { setLegacyAuthFlag } from "../lib/safeLocalStorage";
 
 type SiteAuthContextValue = {
   user: User | null;
@@ -25,7 +24,7 @@ const SiteAuthContext = createContext<SiteAuthContextValue | null>(null);
 
 /**
  * Single source for Supabase session state.
- * `localStorage` LEGACY_AUTH_FLAG_KEY is kept in sync for legacy reads only — not for privilege checks.
+ * Legacy `isAuthenticated` local flag is best-effort only — never used for privilege checks.
  */
 export function SiteAuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
@@ -33,13 +32,7 @@ export function SiteAuthProvider({ children }: { children: React.ReactNode }) {
 
   const applySession = useCallback((next: Session | null) => {
     setSession(next);
-    if (typeof window !== "undefined") {
-      if (next?.user) {
-        localStorage.setItem(LEGACY_AUTH_FLAG_KEY, "true");
-      } else {
-        localStorage.removeItem(LEGACY_AUTH_FLAG_KEY);
-      }
-    }
+    setLegacyAuthFlag(Boolean(next?.user));
   }, []);
 
   useEffect(() => {

@@ -40,8 +40,10 @@ export interface AllSEOData {
     about: SEOData;
     caseStudies: SEOData;
     contact: SEOData;
+    writingIndex: SEOData;
   };
-  caseStudyDefaults: SEOData; // Template for individual case studies
+  caseStudyDefaults: SEOData;
+  writingPostDefaults: SEOData;
 }
 
 // Get site URL from environment or use default
@@ -72,6 +74,8 @@ export function normalizeSiteUrlForSeo(url: string): string {
 const SEO_PAGE_TYPE_APP_TO_DB: Record<string, string> = {
   caseStudies: 'case_studies',
   caseStudyDefaults: 'case_study_defaults',
+  writingIndex: 'writing_index',
+  writingPostDefaults: 'writing_post_defaults',
 };
 
 function seoPageTypeToDb(appPageType: string): string {
@@ -146,6 +150,19 @@ const DEFAULT_SEO_DATA: AllSEOData = {
       twitterImage: '',
       canonicalUrl: '',
     },
+    writingIndex: {
+      title: 'Writing - Brian Bureson',
+      description: 'Essays on enterprise AI, product design, and shipping trustworthy agent experiences.',
+      keywords: 'writing, essays, enterprise AI, product design, UX strategy, Brian Bureson',
+      ogTitle: '',
+      ogDescription: '',
+      ogImage: '',
+      twitterCard: 'summary_large_image',
+      twitterTitle: '',
+      twitterDescription: '',
+      twitterImage: '',
+      canonicalUrl: '',
+    },
   },
   caseStudyDefaults: {
     title: '[Case Study Title] - Brian Bureson',
@@ -160,10 +177,24 @@ const DEFAULT_SEO_DATA: AllSEOData = {
     twitterImage: '',
     canonicalUrl: '',
   },
+  writingPostDefaults: {
+    title: '[Post Title] - Brian Bureson',
+    description: 'An essay on enterprise AI, product design, and shipping trustworthy experiences.',
+    keywords: 'essay, enterprise AI, product design, UX strategy',
+    ogTitle: '',
+    ogDescription: '',
+    ogImage: '',
+    twitterCard: 'summary_large_image',
+    twitterTitle: '',
+    twitterDescription: '',
+    twitterImage: '',
+    canonicalUrl: '',
+  },
 };
 
 const SEO_STORAGE_KEY = 'portfolio-seo-data';
 const CASE_STUDY_SEO_PREFIX = 'case-study:';
+const WRITING_POST_SEO_PREFIX = 'writing-post:';
 
 type SeoDataRow = {
   id: string;
@@ -201,8 +232,10 @@ const cloneDefaults = (): AllSEOData => ({
     about: { ...DEFAULT_SEO_DATA.pages.about },
     caseStudies: { ...DEFAULT_SEO_DATA.pages.caseStudies },
     contact: { ...DEFAULT_SEO_DATA.pages.contact },
+    writingIndex: { ...DEFAULT_SEO_DATA.pages.writingIndex },
   },
   caseStudyDefaults: { ...DEFAULT_SEO_DATA.caseStudyDefaults },
+  writingPostDefaults: { ...DEFAULT_SEO_DATA.writingPostDefaults },
 });
 
 const withSafeOgFallback = (data: AllSEOData): AllSEOData => {
@@ -214,8 +247,10 @@ const withSafeOgFallback = (data: AllSEOData): AllSEOData => {
       about: { ...data.pages.about },
       caseStudies: { ...data.pages.caseStudies },
       contact: { ...data.pages.contact },
+      writingIndex: { ...data.pages.writingIndex },
     },
     caseStudyDefaults: { ...data.caseStudyDefaults },
+    writingPostDefaults: { ...data.writingPostDefaults },
   };
   merged.sitewide.siteUrl = normalizeSiteUrlForSeo(merged.sitewide.siteUrl);
   if (!merged.sitewide.defaultOGImage || merged.sitewide.defaultOGImage.trim() === '') {
@@ -281,6 +316,16 @@ function mergeSEODataFromRows(rows: SeoDataRow[], base?: AllSEOData): AllSEOData
 
     if (key === 'caseStudyDefaults' || key === 'case-study-defaults' || key === 'case_study_defaults') {
       merged.caseStudyDefaults = mapSeoRowToSeoData(row, merged.caseStudyDefaults);
+      continue;
+    }
+
+    if (key === 'writing_index' || key === 'writingIndex') {
+      merged.pages.writingIndex = mapSeoRowToSeoData(row, merged.pages.writingIndex);
+      continue;
+    }
+
+    if (key === 'writing_post_defaults' || key === 'writingPostDefaults') {
+      merged.writingPostDefaults = mapSeoRowToSeoData(row, merged.writingPostDefaults);
     }
   }
 
@@ -309,8 +354,16 @@ export function getSEOData(): AllSEOData {
           about: { ...base.pages.about, ...parsed.pages?.about },
           caseStudies: { ...base.pages.caseStudies, ...parsed.pages?.caseStudies },
           contact: { ...base.pages.contact, ...parsed.pages?.contact },
+          writingIndex: {
+            ...base.pages.writingIndex,
+            ...parsed.pages?.writingIndex,
+          },
         },
         caseStudyDefaults: { ...base.caseStudyDefaults, ...parsed.caseStudyDefaults },
+        writingPostDefaults: {
+          ...base.writingPostDefaults,
+          ...parsed.writingPostDefaults,
+        },
       };
       return withSafeOgFallback(merged);
     }
@@ -421,8 +474,10 @@ export async function saveSEOData(data: AllSEOData): Promise<void> {
       about: { ...data.pages.about },
       caseStudies: { ...data.pages.caseStudies },
       contact: { ...data.pages.contact },
+      writingIndex: { ...data.pages.writingIndex },
     },
     caseStudyDefaults: { ...data.caseStudyDefaults },
+    writingPostDefaults: { ...data.writingPostDefaults },
   });
 
   try {
@@ -464,7 +519,9 @@ export async function saveSEOData(data: AllSEOData): Promise<void> {
       { pageType: 'about', payload: toSeoRowPayload(normalized.pages.about) },
       { pageType: 'caseStudies', payload: toSeoRowPayload(normalized.pages.caseStudies) },
       { pageType: 'contact', payload: toSeoRowPayload(normalized.pages.contact) },
+      { pageType: 'writingIndex', payload: toSeoRowPayload(normalized.pages.writingIndex) },
       { pageType: 'caseStudyDefaults', payload: toSeoRowPayload(normalized.caseStudyDefaults) },
+      { pageType: 'writingPostDefaults', payload: toSeoRowPayload(normalized.writingPostDefaults) },
     ];
 
     for (const { pageType, payload } of payloads) {
@@ -619,8 +676,99 @@ export async function copyCaseStudySEO(
   await saveCaseStudySEO(targetCaseStudyId, copied);
 }
 
+export function getWritingPostSEO(postId: string, postTitle?: string): SEOData {
+  try {
+    const stored = localStorage.getItem(`seo-writing-post-${postId}`);
+    if (stored) {
+      return JSON.parse(stored);
+    }
+  } catch (error) {
+    console.error('Error loading writing post SEO:', error);
+  }
+
+  const defaults = getSEOData().writingPostDefaults;
+  return {
+    ...defaults,
+    title: postTitle ? `${postTitle} - Brian Bureson` : defaults.title,
+  };
+}
+
+export async function loadWritingPostSEOFromSupabase(
+  postId: string,
+  postTitle?: string,
+): Promise<SEOData> {
+  const local = getWritingPostSEO(postId, postTitle);
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    const ownerId = getPortfolioOwnerUserId(user?.id);
+    const pageType = `${WRITING_POST_SEO_PREFIX}${postId}`;
+    const { data, error } = await supabase
+      .from('seo_data')
+      .select('*')
+      .eq('user_id', ownerId)
+      .eq('page_type', pageType)
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) return local;
+    const merged = mapSeoRowToSeoData(data as SeoDataRow, local);
+    localStorage.setItem(`seo-writing-post-${postId}`, JSON.stringify(merged));
+    return merged;
+  } catch (error) {
+    console.warn('⚠️ SEO: Falling back to local writing post SEO:', error);
+    return local;
+  }
+}
+
+export async function saveWritingPostSEO(postId: string, data: SEOData): Promise<void> {
+  try {
+    localStorage.setItem(`seo-writing-post-${postId}`, JSON.stringify(data));
+  } catch (error) {
+    console.error('Error saving writing post SEO:', error);
+  }
+
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user?.id) {
+      throw new Error('Sign in with Supabase to save writing post SEO.');
+    }
+    const ownerId = getPortfolioOwnerUserId(user.id);
+    const pageType = `${WRITING_POST_SEO_PREFIX}${postId}`;
+    const payload = toSeoRowPayload(data);
+    const { data: existing, error: findErr } = await supabase
+      .from('seo_data')
+      .select('id')
+      .eq('user_id', ownerId)
+      .eq('page_type', pageType)
+      .maybeSingle();
+    if (findErr) throw findErr;
+
+    if (existing?.id) {
+      const { error } = await supabase.from('seo_data').update(payload).eq('id', existing.id);
+      if (error) throw error;
+    } else {
+      const { error } = await supabase.from('seo_data').insert({
+        user_id: ownerId,
+        page_type: pageType,
+        ...payload,
+      });
+      if (error) throw error;
+    }
+  } catch (error) {
+    console.error('Error saving writing post SEO to Supabase:', error);
+    throw error;
+  }
+}
+
 // Apply SEO data to document head
-export function applyPageSEO(pageSEO: SEOData, sitewide: SitewideSEO): void {
+export function applyPageSEO(
+  pageSEO: SEOData,
+  sitewide: SitewideSEO,
+  options?: { ogType?: 'website' | 'article' },
+): void {
   // Update title
   document.title = pageSEO.title;
 
@@ -652,7 +800,7 @@ export function applyPageSEO(pageSEO: SEOData, sitewide: SitewideSEO): void {
   updateMetaTag('meta[property="og:site_name"]', sitewide.siteName);
   updateMetaTag('meta[property="og:title"]', pageSEO.ogTitle || pageSEO.title);
   updateMetaTag('meta[property="og:description"]', pageSEO.ogDescription || pageSEO.description);
-  updateMetaTag('meta[property="og:type"]', 'website');
+  updateMetaTag('meta[property="og:type"]', options?.ogType || 'website');
   updateMetaTag('meta[property="og:locale"]', 'en_US');
   
   const normalizeCanonicalUrl = (urlValue: string): string => {

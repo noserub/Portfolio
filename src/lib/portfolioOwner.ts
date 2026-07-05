@@ -10,6 +10,16 @@
  */
 const DEFAULT_PORTFOLIO_OWNER_ID = "7cd2752f-93c5-46e6-8535-32769fb10055";
 
+export function getLegacyPortfolioOwnerUserId(): string {
+  return DEFAULT_PORTFOLIO_OWNER_ID;
+}
+
+/** True when the signed-in user can update/delete this writing_posts row via RLS. */
+export function canManageWritingPost(postUserId: string, sessionUserId?: string | null): boolean {
+  if (!sessionUserId) return false;
+  return postUserId === sessionUserId || postUserId === DEFAULT_PORTFOLIO_OWNER_ID;
+}
+
 /** True when the published owner UUID is fixed in env (production / preview deploys). */
 export function hasVitePublicPortfolioOwnerId(): boolean {
   const v = import.meta.env.VITE_PUBLIC_PORTFOLIO_OWNER_ID;

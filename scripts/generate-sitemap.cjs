@@ -188,6 +188,87 @@ async function fetchPublishedSlugsFromSupabase() {
   return { projects: out, profile };
 }
 
+async function fetchPublishedWritingFromSupabase() {
+  const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const publicKey =
+    process.env.VITE_SUPABASE_ANON_KEY ||
+    process.env.SUPABASE_ANON_KEY ||
+    process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+    process.env.SUPABASE_PUBLISHABLE_KEY;
+  const key = serviceKey || publicKey;
+  if (!url || !key) {
+    return [];
+  }
+
+  const { createClient } = require('@supabase/supabase-js');
+  const supabase = createClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+
+  const ownerId =
+    process.env.VITE_PUBLIC_PORTFOLIO_OWNER_ID || process.env.SUPABASE_PORTFOLIO_OWNER_ID || '';
+
+  let data;
+  let error;
+  if (serviceKey) {
+    let q = supabase
+      .from('writing_posts')
+      .select('slug, title, excerpt, updated_at, blocks')
+      .eq('published', true)
+      .order('sort_order', { ascending: false, nullsFirst: false });
+    if (ownerId) {
+      q = q.eq('user_id', ownerId);
+    }
+    ({ data, error } = await q);
+  } else {
+    ({ data, error } = await supabase.rpc('get_writing_posts_public', {
+      p_owner_id: ownerId || '7cd2752f-93c5-46e6-8535-32769fb10055',
+    }));
+  }
+
+  if (error) {
+    console.warn('⚠️ Sitemap: Supabase writing posts query failed:', error.message);
+    return [];
+  }
+
+  const out = [];
+  for (const row of data || []) {
+    const slug = String(row.slug || '').trim();
+    if (!slug) continue;
+    out.push({
+      slug,
+      title: row.title,
+      excerpt: typeof row.excerpt === 'string' ? row.excerpt.trim() : '',
+      blocks: row.blocks,
+      lastmod:
+        typeof row.updated_at === 'string' && row.updated_at
+          ? row.updated_at.split('T')[0]
+          : null,
+    });
+  }
+  return out;
+}
+
+function mergeWritingEntries(writingEntries) {
+  return writingEntries.map((e) => ({
+    path: `/writing/${e.slug}`,
+    title: e.title,
+    description: e.excerpt || '',
+    blocks: e.blocks,
+    lastmod: e.lastmod,
+  }));
+}
+
+function excerptFromWritingBlocks(blocks) {
+  if (!Array.isArray(blocks)) return '';
+  const prose = blocks
+    .filter((b) => b && b.type === 'prose' && b.visible !== false)
+    .map((b) => String(b.content || ''))
+    .join('\n\n');
+  return truncateForLlms(stripHtml(prose.replace(/[#>*_\[\]()!`~-]/g, ' ')), 900);
+}
+
 function mergeProjectEntries(supabaseEntries, localProjects) {
   const bySlug = new Map();
   for (const e of supabaseEntries) {
@@ -243,7 +324,7 @@ function identityLinks(baseUrl, profile) {
   return links;
 }
 
-function generateLlmsTxt(baseUrl, projectEntries, profile) {
+function generateLlmsTxt(baseUrl, projectEntries, profile, writingEntries = []) {
   const reviewed = new Date().toISOString().split('T')[0];
   const lines = [
     `# ${DEFAULT_AUTHOR} — Product Design Portfolio`,
@@ -267,10 +348,35 @@ function generateLlmsTxt(baseUrl, projectEntries, profile) {
       `${baseUrl}/contact`,
       'Email and channels for collaboration, consulting, or speaking.',
     ),
+    llmsLinkLine(
+      'Writing',
+      `${baseUrl}/writing`,
+      'Essays on enterprise AI, product design, and shipping trustworthy agent experiences.',
+    ),
+    '',
+    '## Writing',
+    '',
+  ];
+
+  if (writingEntries.length) {
+    for (const post of writingEntries) {
+      const url = `${baseUrl}${post.path}`;
+      const description =
+        post.description ||
+        `Essay from ${DEFAULT_AUTHOR}'s writing archive: ${post.title}.`;
+      lines.push(llmsLinkLine(post.title, url, description));
+    }
+  } else {
+    lines.push(
+      `- Writing posts are published at \`${baseUrl}/writing/{slug}\` when Supabase writing data is available.`,
+    );
+  }
+
+  lines.push(
     '',
     '## Case studies',
     '',
-  ];
+  );
 
   if (projectEntries.length) {
     for (const project of projectEntries) {
@@ -318,7 +424,7 @@ function generateLlmsTxt(baseUrl, projectEntries, profile) {
   return lines.join('\n');
 }
 
-function generateLlmsFullTxt(baseUrl, projectEntries, profile) {
+function generateLlmsFullTxt(baseUrl, projectEntries, profile, writingEntries = []) {
   const reviewed = new Date().toISOString().split('T')[0];
   const lines = [
     `# ${DEFAULT_AUTHOR} — Expanded portfolio index`,
@@ -346,14 +452,42 @@ function generateLlmsFullTxt(baseUrl, projectEntries, profile) {
       `${baseUrl}/contact`,
       'Email and channels for collaboration, consulting, or speaking.',
     ),
+    llmsLinkLine(
+      'Writing',
+      `${baseUrl}/writing`,
+      'Essays on enterprise AI, product design, and agent UX.',
+    ),
     '',
+    '## Writing',
+    '',
+  ];
+
+  if (!writingEntries.length) {
+    lines.push('_No published writing posts were available at build time._', '');
+  } else {
+    for (const post of writingEntries) {
+      const url = `${baseUrl}${post.path}`;
+      lines.push(`### ${post.title}`, '');
+      lines.push(llmsLinkLine(post.title, url, 'Canonical writing post.'));
+      if (post.description) {
+        lines.push('', truncateForLlms(post.description, 500), '');
+      }
+      const excerpt = excerptFromWritingBlocks(post.blocks);
+      if (excerpt) {
+        lines.push('', excerpt, '');
+      }
+      lines.push('');
+    }
+  }
+
+  lines.push(
     '## Identity',
     '',
     ...identityLinks(baseUrl, profile),
     '',
     '## Case studies',
     '',
-  ];
+  );
 
   if (!projectEntries.length) {
     lines.push('_No published case studies were available at build time._', '');
@@ -387,23 +521,35 @@ function generateLlmsFullTxt(baseUrl, projectEntries, profile) {
   return lines.join('\n');
 }
 
-function getSitemapRoutes(projectEntries) {
+function getSitemapRoutes(projectEntries, writingEntries = []) {
   const staticPaths = [
     { path: '/', priority: '1.0', changefreq: 'weekly', lastmod: null },
     { path: '/about', priority: '0.8', changefreq: 'monthly', lastmod: null },
     { path: '/contact', priority: '0.7', changefreq: 'monthly', lastmod: null },
+    { path: '/writing', priority: '0.8', changefreq: 'weekly', lastmod: null, title: 'Writing' },
   ];
 
   const now = new Date().toISOString().split('T')[0];
   const projectPaths = projectEntries.map((e) => ({
     path: e.path,
     title: e.title,
+    description: e.description || '',
     priority: '0.9',
     changefreq: 'monthly',
     lastmod: e.lastmod || now,
   }));
 
-  return [...staticPaths, ...projectPaths];
+  const writingPaths = writingEntries.map((e) => ({
+    path: e.path,
+    title: e.title,
+    description: e.description || '',
+    blocks: e.blocks,
+    priority: '0.7',
+    changefreq: 'monthly',
+    lastmod: e.lastmod || now,
+  }));
+
+  return [...staticPaths, ...writingPaths, ...projectPaths];
 }
 
 function generateSitemap(baseUrl, routes) {
@@ -470,6 +616,24 @@ function metadataForRoute(route, baseUrl) {
       description:
         'Get in touch with Brian Bureson for design collaboration, consulting, or speaking opportunities.',
       canonical: `${baseUrl}/contact`,
+    };
+  }
+  if (route.path === '/writing') {
+    return {
+      title: 'Writing - Brian Bureson',
+      description:
+        'Essays on enterprise AI, product design, and shipping trustworthy agent experiences.',
+      canonical: `${baseUrl}/writing`,
+    };
+  }
+  if (route.path.startsWith('/writing/')) {
+    const postTitle = route.title || 'Writing';
+    return {
+      title: `${postTitle} - Brian Bureson`,
+      description:
+        route.description ||
+        `Essay from Brian Bureson on enterprise AI and product design: ${postTitle}.`,
+      canonical: `${baseUrl}${route.path}`,
     };
   }
   const projectTitle = route.title || 'Case Study';
@@ -551,9 +715,11 @@ function writeStaticRouteHtml(routes, baseUrl) {
 async function main() {
   const baseUrl = (process.env.SITE_URL || 'https://www.bureson.com').replace(/\/+$/, '');
   const { projects: fromDb, profile } = await fetchPublishedSlugsFromSupabase();
+  const writingFromDb = await fetchPublishedWritingFromSupabase();
   const localProjects = loadLocalProjects();
   const projectEntries = mergeProjectEntries(fromDb, localProjects);
-  const routes = getSitemapRoutes(projectEntries);
+  const writingEntries = mergeWritingEntries(writingFromDb);
+  const routes = getSitemapRoutes(projectEntries, writingEntries);
 
   if (fromDb.length) {
     console.log(`✅ Sitemap: ${fromDb.length} published project URL(s) from Supabase`);
@@ -563,13 +729,20 @@ async function main() {
     );
   }
 
+  if (writingFromDb.length) {
+    console.log(`✅ Sitemap: ${writingFromDb.length} published writing URL(s) from Supabase`);
+  }
+
   ensureDir(distDir);
   fs.writeFileSync(path.join(distDir, 'sitemap.xml'), generateSitemap(baseUrl, routes));
   fs.writeFileSync(path.join(distDir, 'robots.txt'), generateRobots(baseUrl));
-  fs.writeFileSync(path.join(distDir, 'llms.txt'), generateLlmsTxt(baseUrl, projectEntries, profile));
+  fs.writeFileSync(
+    path.join(distDir, 'llms.txt'),
+    generateLlmsTxt(baseUrl, projectEntries, profile, writingEntries),
+  );
   fs.writeFileSync(
     path.join(distDir, 'llms-full.txt'),
-    generateLlmsFullTxt(baseUrl, projectEntries, profile),
+    generateLlmsFullTxt(baseUrl, projectEntries, profile, writingEntries),
   );
   writeStaticRouteHtml(routes, baseUrl);
   console.log('✅ Generated sitemap.xml, robots.txt, llms.txt, and llms-full.txt');

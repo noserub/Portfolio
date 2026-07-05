@@ -27,6 +27,35 @@ export interface ResponsiveImageSet {
 
 const OBJECT_PUBLIC_MARKER = '/storage/v1/object/public/';
 const RENDER_PUBLIC_MARKER = '/storage/v1/render/image/public/';
+const PORTFOLIO_IMAGES_BUCKET = 'portfolio-images';
+
+/**
+ * Returns a direct `/object/public/` Supabase Storage URL suitable for `<img src>`.
+ * Converts broken render/transform URLs and fixes duplicate bucket segments in stored paths.
+ */
+export function resolveStoragePublicUrl(url: string): string {
+  if (!url || !url.includes('supabase.co/storage')) {
+    return url;
+  }
+
+  try {
+    const parsed = new URL(url);
+    let pathname = parsed.pathname;
+
+    if (pathname.includes(RENDER_PUBLIC_MARKER)) {
+      pathname = pathname.replace(RENDER_PUBLIC_MARKER, OBJECT_PUBLIC_MARKER);
+    }
+
+    pathname = pathname.replace(
+      `${OBJECT_PUBLIC_MARKER}${PORTFOLIO_IMAGES_BUCKET}/${PORTFOLIO_IMAGES_BUCKET}/`,
+      `${OBJECT_PUBLIC_MARKER}${PORTFOLIO_IMAGES_BUCKET}/`,
+    );
+
+    return `${parsed.origin}${pathname}`;
+  } catch {
+    return url;
+  }
+}
 
 /**
  * Supabase image transforms must use `/storage/v1/render/image/public/...`, not `/object/public/...`.
