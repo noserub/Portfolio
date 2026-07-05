@@ -16,6 +16,7 @@ import {
   ComponentLibrary 
 } from "./components";
 import { useDesignVariant, resolvePageDesignVariant } from "./design/DesignVariantContext";
+import { useFontTheme } from "./design/FontThemeContext";
 import { ModernAppChrome } from "./layouts/modern/ModernAppChrome";
 import { ModernFooter } from "./components/modern/ModernFooter";
 import { SiteOverflowMenu } from "./components/SiteOverflowMenu";
@@ -293,6 +294,7 @@ function buildProjectUpdatePayloadForSupabase(
 function AppShell() {
   const { isSupabaseAuthenticated } = useSiteAuth();
   const { designVariant, setDesignVariant, effectiveVariant, publishedVariant } = useDesignVariant();
+  const { fontTheme, setFontTheme } = useFontTheme();
   const [isDiagnosticMode, setIsDiagnosticMode] = useState(false);
   const [isEmergencyMode, setIsEmergencyMode] = useState(false);
   
@@ -1933,11 +1935,13 @@ function AppShell() {
       isEditMode={isEditMode}
       isSupabaseAuthenticated={isSupabaseAuthenticated}
       designVariant={designVariant}
+      fontTheme={fontTheme}
       pageVisibility={pageVisibility}
       systemPrefersDark={systemPrefersDark}
       onEditModeClick={handleEditModeClick}
       onPageVisibilityChange={handlePageVisibilityChange}
       onDesignVariantChange={setDesignVariant}
+      onFontThemeChange={setFontTheme}
       themeSource={themeSource}
       resolvedTheme={resolvedTheme}
       onThemeLight={handleThemeLight}

@@ -46,8 +46,6 @@ export function ModernTypingHero({ hero, loading = false }: ModernTypingHeroProp
     typeof window !== "undefined" &&
     window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  const fontFamily = hero.greetingFont || modern.font;
-
   const suffixOnlyLayout =
     plan.mode === "suffix-only" && Boolean(plan.sharedPrefix) && greetingLines.length >= 2;
 
@@ -72,9 +70,8 @@ export function ModernTypingHero({ hero, loading = false }: ModernTypingHeroProp
     return (
       <div className="space-y-1">
         <div
-          className="leading-tight"
+          className="modern-type-display leading-tight"
           style={{
-            fontFamily,
             fontWeight: 500,
             fontSize: "clamp(24px, 3vw, 32px)",
             color: modern.muted,
@@ -83,9 +80,8 @@ export function ModernTypingHero({ hero, loading = false }: ModernTypingHeroProp
           {staticHeadline.prefix}
         </div>
         <div
-          className="leading-tight"
+          className="modern-type-display leading-tight"
           style={{
-            fontFamily,
             fontWeight: 600,
             fontSize: "clamp(40px, 5.5vw, 64px)",
             color: modern.accent,
@@ -101,9 +97,8 @@ export function ModernTypingHero({ hero, loading = false }: ModernTypingHeroProp
     return (
       <div className="space-y-1">
         <div
-          className="leading-tight"
+          className="modern-type-display leading-tight"
           style={{
-            fontFamily,
             fontWeight: 500,
             fontSize: "clamp(24px, 3vw, 32px)",
             color: modern.muted,
@@ -112,9 +107,8 @@ export function ModernTypingHero({ hero, loading = false }: ModernTypingHeroProp
           {sharedPrefix}
         </div>
         <div
-          className="leading-tight"
+          className="modern-type-display leading-tight"
           style={{
-            fontFamily,
             fontWeight: 600,
             fontSize: "clamp(40px, 5.5vw, 64px)",
             color: modern.accent,
@@ -130,9 +124,8 @@ export function ModernTypingHero({ hero, loading = false }: ModernTypingHeroProp
 
   return (
     <div
-      className="leading-tight"
+      className="modern-type-display leading-tight"
       style={{
-        fontFamily,
         fontWeight: 600,
         fontSize: "clamp(32px, 5vw, 56px)",
         color: modern.accent,

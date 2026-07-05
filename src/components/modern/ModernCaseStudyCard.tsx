@@ -312,8 +312,8 @@ export function ModernCaseStudyCard({
             {tag}
           </div>
           <h3
-            className="leading-tight mb-1.5 line-clamp-2"
-            style={{ ...modernFont, fontWeight: 700, fontSize: "1.125rem", color: modern.text }}
+            className="modern-type-display leading-tight mb-1.5 line-clamp-2"
+            style={{ fontWeight: 700, fontSize: "1.125rem", color: modern.text }}
           >
             {project.title}
           </h3>
@@ -352,8 +352,8 @@ export function ModernCaseStudyCard({
             {tag}
           </div>
           <h3
-            className="leading-snug line-clamp-2"
-            style={{ ...modernFont, fontWeight: 600, fontSize: "1rem", color: modern.text }}
+            className="modern-type-display leading-snug line-clamp-2"
+            style={{ fontWeight: 600, fontSize: "1rem", color: modern.text }}
           >
             {project.title}
           </h3>

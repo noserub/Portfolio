@@ -9,6 +9,7 @@ export interface AppSettings {
   logo_url?: string;
   favicon_url?: string;
   theme: 'light' | 'dark';
+  font_theme?: string;
   is_authenticated: boolean;
   show_debug_panel: boolean;
 }
@@ -17,6 +18,7 @@ export interface AppSettingsUpdate {
   logo_url?: string;
   favicon_url?: string;
   theme?: 'light' | 'dark';
+  font_theme?: string;
   is_authenticated?: boolean;
   show_debug_panel?: boolean;
 }

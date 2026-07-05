@@ -20,10 +20,12 @@ export const modern = {
   accentSubtle: "var(--modern-accent-subtle)",
   accentSubtleStrong: "var(--modern-accent-subtle-strong)",
   accentGlow: "var(--modern-accent-glow)",
-  font: "Inter, sans-serif",
+  font: "var(--font-body)",
+  displayFont: "var(--font-display)",
 } as const;
 
 export const modernFont = { fontFamily: modern.font } as const;
+export const modernDisplayFont = { fontFamily: modern.displayFont } as const;
 
 /** Inline style for filled lime CTAs — ensures dark labels beat inherited foreground. */
 export const modernPrimaryButtonStyle = {

@@ -86,14 +86,7 @@ html[data-design="modern"]:not(.dark) {
 [data-design="modern"] body {
   background-color: var(--modern-bg);
   color: var(--modern-text);
-  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-}
-
-/* Prevent global h1 styles from blowing up modern hero scale */
-[data-design="modern"] main h1,
-[data-design="modern"] main h2,
-[data-design="modern"] main h3 {
-  font-family: Inter, sans-serif;
+  font-family: var(--font-body), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 /* ── Layout primitives (modernLayout.ts) ─────────────────────────────────── */
@@ -784,7 +777,7 @@ html[data-design="modern"]:not(.dark) {
   gap: 0.3rem;
   padding: 0.3rem 0.5rem;
   border-radius: 0.25rem;
-  font-family: Inter, sans-serif;
+  font-family: var(--font-body), sans-serif;
   font-size: 0.625rem;
   font-weight: 600;
   letter-spacing: 0.1em;
@@ -1065,7 +1058,7 @@ html[data-design="modern"]:not(.dark) .modern-case-study-card__protected-badge {
 }
 
 [data-design="modern"] .modern-contact-form__title {
-  font-family: Inter, sans-serif;
+  font-family: var(--font-body), sans-serif;
   font-weight: 600;
   font-size: 1.125rem;
   line-height: 1.35;
@@ -1086,7 +1079,7 @@ html[data-design="modern"]:not(.dark) .modern-case-study-card__protected-badge {
 }
 
 [data-design="modern"] .modern-contact-label {
-  font-family: Inter, sans-serif;
+  font-family: var(--font-body), sans-serif;
   font-size: 0.875rem;
   font-weight: 500;
   line-height: 1.4;
@@ -1102,7 +1095,7 @@ html[data-design="modern"]:not(.dark) .modern-case-study-card__protected-badge {
   border: 1px solid var(--modern-surface-border) !important;
   background: var(--modern-surface) !important;
   color: var(--modern-text) !important;
-  font-family: Inter, sans-serif;
+  font-family: var(--font-body), sans-serif;
   font-size: 1rem;
   line-height: 1.5;
   box-shadow: none;
@@ -1350,7 +1343,7 @@ html[data-design="modern"] .modern-contact-input:disabled {
 }
 
 [data-design="modern"] .modern-about-tool-pill {
-  font-family: Inter, sans-serif;
+  font-family: var(--font-body), sans-serif;
   border: 1px solid var(--modern-border);
   background: var(--modern-surface);
   color: var(--modern-text);
@@ -1531,7 +1524,7 @@ html[data-design="modern"] .modern-contact-input:disabled {
   border: none;
   border-radius: 0.5rem;
   background: transparent;
-  font-family: Inter, sans-serif;
+  font-family: var(--font-body), sans-serif;
   font-size: 1.125rem;
   font-weight: 500;
   line-height: 1.25;
@@ -1602,7 +1595,7 @@ html[data-design="modern"] .modern-contact-input:disabled {
   align-items: center;
   justify-content: center;
   height: 2rem;
-  font-family: Inter, sans-serif;
+  font-family: var(--font-body), sans-serif;
   font-size: 0.875rem;
   line-height: 1;
   font-weight: 500;
@@ -1921,12 +1914,12 @@ html[data-design="modern"] .modern-contact-input:disabled {
 }
 
 [data-design="modern"] .case-study-password-dialog__title {
-  font-family: Inter, sans-serif;
+  font-family: var(--font-body), sans-serif;
   color: var(--modern-text);
 }
 
 [data-design="modern"] .case-study-password-dialog__subtitle {
-  font-family: Inter, sans-serif;
+  font-family: var(--font-body), sans-serif;
   color: var(--modern-muted-text);
 }
 
@@ -1997,7 +1990,7 @@ html[data-design="modern"] .case-study-password-dialog__input--error:focus-visib
 
 [data-design="modern"] [data-modern-project-detail] {
   color: var(--modern-text);
-  font-family: Inter, sans-serif;
+  font-family: var(--font-body), sans-serif;
 }
 
 [data-design="modern"] [data-modern-project-detail] .min-h-screen.pt-44 {
@@ -2061,7 +2054,7 @@ html[data-design="modern"] .case-study-password-dialog__input--error:focus-visib
 }
 
 [data-design="modern"] [data-modern-project-detail] .min-h-screen h1 {
-  font-family: Inter, sans-serif !important;
+  font-family: var(--font-body), sans-serif !important;
   font-weight: 600 !important;
   font-size: clamp(1.75rem, 3.5vw, 2.625rem) !important;
   line-height: 1.15 !important;
@@ -2093,7 +2086,7 @@ html[data-design="modern"] .case-study-password-dialog__input--error:focus-visib
 [data-design="modern"] [data-modern-project-detail] .mb-8.flex.items-center.justify-between h2,
 [data-design="modern"] [data-modern-project-detail] .mb-8.relative.z-10.flex h2,
 [data-design="modern"] [data-modern-project-detail] .modern-case-study-overview h2 {
-  font-family: Inter, sans-serif !important;
+  font-family: var(--font-body), sans-serif !important;
   font-size: 0.75rem !important;
   font-weight: 600 !important;
   letter-spacing: 0.1em !important;
@@ -2210,7 +2203,7 @@ html[data-design="modern"] .case-study-password-dialog__input--error:focus-visib
 }
 
 [data-design="modern"] [data-modern-project-detail] .case-study-gallery-section__title {
-  font-family: Inter, sans-serif !important;
+  font-family: var(--font-body), sans-serif !important;
   font-weight: 600 !important;
   font-size: 0.75rem !important;
   letter-spacing: 0.1em !important;
@@ -2245,7 +2238,7 @@ html[data-design="modern"] .case-study-password-dialog__input--error:focus-visib
 
 [data-design="modern"] [data-modern-project-detail] .bg-case-study-sidebar-glass h3,
 [data-design="modern"] [data-modern-project-detail] [class*="bg-gradient-to-br"]:not(.case-study-gallery-section) h3 {
-  font-family: Inter, sans-serif !important;
+  font-family: var(--font-body), sans-serif !important;
   font-weight: 500 !important;
   font-size: 0.9375rem !important;
   color: var(--modern-text) !important;
@@ -2380,7 +2373,7 @@ html[data-design="modern"]:not(.dark) {
 }
 
 [data-design="modern"] .modern-writing-index-grid-control__label {
-  font-family: Inter, sans-serif;
+  font-family: var(--font-body), sans-serif;
   font-size: 0.6875rem;
   font-weight: 600;
   letter-spacing: 0.06em;
@@ -2399,7 +2392,7 @@ html[data-design="modern"]:not(.dark) {
 }
 
 [data-design="modern"] .modern-writing-index-grid-control__option {
-  font-family: Inter, sans-serif;
+  font-family: var(--font-body), sans-serif;
   font-size: 0.8125rem;
   font-weight: 500;
   padding: 0.375rem 0.75rem;
@@ -2433,7 +2426,7 @@ html[data-design="modern"]:not(.dark) {
 }
 
 [data-design="modern"] .modern-writing-index-title {
-  font-family: Inter, sans-serif;
+  font-family: var(--font-body), sans-serif;
   font-weight: 600;
   font-size: clamp(2rem, 4vw, 3rem);
   line-height: 1.15;
@@ -2443,7 +2436,7 @@ html[data-design="modern"]:not(.dark) {
 }
 
 [data-design="modern"] .modern-writing-index-lead {
-  font-family: Inter, sans-serif;
+  font-family: var(--font-body), sans-serif;
   font-size: 1.0625rem;
   line-height: 1.65;
   color: var(--modern-muted-text);
@@ -2489,7 +2482,7 @@ html[data-design="modern"]:not(.dark) {
 }
 
 [data-design="modern"] .modern-writing-card-actions button {
-  font-family: Inter, sans-serif;
+  font-family: var(--font-body), sans-serif;
   font-size: 0.8125rem;
   font-weight: 500;
   padding: 0.375rem 0.75rem;
@@ -2598,7 +2591,7 @@ html[data-design="modern"]:not(.dark) {
 }
 
 [data-design="modern"] .modern-writing-layout-hint {
-  font-family: Inter, sans-serif;
+  font-family: var(--font-body), sans-serif;
   font-size: 0.75rem;
   line-height: 1.5;
   color: var(--modern-muted-text);
@@ -2688,7 +2681,7 @@ html[data-design="modern"]:not(.dark) {
 }
 
 [data-design="modern"] .modern-writing-card__title {
-  font-family: Inter, sans-serif;
+  font-family: var(--font-body), sans-serif;
   font-weight: 600;
   font-size: clamp(1.125rem, 2vw, 1.5rem);
   line-height: 1.3;
@@ -2703,7 +2696,7 @@ html[data-design="modern"]:not(.dark) {
 
 [data-design="modern"] .modern-writing-card__excerpt {
   margin: 0.75rem 0 0;
-  font-family: Inter, sans-serif;
+  font-family: var(--font-body), sans-serif;
   font-size: 0.9375rem;
   line-height: 1.65;
   color: var(--modern-muted-text);
@@ -2715,7 +2708,7 @@ html[data-design="modern"]:not(.dark) {
   align-items: center;
   gap: 0.75rem 1rem;
   margin-top: 1rem;
-  font-family: Inter, sans-serif;
+  font-family: var(--font-body), sans-serif;
   font-size: 0.875rem;
   color: var(--modern-muted-text);
 }
@@ -2768,7 +2761,7 @@ html[data-design="modern"]:not(.dark) {
   border-radius: 9999px;
   border: 1px solid var(--modern-border);
   background: transparent;
-  font-family: Inter, sans-serif;
+  font-family: var(--font-body), sans-serif;
   font-size: 0.75rem;
   font-weight: 500;
   color: var(--modern-muted-text);
@@ -2787,7 +2780,7 @@ html[data-design="modern"]:not(.dark) {
   align-items: center;
   gap: 0.5rem;
   margin-bottom: 2rem;
-  font-family: Inter, sans-serif;
+  font-family: var(--font-body), sans-serif;
   font-size: 0.875rem;
   color: var(--modern-muted-text);
   background: none;
@@ -2829,7 +2822,7 @@ html[data-design="modern"]:not(.dark) {
 }
 
 [data-design="modern"] .modern-writing-toc__title {
-  font-family: Inter, sans-serif;
+  font-family: var(--font-body), sans-serif;
   font-size: 0.6875rem;
   font-weight: 600;
   letter-spacing: 0.08em;
@@ -2841,7 +2834,7 @@ html[data-design="modern"]:not(.dark) {
 [data-design="modern"] .modern-writing-toc__link {
   display: block;
   padding: 0.25rem 0;
-  font-family: Inter, sans-serif;
+  font-family: var(--font-body), sans-serif;
   font-size: 0.8125rem;
   line-height: 1.45;
   color: var(--modern-muted-text);
@@ -2866,7 +2859,7 @@ html[data-design="modern"]:not(.dark) {
 }
 
 [data-design="modern"] .modern-writing-article__title {
-  font-family: Inter, sans-serif;
+  font-family: var(--font-body), sans-serif;
   font-weight: 600;
   font-size: clamp(1.875rem, 4vw, 3rem);
   line-height: 1.15;
@@ -2877,7 +2870,7 @@ html[data-design="modern"]:not(.dark) {
 
 [data-design="modern"] .modern-writing-article__subtitle {
   margin: 1rem 0 0;
-  font-family: Inter, sans-serif;
+  font-family: var(--font-body), sans-serif;
   font-size: 1.125rem;
   line-height: 1.6;
   color: var(--modern-muted-text);
@@ -2897,7 +2890,7 @@ html[data-design="modern"]:not(.dark) {
   margin: 2rem 0;
   padding: 0.5rem 0 0.5rem 1.5rem;
   border-left: 4px solid color-mix(in srgb, var(--modern-accent) 70%, transparent);
-  font-family: Inter, sans-serif;
+  font-family: var(--font-body), sans-serif;
   font-size: clamp(1.125rem, 2vw, 1.375rem);
   font-style: italic;
   line-height: 1.55;
@@ -2930,7 +2923,7 @@ html[data-design="modern"]:not(.dark) {
 }
 
 [data-design="modern"] .modern-writing-related__title {
-  font-family: Inter, sans-serif;
+  font-family: var(--font-body), sans-serif;
   font-size: 0.6875rem;
   font-weight: 600;
   letter-spacing: 0.08em;
@@ -2945,7 +2938,7 @@ html[data-design="modern"]:not(.dark) {
   border-radius: 0.75rem;
   border: 1px solid var(--modern-border);
   background: color-mix(in srgb, var(--modern-surface-inset) 30%, transparent);
-  font-family: Inter, sans-serif;
+  font-family: var(--font-body), sans-serif;
   font-weight: 500;
   color: var(--modern-text);
   text-decoration: none;
@@ -2960,7 +2953,7 @@ html[data-design="modern"]:not(.dark) {
   display: inline-flex;
   align-items: center;
   gap: 0.375rem;
-  font-family: Inter, sans-serif;
+  font-family: var(--font-body), sans-serif;
   font-size: 0.875rem;
   color: var(--modern-accent);
   text-decoration: none;
@@ -2975,14 +2968,14 @@ html[data-design="modern"]:not(.dark) {
   border-radius: 1rem;
   border: 1px dashed var(--modern-border);
   text-align: center;
-  font-family: Inter, sans-serif;
+  font-family: var(--font-body), sans-serif;
   color: var(--modern-muted-text);
 }
 
 [data-design="modern"] .modern-writing-draft-badge {
   display: block;
   margin-bottom: 0.5rem;
-  font-family: Inter, sans-serif;
+  font-family: var(--font-body), sans-serif;
   font-size: 0.6875rem;
   font-weight: 600;
   letter-spacing: 0.06em;
@@ -3058,7 +3051,7 @@ html[data-design="modern"]:not(.dark) {
 [data-design="modern"] .modern-writing-figure__caption {
   margin-top: 0.75rem;
   text-align: center;
-  font-family: Inter, sans-serif;
+  font-family: var(--font-body), sans-serif;
   font-size: 0.875rem;
   color: var(--modern-muted-text);
 }

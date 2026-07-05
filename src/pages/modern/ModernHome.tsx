@@ -449,7 +449,7 @@ function ModernHomeView({
 
             <ModernTypingHero hero={heroText} loading={homeContentLoading} />
 
-            <div className="mt-6 sm:mt-8 max-w-xl">
+            <div className="mt-6 sm:mt-8 max-w-xl modern-hero-bio">
               <BioDocumentRenderer
                 document={bioDocument}
                 variant="modern"
@@ -486,8 +486,8 @@ function ModernHomeView({
           {homePageContent.stats.map((stat) => (
             <div key={stat.label} className="min-w-0">
               <div
+                className="modern-type-display"
                 style={{
-                  ...modernFont,
                   fontWeight: 600,
                   fontSize: "clamp(24px, 2.5vw, 32px)",
                   color: modern.accent,
@@ -497,13 +497,13 @@ function ModernHomeView({
                 {stat.number}
               </div>
               <div
-                className="mt-1.5 text-sm leading-snug"
-                style={{ ...modernFont, fontWeight: 500, color: modern.text }}
+                className="mt-1.5 text-sm leading-snug modern-type-body"
+                style={{ fontWeight: 500, color: modern.text }}
               >
                 {stat.label}
               </div>
               {stat.description ? (
-                <div className="mt-1 text-xs leading-relaxed" style={{ ...modernFont, color: modern.muted }}>
+                <div className="mt-1 text-xs leading-relaxed modern-type-body" style={{ color: modern.muted }}>
                   {stat.description}
                 </div>
               ) : null}
@@ -516,7 +516,7 @@ function ModernHomeView({
         <div className={modernLayout.dividerBand}>
           <div className={modernLayout.sectionX}>
             <div className={`${modernLayout.container} flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-6`}>
-              <h2 style={{ ...modernFont, fontWeight: 600, fontSize: "1.125rem", color: modern.text }}>
+              <h2 className="modern-type-display" style={{ fontWeight: 600, fontSize: "1.125rem", color: modern.text }}>
                 {homePageContent.ui.caseStudiesTitle || "Case studies"}
               </h2>
               <div className="flex items-center gap-2 flex-wrap justify-end">

@@ -10,6 +10,8 @@ import {
   Sun,
 } from "lucide-react";
 import type { DesignVariant } from "../types";
+import type { FontThemeId } from "../design/fontThemes";
+import { FONT_THEME_LIST } from "../design/fontThemes";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,6 +30,7 @@ export interface SiteOverflowMenuProps {
   isEditMode: boolean;
   isSupabaseAuthenticated: boolean;
   designVariant: DesignVariant;
+  fontTheme: FontThemeId;
   pageVisibility: { about: boolean; contact: boolean; writing: boolean };
   systemPrefersDark: boolean;
   themeSource: "system" | "user";
@@ -35,6 +38,7 @@ export interface SiteOverflowMenuProps {
   onEditModeClick: () => void;
   onPageVisibilityChange: (page: "about" | "contact" | "writing") => void;
   onDesignVariantChange: (variant: DesignVariant) => void;
+  onFontThemeChange: (themeId: FontThemeId) => void;
   onThemeLight: () => void;
   onThemeDark: () => void;
   onThemeSystem: () => void;
@@ -57,6 +61,7 @@ export function SiteOverflowMenu({
   isEditMode,
   isSupabaseAuthenticated,
   designVariant,
+  fontTheme,
   pageVisibility,
   systemPrefersDark,
   themeSource,
@@ -64,6 +69,7 @@ export function SiteOverflowMenu({
   onEditModeClick,
   onPageVisibilityChange,
   onDesignVariantChange,
+  onFontThemeChange,
   onThemeLight,
   onThemeDark,
   onThemeSystem,
@@ -180,6 +186,28 @@ export function SiteOverflowMenu({
             >
               {designVariant === "classic" ? "✓ " : ""}Classic design
             </DropdownMenuItem>
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>Typography</DropdownMenuSubTrigger>
+              <DropdownMenuSubContent className="w-52">
+                {FONT_THEME_LIST.map((theme) => (
+                  <DropdownMenuItem
+                    key={theme.id}
+                    onClick={() => {
+                      onFontThemeChange(theme.id);
+                      blurActiveElement();
+                    }}
+                  >
+                    <span className="flex flex-col items-start gap-0.5">
+                      <span>
+                        {fontTheme === theme.id ? "✓ " : ""}
+                        {theme.label}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground">{theme.description}</span>
+                    </span>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
           </>
         ) : null}
         <DropdownMenuSeparator />
