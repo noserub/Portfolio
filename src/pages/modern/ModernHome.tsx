@@ -36,7 +36,6 @@ import {
 } from "../../lib/modernCaseStudies";
 import { defaultBioDocument, healDegenerateHeroBio, type HomePageContentV2 } from "../../lib/homePageContent";
 import { getProjectCardFrame } from "../../lib/projectHeroFrame";
-import { usePortfolioProfileNav } from "../../hooks/usePortfolioProfileNav";
 import { supabase } from "../../lib/supabaseClient";
 import { lazyWithRetry } from "../../utils/lazyWithRetry";
 import { modernLayout } from "../../design/modernLayout";
@@ -74,7 +73,6 @@ function ModernHomeView({
   homeContentLoading,
   onEditHomeContent,
 }: ModernHomeViewProps) {
-  const { fullName } = usePortfolioProfileNav();
   const {
     projects,
     loading: projectsLoading,
@@ -448,16 +446,6 @@ function ModernHomeView({
                 </button>
               </div>
             ) : null}
-
-            <div
-              className="inline-flex items-center gap-2 mb-8 sm:mb-10 px-3 py-1.5 rounded-full border"
-              style={{ borderColor: modern.border, background: modern.surface }}
-            >
-              <span className="w-2 h-2 rounded-full shrink-0" style={{ background: modern.accent }} />
-              <span className="text-xs leading-none" style={{ ...modernFont, color: modern.muted }}>
-                {fullName} · Colorado, USA
-              </span>
-            </div>
 
             <ModernTypingHero hero={heroText} loading={homeContentLoading} />
 
