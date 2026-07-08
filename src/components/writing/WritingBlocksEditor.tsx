@@ -42,6 +42,7 @@ import {
   type WritingBlock,
   type WritingBlockType,
 } from '../../types/writingBlocks';
+import { writingArticleClass, writingLayout } from '../../design/writingLayout';
 import type { WritingLayout } from '../../types/writingBlocks';
 import type { WritingPost, WritingPostUpdate } from '../../lib/writingPosts';
 import { buildWritingPostUpdatePayload } from '../../lib/writingPosts';
@@ -472,12 +473,12 @@ export function WritingBlocksEditor({
                 syncPost(next);
                 void persistPost(next);
               }}
-              cropPreview={draft.layout === 'magazine' ? 'hero' : 'card'}
+              cropPreview="hero"
               onClear={() => void applyHeroImage('')}
               onUpload={async (file) => {
                 await uploadFigureImage(file, (url) => void applyHeroImage(url));
               }}
-              hint="Used on index cards for all layouts. On the post page, only Magazine layout shows it as a full banner. Use Adjust framing to crop and position."
+              hint="Used on index cards for all layouts and as the magazine post banner. Adjust framing once; the preview matches both surfaces."
             />
             {draft.hero_image ? (
               <div className="flex items-center gap-3 pt-1">
@@ -639,11 +640,15 @@ export function WritingBlocksEditor({
                   </div>
                 </div>
               ) : (
-                <WritingBlockRenderer
-                  blocks={[block]}
-                  caseStudies={caseStudies}
-                  posts={posts}
-                />
+                <div
+                  className={`${writingArticleClass(draft.layout)} ${writingLayout.articlePreview}`}
+                >
+                  <WritingBlockRenderer
+                    blocks={[block]}
+                    caseStudies={caseStudies}
+                    posts={posts}
+                  />
+                </div>
               )}
             </div>
           );

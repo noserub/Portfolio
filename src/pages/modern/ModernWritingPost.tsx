@@ -5,7 +5,7 @@ import { useWritingPostSEO } from '../../hooks/useSEO';
 import { useWritingAuthorName } from '../../hooks/useWritingAuthorName';
 import { useWritingPosts } from '../../hooks/useWritingPosts';
 import { useProjects } from '../../contexts/ProjectsContext';
-import { writingLayout } from '../../design/writingLayout';
+import { writingArticleClass, writingLayout } from '../../design/writingLayout';
 import { modernLayout } from '../../design/modernLayout';
 import { modern, modernFont } from '../../design/modernTokens';
 import { ModernFooter } from '../../components/modern/ModernFooter';
@@ -228,11 +228,7 @@ export function ModernWritingPostView({
               </nav>
             ) : null}
 
-            <article
-              className={
-                post.layout === 'note' ? writingLayout.articleWrapNote : writingLayout.articleWrap
-              }
-            >
+            <article className={writingArticleClass(post.layout)}>
               <header className={writingLayout.articleHeader}>
                 <h1 className={writingLayout.articleTitle}>{post.title}</h1>
                 {post.subtitle ? (

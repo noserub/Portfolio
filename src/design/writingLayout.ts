@@ -1,4 +1,5 @@
 import { modernLayout } from './modernLayout';
+import type { WritingLayout } from '../types/writingBlocks';
 
 /** Writing page class names — styles live in design/tokens/modern.css */
 export const writingLayout = {
@@ -21,8 +22,10 @@ export const writingLayout = {
   tocWrap: 'modern-writing-toc',
   tocTitle: 'modern-writing-toc__title',
   tocLink: 'modern-writing-toc__link',
-  articleWrap: 'modern-writing-article',
+  articleWrap: 'modern-writing-article modern-writing-article--essay',
+  articleWrapMagazine: 'modern-writing-article modern-writing-article--magazine',
   articleWrapNote: 'modern-writing-article modern-writing-article--note',
+  articlePreview: 'modern-writing-article-preview',
   articleHeader: 'modern-writing-article__header',
   articleTitle: 'modern-writing-article__title',
   articleSubtitle: 'modern-writing-article__subtitle',
@@ -38,3 +41,14 @@ export const writingLayout = {
   empty: 'modern-writing-empty',
   draftBadge: 'modern-writing-draft-badge',
 } as const;
+
+export function writingArticleClass(layout: WritingLayout): string {
+  switch (layout) {
+    case 'magazine':
+      return writingLayout.articleWrapMagazine;
+    case 'note':
+      return writingLayout.articleWrapNote;
+    default:
+      return writingLayout.articleWrap;
+  }
+}

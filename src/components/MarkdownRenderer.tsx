@@ -69,9 +69,21 @@ export function MarkdownRenderer({ content, variant = 'default' }: MarkdownRende
     }
     
     .markdown-content br {
-      display: block !important;
-      content: "" !important;
-      margin-bottom: 0rem !important;
+      display: inline !important;
+      margin: 0 !important;
+      line-height: inherit !important;
+    }
+
+    .markdown-content p.markdown-spacer {
+      margin: 0 0 0.75rem !important;
+      padding: 0 !important;
+      height: 0;
+      line-height: 0;
+      overflow: hidden;
+    }
+
+    .markdown-content p.markdown-spacer br {
+      display: none !important;
     }
     
     .markdown-content ul {
@@ -147,6 +159,26 @@ export function MarkdownRenderer({ content, variant = 'default' }: MarkdownRende
       margin-right: 0.5rem !important;
     }
   `;
+
+  const writingStyles = `
+    .markdown-content--writing h1 {
+      margin-bottom: 1.25rem !important;
+    }
+
+    .markdown-content--writing h2 {
+      margin-bottom: 1.25rem !important;
+    }
+
+    .markdown-content--writing h3 {
+      margin-bottom: 1rem !important;
+    }
+
+    .markdown-content--writing h4 {
+      margin-bottom: 0.875rem !important;
+    }
+  `;
+
+  const isStandaloneBr = (line: string): boolean => /^<br\s*\/?>$/i.test(line);
 
   // Parse markdown to HTML
   const parseMarkdown = (text: string): string => {
@@ -268,6 +300,16 @@ export function MarkdownRenderer({ content, variant = 'default' }: MarkdownRende
         }
         continue;
       }
+
+      // Standalone <br> adds a small controlled gap (e.g. after headings)
+      if (isStandaloneBr(line)) {
+        if (currentParagraph.length > 0) {
+          processedLines.push('<p>' + currentParagraph.join('<br>\n') + '</p>');
+          currentParagraph = [];
+        }
+        processedLines.push('<p class="markdown-spacer"><br></p>');
+        continue;
+      }
       
       // Don't wrap headers, lists, or hr in paragraphs
       if (
@@ -290,8 +332,9 @@ export function MarkdownRenderer({ content, variant = 'default' }: MarkdownRende
         }
         processedLines.push(line);
       } else {
-        // Add to current paragraph
-        currentParagraph.push(line);
+        // Trailing <br> is redundant; newline join already inserts one
+        const normalizedLine = line.replace(/<br\s*\/?>\s*$/i, '');
+        if (normalizedLine) currentParagraph.push(normalizedLine);
       }
     }
     
@@ -380,11 +423,13 @@ export function MarkdownRenderer({ content, variant = 'default' }: MarkdownRende
     return (
       <>
         <style>{customStyles}</style>
+        <style>{writingStyles}</style>
         <div
-          className="markdown-content prose prose-lg max-w-none
+          className="markdown-content markdown-content--writing prose prose-lg max-w-none
           prose-headings:font-['Montserrat',sans-serif]
-          prose-h2:text-2xl prose-h2:font-semibold prose-h2:mt-12 prose-h2:mb-4 prose-h2:scroll-mt-28
-          prose-h3:text-xl prose-h3:font-semibold prose-h3:mt-8 prose-h3:mb-3
+          prose-h1:text-3xl prose-h1:font-semibold prose-h1:mt-10 prose-h1:mb-5 first:prose-h1:mt-0 prose-h1:scroll-mt-28
+          prose-h2:text-2xl prose-h2:font-semibold prose-h2:mt-12 prose-h2:mb-5 prose-h2:scroll-mt-28
+          prose-h3:text-xl prose-h3:font-semibold prose-h3:mt-8 prose-h3:mb-4
           prose-p:text-lg prose-p:leading-[1.75] prose-p:text-muted-foreground
           prose-ul:my-4 prose-ul:space-y-2
           prose-li:text-lg prose-li:leading-relaxed prose-li:text-muted-foreground
