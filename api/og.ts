@@ -2,7 +2,7 @@ export const config = {
   runtime: 'edge',
 };
 
-const DEFAULT_OG_PATH = '/og-default.png';
+const DEFAULT_OG_PATH = '/assets/og-default.png';
 
 /** Backwards-compatible redirect: dynamic OG generation is unavailable in this Vite deploy. */
 export default function handler(req: Request) {
