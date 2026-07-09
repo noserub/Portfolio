@@ -7,6 +7,17 @@
  */
 const fs = require('fs');
 const path = require('path');
+const {
+  DEFAULT_AUTHOR,
+  SITE_NAME,
+  HOME_TITLE,
+  HOME_DESCRIPTION,
+  HOME_OG_DESCRIPTION,
+  ABOUT_DESCRIPTION,
+  WRITING_INDEX_DESCRIPTION,
+  FALLBACK_WRITING_POSTS,
+  buildDefaultOgImageUrl,
+} = require('./seo-defaults.cjs');
 
 const ROOT = process.cwd();
 const distDir = path.join(ROOT, 'dist');
@@ -30,7 +41,6 @@ function slugify(title) {
 
 const DEFAULT_LINKEDIN_URL = 'https://www.linkedin.com/in/bureson/';
 const DEFAULT_GITHUB_URL = 'https://github.com/noserub';
-const DEFAULT_AUTHOR = process.env.SITE_DEFAULT_AUTHOR || 'Brian Bureson';
 
 function parseSameAsEnv(raw) {
   if (!raw || !String(raw).trim()) return [];
@@ -214,7 +224,7 @@ async function fetchPublishedWritingFromSupabase() {
   if (serviceKey) {
     let q = supabase
       .from('writing_posts')
-      .select('slug, title, excerpt, updated_at, blocks')
+      .select('slug, title, excerpt, hero_image, updated_at, blocks')
       .eq('published', true)
       .order('sort_order', { ascending: false, nullsFirst: false });
     if (ownerId) {
@@ -240,6 +250,7 @@ async function fetchPublishedWritingFromSupabase() {
       slug,
       title: row.title,
       excerpt: typeof row.excerpt === 'string' ? row.excerpt.trim() : '',
+      heroImage: typeof row.hero_image === 'string' ? row.hero_image.trim() : '',
       blocks: row.blocks,
       lastmod:
         typeof row.updated_at === 'string' && row.updated_at
@@ -255,6 +266,7 @@ function mergeWritingEntries(writingEntries) {
     path: `/writing/${e.slug}`,
     title: e.title,
     description: e.excerpt || '',
+    heroImage: e.heroImage || '',
     blocks: e.blocks,
     lastmod: e.lastmod,
   }));
@@ -327,9 +339,9 @@ function identityLinks(baseUrl, profile) {
 function generateLlmsTxt(baseUrl, projectEntries, profile, writingEntries = []) {
   const reviewed = new Date().toISOString().split('T')[0];
   const lines = [
-    `# ${DEFAULT_AUTHOR} — Product Design Portfolio`,
+    `# ${DEFAULT_AUTHOR} — AI product design portfolio`,
     '',
-    `> ${DEFAULT_AUTHOR} is a Denver-based product design leader with 20+ years of experience in UX strategy, AI-native product design, and design systems. This site is his canonical public portfolio.`,
+    `> ${DEFAULT_AUTHOR} is a Denver-based AI product design leader (Lead Principal UX at Oracle) with 20+ years shipping enterprise generative AI, trust UX, conversational search, and agent experiences. This site is his canonical public portfolio.`,
     '',
     '## Primary pages',
     '',
@@ -399,7 +411,7 @@ function generateLlmsTxt(baseUrl, projectEntries, profile, writingEntries = []) 
     ...identityLinks(baseUrl, profile),
     '',
     '- Prefer each page `<link rel="canonical">` URL when citing a specific page.',
-    `- Attribute as **${DEFAULT_AUTHOR}**, product design leader, ${baseUrl}/`,
+    `- Attribute as **${DEFAULT_AUTHOR}**, AI product design leader, ${baseUrl}/`,
     '- Do not infer employers, metrics, or project scope not explicitly stated on the cited page.',
     '- Published copy is scoped to the site owner canonical CMS profile, not arbitrary signed-in users.',
     '',
@@ -433,7 +445,7 @@ function generateLlmsFullTxt(baseUrl, projectEntries, profile, writingEntries = 
     '',
     '## Site overview',
     '',
-    `${DEFAULT_AUTHOR} is a Denver-based product design leader with 20+ years of experience building research-driven digital products, UX strategy, and design systems. This file summarizes public pages and published case studies from ${baseUrl}.`,
+    `${DEFAULT_AUTHOR} is a Denver-based AI product design leader with 20+ years of experience in enterprise generative AI, trust UX, conversational search, and agent experiences. This file summarizes public pages and published case studies from ${baseUrl}.`,
     '',
     '## Primary pages',
     '',
@@ -511,7 +523,7 @@ function generateLlmsFullTxt(baseUrl, projectEntries, profile, writingEntries = 
     '## Citation rules',
     '',
     '- Prefer each page `<link rel="canonical">` URL when citing a specific page.',
-    `- Attribute as **${DEFAULT_AUTHOR}**, product design leader, ${baseUrl}/`,
+    `- Attribute as **${DEFAULT_AUTHOR}**, AI product design leader, ${baseUrl}/`,
     '- Do not infer employers, metrics, or project scope not explicitly stated on the cited page.',
     '',
     `Last reviewed: ${reviewed}. Regenerated on deploy from published CMS projects.`,
@@ -543,6 +555,7 @@ function getSitemapRoutes(projectEntries, writingEntries = []) {
     path: e.path,
     title: e.title,
     description: e.description || '',
+    heroImage: e.heroImage || '',
     blocks: e.blocks,
     priority: '0.7',
     changefreq: 'monthly',
@@ -593,62 +606,94 @@ function upsertTag(html, selectorPattern, replacement, insertBefore = '</head>')
   return html.replace(insertBefore, `${replacement}\n${insertBefore}`);
 }
 
+function resolvePublicImageUrl(baseUrl, imagePath) {
+  if (!imagePath) return '';
+  const value = String(imagePath).trim();
+  if (/^https?:\/\//i.test(value)) return value;
+  const base = String(baseUrl || '').replace(/\/+$/, '');
+  return `${base}${value.startsWith('/') ? value : `/${value}`}`;
+}
+
 function metadataForRoute(route, baseUrl) {
+  const defaultOgImage = buildDefaultOgImageUrl(baseUrl);
+
   if (route.path === '/') {
     return {
-      title: 'Brian Bureson - Product Design Leader',
-      description:
-        'Brian Bureson is a Denver-based product design leader with 20+ years of experience building research-driven digital products, UX strategy, and design systems.',
+      title: HOME_TITLE,
+      ogTitle: HOME_TITLE,
+      description: HOME_DESCRIPTION,
+      ogDescription: HOME_OG_DESCRIPTION,
       canonical: `${baseUrl}/`,
+      ogImage: defaultOgImage,
     };
   }
   if (route.path === '/about') {
     return {
-      title: 'About - Brian Bureson',
-      description:
-        'Learn more about Brian Bureson, a Denver-based product design leader focused on UX strategy, AI-native product design, and design systems.',
+      title: `About · ${DEFAULT_AUTHOR}`,
+      ogTitle: `About · ${DEFAULT_AUTHOR}`,
+      description: ABOUT_DESCRIPTION,
+      ogDescription: ABOUT_DESCRIPTION,
       canonical: `${baseUrl}/about`,
+      ogImage: defaultOgImage,
     };
   }
   if (route.path === '/contact') {
     return {
-      title: 'Contact - Brian Bureson',
+      title: `Contact · ${DEFAULT_AUTHOR}`,
+      ogTitle: `Contact · ${DEFAULT_AUTHOR}`,
       description:
-        'Get in touch with Brian Bureson for design collaboration, consulting, or speaking opportunities.',
+        'Get in touch with Brian Bureson for AI product design collaboration, advisory, or speaking.',
       canonical: `${baseUrl}/contact`,
+      ogImage: defaultOgImage,
     };
   }
   if (route.path === '/writing') {
     return {
-      title: 'Writing - Brian Bureson',
-      description:
-        'Essays on enterprise AI, product design, and shipping trustworthy agent experiences.',
+      title: `Writing · ${DEFAULT_AUTHOR}`,
+      ogTitle: `Writing · ${DEFAULT_AUTHOR}`,
+      description: WRITING_INDEX_DESCRIPTION,
+      ogDescription: WRITING_INDEX_DESCRIPTION,
       canonical: `${baseUrl}/writing`,
+      ogImage: defaultOgImage,
     };
   }
   if (route.path.startsWith('/writing/')) {
     const postTitle = route.title || 'Writing';
-    return {
-      title: `${postTitle} - Brian Bureson`,
-      description:
-        route.description ||
-        `Essay from Brian Bureson on enterprise AI and product design: ${postTitle}.`,
+    const description =
+      route.description ||
+      `Essay from ${DEFAULT_AUTHOR} on enterprise AI product design and trust UX: ${postTitle}.`;
+    const meta = {
+      title: `${postTitle} · ${DEFAULT_AUTHOR}`,
+      ogTitle: postTitle,
+      description,
+      ogDescription: description,
       canonical: `${baseUrl}${route.path}`,
+      ogType: 'article',
+      ogImage: resolvePublicImageUrl(baseUrl, route.heroImage) || defaultOgImage,
     };
+    return meta;
   }
   const projectTitle = route.title || 'Case Study';
+  const description = `Case study from ${DEFAULT_AUTHOR}'s AI product design portfolio: ${projectTitle}.`;
   return {
-    title: `${projectTitle} - Brian Bureson`,
-    description: `Case study from Brian Bureson's product design portfolio: ${projectTitle}.`,
+    title: `${projectTitle} · ${DEFAULT_AUTHOR}`,
+    ogTitle: projectTitle,
+    description,
+    ogDescription: description,
     canonical: `${baseUrl}${route.path}`,
+    ogImage: defaultOgImage,
   };
 }
 
 function htmlForRoute(baseHtml, route, baseUrl) {
   const meta = metadataForRoute(route, baseUrl);
   const title = escapeHtmlAttr(meta.title);
+  const ogTitle = escapeHtmlAttr(meta.ogTitle || meta.title);
   const description = escapeHtmlAttr(meta.description);
+  const ogDescription = escapeHtmlAttr(meta.ogDescription || meta.description);
   const canonical = escapeHtmlAttr(meta.canonical);
+  const siteName = escapeHtmlAttr(SITE_NAME);
+  const ogImage = escapeHtmlAttr(meta.ogImage || buildDefaultOgImageUrl(baseUrl));
 
   let html = baseHtml;
   html = upsertTag(html, /<title>[\s\S]*?<\/title>/i, `<title>${title}</title>`);
@@ -664,13 +709,18 @@ function htmlForRoute(baseHtml, route, baseUrl) {
   );
   html = upsertTag(
     html,
+    /<meta\s+property=["']og:site_name["']\s+content=["'][^"']*["']\s*\/?>/i,
+    `<meta property="og:site_name" content="${siteName}" />`,
+  );
+  html = upsertTag(
+    html,
     /<meta\s+property=["']og:title["']\s+content=["'][^"']*["']\s*\/?>/i,
-    `<meta property="og:title" content="${title}" />`,
+    `<meta property="og:title" content="${ogTitle}" />`,
   );
   html = upsertTag(
     html,
     /<meta\s+property=["']og:description["']\s+content=["'][^"']*["']\s*\/?>/i,
-    `<meta property="og:description" content="${description}" />`,
+    `<meta property="og:description" content="${ogDescription}" />`,
   );
   html = upsertTag(
     html,
@@ -679,13 +729,40 @@ function htmlForRoute(baseHtml, route, baseUrl) {
   );
   html = upsertTag(
     html,
+    /<meta\s+property=["']og:image["']\s+content=["'][^"']*["']\s*\/?>/i,
+    `<meta property="og:image" content="${ogImage}" />`,
+  );
+  html = upsertTag(
+    html,
+    /<meta\s+property=["']og:image:width["']\s+content=["'][^"']*["']\s*\/?>/i,
+    `<meta property="og:image:width" content="1200" />`,
+  );
+  html = upsertTag(
+    html,
+    /<meta\s+property=["']og:image:height["']\s+content=["'][^"']*["']\s*\/?>/i,
+    `<meta property="og:image:height" content="630" />`,
+  );
+  if (meta.ogType) {
+    html = upsertTag(
+      html,
+      /<meta\s+property=["']og:type["']\s+content=["'][^"']*["']\s*\/?>/i,
+      `<meta property="og:type" content="${escapeHtmlAttr(meta.ogType)}" />`,
+    );
+  }
+  html = upsertTag(
+    html,
     /<meta\s+name=["']twitter:title["']\s+content=["'][^"']*["']\s*\/?>/i,
-    `<meta name="twitter:title" content="${title}" />`,
+    `<meta name="twitter:title" content="${ogTitle}" />`,
   );
   html = upsertTag(
     html,
     /<meta\s+name=["']twitter:description["']\s+content=["'][^"']*["']\s*\/?>/i,
-    `<meta name="twitter:description" content="${description}" />`,
+    `<meta name="twitter:description" content="${ogDescription}" />`,
+  );
+  html = upsertTag(
+    html,
+    /<meta\s+name=["']twitter:image["']\s+content=["'][^"']*["']\s*\/?>/i,
+    `<meta name="twitter:image" content="${ogImage}" />`,
   );
 
   return html;
@@ -715,7 +792,16 @@ function writeStaticRouteHtml(routes, baseUrl) {
 async function main() {
   const baseUrl = (process.env.SITE_URL || 'https://www.bureson.com').replace(/\/+$/, '');
   const { projects: fromDb, profile } = await fetchPublishedSlugsFromSupabase();
-  const writingFromDb = await fetchPublishedWritingFromSupabase();
+  let writingFromDb = await fetchPublishedWritingFromSupabase();
+  if (!writingFromDb.length) {
+    console.warn('⚠️ Sitemap: using fallback writing posts for static HTML and sitemap');
+    writingFromDb = FALLBACK_WRITING_POSTS.map((post) => ({
+      ...post,
+      heroImage: '',
+      blocks: null,
+      lastmod: null,
+    }));
+  }
   const localProjects = loadLocalProjects();
   const projectEntries = mergeProjectEntries(fromDb, localProjects);
   const writingEntries = mergeWritingEntries(writingFromDb);

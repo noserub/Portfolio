@@ -151,8 +151,10 @@ export function generatePersonSchema(
     '@type': 'Person',
     '@id': ids.person,
     name: personData?.name || sitewide.defaultAuthor,
-    jobTitle: personData?.jobTitle || 'Product Design Leader',
-    description: personData?.description || `Portfolio of ${sitewide.defaultAuthor}, an experienced product design leader.`,
+    jobTitle: personData?.jobTitle || 'Lead Principal UX · AI product design',
+    description:
+      personData?.description ||
+      `Portfolio of ${sitewide.defaultAuthor}, Denver-based AI product design leader for enterprise generative AI and trust UX.`,
     url: sitewide.siteUrl,
     image: personData?.image || sitewide.defaultOGImage,
     email: personData?.email,

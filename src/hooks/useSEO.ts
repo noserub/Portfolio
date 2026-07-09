@@ -66,7 +66,7 @@ export function useSEO(pageKey: 'home' | 'about' | 'caseStudies' | 'contact') {
           );
           const personSchema = generatePersonSchema(seoData.sitewide, {
             name: seoData.sitewide.defaultAuthor,
-            jobTitle: 'Product Design Leader',
+            jobTitle: 'Lead Principal UX · AI product design',
             description: pageSEO?.description,
             image: pageSEO?.ogImage || seoData.sitewide.defaultOGImage,
             sameAs: sameAs.length ? sameAs : undefined,
@@ -236,7 +236,11 @@ export function useWritingIndexSEO() {
 export type WritingPostSeoMeta = {
   createdAt?: string;
   updatedAt?: string;
+  publishedAt?: string | null;
   slug?: string;
+  excerpt?: string | null;
+  heroImage?: string | null;
+  topics?: string[];
 };
 
 export function useWritingPostSEO(
@@ -247,11 +251,19 @@ export function useWritingPostSEO(
   useEffect(() => {
     let isCancelled = false;
 
+    const source = {
+      title: postTitle,
+      excerpt: meta?.excerpt,
+      heroImage: meta?.heroImage,
+      topics: meta?.topics,
+      slug: meta?.slug,
+    };
+
     const applyWritingPostSEO = async () => {
       try {
         const seoData = await loadSEODataFromSupabase();
         if (isCancelled) return;
-        const postSEO = await loadWritingPostSEOFromSupabase(postId, postTitle);
+        const postSEO = await loadWritingPostSEOFromSupabase(postId, source);
         if (isCancelled) return;
 
         applyPageSEO(postSEO, seoData.sitewide, { ogType: 'article' });
@@ -268,7 +280,8 @@ export function useWritingPostSEO(
           image: postSEO.ogImage || postSEO.twitterImage,
           url: articleUrl,
         };
-        if (meta?.createdAt) articleExtras.datePublished = meta.createdAt;
+        const datePublished = meta?.publishedAt || meta?.createdAt;
+        if (datePublished) articleExtras.datePublished = datePublished;
         if (meta?.updatedAt) articleExtras.dateModified = meta.updatedAt;
 
         schemas.push(generateArticleSchema(postSEO, seoData.sitewide, articleExtras));
@@ -289,7 +302,7 @@ export function useWritingPostSEO(
       } catch (error) {
         console.error('❌ SEO: Error applying writing post SEO:', error);
         const localSeoData = getSEOData();
-        const localPostSEO = getWritingPostSEO(postId, postTitle);
+        const localPostSEO = getWritingPostSEO(postId, source);
         applyPageSEO(localPostSEO, localSeoData.sitewide, { ogType: 'article' });
       }
     };
@@ -298,5 +311,15 @@ export function useWritingPostSEO(
     return () => {
       isCancelled = true;
     };
-  }, [postId, postTitle, meta?.createdAt, meta?.updatedAt, meta?.slug]);
+  }, [
+    postId,
+    postTitle,
+    meta?.createdAt,
+    meta?.updatedAt,
+    meta?.publishedAt,
+    meta?.slug,
+    meta?.excerpt,
+    meta?.heroImage,
+    meta?.topics,
+  ]);
 }

@@ -1,6 +1,7 @@
 // SEO Manager - Manages SEO metadata for all pages
 import { supabase } from '../lib/supabaseClient';
 import { getPortfolioOwnerUserId } from '../lib/portfolioOwner';
+import { resolveStoragePublicUrl } from './imageOptimizer';
 
 export interface SEOData {
   title: string;
@@ -84,10 +85,10 @@ function seoPageTypeToDb(appPageType: string): string {
 
 const DEFAULT_SEO_DATA: AllSEOData = {
   sitewide: {
-    siteName: 'Brian Bureson - Product Design Leader',
+    siteName: 'Brian Bureson',
     siteUrl: getSiteUrl(),
     defaultAuthor: 'Brian Bureson',
-    defaultOGImage: `${getSiteUrl()}/api/og?title=Brian%20Bureson%20-%20Product%20Design%20Leader`,
+    defaultOGImage: `${getSiteUrl()}/api/og?title=${encodeURIComponent('Brian Bureson · AI product design & trust UX')}`,
     defaultTwitterCard: 'summary_large_image',
     faviconType: 'text',
     faviconText: 'BB',
@@ -99,9 +100,11 @@ const DEFAULT_SEO_DATA: AllSEOData = {
   },
   pages: {
     home: {
-      title: 'Brian Bureson - Product Design Leader',
-      description: 'Portfolio of Brian Bureson, an experienced product design leader specializing in user-centered design, design systems, and innovative digital experiences.',
-      keywords: 'product design, UX design, design leadership, portfolio, Brian Bureson, user experience, design systems',
+      title: 'Brian Bureson · AI product design & trust UX · Denver',
+      description:
+        'Lead Principal UX at Oracle. Denver-based AI product designer for enterprise generative AI, conversational search, assistants, and agent experiences. Case studies and writing on trust UX, answer quality, and launch readiness.',
+      keywords:
+        'AI product design, trust UX, enterprise AI, conversational search, agent experiences, Brian Bureson, Denver, design leadership',
       ogTitle: '',
       ogDescription: '',
       ogImage: '',
@@ -112,9 +115,11 @@ const DEFAULT_SEO_DATA: AllSEOData = {
       canonicalUrl: '',
     },
     about: {
-      title: 'About - Brian Bureson',
-      description: 'Learn more about Brian Bureson, a Denver-based product design leader with a passion for creating meaningful user experiences and leading design teams.',
-      keywords: 'about Brian Bureson, Denver product designer, design leader, UX designer, product designer',
+      title: 'About · Brian Bureson',
+      description:
+        'About Brian Bureson: Denver-based AI product design leader. Enterprise generative AI, trust UX, 0→1 launches, FDA-regulated medical devices, and consumer products at global scale.',
+      keywords:
+        'about Brian Bureson, Denver AI product designer, trust UX, enterprise AI, design leadership',
       ogTitle: '',
       ogDescription: '',
       ogImage: '',
@@ -151,9 +156,11 @@ const DEFAULT_SEO_DATA: AllSEOData = {
       canonicalUrl: '',
     },
     writingIndex: {
-      title: 'Writing - Brian Bureson',
-      description: 'Essays on enterprise AI, product design, and shipping trustworthy agent experiences.',
-      keywords: 'writing, essays, enterprise AI, product design, UX strategy, Brian Bureson',
+      title: 'Writing · Brian Bureson',
+      description:
+        'Essays on enterprise AI product design, agent behavior, trust UX, and answer quality before launch.',
+      keywords:
+        'writing, essays, enterprise AI, trust UX, agent behavior, product design, Brian Bureson',
       ogTitle: '',
       ogDescription: '',
       ogImage: '',
@@ -676,28 +683,150 @@ export async function copyCaseStudySEO(
   await saveCaseStudySEO(targetCaseStudyId, copied);
 }
 
-export function getWritingPostSEO(postId: string, postTitle?: string): SEOData {
+export type WritingPostSeoSource = {
+  title?: string;
+  excerpt?: string | null;
+  heroImage?: string | null;
+  topics?: string[];
+  slug?: string;
+};
+
+function resolveWritingPostOgImage(
+  heroImage: string | null | undefined,
+  sitewide?: SitewideSEO,
+): string | undefined {
+  const trimmed = heroImage?.trim();
+  if (!trimmed) return undefined;
+
+  const resolved = resolveStoragePublicUrl(trimmed);
+  if (!resolved) return undefined;
+  if (/^https?:\/\//i.test(resolved)) return resolved;
+
+  const siteBase = sitewide?.siteUrl ? normalizeSiteUrlForSeo(sitewide.siteUrl) : getSiteUrl();
+  return `${siteBase}${resolved.startsWith('/') ? resolved : `/${resolved}`}`;
+}
+
+export function buildAutoWritingPostSEO(
+  source: WritingPostSeoSource,
+  defaults: SEOData,
+  sitewide?: SitewideSEO,
+): SEOData {
+  const title = source.title?.trim();
+  const excerpt = source.excerpt?.trim();
+  const topics = (source.topics ?? []).map((t) => t.trim()).filter(Boolean);
+  const slug = source.slug?.trim();
+  const hero = resolveWritingPostOgImage(source.heroImage, sitewide);
+
+  const seoTitle = title ? `${title} - Brian Bureson` : defaults.title;
+  const description = excerpt || defaults.description;
+  const keywords = topics.length
+    ? `${topics.join(', ')}, ${defaults.keywords}`
+    : defaults.keywords;
+  const canonicalUrl =
+    slug && sitewide?.siteUrl
+      ? `${normalizeSiteUrlForSeo(sitewide.siteUrl)}/writing/${slug}`
+      : defaults.canonicalUrl;
+
+  return {
+    ...defaults,
+    title: seoTitle,
+    description,
+    keywords,
+    ogTitle: title || defaults.ogTitle || seoTitle,
+    ogDescription: excerpt || defaults.ogDescription || description,
+    ogImage: hero || defaults.ogImage,
+    twitterTitle: title || defaults.twitterTitle || seoTitle,
+    twitterDescription: excerpt || defaults.twitterDescription || description,
+    twitterImage: hero || defaults.twitterImage || defaults.ogImage,
+    canonicalUrl,
+  };
+}
+
+function isCustomWritingPostSeoValue(
+  field: keyof SEOData,
+  value: string | undefined,
+  defaults: SEOData,
+): boolean {
+  if (!value?.trim()) return false;
+  const template = defaults[field];
+  if (typeof template === 'string' && value.trim() === template.trim()) return false;
+  return true;
+}
+
+function applyWritingPostSeoOverrides(
+  base: SEOData,
+  overrides: Partial<SEOData>,
+  defaults: SEOData,
+): SEOData {
+  const result = { ...base };
+  const keys: (keyof SEOData)[] = [
+    'title',
+    'description',
+    'keywords',
+    'ogTitle',
+    'ogDescription',
+    'ogImage',
+    'twitterTitle',
+    'twitterDescription',
+    'twitterImage',
+    'canonicalUrl',
+  ];
+
+  for (const key of keys) {
+    const value = overrides[key];
+    if (typeof value === 'string' && isCustomWritingPostSeoValue(key, value, defaults)) {
+      result[key] = value.trim() as SEOData[typeof key];
+    }
+  }
+
+  if (
+    overrides.twitterCard === 'summary' ||
+    overrides.twitterCard === 'summary_large_image'
+  ) {
+    result.twitterCard = overrides.twitterCard;
+  }
+
+  return result;
+}
+
+export function getWritingPostSEO(
+  postId: string,
+  source: WritingPostSeoSource = {},
+): SEOData {
+  const seoData = getSEOData();
+  const auto = buildAutoWritingPostSEO(
+    source,
+    seoData.writingPostDefaults,
+    seoData.sitewide,
+  );
+
   try {
     const stored = localStorage.getItem(`seo-writing-post-${postId}`);
     if (stored) {
-      return JSON.parse(stored);
+      return applyWritingPostSeoOverrides(
+        auto,
+        JSON.parse(stored) as Partial<SEOData>,
+        seoData.writingPostDefaults,
+      );
     }
   } catch (error) {
     console.error('Error loading writing post SEO:', error);
   }
 
-  const defaults = getSEOData().writingPostDefaults;
-  return {
-    ...defaults,
-    title: postTitle ? `${postTitle} - Brian Bureson` : defaults.title,
-  };
+  return auto;
 }
 
 export async function loadWritingPostSEOFromSupabase(
   postId: string,
-  postTitle?: string,
+  source: WritingPostSeoSource = {},
 ): Promise<SEOData> {
-  const local = getWritingPostSEO(postId, postTitle);
+  const seoData = getSEOData();
+  const auto = buildAutoWritingPostSEO(
+    source,
+    seoData.writingPostDefaults,
+    seoData.sitewide,
+  );
+
   try {
     const {
       data: { user },
@@ -711,13 +840,15 @@ export async function loadWritingPostSEOFromSupabase(
       .eq('page_type', pageType)
       .maybeSingle();
     if (error) throw error;
-    if (!data) return local;
-    const merged = mapSeoRowToSeoData(data as SeoDataRow, local);
+    if (!data) return auto;
+
+    const custom = mapSeoRowToSeoData(data as SeoDataRow, {});
+    const merged = applyWritingPostSeoOverrides(auto, custom, seoData.writingPostDefaults);
     localStorage.setItem(`seo-writing-post-${postId}`, JSON.stringify(merged));
     return merged;
   } catch (error) {
     console.warn('⚠️ SEO: Falling back to local writing post SEO:', error);
-    return local;
+    return getWritingPostSEO(postId, source);
   }
 }
 

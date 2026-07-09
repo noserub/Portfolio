@@ -5,6 +5,13 @@
 */
 const fs = require('fs');
 const path = require('path');
+const {
+  DEFAULT_AUTHOR,
+  SITE_NAME,
+  HOME_DESCRIPTION,
+  PERSON_JOB_TITLE,
+  buildDefaultOgImageUrl,
+} = require('./seo-defaults.cjs');
 
 const ROOT = process.cwd();
 const indexPath = path.join(ROOT, 'index.html');
@@ -13,8 +20,6 @@ require('dotenv').config({ path: path.join(ROOT, '.env.local') });
 require('dotenv').config({ path: path.join(ROOT, '.env') });
 
 const defaultSiteUrl = (process.env.SITE_URL || 'https://www.bureson.com').replace(/\/+$/, '');
-const defaultAuthor = process.env.SITE_DEFAULT_AUTHOR || 'Brian Bureson';
-const siteName = process.env.SITE_NAME || 'Brian Bureson - Product Design Leader';
 
 function parseSameAsEnv(raw) {
   if (!raw || !String(raw).trim()) return [];
@@ -23,7 +28,7 @@ function parseSameAsEnv(raw) {
       String(raw)
         .split(/[\n,]+/)
         .map((s) => s.trim())
-        .filter((s) => /^https?:\/\//i.test(s))
+        .filter((s) => /^https?:\/\//i.test(s)),
     ),
   ];
 }
@@ -45,20 +50,18 @@ function readMetaDescription(html) {
 function generateStaticStructuredData(metaDescription) {
   const ids = entityIds(defaultSiteUrl);
   const sameAs = parseSameAsEnv(process.env.VITE_PUBLIC_SAME_AS);
-  const desc =
-    metaDescription ||
-    `${defaultAuthor} is a product design leader. Portfolio, case studies, and contact at ${defaultSiteUrl}.`;
+  const desc = metaDescription || HOME_DESCRIPTION;
   const orgLogo =
     (process.env.VITE_PUBLIC_ORGANIZATION_LOGO_URL || '').trim() ||
-    `${defaultSiteUrl}/api/og?title=${encodeURIComponent(siteName)}`;
+    buildDefaultOgImageUrl(defaultSiteUrl);
 
   const organizationSchema = {
     '@context': 'https://schema.org',
     '@type': 'Organization',
     '@id': ids.organization,
-    name: siteName,
+    name: SITE_NAME,
     url: defaultSiteUrl,
-    description: `Portfolio website of ${defaultAuthor}, a product design leader.`,
+    description: `Portfolio and writing by ${DEFAULT_AUTHOR}: enterprise AI product design and trust UX.`,
     ...(orgLogo ? { logo: orgLogo } : {}),
     ...(sameAs.length ? { sameAs } : {}),
   };
@@ -67,24 +70,39 @@ function generateStaticStructuredData(metaDescription) {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
     '@id': ids.website,
-    name: siteName,
+    name: SITE_NAME,
     url: defaultSiteUrl,
-    description: `Portfolio website of ${defaultAuthor}, a product design leader.`,
+    description: `Portfolio, case studies, and essays on enterprise AI product design by ${DEFAULT_AUTHOR}.`,
   };
 
   const personSchema = {
     '@context': 'https://schema.org',
     '@type': 'Person',
     '@id': ids.person,
-    name: defaultAuthor,
-    jobTitle: 'Product Design Leader',
+    name: DEFAULT_AUTHOR,
+    jobTitle: PERSON_JOB_TITLE,
     description: desc,
     url: defaultSiteUrl,
+    address: {
+      '@type': 'PostalAddress',
+      addressLocality: 'Denver',
+      addressRegion: 'CO',
+      addressCountry: 'US',
+    },
+    knowsAbout: [
+      'AI product design',
+      'enterprise generative AI',
+      'trust UX',
+      'conversational AI',
+      'agent experiences',
+      'answer UX',
+      'design leadership',
+    ],
     ...(sameAs.length ? { sameAs } : {}),
     worksFor: {
       '@type': 'Organization',
       '@id': ids.organization,
-      name: siteName,
+      name: SITE_NAME,
     },
   };
 
@@ -100,9 +118,7 @@ function injectStructuredDataIntoHTML() {
   let html = fs.readFileSync(indexPath, 'utf8');
   const metaDescription = readMetaDescription(html);
 
-  // Remove any existing structured data scripts (to avoid duplicates)
   html = html.replace(/<script[^>]*type=["']application\/ld\+json["'][^>]*>[\s\S]*?<\/script>/gi, '');
-  // Keep repeated builds from leaving expanding blank space where JSON-LD scripts were removed.
   html = html.replace(/(?:[ \t]*\r?\n){4,}/g, '\n\n\n');
 
   const schemas = generateStaticStructuredData(metaDescription);

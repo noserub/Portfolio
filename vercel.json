@@ -1,10 +1,18 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "rewrites": [
+  "redirects": [
     {
-      "source": "/(.*)",
-      "destination": "/"
+      "source": "/project/ask-oracle-in-myoracle",
+      "destination": "/project/enterprise-ai-assistant-for-internal-knowledge-work",
+      "permanent": true
+    }
+  ],
+  "rewrites": [
+    { "handle": "filesystem" },
+    {
+      "source": "/((?!assets/).*)",
+      "destination": "/index.html"
     }
   ],
   "headers": [

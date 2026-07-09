@@ -62,7 +62,11 @@ export function ModernWritingPostView({
   useWritingPostSEO(post.id, post.title, {
     createdAt: post.created_at,
     updatedAt: post.updated_at,
+    publishedAt: post.published_at,
     slug: post.slug,
+    excerpt: post.excerpt,
+    heroImage: post.hero_image,
+    topics: post.topics,
   });
 
   const authorName = useWritingAuthorName();
