@@ -9,7 +9,6 @@
     }
   ],
   "rewrites": [
-    { "handle": "filesystem" },
     {
       "source": "/((?!assets/).*)",
       "destination": "/index.html"
