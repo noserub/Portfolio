@@ -18,8 +18,8 @@ function slugFromWritingEntry(entry) {
 }
 
 /**
- * Build 1200x630 OG crops for writing heroes into dist/share/og/{slug}.png.
- * LinkedIn expects at least 1200px width; raw heroes are often smaller or wrong aspect.
+ * Build 1200x630 OG images for writing heroes into dist/share/og/{slug}.png.
+ * Uses letterboxing (fit inside) so collage headlines are not cropped off.
  */
 async function optimizeWritingOgImages(writingEntries, baseUrl, distDir, ensureDir) {
   let sharp;
@@ -48,8 +48,24 @@ async function optimizeWritingOgImages(writingEntries, baseUrl, distDir, ensureD
       }
       const input = Buffer.from(await response.arrayBuffer());
       const metadata = await sharp(input).metadata();
-      await sharp(input)
-        .resize(OG_WIDTH, OG_HEIGHT, { fit: 'cover', position: 'center' })
+
+      const resized = await sharp(input)
+        .resize(OG_WIDTH, OG_HEIGHT, {
+          fit: 'inside',
+          withoutEnlargement: false,
+        })
+        .png()
+        .toBuffer();
+
+      await sharp({
+        create: {
+          width: OG_WIDTH,
+          height: OG_HEIGHT,
+          channels: 4,
+          background: { r: 10, g: 10, b: 10, alpha: 1 },
+        },
+      })
+        .composite([{ input: resized, gravity: 'center' }])
         .png({ compressionLevel: 9 })
         .toFile(outPath);
 
@@ -57,7 +73,7 @@ async function optimizeWritingOgImages(writingEntries, baseUrl, distDir, ensureD
       entry.ogImageWidth = OG_WIDTH;
       entry.ogImageHeight = OG_HEIGHT;
       console.log(
-        `✅ Writing OG ${slug}: ${metadata.width || '?'}x${metadata.height || '?'} hero → ${OG_WIDTH}x${OG_HEIGHT}`,
+        `✅ Writing OG ${slug}: ${metadata.width || '?'}x${metadata.height || '?'} hero → ${OG_WIDTH}x${OG_HEIGHT} (letterboxed)`,
       );
     } catch (error) {
       console.warn(`⚠️ Writing OG skipped for ${slug}:`, error.message);
