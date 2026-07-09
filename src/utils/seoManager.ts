@@ -898,7 +898,11 @@ export async function saveWritingPostSEO(postId: string, data: SEOData): Promise
 export function applyPageSEO(
   pageSEO: SEOData,
   sitewide: SitewideSEO,
-  options?: { ogType?: 'website' | 'article' },
+  options?: {
+    ogType?: 'website' | 'article';
+    publishedTime?: string;
+    modifiedTime?: string;
+  },
 ): void {
   // Update title
   document.title = pageSEO.title;
@@ -933,6 +937,16 @@ export function applyPageSEO(
   updateMetaTag('meta[property="og:description"]', pageSEO.ogDescription || pageSEO.description);
   updateMetaTag('meta[property="og:type"]', options?.ogType || 'website');
   updateMetaTag('meta[property="og:locale"]', 'en_US');
+
+  if (options?.ogType === 'article') {
+    updateMetaTag('meta[property="article:author"]', sitewide.defaultAuthor);
+    if (options.publishedTime) {
+      updateMetaTag('meta[property="article:published_time"]', options.publishedTime);
+    }
+    if (options.modifiedTime) {
+      updateMetaTag('meta[property="article:modified_time"]', options.modifiedTime);
+    }
+  }
   
   const normalizeCanonicalUrl = (urlValue: string): string => {
     const trimmed = urlValue.trim();

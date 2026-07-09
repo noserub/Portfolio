@@ -224,7 +224,7 @@ async function fetchPublishedWritingFromSupabase() {
   if (serviceKey) {
     let q = supabase
       .from('writing_posts')
-      .select('slug, title, excerpt, hero_image, updated_at, blocks')
+      .select('slug, title, excerpt, hero_image, published_at, updated_at, blocks')
       .eq('published', true)
       .order('sort_order', { ascending: false, nullsFirst: false });
     if (ownerId) {
@@ -251,6 +251,8 @@ async function fetchPublishedWritingFromSupabase() {
       title: row.title,
       excerpt: typeof row.excerpt === 'string' ? row.excerpt.trim() : '',
       heroImage: typeof row.hero_image === 'string' ? row.hero_image.trim() : '',
+      publishedAt:
+        typeof row.published_at === 'string' && row.published_at ? row.published_at : null,
       blocks: row.blocks,
       lastmod:
         typeof row.updated_at === 'string' && row.updated_at
@@ -267,6 +269,7 @@ function mergeWritingEntries(writingEntries) {
     title: e.title,
     description: e.excerpt || '',
     heroImage: e.heroImage || '',
+    publishedAt: e.publishedAt || null,
     blocks: e.blocks,
     lastmod: e.lastmod,
   }));
@@ -556,6 +559,7 @@ function getSitemapRoutes(projectEntries, writingEntries = []) {
     title: e.title,
     description: e.description || '',
     heroImage: e.heroImage || '',
+    publishedAt: e.publishedAt || null,
     blocks: e.blocks,
     priority: '0.7',
     changefreq: 'monthly',
@@ -614,6 +618,12 @@ function resolvePublicImageUrl(baseUrl, imagePath) {
   return `${base}${value.startsWith('/') ? value : `/${value}`}`;
 }
 
+function toIso8601(value) {
+  if (!value) return '';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '' : date.toISOString();
+}
+
 function metadataForRoute(route, baseUrl) {
   const defaultOgImage = buildDefaultOgImageUrl(baseUrl);
 
@@ -669,6 +679,8 @@ function metadataForRoute(route, baseUrl) {
       ogDescription: description,
       canonical: `${baseUrl}${route.path}`,
       ogType: 'article',
+      author: DEFAULT_AUTHOR,
+      publishedTime: toIso8601(route.publishedAt) || toIso8601(route.lastmod),
       ogImage: resolvePublicImageUrl(baseUrl, route.heroImage) || defaultOgImage,
     };
     return meta;
@@ -694,6 +706,7 @@ function htmlForRoute(baseHtml, route, baseUrl) {
   const canonical = escapeHtmlAttr(meta.canonical);
   const siteName = escapeHtmlAttr(SITE_NAME);
   const ogImage = escapeHtmlAttr(meta.ogImage || buildDefaultOgImageUrl(baseUrl));
+  const author = escapeHtmlAttr(meta.author || DEFAULT_AUTHOR);
 
   let html = baseHtml;
   html = upsertTag(html, /<title>[\s\S]*?<\/title>/i, `<title>${title}</title>`);
@@ -701,6 +714,11 @@ function htmlForRoute(baseHtml, route, baseUrl) {
     html,
     /<meta\s+name=["']description["']\s+content=["'][^"']*["']\s*\/?>/i,
     `<meta name="description" content="${description}" />`,
+  );
+  html = upsertTag(
+    html,
+    /<meta\s+name=["']author["']\s+content=["'][^"']*["']\s*\/?>/i,
+    `<meta name="author" content="${author}" />`,
   );
   html = upsertTag(
     html,
@@ -748,6 +766,21 @@ function htmlForRoute(baseHtml, route, baseUrl) {
       /<meta\s+property=["']og:type["']\s+content=["'][^"']*["']\s*\/?>/i,
       `<meta property="og:type" content="${escapeHtmlAttr(meta.ogType)}" />`,
     );
+  }
+  if (meta.ogType === 'article') {
+    html = upsertTag(
+      html,
+      /<meta\s+property=["']article:author["']\s+content=["'][^"']*["']\s*\/?>/i,
+      `<meta property="article:author" content="${author}" />`,
+    );
+    if (meta.publishedTime) {
+      const publishedTime = escapeHtmlAttr(meta.publishedTime);
+      html = upsertTag(
+        html,
+        /<meta\s+property=["']article:published_time["']\s+content=["'][^"']*["']\s*\/?>/i,
+        `<meta property="article:published_time" content="${publishedTime}" />`,
+      );
+    }
   }
   html = upsertTag(
     html,

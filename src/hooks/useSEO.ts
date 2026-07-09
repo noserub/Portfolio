@@ -266,7 +266,15 @@ export function useWritingPostSEO(
         const postSEO = await loadWritingPostSEOFromSupabase(postId, source);
         if (isCancelled) return;
 
-        applyPageSEO(postSEO, seoData.sitewide, { ogType: 'article' });
+        const datePublished = meta?.publishedAt || meta?.createdAt;
+        const publishedTime = datePublished ? new Date(datePublished).toISOString() : undefined;
+        const modifiedTime = meta?.updatedAt ? new Date(meta.updatedAt).toISOString() : undefined;
+
+        applyPageSEO(postSEO, seoData.sitewide, {
+          ogType: 'article',
+          publishedTime,
+          modifiedTime,
+        });
 
         const schemas: object[] = [generateOrganizationSchema(seoData.sitewide)];
         const slug = meta?.slug || '';
@@ -280,7 +288,6 @@ export function useWritingPostSEO(
           image: postSEO.ogImage || postSEO.twitterImage,
           url: articleUrl,
         };
-        const datePublished = meta?.publishedAt || meta?.createdAt;
         if (datePublished) articleExtras.datePublished = datePublished;
         if (meta?.updatedAt) articleExtras.dateModified = meta.updatedAt;
 
@@ -303,7 +310,12 @@ export function useWritingPostSEO(
         console.error('❌ SEO: Error applying writing post SEO:', error);
         const localSeoData = getSEOData();
         const localPostSEO = getWritingPostSEO(postId, source);
-        applyPageSEO(localPostSEO, localSeoData.sitewide, { ogType: 'article' });
+        const datePublished = meta?.publishedAt || meta?.createdAt;
+        applyPageSEO(localPostSEO, localSeoData.sitewide, {
+          ogType: 'article',
+          publishedTime: datePublished ? new Date(datePublished).toISOString() : undefined,
+          modifiedTime: meta?.updatedAt ? new Date(meta.updatedAt).toISOString() : undefined,
+        });
       }
     };
 
