@@ -715,6 +715,9 @@ export function buildAutoWritingPostSEO(
   const excerpt = source.excerpt?.trim();
   const topics = (source.topics ?? []).map((t) => t.trim()).filter(Boolean);
   const slug = source.slug?.trim();
+  const siteBase = sitewide?.siteUrl ? normalizeSiteUrlForSeo(sitewide.siteUrl) : getSiteUrl();
+  const optimizedOg =
+    slug ? `${siteBase}/share/og/${slug}.png` : undefined;
   const hero = resolveWritingPostOgImage(source.heroImage, sitewide);
 
   const seoTitle = title ? `${title} - Brian Bureson` : defaults.title;
@@ -734,10 +737,10 @@ export function buildAutoWritingPostSEO(
     keywords,
     ogTitle: title || defaults.ogTitle || seoTitle,
     ogDescription: excerpt || defaults.ogDescription || description,
-    ogImage: hero || defaults.ogImage,
+    ogImage: optimizedOg || hero || defaults.ogImage,
     twitterTitle: title || defaults.twitterTitle || seoTitle,
     twitterDescription: excerpt || defaults.twitterDescription || description,
-    twitterImage: hero || defaults.twitterImage || defaults.ogImage,
+    twitterImage: optimizedOg || hero || defaults.twitterImage || defaults.ogImage,
     canonicalUrl,
   };
 }

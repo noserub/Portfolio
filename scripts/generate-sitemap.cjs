@@ -18,6 +18,9 @@ const {
   FALLBACK_WRITING_POSTS,
   buildDefaultOgImageUrl,
 } = require('./seo-defaults.cjs');
+const {
+  optimizeWritingOgImages,
+} = require('./optimize-writing-og-images.cjs');
 
 const ROOT = process.cwd();
 const distDir = path.join(ROOT, 'dist');
@@ -265,6 +268,7 @@ async function fetchPublishedWritingFromSupabase() {
 
 function mergeWritingEntries(writingEntries) {
   return writingEntries.map((e) => ({
+    slug: e.slug,
     path: `/writing/${e.slug}`,
     title: e.title,
     description: e.excerpt || '',
@@ -556,9 +560,13 @@ function getSitemapRoutes(projectEntries, writingEntries = []) {
 
   const writingPaths = writingEntries.map((e) => ({
     path: e.path,
+    slug: e.slug,
     title: e.title,
     description: e.description || '',
     heroImage: e.heroImage || '',
+    optimizedOgImage: e.optimizedOgImage || '',
+    ogImageWidth: e.ogImageWidth || null,
+    ogImageHeight: e.ogImageHeight || null,
     publishedAt: e.publishedAt || null,
     blocks: e.blocks,
     priority: '0.7',
@@ -681,7 +689,12 @@ function metadataForRoute(route, baseUrl) {
       ogType: 'article',
       author: DEFAULT_AUTHOR,
       publishedTime: toIso8601(route.publishedAt) || toIso8601(route.lastmod),
-      ogImage: resolvePublicImageUrl(baseUrl, route.heroImage) || defaultOgImage,
+      ogImage:
+        route.optimizedOgImage ||
+        resolvePublicImageUrl(baseUrl, route.heroImage) ||
+        defaultOgImage,
+      ogImageWidth: route.ogImageWidth || 1200,
+      ogImageHeight: route.ogImageHeight || 630,
     };
     return meta;
   }
@@ -706,6 +719,8 @@ function htmlForRoute(baseHtml, route, baseUrl) {
   const canonical = escapeHtmlAttr(meta.canonical);
   const siteName = escapeHtmlAttr(SITE_NAME);
   const ogImage = escapeHtmlAttr(meta.ogImage || buildDefaultOgImageUrl(baseUrl));
+  const ogImageWidth = escapeHtmlAttr(String(meta.ogImageWidth || 1200));
+  const ogImageHeight = escapeHtmlAttr(String(meta.ogImageHeight || 630));
   const author = escapeHtmlAttr(meta.author || DEFAULT_AUTHOR);
 
   let html = baseHtml;
@@ -753,12 +768,12 @@ function htmlForRoute(baseHtml, route, baseUrl) {
   html = upsertTag(
     html,
     /<meta\s+property=["']og:image:width["']\s+content=["'][^"']*["']\s*\/?>/i,
-    `<meta property="og:image:width" content="1200" />`,
+    `<meta property="og:image:width" content="${ogImageWidth}" />`,
   );
   html = upsertTag(
     html,
     /<meta\s+property=["']og:image:height["']\s+content=["'][^"']*["']\s*\/?>/i,
-    `<meta property="og:image:height" content="630" />`,
+    `<meta property="og:image:height" content="${ogImageHeight}" />`,
   );
   if (meta.ogType) {
     html = upsertTag(
@@ -838,6 +853,7 @@ async function main() {
   const localProjects = loadLocalProjects();
   const projectEntries = mergeProjectEntries(fromDb, localProjects);
   const writingEntries = mergeWritingEntries(writingFromDb);
+  await optimizeWritingOgImages(writingEntries, baseUrl, distDir, ensureDir);
   const routes = getSitemapRoutes(projectEntries, writingEntries);
 
   if (fromDb.length) {
