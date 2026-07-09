@@ -75,6 +75,7 @@
             "find:unused": "node scripts/find-unused-files.js",
             "cleanup:unused": "node scripts/cleanup-unused-files.js --dry-run",
             "cleanup:unused:confirm": "node scripts/cleanup-unused-files.js --confirm",
+            "generate:og": "node scripts/generate-og-image.cjs",
             "generate:sitemap": "node scripts/generate-sitemap.cjs",
             "inject:seo": "node scripts/inject-seo-html.cjs",
             "supabase:test": "vite --open 'http://localhost:3000?supabase=true'",

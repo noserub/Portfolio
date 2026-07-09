@@ -51,7 +51,7 @@ const FALLBACK_WRITING_POSTS = [
 
 function buildDefaultOgImageUrl(baseUrl) {
   const base = String(baseUrl || 'https://www.bureson.com').replace(/\/+$/, '');
-  return `${base}/assets/og-default.png`;
+  return `${base}/share/og-default.png`;
 }
 
 module.exports = {

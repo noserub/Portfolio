@@ -88,7 +88,7 @@ const DEFAULT_SEO_DATA: AllSEOData = {
     siteName: 'Brian Bureson',
     siteUrl: getSiteUrl(),
     defaultAuthor: 'Brian Bureson',
-    defaultOGImage: `${getSiteUrl()}/assets/og-default.png`,
+    defaultOGImage: `${getSiteUrl()}/share/og-default.png`,
     defaultTwitterCard: 'summary_large_image',
     faviconType: 'text',
     faviconText: 'BB',
@@ -261,7 +261,7 @@ const withSafeOgFallback = (data: AllSEOData): AllSEOData => {
   };
   merged.sitewide.siteUrl = normalizeSiteUrlForSeo(merged.sitewide.siteUrl);
   if (!merged.sitewide.defaultOGImage || merged.sitewide.defaultOGImage.trim() === '') {
-    merged.sitewide.defaultOGImage = `${merged.sitewide.siteUrl}/assets/og-default.png`;
+    merged.sitewide.defaultOGImage = `${merged.sitewide.siteUrl}/share/og-default.png`;
   }
   return merged;
 };
@@ -971,7 +971,7 @@ export function applyPageSEO(
   let ogImage = pageSEO.ogImage || sitewide.defaultOGImage;
   if (!ogImage || ogImage.trim() === '') {
     // Fallback: use OG image API
-    ogImage = `${siteBase}/assets/og-default.png`;
+    ogImage = `${siteBase}/share/og-default.png`;
   }
   
   // Always set OG image (required for proper social sharing)
