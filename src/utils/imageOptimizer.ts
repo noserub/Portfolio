@@ -57,6 +57,92 @@ export function resolveStoragePublicUrl(url: string): string {
   }
 }
 
+const LOGO_IMAGE_EXT = /\.(png|jpe?g|webp|gif|svg|avif)(\?|#|$)/i;
+
+/** Hosts that serve HTML gallery pages — not embeddable image URLs. */
+const LOGO_GALLERY_PAGE = /pngwing|pinterest\.|pinimg\.com\/pin\/|google\.com\/imgres|freepng|stickpng|cleanpng|pngtree|freebiepng|vecteezy\.com\/\d+/i;
+
+export interface LogoImageUrlValidation {
+  ok: boolean;
+  resolved: string | null;
+  message?: string;
+}
+
+/** Check whether a logo field URL is a direct image file, not a gallery/HTML page. */
+export function validateLogoImageUrl(raw: unknown): LogoImageUrlValidation {
+  const resolved = resolveLogoImageUrl(raw);
+  if (!resolved) {
+    return { ok: false, resolved: null, message: "Enter a logo image URL." };
+  }
+
+  if (LOGO_GALLERY_PAGE.test(resolved)) {
+    return {
+      ok: false,
+      resolved,
+      message:
+        "That link opens a gallery page, not an image file. Open the page, right-click the image, and choose Copy image address (should end in .png or .svg).",
+    };
+  }
+
+  const isSupabaseObject = resolved.includes("supabase.co/storage");
+  const isData = resolved.startsWith("data:");
+  if (!isSupabaseObject && !isData && !LOGO_IMAGE_EXT.test(resolved)) {
+    return {
+      ok: false,
+      resolved,
+      message:
+        "Use a direct image URL that ends in .png, .svg, or .webp — not a company homepage or download page.",
+    };
+  }
+
+  return { ok: true, resolved };
+}
+
+/** Normalize logo strip image URLs (external https, Supabase storage paths). */
+export function resolveLogoImageUrl(raw: unknown): string | null {
+  if (raw == null) return null;
+  const trimmed = String(raw).trim().replace(/^['"]+|['"]+$/g, '');
+  if (!trimmed) return null;
+
+  if (/^data:/i.test(trimmed)) return trimmed;
+
+  let candidate = trimmed;
+
+  if (candidate.startsWith('//')) {
+    candidate = `https:${candidate}`;
+  } else if (!/^https?:\/\//i.test(candidate)) {
+    const isSupabasePath =
+      candidate.startsWith('/storage/') ||
+      candidate.startsWith('storage/v1/') ||
+      candidate.startsWith('portfolio-images/');
+
+    if (isSupabasePath) {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL?.replace(/\/$/, '');
+      if (supabaseUrl) {
+        if (candidate.startsWith('/storage/')) {
+          candidate = `${supabaseUrl}${candidate}`;
+        } else if (candidate.startsWith('storage/v1/')) {
+          candidate = `${supabaseUrl}/${candidate}`;
+        } else {
+          const objectPath = candidate
+            .replace(/^portfolio-images\//, '')
+            .replace(/^\/+/, '');
+          candidate = `${supabaseUrl}/storage/v1/object/public/portfolio-images/${objectPath}`;
+        }
+      }
+    } else {
+      // Plain hostname/path — external web image, not Supabase storage.
+      candidate = `https://${candidate.replace(/^\/+/, '')}`;
+    }
+  }
+
+  if (candidate.includes('supabase.co/storage')) {
+    return resolveStoragePublicUrl(candidate);
+  }
+
+  return candidate;
+}
+
 /**
  * Supabase image transforms must use `/storage/v1/render/image/public/...`, not `/object/public/...`.
  * @see https://supabase.com/docs/guides/storage/serving/image-transformations

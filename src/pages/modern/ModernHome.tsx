@@ -1,4 +1,4 @@
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ArrowRight, Edit2, Plus } from "lucide-react";
 import { toast } from "sonner";
 import type { ProjectData } from "../../components/ProjectImage";
@@ -11,10 +11,12 @@ import {
 } from "../../components/modern/ModernDraggableCaseStudyCard";
 import { ModernCaseStudyCard } from "../../components/modern/ModernCaseStudyCard";
 import { ModernFooter } from "../../components/modern/ModernFooter";
+import { ModernLogoStrip } from "../../components/modern/ModernLogoStrip";
+import { ModernLeadershipStrip } from "../../components/modern/ModernLeadershipStrip";
 import {
   ModernHomeHeroEditorPanel,
-  useModernHomeHeroEditor,
 } from "../../components/home/ModernHomeHeroEditorPanel";
+import { useModernHomeHeroEditor } from "../../hooks/useModernHomeHeroEditor";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,7 +36,7 @@ import {
   modernCaseStudyCardLayout,
   mapRowToModernProjectData,
 } from "../../lib/modernCaseStudies";
-import { defaultBioDocument, healDegenerateHeroBio, type HomePageContentV2 } from "../../lib/homePageContent";
+import { defaultBioDocument, healDegenerateHeroBio, mergeLogoStrip, mergeLeadershipStrip, type HomePageContentV2 } from "../../lib/homePageContent";
 import { getProjectCardFrame } from "../../lib/projectHeroFrame";
 import { supabase } from "../../lib/supabaseClient";
 import { lazyWithRetry } from "../../utils/lazyWithRetry";
@@ -61,6 +63,8 @@ interface ModernHomeViewProps extends ModernHomeProps {
   homePageContent: HomePageContentV2;
   homeContentLoading: boolean;
   onEditHomeContent?: () => void;
+  heroEditorOpen?: boolean;
+  heroEditor?: React.ReactNode;
 }
 
 function ModernHomeView({
@@ -72,6 +76,8 @@ function ModernHomeView({
   homePageContent,
   homeContentLoading,
   onEditHomeContent,
+  heroEditorOpen = false,
+  heroEditor,
 }: ModernHomeViewProps) {
   const {
     projects,
@@ -173,6 +179,16 @@ function ModernHomeView({
   const previewGrid = useMemo(
     () => layoutCaseStudiesForGrid(filtered, homePageContent.ui.featuredCaseStudyId),
     [filtered, homePageContent.ui.featuredCaseStudyId],
+  );
+
+  const logoStrip = useMemo(
+    () => homePageContent.logoStrip ?? mergeLogoStrip(undefined),
+    [homePageContent.logoStrip],
+  );
+
+  const showLogoStrip = useMemo(
+    () => logoStrip.enabled && logoStrip.entries.some((entry) => entry.name.trim()),
+    [logoStrip],
   );
 
   const moveCaseStudy = useCallback(
@@ -428,18 +444,25 @@ function ModernHomeView({
   return (
     <main className="min-h-screen" style={{ background: modern.bg }}>
       <section
-        className={`modern-hero-section relative overflow-hidden ${modernLayout.sectionX} ${modernLayout.heroPt} ${modernLayout.heroPb}`}
+        className={`modern-hero-section relative overflow-hidden ${modernLayout.sectionX} ${modernLayout.heroPt} ${modernLayout.heroPb}${heroEditorOpen ? " modern-hero-section--cms-open" : ""}`}
       >
         <ModernHeroAtmosphere />
         <div className={`relative z-[1] ${modernLayout.container}`}>
+          {heroEditorOpen && heroEditor ? (
+            <div className="modern-home-cms-editor-slot">{heroEditor}</div>
+          ) : null}
+
           <div className="max-w-3xl min-w-0">
-            {isEditMode && onEditHomeContent ? (
-              <div className="mb-6">
+            {isEditMode && onEditHomeContent && !heroEditorOpen ? (
+              <div className="mb-6 relative z-[2]">
                 <button
                   type="button"
                   className="modern-home-hero-editor__btn modern-home-hero-editor__btn--primary"
                   style={modernFont}
-                  onClick={onEditHomeContent}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEditHomeContent();
+                  }}
                 >
                   <Edit2 className="w-3.5 h-3.5" aria-hidden />
                   Edit home content
@@ -447,41 +470,53 @@ function ModernHomeView({
               </div>
             ) : null}
 
-            <ModernTypingHero hero={heroText} loading={homeContentLoading} />
+            {!heroEditorOpen ? (
+              <>
+                <ModernTypingHero hero={heroText} loading={homeContentLoading} />
 
-            <div className="mt-6 sm:mt-8 max-w-xl modern-hero-bio">
-              <BioDocumentRenderer
-                document={bioDocument}
-                variant="modern"
-                paragraphGapRem={0.75}
-                lineHeight={1.65}
-              />
-            </div>
+                <div className="mt-6 sm:mt-8 max-w-xl modern-hero-bio">
+                  <BioDocumentRenderer
+                    document={bioDocument}
+                    variant="modern"
+                    paragraphGapRem={0.75}
+                    lineHeight={1.65}
+                  />
+                </div>
 
-            <div className="mt-8 sm:mt-10 flex flex-wrap items-center gap-3">
-              <button
-                type="button"
-                onClick={onStartClick}
-                className="modern-btn-primary"
-                style={modernPrimaryButtonStyle}
-              >
-                {heroText.buttonText?.trim() || "About Brian"}
-                <ArrowRight size={15} />
-              </button>
-              <button
-                type="button"
-                onClick={onNavigateContact}
-                className="modern-btn-outline"
-                style={modernFont}
-              >
-                {homePageContent.ui.contactCtaLabel?.trim() || "Get in touch"}
-              </button>
-            </div>
+                <div className="mt-8 sm:mt-10 flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={onStartClick}
+                    className="modern-btn-primary"
+                    style={modernPrimaryButtonStyle}
+                  >
+                    {heroText.buttonText?.trim() || "About Brian"}
+                    <ArrowRight size={15} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onNavigateContact}
+                    className="modern-btn-outline"
+                    style={modernFont}
+                  >
+                    {homePageContent.ui.contactCtaLabel?.trim() || "Get in touch"}
+                  </button>
+                </div>
+              </>
+            ) : null}
           </div>
         </div>
       </section>
 
-      <section className={`${modernLayout.sectionX} ${modernLayout.statsSection}`}>
+      {showLogoStrip ? <ModernLogoStrip strip={logoStrip} /> : null}
+
+      {showLogoStrip ? <div className={modernLayout.sectionDivider} aria-hidden="true" /> : null}
+
+      <section
+        className={`${modernLayout.sectionX} ${modernLayout.statsSection}${
+          showLogoStrip ? ` ${modernLayout.statsSectionAfterLogos}` : ""
+        }`}
+      >
         <div className={`${modernLayout.container} ${modernLayout.statsGrid}`}>
           {homePageContent.stats.map((stat) => (
             <div key={stat.label} className="min-w-0">
@@ -511,6 +546,10 @@ function ModernHomeView({
           ))}
         </div>
       </section>
+
+      <ModernLeadershipStrip
+        strip={homePageContent.leadershipStrip ?? mergeLeadershipStrip(undefined)}
+      />
 
       <section id="case-studies" className="scroll-mt-20">
         <div className={modernLayout.dividerBand}>
@@ -673,35 +712,59 @@ function ModernHomePublic(props: ModernHomeProps) {
 }
 
 function ModernHomeEdit(props: ModernHomeProps) {
-  const { heroEditorOpen, openHeroEditor, closeHeroEditor, cms } = useModernHomeHeroEditor();
+  const { heroEditorOpen, openHeroEditor, closeHeroEditor, bioEditorRevision, bumpBioEditorRevision, cms } =
+    useModernHomeHeroEditor();
   const {
     homePageContent,
     homeContentLoading,
     setHomePageContent,
-    homeContentHydratedRef,
     persistHomePageNow,
     clearDebouncedHeroSave,
   } = cms;
 
+  useEffect(() => {
+    if (!props.isEditMode) {
+      closeHeroEditor();
+    }
+  }, [props.isEditMode, closeHeroEditor]);
+
+  useEffect(() => () => closeHeroEditor(), [closeHeroEditor]);
+
+  useEffect(() => {
+    if (!heroEditorOpen) return;
+    const mq = window.matchMedia("(max-width: 767px)");
+    if (!mq.matches) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [heroEditorOpen]);
+
+  const heroEditor: ReactNode = (
+    <ModernHomeHeroEditorPanel
+      presentation="inline"
+      open={heroEditorOpen}
+      onClose={closeHeroEditor}
+      homePageContent={homePageContent}
+      setHomePageContent={setHomePageContent}
+      persistHomePageNow={persistHomePageNow}
+      clearDebouncedHeroSave={clearDebouncedHeroSave}
+      bioEditorRevision={bioEditorRevision}
+      onBumpBioRevision={bumpBioEditorRevision}
+    />
+  );
+
   return (
-    <>
-      <ModernHomeView
-        {...props}
-        isEditMode
-        homePageContent={homePageContent}
-        homeContentLoading={homeContentLoading}
-        onEditHomeContent={openHeroEditor}
-      />
-      <ModernHomeHeroEditorPanel
-        open={heroEditorOpen}
-        onClose={closeHeroEditor}
-        homePageContent={homePageContent}
-        setHomePageContent={setHomePageContent}
-        homeContentHydratedRef={homeContentHydratedRef}
-        persistHomePageNow={persistHomePageNow}
-        clearDebouncedHeroSave={clearDebouncedHeroSave}
-      />
-    </>
+    <ModernHomeView
+      {...props}
+      isEditMode
+      homePageContent={homePageContent}
+      homeContentLoading={homeContentLoading}
+      onEditHomeContent={openHeroEditor}
+      heroEditorOpen={heroEditorOpen}
+      heroEditor={heroEditor}
+    />
   );
 }
 

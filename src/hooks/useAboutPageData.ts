@@ -81,7 +81,7 @@ const defaults: AboutPageData = {
   expertiseItems: [],
   howIUseAITitle: DEFAULT_ABOUT_SECTION_TITLES.howIUseAI,
   howIUseAIItems: [],
-  processTitle: "Process",
+  processTitle: DEFAULT_ABOUT_SECTION_TITLES.process,
   processSubheading: "",
   processItems: [],
   certificationsTitle: "Certifications",

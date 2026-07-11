@@ -27,7 +27,7 @@ import {
   toPersistedPayload,
   type HomePageContentV2,
 } from "../lib/homePageContent";
-import { getPortfolioOwnerUserId } from "../lib/portfolioOwner";
+import { getPortfolioOwnerUserId, getProfileWriterUserId, hasVitePublicPortfolioOwnerId } from "../lib/portfolioOwner";
 
 export interface UseHomePageContentOptions {
   /** Call when server-applied content should reset bio editor (TipTap). */
@@ -62,6 +62,8 @@ export function useHomePageContent(options: UseHomePageContentOptions) {
   const [heroDraftAheadOfCloud, setHeroDraftAheadOfCloud] = useState(false);
   /** True until the first `profiles.hero_text` load finishes (success or fallback). Drives hero skeleton UI. */
   const [homeContentLoading, setHomeContentLoading] = useState(true);
+  /** Reactive mirror of `homeContentHydratedRef` so editor UI re-renders when load completes. */
+  const [homeContentReady, setHomeContentReady] = useState(false);
 
   const homeContentHydratedRef = useRef(false);
   const heroLoadGenerationRef = useRef(0);
@@ -78,6 +80,7 @@ export function useHomePageContent(options: UseHomePageContentOptions) {
     const loadHomePageContent = async () => {
       const gen = ++heroLoadGenerationRef.current;
       homeContentHydratedRef.current = false;
+      setHomeContentReady(false);
       setHomeContentLoading(true);
 
       const { supabase } = await import("../lib/supabaseClient");
@@ -87,6 +90,16 @@ export function useHomePageContent(options: UseHomePageContentOptions) {
       const portfolioOwnerId = getPortfolioOwnerUserId(user?.id);
       const allowLocalDraftPreference =
         Boolean(user?.id) && user.id === portfolioOwnerId;
+
+      const finishLoad = (migratedContent: HomePageContentV2) => {
+        if (gen !== heroLoadGenerationRef.current) return;
+        homeContentHydratedRef.current = true;
+        setHomeContentReady(true);
+        setHomePageContent(migratedContent);
+        setHomeContentLoading(false);
+        bumpBio();
+        localStorage.setItem("heroText", JSON.stringify(toPersistedPayload(migratedContent)));
+      };
 
       try {
         console.log("🔄 Loading home page content from Supabase...");
@@ -145,13 +158,7 @@ export function useHomePageContent(options: UseHomePageContentOptions) {
           setHeroDraftAheadOfCloud(draftAheadOfPublished);
           if (localDraftSupersededByCloud) setShowHeroCloudNotice(true);
 
-          const migratedContent = migrateLegacyWelcomeGreeting(content);
-          if (gen !== heroLoadGenerationRef.current) return;
-          homeContentHydratedRef.current = true;
-          setHomePageContent(migratedContent);
-          setHomeContentLoading(false);
-          bumpBio();
-          localStorage.setItem("heroText", JSON.stringify(toPersistedPayload(migratedContent)));
+          finishLoad(migrateLegacyWelcomeGreeting(content));
           console.log("✅ Home page: no profile row — merged from local/offline defaults");
           return;
         }
@@ -193,12 +200,7 @@ export function useHomePageContent(options: UseHomePageContentOptions) {
           setShowHeroCloudNotice(true);
         }
 
-        if (gen !== heroLoadGenerationRef.current) return;
-        homeContentHydratedRef.current = true;
-        setHomePageContent(migratedContent);
-        setHomeContentLoading(false);
-        bumpBio();
-        localStorage.setItem("heroText", JSON.stringify(toPersistedPayload(migratedContent)));
+        finishLoad(migratedContent);
         console.log("✅ Home page content loaded from Supabase (published row is source of truth)");
       } catch (error) {
         console.error("❌ Error loading home page content from Supabase:", error);
@@ -207,14 +209,7 @@ export function useHomePageContent(options: UseHomePageContentOptions) {
         });
         if (gen !== heroLoadGenerationRef.current) return;
         setHeroDraftAheadOfCloud(draftAheadOfPublished);
-        const migratedContent = migrateLegacyWelcomeGreeting(content);
-
-        if (gen !== heroLoadGenerationRef.current) return;
-        homeContentHydratedRef.current = true;
-        setHomePageContent(migratedContent);
-        setHomeContentLoading(false);
-        bumpBio();
-        localStorage.setItem("heroText", JSON.stringify(toPersistedPayload(migratedContent)));
+        finishLoad(migrateLegacyWelcomeGreeting(content));
         console.log("✅ Loaded home page content from offline / local merge");
       }
     };
@@ -241,9 +236,10 @@ export function useHomePageContent(options: UseHomePageContentOptions) {
     };
   }, [bumpBio, setIsEditingHero]);
 
-  const persistHomePageNow = useCallback(async (content: HomePageContentV2) => {
+  const persistHomePageNow = useCallback(async (content: HomePageContentV2): Promise<boolean> => {
     if (!shouldPersistHomePageContent(content)) {
-      return;
+      toast.error("Nothing to save yet. Add headline or intro copy first.");
+      return false;
     }
     const payload = toPersistedPayload({ ...content, _clientSavedAt: Date.now() });
     localStorage.setItem("heroText", JSON.stringify(payload));
@@ -272,80 +268,97 @@ export function useHomePageContent(options: UseHomePageContentOptions) {
       } = await supabase.auth.getUser();
 
       if (user?.id) {
-        const ownerId = getPortfolioOwnerUserId(user?.id);
-        if (user?.id && user.id !== ownerId) {
+        const writerId = getProfileWriterUserId(user.id);
+        const publishedOwnerId = getPortfolioOwnerUserId(user.id);
+        if (hasVitePublicPortfolioOwnerId() && writerId !== publishedOwnerId) {
           console.warn(
-            "⚠️ Home hero save skipped: auth user must match VITE_PUBLIC_PORTFOLIO_OWNER_ID to update the published row.",
-            { authId: user.id, ownerId },
+            "⚠️ Home hero save blocked: signed-in user must match VITE_PUBLIC_PORTFOLIO_OWNER_ID so visitors read the same row you edit.",
+            { authId: writerId, publishedOwnerId },
           );
           toast.error(
-            "Home content is published from a fixed profile id. Set VITE_PUBLIC_PORTFOLIO_OWNER_ID to your Supabase user id so saves match what visitors see.",
-            { id: "home-hero-owner-mismatch", duration: 8000 },
+            "Home content saves to your signed-in profile, but visitors read VITE_PUBLIC_PORTFOLIO_OWNER_ID. Sign in as the portfolio owner or fix that env var.",
+            { id: "home-hero-owner-mismatch", duration: 10000 },
           );
-          return;
+          setHeroDraftAheadOfCloud(true);
+          return false;
         }
 
         console.log(
           "💾 Home page: localStorage ✓ · syncing profiles.hero_text to Supabase for published row",
-          ownerId,
+          writerId,
         );
 
         const { data: updatedRow, error: updateError } = await supabase
           .from("profiles")
           .update({ hero_text: payload })
-          .eq("id", ownerId)
+          .eq("id", writerId)
+          .select("hero_text, updated_at")
+          .maybeSingle();
+
+        if (updateError) {
+          const isNoRow =
+            updateError.code === "PGRST116" ||
+            /0 rows|no rows returned/i.test(updateError.message ?? "");
+          if (!isNoRow) {
+            console.warn("⚠️ Failed to save home content to Supabase:", updateError.message);
+            setHeroDraftAheadOfCloud(true);
+            toast.error(
+              updateError.message?.trim() ||
+                "Could not sync home content to the cloud. Your changes are saved on this device.",
+            );
+            return false;
+          }
+        }
+
+        if (updatedRow) {
+          console.log("✅ Home page: Supabase hero_text saved (confirmed from server)");
+          applyRowFromServer(updatedRow as { hero_text: unknown; updated_at: string | null });
+          return true;
+        }
+
+        console.log("📝 Profile not found, creating new profile row for home content...");
+        const { data: insertedRow, error: insertError } = await supabase
+          .from("profiles")
+          .insert({
+            id: writerId,
+            email: user?.email?.trim() || import.meta.env.VITE_SITE_OWNER_SIGNIN_EMAIL?.trim() || "",
+            full_name: "Brian Bureson",
+            hero_text: payload,
+          })
           .select("hero_text, updated_at")
           .single();
 
-        if (updateError) {
-          console.log("📝 Profile not found, creating new profile...");
-          const { data: insertedRow, error: insertError } = await supabase
-            .from("profiles")
-            .insert({
-              id: ownerId,
-              email: user?.email?.trim() || import.meta.env.VITE_SITE_OWNER_SIGNIN_EMAIL?.trim() || "",
-              full_name: "Brian Bureson",
-              hero_text: payload,
-            })
-            .select("hero_text, updated_at")
-            .single();
-
-          if (insertError) {
-            console.warn("⚠️ Failed to save to Supabase (egress limits?):", insertError.message);
-            setHeroDraftAheadOfCloud(true);
-            toast.error(
-              "Could not sync the hero section to the cloud. Your text is still saved on this device.",
-            );
-          } else if (insertedRow) {
-            console.log("✅ Home page: Supabase hero_text saved (new profile row)");
-            applyRowFromServer(insertedRow as { hero_text: unknown; updated_at: string | null });
-          }
-        } else if (updatedRow) {
-          console.log("✅ Home page: Supabase hero_text saved (confirmed from server)");
-          applyRowFromServer(updatedRow as { hero_text: unknown; updated_at: string | null });
+        if (insertError) {
+          console.warn("⚠️ Failed to save to Supabase:", insertError.message);
+          setHeroDraftAheadOfCloud(true);
+          toast.error(
+            insertError.message?.trim() ||
+              "Could not sync home content to the cloud. Your changes are saved on this device.",
+          );
+          return false;
         }
-      } else {
-        console.log(
-          "💾 Home page: localStorage ✓ · not signed in — cloud sync skipped (edits stay on this browser)",
-        );
+        if (insertedRow) {
+          console.log("✅ Home page: Supabase hero_text saved (new profile row)");
+          applyRowFromServer(insertedRow as { hero_text: unknown; updated_at: string | null });
+          return true;
+        }
+
+        setHeroDraftAheadOfCloud(true);
+        toast.error("Could not confirm the home content save. Try again.");
+        return false;
       }
+
+      console.log(
+        "💾 Home page: localStorage ✓ · not signed in — cloud sync skipped (edits stay on this browser)",
+      );
+      toast.message("Saved on this device. Sign in with Supabase to publish for all visitors.");
+      return true;
     } catch (error) {
       console.warn("⚠️ Supabase save failed (egress limits?):", error);
       console.log("💾 Home page: localStorage still has your draft; Supabase sync failed");
       setHeroDraftAheadOfCloud(true);
-      try {
-        const { supabase } = await import("../lib/supabaseClient");
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (user?.id) {
-          toast.error(
-            "Could not sync the hero section to the cloud. Your text is still saved on this device.",
-          );
-        }
-      } catch {
-        /* ignore */
-      }
+      toast.error("Could not sync home content to the cloud. Your changes are saved on this device.");
+      return false;
     }
   }, [bumpBio, isEditingHeroRef, homeContentFingerprint]);
 
@@ -438,6 +451,7 @@ export function useHomePageContent(options: UseHomePageContentOptions) {
     homePageContent,
     setHomePageContent,
     homeContentHydratedRef,
+    homeContentReady,
     homeContentLoading,
     showHeroCloudNotice,
     setShowHeroCloudNotice,

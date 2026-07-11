@@ -72,14 +72,26 @@ export function usePortfolioProfileNav(): PortfolioProfileNav {
 
         let data = withLinkedIn.data;
         if (withLinkedIn.error) {
-          if (!isLinkedInColumnMissingError(withLinkedIn.error)) return;
-          const fallback = await supabase
-            .from("profiles")
-            .select("full_name, resume_url")
-            .eq("id", ownerId)
-            .maybeSingle();
-          if (fallback.error) return;
-          data = fallback.data;
+          if (!isLinkedInColumnMissingError(withLinkedIn.error)) {
+            const fallback = await supabase
+              .from("profiles")
+              .select("full_name, resume_url")
+              .eq("id", ownerId)
+              .maybeSingle();
+            if (!fallback.error) {
+              data = fallback.data;
+            } else {
+              return;
+            }
+          } else {
+            const fallback = await supabase
+              .from("profiles")
+              .select("full_name, resume_url")
+              .eq("id", ownerId)
+              .maybeSingle();
+            if (fallback.error) return;
+            data = fallback.data;
+          }
         }
 
         if (cancelled || !data) return;

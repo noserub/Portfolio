@@ -3,6 +3,9 @@
  * v2 wraps hero + stats + UI labels; legacy flat objects are migrated on read.
  */
 
+import { resolveLogoImageUrl } from "../utils/imageOptimizer";
+import { clampLogoImageScale } from "./logoImageScale";
+
 export const HOME_PAGE_CONTENT_VERSION = 2 as const;
 
 /** Dispatched when leaving edit → preview so the home hero flushes any pending debounced save. */
@@ -166,6 +169,30 @@ export interface HomePageStat {
   description: string;
 }
 
+/** Employer / client name for the home logo strip (text or optional image). */
+export interface HomePageLogoEntry {
+  name: string;
+  imageUrl?: string | null;
+  /** Display scale when the image file has excess padding (0.6–2, default 1). */
+  imageScale?: number;
+}
+
+export interface HomePageLogoStrip {
+  enabled: boolean;
+  /** Optional label above the strip, e.g. "Previously at" */
+  label?: string;
+  entries: HomePageLogoEntry[];
+}
+
+export interface HomePageLeadershipStrip {
+  enabled: boolean;
+  /** Small accent label above the headline, e.g. "How I lead" */
+  label?: string;
+  headline: string;
+  subhead?: string;
+  bullets: string[];
+}
+
 /** Slugs match `projects.project_type` / `ProjectData.projectType`. */
 export const CASE_STUDY_FILTER_TYPE_IDS = ["product-design", "development", "branding"] as const;
 export type CaseStudyFilterTypeId = (typeof CASE_STUDY_FILTER_TYPE_IDS)[number];
@@ -195,6 +222,8 @@ export interface HomePageContentV2 {
   _version: typeof HOME_PAGE_CONTENT_VERSION;
   hero: HeroTextState;
   stats: HomePageStat[];
+  logoStrip?: HomePageLogoStrip;
+  leadershipStrip?: HomePageLeadershipStrip;
   ui: HomePageUI;
   /** Set on each persist so refresh can prefer newer local draft if Supabase is stale. */
   _clientSavedAt?: number;
@@ -202,12 +231,187 @@ export interface HomePageContentV2 {
 
 export type HomePagePersisted = HomePageContentV2;
 
+/** Director / Principal IC proof metrics — business outcomes + scale, not builder hobby stats. */
 export const DEFAULT_STATS: HomePageStat[] = [
+  {
+    number: "AI",
+    label: "AI design leadership",
+    description: "Generative AI, agents, and trust UX from pilot to GA",
+  },
+  {
+    number: "7",
+    label: "0→1 product launches",
+    description: "Concept to production · t:slim insulin pump (FDA-cleared) · Skype Qik",
+  },
+  {
+    number: "9",
+    label: "US patents",
+    description: "Medical devices & product innovation",
+  },
+  {
+    number: "100M+",
+    label: "Users reached",
+    description: "Skype for Android · Moto 360 · t:slim",
+  },
+];
+
+/** Prior default stats that read IC/builder — auto-upgrade on load when fingerprint matches exactly. */
+const LEGACY_BUILDER_STATS: HomePageStat[] = [
   { number: "1", label: "Full stack web app", description: "Solo developer" },
   { number: "4", label: "AI native apps designed", description: "with RAG & MCP hooks" },
   { number: "6", label: "0-1 product launches", description: "From ambiguity to product" },
   { number: "9", label: "US patents", description: "Innovation and IP contribution" },
 ];
+
+const LEGACY_HOME_STATS_SETS: HomePageStat[][] = [
+  [
+    { number: "4", label: "AI-native products", description: "" },
+    { number: "7", label: "0-1 product launches", description: "" },
+    { number: "9", label: "US patents", description: "" },
+    { number: "100M+", label: "Users at global scale", description: "" },
+  ],
+  [
+    { number: "100M+", label: "People reached", description: "Skype, Moto 360, t:slim insulin pump" },
+    { number: "300%", label: "Engagement growth", description: "MassRoots platform turnaround" },
+    { number: "1M+", label: "Users scaled", description: "Cannabis discovery platform" },
+    { number: "20+", label: "Years in product design", description: "Enterprise, medical, consumer, AI" },
+  ],
+];
+
+function statsFingerprint(stats: HomePageStat[]): string {
+  return JSON.stringify(stats.map((s) => ({ number: s.number, label: s.label, description: s.description })));
+}
+
+function isLegacyBuilderStats(stats: HomePageStat[]): boolean {
+  return statsFingerprint(stats) === statsFingerprint(LEGACY_BUILDER_STATS);
+}
+
+function isLegacyHomeStats(stats: HomePageStat[]): boolean {
+  const fp = statsFingerprint(stats);
+  if (LEGACY_HOME_STATS_SETS.some((legacy) => statsFingerprint(legacy) === fp)) {
+    return true;
+  }
+  // CMS row with empty or customized descriptions (4 AI-native · 7 launches · 9 patents · 100M+)
+  if (stats.length !== 4) return false;
+  const [a, b, c, d] = stats;
+  return (
+    a.number.trim() === "4" &&
+    /ai[- ]?native/i.test(a.label) &&
+    b.number.trim() === "7" &&
+    /0.?1|0→1/i.test(b.label) &&
+    c.number.trim() === "9" &&
+    /patent/i.test(c.label) &&
+    d.number.trim() === "100M+"
+  );
+}
+
+export const DEFAULT_LOGO_STRIP: HomePageLogoStrip = {
+  enabled: true,
+  label: "Previously at",
+  entries: [
+    { name: "Oracle" },
+    { name: "Microsoft" },
+    { name: "Skype" },
+    { name: "Tandem" },
+    { name: "Motorola" },
+  ],
+};
+
+export const DEFAULT_LEADERSHIP_STRIP: HomePageLeadershipStrip = {
+  enabled: true,
+  label: "How I lead",
+  headline: "Most teams stop at the pilot. I lead design through GA.",
+  subhead:
+    "I align executives, product, and engineering on strategy, then stay close to the craft from research through production-ready code. My lane is high-stakes products: regulated, medical, and enterprise AI made to feel trustworthy and shippable.",
+  bullets: [
+    "Built and led design orgs (up to 7 designers): hiring, critique, career ladders, and delivery culture",
+    "0→1 and platform-scale work in regulated, medical, and enterprise AI",
+    "Enterprise AI at global scale: conversational search, governed assistants, and trust UX from pilot to GA",
+    "Design → Code workflow: research, design systems, prototypes, and production-ready code",
+  ],
+};
+
+/** Prior leadership strip defaults — auto-upgrade on load when fingerprint matches exactly. */
+const LEGACY_LEADERSHIP_STRIPS: HomePageLeadershipStrip[] = [
+  {
+    enabled: true,
+    label: "How I lead",
+    headline: "Most teams stop at the pilot. I lead design through GA.",
+    subhead:
+      "I align executives, product, and engineering on strategy, then stay close to the craft from research through production-ready code. My lane is high-stakes products: regulated, medical, and enterprise AI made to feel trustworthy and shippable.",
+    bullets: [
+      "Built and led design orgs (up to 4 designers): hiring, critique, career ladders, and delivery culture",
+      "Executive partnership on roadmap and cross-functional alignment in ambiguous, high-risk bets",
+      "Enterprise AI at global scale: conversational search, governed assistants, and trust UX from pilot to GA",
+      "Still ships: research, design systems, prototypes, and production-ready code",
+    ],
+  },
+  {
+    enabled: true,
+    label: "How I lead",
+    headline: "Design leadership for products that have to ship.",
+    subhead:
+      "I align executives, product, and engineering on strategy, then stay close to the craft from research through production-ready code. My lane is high-stakes products: regulated, medical, and enterprise AI made to feel trustworthy and shippable.",
+    bullets: [
+      "Built and led design orgs (up to 4 designers): hiring, critique, career ladders, and delivery culture",
+      "Executive partnership on roadmap and cross-functional alignment in ambiguous, high-risk bets",
+      "Enterprise AI at global scale: conversational search, governed assistants, and trust UX from pilot to GA",
+      "Still ships: research, design systems, prototypes, and production-ready code",
+    ],
+  },
+  {
+    enabled: true,
+    label: "How I lead",
+    headline: "Hands-on design leadership. Strategy set, work shipped.",
+    subhead:
+      "I align executives, product, and engineering on strategy, then stay close to the craft from research through production-ready code. My lane is high-stakes products: regulated, medical, and enterprise AI made to feel trustworthy and shippable.",
+    bullets: [
+      "Built and led design orgs (up to 4 designers): hiring, critique, career ladders, and delivery culture",
+      "Executive partnership on roadmap and cross-functional alignment in ambiguous, high-risk bets",
+      "Enterprise AI at global scale: conversational search, governed assistants, and trust UX from pilot to GA",
+      "Still ships: research, design systems, prototypes, and production-ready code",
+    ],
+  },
+  {
+    enabled: true,
+    label: "Design leadership",
+    headline: "Design leadership for high-stakes products.",
+    subhead:
+      "I align executives, product, and engineering on strategy, then drive the work from research through shipped code.",
+    bullets: [
+      "Built and led design orgs (up to 4 designers): career ladders, critique, hiring, and delivery culture",
+      "Executive partnership on roadmap, GTM, and cross-functional alignment in ambiguous, high-risk bets",
+      "0→1 and platform-scale work in regulated, medical, and enterprise AI contexts",
+      "Still ships: research, design systems, prototypes, and production-ready code",
+    ],
+  },
+  {
+    enabled: true,
+    headline: "Design leadership for high-stakes products.",
+    subhead:
+      "I align executives, product, and engineering on strategy, then drive the work from research through shipped code.",
+    bullets: [
+      "Built and led design orgs (up to 4 designers): career ladders, critique, hiring, and delivery culture",
+      "Executive partnership on roadmap, GTM, and cross-functional alignment in ambiguous, high-risk bets",
+      "0→1 and platform-scale work in regulated, medical, and enterprise AI contexts",
+      "Still ships: research, design systems, prototypes, and production-ready code",
+    ],
+  },
+];
+
+function leadershipStripFingerprint(strip: HomePageLeadershipStrip): string {
+  return JSON.stringify({
+    label: strip.label ?? "",
+    headline: strip.headline,
+    subhead: strip.subhead ?? "",
+    bullets: strip.bullets,
+  });
+}
+
+function isLegacyLeadershipStrip(strip: HomePageLeadershipStrip): boolean {
+  const fp = leadershipStripFingerprint(strip);
+  return LEGACY_LEADERSHIP_STRIPS.some((legacy) => leadershipStripFingerprint(legacy) === fp);
+}
 
 export const DEFAULT_CASE_STUDY_FILTERS: CaseStudyFilterEntry[] = [
   { id: "product-design", label: "Product design" },
@@ -226,7 +430,7 @@ export const DEFAULT_UI: HomePageUI = {
 
 /** Default segment strings for initial hero state and legacy migration when building bioDocument. */
 export const DEFAULT_CLASSIC_BIO_FIELDS = {
-  subtitle: `I am a Principal Product Designer with a 20-year obsession with high-stakes, "zero-failure" systems. My focus lies at the intersection of complex hardware, regulated software, and frontier AI. I gravitate toward "gnarly" problems—situations where ambiguity is high, safety is critical, and the human impact is life-altering.`,
+  subtitle: `Director-level design leader with 20+ years building regulated, high-stakes systems: medical devices, enterprise software, and frontier AI. I architect product strategy, UX, and execution from research and design systems through prototypes and production-ready code.`,
   description: "",
   word1: "help teams",
   word2: "move",
@@ -380,11 +584,108 @@ export function defaultHeroTextState(): HeroTextState {
   };
 }
 
+export function mergeLogoStrip(raw: unknown): HomePageLogoStrip {
+  const base = DEFAULT_LOGO_STRIP;
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return { ...base, entries: base.entries.map((e) => ({ ...e })) };
+  }
+  const o = raw as Record<string, unknown>;
+  const entries = Array.isArray(o.entries)
+    ? o.entries
+        .map((item) => {
+          if (!item || typeof item !== "object") return null;
+          const r = item as Record<string, unknown>;
+          const name = String(r.name ?? "").trim();
+          if (!name) return null;
+          const imageUrl = resolveLogoImageUrl(r.imageUrl ?? r.image_url ?? r.url);
+          const imageScale = clampLogoImageScale(r.imageScale);
+          return { name, imageUrl, imageScale };
+        })
+        .filter(Boolean) as HomePageLogoEntry[]
+    : base.entries.map((e) => ({ ...e }));
+  return {
+    enabled: o.enabled !== false,
+    label: typeof o.label === "string" ? o.label : base.label,
+    entries: entries.length > 0 ? entries : base.entries.map((e) => ({ ...e })),
+  };
+}
+
+export function mergeLeadershipStrip(raw: unknown): HomePageLeadershipStrip {
+  const base = DEFAULT_LEADERSHIP_STRIP;
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return {
+      ...base,
+      bullets: [...base.bullets],
+    };
+  }
+  const o = raw as Record<string, unknown>;
+  const bullets = Array.isArray(o.bullets)
+    ? o.bullets.map((b) => String(b ?? "").trim()).filter(Boolean)
+    : [...base.bullets];
+  const merged: HomePageLeadershipStrip = {
+    enabled: o.enabled !== false,
+    label: typeof o.label === "string" && o.label.trim() ? o.label.trim() : base.label,
+    headline: String(o.headline ?? base.headline).trim() || base.headline,
+    subhead:
+      typeof o.subhead === "string" && o.subhead.trim() ? o.subhead.trim() : base.subhead,
+    bullets: bullets.length > 0 ? bullets : [...base.bullets],
+  };
+  if (isLegacyLeadershipStrip(merged)) {
+    return {
+      ...DEFAULT_LEADERSHIP_STRIP,
+      bullets: [...DEFAULT_LEADERSHIP_STRIP.bullets],
+    };
+  }
+  return merged;
+}
+
+/** Ensure logo/leadership strips and stats always hydrate from defaults when fields are missing. */
+export function normalizeHomePageContent(content: HomePageContentV2): HomePageContentV2 {
+  return {
+    ...content,
+    stats: mergeStats(content.stats),
+    logoStrip: mergeLogoStrip(content.logoStrip),
+    leadershipStrip: mergeLeadershipStrip(content.leadershipStrip),
+    ui: mergeUI(content.ui),
+  };
+}
+
+function remotePayloadHadStripField(rawRemote: unknown, field: "logoStrip" | "leadershipStrip"): boolean {
+  const obj = coerceHomeContentJsonToObject(rawRemote);
+  return obj != null && Object.prototype.hasOwnProperty.call(obj, field);
+}
+
+/**
+ * When a newer local draft wins over cloud, do not keep disabled strips if the published
+ * row never stored those fields (common after older saves that omitted logo/leadership).
+ */
+function mergeRemoteStripDefaults(
+  preferred: HomePageContentV2,
+  remote: HomePageContentV2,
+  rawRemote: unknown,
+): HomePageContentV2 {
+  const remoteHadLogo = remotePayloadHadStripField(rawRemote, "logoStrip");
+  const remoteHadLeadership = remotePayloadHadStripField(rawRemote, "leadershipStrip");
+  return {
+    ...preferred,
+    logoStrip:
+      !remoteHadLogo && preferred.logoStrip?.enabled === false
+        ? mergeLogoStrip(remote.logoStrip)
+        : mergeLogoStrip(preferred.logoStrip),
+    leadershipStrip:
+      !remoteHadLeadership && preferred.leadershipStrip?.enabled === false
+        ? mergeLeadershipStrip(remote.leadershipStrip)
+        : mergeLeadershipStrip(preferred.leadershipStrip),
+  };
+}
+
 export function createDefaultHomePageContent(): HomePageContentV2 {
   return {
     _version: HOME_PAGE_CONTENT_VERSION,
     hero: defaultHeroTextState(),
     stats: DEFAULT_STATS.map((s) => ({ ...s })),
+    logoStrip: mergeLogoStrip(DEFAULT_LOGO_STRIP),
+    leadershipStrip: mergeLeadershipStrip(DEFAULT_LEADERSHIP_STRIP),
     ui: { ...DEFAULT_UI },
   };
 }
@@ -503,7 +804,7 @@ function mergeStats(raw: unknown): HomePageStat[] {
   if (!Array.isArray(raw) || raw.length === 0) {
     return DEFAULT_STATS.map((s) => ({ ...s }));
   }
-  return raw.map((item) => {
+  const merged = raw.map((item) => {
     const o = item as Record<string, unknown>;
     return {
       number: String(o.number ?? ""),
@@ -511,6 +812,10 @@ function mergeStats(raw: unknown): HomePageStat[] {
       description: String(o.description ?? ""),
     };
   });
+  if (isLegacyBuilderStats(merged) || isLegacyHomeStats(merged)) {
+    return DEFAULT_STATS.map((s) => ({ ...s }));
+  }
+  return merged;
 }
 
 /** Stats may live at root or (legacy / bad exports) under `hero.stats` — never drop them when `stats` is missing at root. */
@@ -663,13 +968,15 @@ export function parseStoredHomeContent(raw: unknown): HomePageContentV2 {
   const nestedHero = normalizeNestedHeroField(obj.hero);
   if (nestedHero) {
     const { stats: _statsInsideHero, ...heroWithoutStats } = nestedHero;
-    return {
+    return normalizeHomePageContent({
       _version: HOME_PAGE_CONTENT_VERSION,
       hero: mergeHero(heroWithoutStats),
       stats: mergeStats(pickStatsArrayFromStored(obj)),
+      logoStrip: mergeLogoStrip(obj.logoStrip),
+      leadershipStrip: mergeLeadershipStrip(obj.leadershipStrip),
       ui: mergeUI(obj.ui),
       ...tsOpt,
-    };
+    });
   }
 
   // Legacy flat: greeting/subtitle/… at root — often had stats/ui added later; do not drop them
@@ -681,7 +988,7 @@ export function parseStoredHomeContent(raw: unknown): HomePageContentV2 {
     ...heroFlat
   } = obj;
 
-  return {
+  return normalizeHomePageContent({
     _version: HOME_PAGE_CONTENT_VERSION,
     hero: mergeHeroFromLegacyFlat(heroFlat as Record<string, unknown>),
     stats: mergeStats(
@@ -689,18 +996,33 @@ export function parseStoredHomeContent(raw: unknown): HomePageContentV2 {
         ? rawStats
         : pickStatsArrayFromStored(obj),
     ),
+    logoStrip: mergeLogoStrip(obj.logoStrip),
+    leadershipStrip: mergeLeadershipStrip(obj.leadershipStrip),
     ui: mergeUI(rawUi),
     ...tsOpt,
-  };
+  });
 }
 
 export function toPersistedPayload(content: HomePageContentV2): HomePagePersisted {
-  const ts = content._clientSavedAt;
+  const normalized = normalizeHomePageContent(content);
+  const ts = normalized._clientSavedAt;
   return {
     _version: HOME_PAGE_CONTENT_VERSION,
-    hero: { ...content.hero },
-    stats: content.stats.map((s) => ({ ...s })),
-    ui: { ...content.ui },
+    hero: { ...normalized.hero },
+    stats: normalized.stats.map((s) => ({ ...s })),
+    logoStrip: {
+      ...normalized.logoStrip!,
+      entries: normalized.logoStrip!.entries.map((e) => ({
+        ...e,
+        imageUrl: resolveLogoImageUrl(e.imageUrl),
+        imageScale: clampLogoImageScale(e.imageScale),
+      })),
+    },
+    leadershipStrip: {
+      ...normalized.leadershipStrip!,
+      bullets: [...normalized.leadershipStrip!.bullets],
+    },
+    ui: { ...normalized.ui },
     ...(typeof ts === "number" && !Number.isNaN(ts) ? { _clientSavedAt: ts } : {}),
   };
 }
@@ -802,7 +1124,7 @@ export function resolveHomeContentAfterLoad(
   if (!allowLocal) {
     // Published remote (or parsed defaults) only — never blend in localStorage.
     return {
-      content: remote,
+      content: normalizeHomePageContent(remote),
       localDraftSupersededByCloud: false,
       draftAheadOfPublished: false,
     };
@@ -819,20 +1141,22 @@ export function resolveHomeContentAfterLoad(
           : 0;
     if (lt > rt) {
       return {
-        content: local!,
+        content: normalizeHomePageContent(
+          mergeRemoteStripDefaults(local!, remote, rawRemote),
+        ),
         localDraftSupersededByCloud: false,
         draftAheadOfPublished: true,
       };
     }
     return {
-      content: remote,
+      content: normalizeHomePageContent(remote),
       localDraftSupersededByCloud: true,
       draftAheadOfPublished: false,
     };
   }
 
   return {
-    content: remote,
+    content: normalizeHomePageContent(remote),
     localDraftSupersededByCloud: false,
     draftAheadOfPublished: false,
   };

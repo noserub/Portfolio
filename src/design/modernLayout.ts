@@ -10,6 +10,8 @@ export const modernLayout = {
   sectionPy: "modern-section-py",
   sectionPyLarge: "modern-section-py-lg",
   statsSection: "modern-stats-section",
+  statsSectionAfterLogos: "modern-stats-section--after-logos",
+  sectionDivider: "modern-section-divider",
   dividerBand: "modern-divider-band",
   belowDividerPt: "modern-below-divider",
   sectionHeaderMb: "modern-section-header-mb",

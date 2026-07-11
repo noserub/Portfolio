@@ -5,6 +5,7 @@ import { Textarea } from "../ui/textarea";
 import {
   ModernEditorDialog,
   ModernEditorField,
+  ModernEditorInlineShell,
   modernEditorInputStyle,
 } from "../modern/ModernEditorDialog";
 import { modern, modernFont } from "../../design/modernTokens";
@@ -13,13 +14,13 @@ import {
   hiddenAboutSections,
   type AboutCertificationItem,
   type AboutEditorDraft,
-  type AboutProcessItem,
   type AboutTitleTextItem,
   type AboutToolsCategoryDraft,
 } from "../../lib/aboutPageEditorModel";
 
 interface ModernAboutEditorPanelProps {
   open: boolean;
+  presentation?: "inline" | "portal";
   loading: boolean;
   draft: AboutEditorDraft | null;
   onPatch: (fn: (prev: AboutEditorDraft) => AboutEditorDraft) => void;
@@ -28,11 +29,140 @@ interface ModernAboutEditorPanelProps {
   saving: boolean;
 }
 
-function SectionHeading({ children }: { children: React.ReactNode }) {
+function SectionHeading({ children, id }: { children: React.ReactNode; id?: string }) {
   return (
-    <h3 className="text-sm font-semibold pt-2 border-t" style={{ ...modernFont, borderColor: modern.border }}>
+    <h3
+      id={id}
+      className="text-sm font-semibold pt-2 border-t"
+      style={{ ...modernFont, borderColor: modern.border }}
+    >
       {children}
     </h3>
+  );
+}
+
+function AboutProcessEditorFields({
+  draft,
+  onPatch,
+}: {
+  draft: AboutEditorDraft;
+  onPatch: (fn: (prev: AboutEditorDraft) => AboutEditorDraft) => void;
+}) {
+  return (
+    <>
+      <SectionHeading id="about-editor-process">How I work</SectionHeading>
+      <ModernEditorField label="Section title">
+        <Input
+          value={draft.processTitle}
+          onChange={(e) => onPatch((d) => ({ ...d, processTitle: e.target.value }))}
+          className="bg-transparent"
+          style={modernEditorInputStyle}
+        />
+      </ModernEditorField>
+      <ModernEditorField label="Subheading">
+        <Textarea
+          value={draft.processSubheading}
+          onChange={(e) => onPatch((d) => ({ ...d, processSubheading: e.target.value }))}
+          rows={3}
+          className="bg-transparent resize-y min-h-[4rem]"
+          style={modernEditorInputStyle}
+        />
+      </ModernEditorField>
+      <div className="space-y-3">
+        {draft.processItems.map((step, index) => (
+          <div
+            key={index}
+            className="space-y-2 p-3 rounded-lg border"
+            style={{ borderColor: modern.border, background: modern.surfaceInset }}
+          >
+            <ModernEditorField label="Step label" hint='e.g. "01 · DISCOVER"'>
+              <Input
+                value={step.num}
+                onChange={(e) =>
+                  onPatch((d) => {
+                    const processItems = [...d.processItems];
+                    processItems[index] = { ...processItems[index], num: e.target.value };
+                    return { ...d, processItems };
+                  })
+                }
+                placeholder="01 · DISCOVER"
+                className="bg-transparent"
+                style={modernEditorInputStyle}
+              />
+            </ModernEditorField>
+            <ModernEditorField label="Step title" hint='e.g. "Map the mess"'>
+              <Input
+                value={step.title}
+                onChange={(e) =>
+                  onPatch((d) => {
+                    const processItems = [...d.processItems];
+                    processItems[index] = { ...processItems[index], title: e.target.value };
+                    return { ...d, processItems };
+                  })
+                }
+                placeholder="Map the mess"
+                className="bg-transparent"
+                style={modernEditorInputStyle}
+              />
+            </ModernEditorField>
+            <ModernEditorField label="Description">
+              <Textarea
+                value={step.items.join("\n")}
+                onChange={(e) =>
+                  onPatch((d) => {
+                    const processItems = [...d.processItems];
+                    processItems[index] = {
+                      ...processItems[index],
+                      items: e.target.value.split("\n").map((s) => s.trim()).filter(Boolean),
+                    };
+                    return { ...d, processItems };
+                  })
+                }
+                placeholder="One short paragraph for this step."
+                rows={3}
+                className="bg-transparent text-sm"
+                style={modernEditorInputStyle}
+              />
+            </ModernEditorField>
+            <button
+              type="button"
+              className="modern-home-hero-editor__btn modern-home-hero-editor__btn--danger text-xs px-2"
+              style={modernFont}
+              onClick={() =>
+                onPatch((d) => ({
+                  ...d,
+                  processItems: d.processItems.filter((_, i) => i !== index),
+                }))
+              }
+              disabled={draft.processItems.length <= 1}
+            >
+              Remove step
+            </button>
+          </div>
+        ))}
+        <button
+          type="button"
+          className="modern-home-hero-editor__btn"
+          style={modernFont}
+          onClick={() =>
+            onPatch((d) => ({
+              ...d,
+              processItems: [
+                ...d.processItems,
+                {
+                  num: `${String(d.processItems.length + 1).padStart(2, "0")} · STEP`,
+                  title: "",
+                  items: [],
+                },
+              ],
+            }))
+          }
+        >
+          <Plus className="w-3.5 h-3.5" aria-hidden />
+          Add process step
+        </button>
+      </div>
+    </>
   );
 }
 
@@ -125,6 +255,7 @@ function TitleTextCardEditor({
 
 export function ModernAboutEditorPanel({
   open,
+  presentation = "inline",
   loading,
   draft,
   onPatch,
@@ -191,6 +322,8 @@ export function ModernAboutEditorPanel({
             style={modernEditorInputStyle}
           />
         </ModernEditorField>
+
+        <AboutProcessEditorFields draft={draft} onPatch={onPatch} />
 
         <SectionHeading>Visible sections</SectionHeading>
         <p className="text-xs" style={{ color: modern.muted }}>
@@ -321,110 +454,6 @@ export function ModernAboutEditorPanel({
             )}
           </div>
         ))}
-
-        <SectionHeading>Process</SectionHeading>
-        <ModernEditorField label="Section title">
-          <Input
-            value={draft.processTitle}
-            onChange={(e) => onPatch((d) => ({ ...d, processTitle: e.target.value }))}
-            className="bg-transparent"
-            style={modernEditorInputStyle}
-          />
-        </ModernEditorField>
-        <ModernEditorField label="Subheading">
-          <Textarea
-            value={draft.processSubheading}
-            onChange={(e) => onPatch((d) => ({ ...d, processSubheading: e.target.value }))}
-            rows={2}
-            className="bg-transparent"
-            style={modernEditorInputStyle}
-          />
-        </ModernEditorField>
-        <div className="space-y-3">
-          {draft.processItems.map((step, index) => (
-            <div
-              key={index}
-              className="space-y-2 p-3 rounded-lg border"
-              style={{ borderColor: modern.border, background: modern.surfaceInset }}
-            >
-              <div className="flex gap-2">
-                <Input
-                  value={step.num}
-                  onChange={(e) =>
-                    onPatch((d) => {
-                      const processItems = [...d.processItems];
-                      processItems[index] = { ...processItems[index], num: e.target.value };
-                      return { ...d, processItems };
-                    })
-                  }
-                  placeholder="#"
-                  className="w-16 bg-transparent"
-                  style={modernEditorInputStyle}
-                />
-                <Input
-                  value={step.title}
-                  onChange={(e) =>
-                    onPatch((d) => {
-                      const processItems = [...d.processItems];
-                      processItems[index] = { ...processItems[index], title: e.target.value };
-                      return { ...d, processItems };
-                    })
-                  }
-                  placeholder="Step title"
-                  className="flex-1 bg-transparent"
-                  style={modernEditorInputStyle}
-                />
-              </div>
-              <Textarea
-                value={step.items.join("\n")}
-                onChange={(e) =>
-                  onPatch((d) => {
-                    const processItems = [...d.processItems];
-                    processItems[index] = {
-                      ...processItems[index],
-                      items: e.target.value.split("\n").map((s) => s.trim()).filter(Boolean),
-                    };
-                    return { ...d, processItems };
-                  })
-                }
-                placeholder="Bullet points (one per line)"
-                rows={4}
-                className="bg-transparent text-sm"
-                style={modernEditorInputStyle}
-              />
-              <button
-                type="button"
-                className="modern-home-hero-editor__btn modern-home-hero-editor__btn--danger text-xs px-2"
-                style={modernFont}
-                onClick={() =>
-                  onPatch((d) => ({
-                    ...d,
-                    processItems: d.processItems.filter((_, i) => i !== index),
-                  }))
-                }
-              >
-                Remove step
-              </button>
-            </div>
-          ))}
-          <button
-            type="button"
-            className="modern-home-hero-editor__btn"
-            style={modernFont}
-            onClick={() =>
-              onPatch((d) => ({
-                ...d,
-                processItems: [
-                  ...d.processItems,
-                  { num: String(d.processItems.length + 1), title: "", items: [] },
-                ],
-              }))
-            }
-          >
-            <Plus className="w-3.5 h-3.5" aria-hidden />
-            Add process step
-          </button>
-        </div>
 
         <SectionHeading>Certifications</SectionHeading>
         <ModernEditorField label="Section title">
@@ -564,6 +593,19 @@ export function ModernAboutEditorPanel({
         </div>
       </>
     );
+
+  if (presentation === "inline") {
+    return (
+      <ModernEditorInlineShell
+        title="Edit about content"
+        onCancel={onCancel}
+        onDone={onDone}
+        saving={saving}
+      >
+        {body}
+      </ModernEditorInlineShell>
+    );
+  }
 
   return (
     <ModernEditorDialog

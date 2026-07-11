@@ -19,6 +19,7 @@ import { useDesignVariant, resolvePageDesignVariant } from "./design/DesignVaria
 import { useFontTheme } from "./design/FontThemeContext";
 import { ModernAppChrome } from "./layouts/modern/ModernAppChrome";
 import { ModernFooter } from "./components/modern/ModernFooter";
+import { clearStaleModernEditorPortals } from "./components/modern/ModernEditorDialog";
 import { SiteOverflowMenu } from "./components/SiteOverflowMenu";
 import Home from "./pages/Home";
 
@@ -323,6 +324,7 @@ function AppShell() {
     if (typeof window !== 'undefined' && (window as any).__reactMounted) {
       (window as any).__reactMounted();
     }
+    clearStaleModernEditorPortals();
     // Prevent browser from restoring scroll position between navigations
     if ('scrollRestoration' in window.history) {
       try {
@@ -2412,7 +2414,7 @@ function AppShell() {
       />
       
       {/* Toast notifications */}
-      <Toaster position="bottom-right" />
+      <Toaster position="bottom-right" style={{ zIndex: 200 }} toastOptions={{ style: { zIndex: 200 } }} />
       
       <DeferredVercelMonitoring route={currentRoute} />
     </ErrorBoundary>
