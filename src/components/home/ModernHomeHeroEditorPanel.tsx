@@ -1,11 +1,11 @@
 import {
   Suspense,
   useCallback,
+  useEffect,
   useMemo,
   useRef,
   useState,
   type Dispatch,
-  type MutableRefObject,
   type SetStateAction,
 } from "react";
 import { flushSync } from "react-dom";
@@ -27,9 +27,17 @@ import {
   type HomePageContentV2,
   type HomePageStat,
   type HeroTextState,
+  mergeLogoStrip,
+  mergeLeadershipStrip,
+  type HomePageLogoEntry,
+  type HomePageLogoStrip,
+  type HomePageLeadershipStrip,
 } from "../../lib/homePageContent";
 import { useModernCaseStudies } from "../../lib/modernCaseStudies";
+import { clampLogoImageScale, measureLogoImageScale } from "../../lib/logoImageScale";
 import { lazyWithRetry } from "../../utils/lazyWithRetry";
+import { uploadLogoImage } from "../../utils/imageHelpers";
+import { resolveLogoImageUrl, validateLogoImageUrl } from "../../utils/imageOptimizer";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import {
@@ -43,6 +51,7 @@ import { Switch } from "../ui/switch";
 import { Textarea } from "../ui/textarea";
 import {
   ModernEditorField,
+  ModernEditorInlineShell,
   ModernEditorShell,
   modernEditorInputStyle,
 } from "../modern/ModernEditorDialog";
@@ -54,14 +63,74 @@ const HomeBioDocumentEditor = lazyWithRetry(() =>
   })),
 );
 
+function LogoUrlPreview({
+  url,
+  name,
+  imageScale = 1,
+}: {
+  url: string;
+  name: string;
+  imageScale?: number;
+}) {
+  const validation = useMemo(() => validateLogoImageUrl(url), [url]);
+  const resolved = validation.resolved;
+  const scale = clampLogoImageScale(imageScale);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    setFailed(false);
+  }, [resolved, scale]);
+
+  if (!validation.ok && validation.message) {
+    return (
+      <p className="text-xs rounded-md border px-3 py-2" style={{ borderColor: modern.border, color: modern.muted }}>
+        {validation.message}
+      </p>
+    );
+  }
+
+  if (failed) {
+    return (
+      <p className="text-xs rounded-md border px-3 py-2" style={{ borderColor: modern.border, color: modern.muted }}>
+        Could not load this image. The site may block hotlinking — try Upload logo, or use a direct .png / .svg URL.
+      </p>
+    );
+  }
+
+  if (!resolved) return null;
+
+  return (
+    <div className="flex items-center gap-3 rounded-md border px-3 py-2" style={{ borderColor: modern.border }}>
+      <span
+        className="modern-logo-strip__slot"
+        style={{ flexShrink: 0, ["--logo-scale" as string]: String(scale) }}
+      >
+        <img
+          src={resolved}
+          alt={`${name} logo preview`}
+          className="modern-logo-strip__img"
+          referrerPolicy="no-referrer"
+          onError={() => setFailed(true)}
+        />
+      </span>
+      <span className="text-xs truncate" style={{ color: modern.muted }}>
+        Preview (matches homepage size)
+      </span>
+    </div>
+  );
+}
+
 interface ModernHomeHeroEditorPanelProps {
   open: boolean;
   onClose: () => void;
   homePageContent: HomePageContentV2;
   setHomePageContent: Dispatch<SetStateAction<HomePageContentV2>>;
-  homeContentHydratedRef: MutableRefObject<boolean>;
-  persistHomePageNow: (content: HomePageContentV2) => Promise<void>;
+  persistHomePageNow: (content: HomePageContentV2) => Promise<boolean>;
   clearDebouncedHeroSave: () => void;
+  bioEditorRevision: number;
+  onBumpBioRevision: () => void;
+  /** `inline` renders in the hero (no portal). `portal` uses the slide-over shell. */
+  presentation?: "inline" | "portal";
 }
 
 export function ModernHomeHeroEditorPanel({
@@ -69,16 +138,21 @@ export function ModernHomeHeroEditorPanel({
   onClose,
   homePageContent,
   setHomePageContent,
-  homeContentHydratedRef,
   persistHomePageNow,
   clearDebouncedHeroSave,
+  bioEditorRevision,
+  onBumpBioRevision,
+  presentation = "portal",
 }: ModernHomeHeroEditorPanelProps) {
   const { projects, loading: projectsLoading } = useProjects();
   const caseStudies = useModernCaseStudies(projects, projectsLoading, true);
-  const [bioEditorRevision, setBioEditorRevision] = useState(0);
   const [greetingsTextValue, setGreetingsTextValue] = useState("");
   const [saving, setSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<string | null>(null);
+  const [logoUploadIndex, setLogoUploadIndex] = useState<number | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const homePageContentRef = useRef(homePageContent);
+  homePageContentRef.current = homePageContent;
 
   const patchUi = useCallback(
     (patch: Partial<HomePageContentV2["ui"]>) => {
@@ -192,29 +266,179 @@ export function ModernHomeHeroEditorPanel({
     [setHomePageContent],
   );
 
+  const logoStrip = homePageContent.logoStrip ?? mergeLogoStrip(undefined);
+  const leadershipStrip = homePageContent.leadershipStrip ?? mergeLeadershipStrip(undefined);
+
+  const patchLogoStrip = useCallback(
+    (patch: Partial<HomePageLogoStrip>) => {
+      setHomePageContent((c) => ({
+        ...c,
+        logoStrip: { ...(c.logoStrip ?? mergeLogoStrip(undefined)), ...patch },
+      }));
+    },
+    [setHomePageContent],
+  );
+
+  const patchLogoEntry = useCallback(
+    (index: number, patch: Partial<HomePageLogoEntry>) => {
+      setHomePageContent((c) => {
+        const strip = c.logoStrip ?? mergeLogoStrip(undefined);
+        const entries = [...strip.entries];
+        entries[index] = { ...entries[index], ...patch };
+        return { ...c, logoStrip: { ...strip, entries } };
+      });
+    },
+    [setHomePageContent],
+  );
+
+  const addLogoEntry = useCallback(() => {
+    setHomePageContent((c) => {
+      const strip = c.logoStrip ?? mergeLogoStrip(undefined);
+      return {
+        ...c,
+        logoStrip: { ...strip, entries: [...strip.entries, { name: "Company" }] },
+      };
+    });
+  }, [setHomePageContent]);
+
+  const removeLogoEntry = useCallback(
+    (index: number) => {
+      setHomePageContent((c) => {
+        const strip = c.logoStrip ?? mergeLogoStrip(undefined);
+        if (strip.entries.length <= 1) return c;
+        return {
+          ...c,
+          logoStrip: { ...strip, entries: strip.entries.filter((_, i) => i !== index) },
+        };
+      });
+    },
+    [setHomePageContent],
+  );
+
+  const handleLogoFileUpload = useCallback(
+    async (index: number, file: File | undefined) => {
+      if (!file) return;
+      setLogoUploadIndex(index);
+      try {
+        const publicUrl = await uploadLogoImage(file);
+        const scale = await measureLogoImageScale(publicUrl);
+        patchLogoEntry(index, { imageUrl: publicUrl, imageScale: scale });
+        if (scale > 1.02) {
+          toast.message("Logo uploaded. Display size adjusted for extra padding in the file.");
+        } else {
+          toast.success("Logo uploaded.");
+        }
+        requestAnimationFrame(() => {
+          scrollRef.current
+            ?.querySelector(`[data-logo-entry="${index}"]`)
+            ?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Logo upload failed.";
+        toast.error(message);
+      } finally {
+        setLogoUploadIndex(null);
+      }
+    },
+    [patchLogoEntry],
+  );
+
+  const autoAdjustLogoScale = useCallback(
+    async (index: number, url: string, companyName: string) => {
+      const scale = await measureLogoImageScale(url);
+      if (scale > 1.02) {
+        patchLogoEntry(index, { imageScale: scale });
+        toast.message(
+          `Adjusted ${companyName || "logo"} display size (${Math.round(scale * 100)}%) for padded artwork.`,
+          { duration: 5000 },
+        );
+      }
+    },
+    [patchLogoEntry],
+  );
+
+  const patchLeadershipStrip = useCallback(
+    (patch: Partial<HomePageLeadershipStrip>) => {
+      setHomePageContent((c) => ({
+        ...c,
+        leadershipStrip: { ...(c.leadershipStrip ?? mergeLeadershipStrip(undefined)), ...patch },
+      }));
+    },
+    [setHomePageContent],
+  );
+
+  const patchLeadershipBullet = useCallback(
+    (index: number, text: string) => {
+      setHomePageContent((c) => {
+        const strip = c.leadershipStrip ?? mergeLeadershipStrip(undefined);
+        const bullets = [...strip.bullets];
+        bullets[index] = text;
+        return { ...c, leadershipStrip: { ...strip, bullets } };
+      });
+    },
+    [setHomePageContent],
+  );
+
+  const addLeadershipBullet = useCallback(() => {
+    setHomePageContent((c) => {
+      const strip = c.leadershipStrip ?? mergeLeadershipStrip(undefined);
+      return {
+        ...c,
+        leadershipStrip: { ...strip, bullets: [...strip.bullets, "New leadership proof point"] },
+      };
+    });
+  }, [setHomePageContent]);
+
+  const removeLeadershipBullet = useCallback(
+    (index: number) => {
+      setHomePageContent((c) => {
+        const strip = c.leadershipStrip ?? mergeLeadershipStrip(undefined);
+        if (strip.bullets.length <= 1) return c;
+        return {
+          ...c,
+          leadershipStrip: { ...strip, bullets: strip.bullets.filter((_, i) => i !== index) },
+        };
+      });
+    },
+    [setHomePageContent],
+  );
+
   const handleCancel = useCallback(() => {
-    if (saving) return;
+    clearDebouncedHeroSave();
+    setSaveStatus(null);
     onClose();
-  }, [onClose, saving]);
+  }, [clearDebouncedHeroSave, onClose]);
 
   const handleDone = useCallback(async () => {
     if (saving) return;
     setSaving(true);
+    setSaveStatus("Saving…");
     clearDebouncedHeroSave();
 
-    let merged: HomePageContentV2 | null = null;
-    flushSync(() => {
-      setHomePageContent((c) => {
-        merged = mergeHeroGreetingsFromDraftLines(c, greetingsTextValue);
-        return merged;
-      });
-    });
+    const merged = mergeHeroGreetingsFromDraftLines(
+      homePageContentRef.current,
+      greetingsTextValue,
+    );
 
     try {
-      if (merged && homeContentHydratedRef.current) {
-        await persistHomePageNow(merged);
+      flushSync(() => {
+        setHomePageContent(merged);
+      });
+
+      const ok = await persistHomePageNow(merged);
+      if (ok) {
+        setSaveStatus("Saved.");
+        toast.success("Home content saved.");
+        onClose();
+        return;
       }
-      onClose();
+      setSaveStatus("Save failed. See message above or try again.");
+    } catch (error) {
+      console.error("Home content save error:", error);
+      const message =
+        error instanceof Error ? error.message : "Unexpected error while saving home content.";
+      setSaveStatus(message);
+      toast.error(message);
     } finally {
       setSaving(false);
     }
@@ -223,7 +447,6 @@ export function ModernHomeHeroEditorPanel({
     clearDebouncedHeroSave,
     setHomePageContent,
     greetingsTextValue,
-    homeContentHydratedRef,
     persistHomePageNow,
     onClose,
   ]);
@@ -268,16 +491,24 @@ export function ModernHomeHeroEditorPanel({
     return "__default__";
   }, [homePageContent.ui.featuredCaseStudyId, caseStudies]);
 
-  return (
-    <ModernEditorShell
-      open={open}
-      title="Edit home content"
-      titleId="modern-home-hero-editor-title"
-      onCancel={handleCancel}
-      onDone={() => void handleDone()}
-      saving={saving}
-      bodyRef={scrollRef}
-    >
+  if (!open) return null;
+
+  const editorBody = (
+    <>
+          {saveStatus ? (
+            <p
+              className="text-sm rounded-md px-3 py-2 border"
+              role="status"
+              style={{
+                ...modernFont,
+                color: saveStatus.startsWith("Saved") ? modern.accent : modern.text,
+                borderColor: modern.border,
+                background: modern.surfaceInset,
+              }}
+            >
+              {saveStatus}
+            </p>
+          ) : null}
           <section className="space-y-3">
             <h3 className="text-sm font-semibold" style={modernFont}>
               Intro copy
@@ -297,7 +528,7 @@ export function ModernHomeHeroEditorPanel({
                 onLineHeight={(v) => patchHero({ bioLineHeight: v })}
                 onReplaceFromTemplate={() => {
                   patchHero({ bioDocument: defaultBioDocument() });
-                  setBioEditorRevision((n) => n + 1);
+                  onBumpBioRevision();
                 }}
               />
             </Suspense>
@@ -509,6 +740,215 @@ export function ModernHomeHeroEditorPanel({
           </section>
 
           <section className="space-y-3 pt-2 border-t" style={{ borderColor: modern.border }}>
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="text-sm font-semibold" style={modernFont}>
+                Logo strip
+              </h3>
+              <Switch
+                checked={logoStrip.enabled}
+                onCheckedChange={(checked) => patchLogoStrip({ enabled: checked })}
+                aria-label="Show logo strip"
+              />
+            </div>
+            <ModernEditorField
+              label="Label (optional)"
+              hint="Paste a direct image URL (.png, .svg). On pngwing or similar sites: right-click the image → Copy image address — do not copy the page URL from the address bar."
+            >
+              <Input
+                value={logoStrip.label ?? ""}
+                onChange={(e) => patchLogoStrip({ label: e.target.value })}
+                placeholder="Previously at"
+                className="bg-transparent"
+                style={{ borderColor: modern.border, color: modern.text }}
+              />
+            </ModernEditorField>
+            <div className="flex justify-end">
+              <button
+                type="button"
+                className="modern-home-hero-editor__btn"
+                style={modernFont}
+                onClick={addLogoEntry}
+              >
+                <Plus className="w-3.5 h-3.5" aria-hidden />
+                Add employer
+              </button>
+            </div>
+            {logoStrip.entries.map((entry, index) => (
+              <div
+                key={index}
+                data-logo-entry={index}
+                className="flex flex-col gap-2 p-3 rounded-lg border"
+                style={{ borderColor: modern.border, background: modern.surfaceInset }}
+              >
+                <div className="flex gap-2">
+                  <Input
+                    value={entry.name}
+                    onChange={(e) => patchLogoEntry(index, { name: e.target.value })}
+                    placeholder="Company name"
+                    className="bg-transparent flex-1"
+                    style={{ borderColor: modern.border, color: modern.text }}
+                  />
+                  <button
+                    type="button"
+                    className="modern-home-hero-editor__btn modern-home-hero-editor__btn--danger text-xs px-2"
+                    style={modernFont}
+                    onClick={() => removeLogoEntry(index)}
+                    disabled={logoStrip.entries.length <= 1}
+                  >
+                    Remove
+                  </button>
+                </div>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                  <Input
+                    value={entry.imageUrl ?? ""}
+                    onChange={(e) =>
+                      patchLogoEntry(index, {
+                        imageUrl: e.target.value.trim() ? e.target.value : null,
+                      })
+                    }
+                    onBlur={(e) => {
+                      const validation = validateLogoImageUrl(e.target.value);
+                      patchLogoEntry(index, { imageUrl: validation.resolved });
+                      if (e.target.value.trim() && !validation.ok && validation.message) {
+                        toast.error(validation.message, { duration: 8000 });
+                      } else if (validation.ok && validation.resolved) {
+                        void autoAdjustLogoScale(index, validation.resolved, entry.name);
+                      }
+                    }}
+                    placeholder="https://example.com/logo.png"
+                    className="bg-transparent flex-1 min-w-0"
+                    style={{ borderColor: modern.border, color: modern.text }}
+                  />
+                  <label
+                    className="modern-home-hero-editor__btn shrink-0 cursor-pointer"
+                    style={modernFont}
+                  >
+                    {logoUploadIndex === index ? "Uploading…" : "Upload logo"}
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                      className="sr-only"
+                      disabled={logoUploadIndex !== null}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        void handleLogoFileUpload(index, file);
+                        e.target.value = "";
+                      }}
+                    />
+                  </label>
+                </div>
+                {entry.imageUrl ? (
+                  <div className="flex flex-col gap-2">
+                    <div className="flex flex-col gap-1">
+                      <label
+                        className="text-xs font-medium"
+                        style={{ ...modernFont, color: modern.muted }}
+                        htmlFor={`logo-scale-${index}`}
+                      >
+                        Display size ({Math.round(clampLogoImageScale(entry.imageScale) * 100)}%)
+                      </label>
+                      <input
+                        id={`logo-scale-${index}`}
+                        type="range"
+                        min={60}
+                        max={180}
+                        step={5}
+                        value={Math.round(clampLogoImageScale(entry.imageScale) * 100)}
+                        onChange={(e) =>
+                          patchLogoEntry(index, { imageScale: Number(e.target.value) / 100 })
+                        }
+                        className="w-full accent-[var(--modern-accent)]"
+                      />
+                      <p className="text-xs" style={{ color: modern.muted }}>
+                        Use this if a logo looks too small (common with extra transparent padding in the PNG).
+                      </p>
+                    </div>
+                    <LogoUrlPreview
+                      url={entry.imageUrl}
+                      name={entry.name}
+                      imageScale={entry.imageScale}
+                    />
+                  </div>
+                ) : null}
+              </div>
+            ))}
+          </section>
+
+          <section className="space-y-3 pt-2 border-t" style={{ borderColor: modern.border }}>
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="text-sm font-semibold" style={modernFont}>
+                Leadership strip
+              </h3>
+              <Switch
+                checked={leadershipStrip.enabled}
+                onCheckedChange={(checked) => patchLeadershipStrip({ enabled: checked })}
+                aria-label="Show leadership strip"
+              />
+            </div>
+            <ModernEditorField label="Eyebrow label (optional)">
+              <Input
+                value={leadershipStrip.label ?? ""}
+                onChange={(e) => patchLeadershipStrip({ label: e.target.value })}
+                placeholder="How I lead"
+                className="bg-transparent"
+                style={{ borderColor: modern.border, color: modern.text }}
+              />
+            </ModernEditorField>
+            <ModernEditorField label="Headline">
+              <Input
+                value={leadershipStrip.headline}
+                onChange={(e) => patchLeadershipStrip({ headline: e.target.value })}
+                className="bg-transparent"
+                style={{ borderColor: modern.border, color: modern.text }}
+              />
+            </ModernEditorField>
+            <ModernEditorField label="Subhead (optional)">
+              <Textarea
+                value={leadershipStrip.subhead ?? ""}
+                onChange={(e) => patchLeadershipStrip({ subhead: e.target.value })}
+                rows={4}
+                className="bg-transparent resize-y min-h-[5rem]"
+                style={{ borderColor: modern.border, color: modern.text }}
+              />
+            </ModernEditorField>
+            <div className="flex justify-end">
+              <button
+                type="button"
+                className="modern-home-hero-editor__btn"
+                style={modernFont}
+                onClick={addLeadershipBullet}
+              >
+                <Plus className="w-3.5 h-3.5" aria-hidden />
+                Add bullet
+              </button>
+            </div>
+            {leadershipStrip.bullets.map((bullet, index) => (
+              <div
+                key={index}
+                className="flex gap-2 p-3 rounded-lg border"
+                style={{ borderColor: modern.border, background: modern.surfaceInset }}
+              >
+                <Textarea
+                  value={bullet}
+                  onChange={(e) => patchLeadershipBullet(index, e.target.value)}
+                  rows={2}
+                  className="bg-transparent resize-y min-h-[3rem] flex-1"
+                  style={{ borderColor: modern.border, color: modern.text }}
+                />
+                <button
+                  type="button"
+                  className="modern-home-hero-editor__btn modern-home-hero-editor__btn--danger text-xs px-2 self-start"
+                  style={modernFont}
+                  onClick={() => removeLeadershipBullet(index)}
+                  disabled={leadershipStrip.bullets.length <= 1}
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
+          </section>
+
+          <section className="space-y-3 pt-2 border-t" style={{ borderColor: modern.border }}>
             <h3 className="text-sm font-semibold" style={modernFont}>
               Case studies & filters
             </h3>
@@ -682,42 +1122,36 @@ export function ModernHomeHeroEditorPanel({
               </button>
             </div>
           </section>
+    </>
+  );
+
+  if (presentation === "inline") {
+    return (
+      <ModernEditorInlineShell
+        title="Edit home content"
+        titleId="modern-home-hero-editor-title"
+        onCancel={handleCancel}
+        onDone={() => void handleDone()}
+        saving={saving}
+        bodyRef={scrollRef}
+      >
+        {editorBody}
+      </ModernEditorInlineShell>
+    );
+  }
+
+  return (
+    <ModernEditorShell
+      open
+      title="Edit home content"
+      titleId="modern-home-hero-editor-title"
+      onCancel={handleCancel}
+      onDone={() => void handleDone()}
+      saving={saving}
+      backdropSaves={false}
+      bodyRef={scrollRef}
+    >
+      {editorBody}
     </ModernEditorShell>
   );
-}
-
-/** Edit-mode home CMS hook + panel state (single `useHomePageContent` instance). */
-export function useModernHomeHeroEditor() {
-  const [heroEditorOpen, setHeroEditorOpen] = useState(false);
-  const [isEditingHero, setIsEditingHero] = useState(false);
-  const isEditingHeroRef = useRef(isEditingHero);
-  isEditingHeroRef.current = isEditingHero;
-  const [bioEditorRevision, setBioEditorRevision] = useState(0);
-  const [greetingsTextValue, setGreetingsTextValue] = useState("");
-  const greetingsTextValueRef = useRef(greetingsTextValue);
-  greetingsTextValueRef.current = greetingsTextValue;
-
-  const bumpBioEditorRevision = useCallback(() => setBioEditorRevision((n) => n + 1), []);
-
-  const cms = useHomePageContent({
-    bumpBioEditorRevision,
-    isEditingHeroRef,
-    greetingsTextValueRef,
-    setIsEditingHero,
-    isEditingHero,
-    greetingsTextValue,
-  });
-
-  return {
-    heroEditorOpen,
-    openHeroEditor: () => {
-      setIsEditingHero(true);
-      setHeroEditorOpen(true);
-    },
-    closeHeroEditor: () => {
-      setIsEditingHero(false);
-      setHeroEditorOpen(false);
-    },
-    cms,
-  };
 }

@@ -3,12 +3,14 @@ import { ArrowUpRight, Edit2 } from "lucide-react";
 import { ModernFooter } from "../../components/modern/ModernFooter";
 import { ModernResumeLink } from "../../components/modern/ModernResumeLink";
 import { ModernAboutEditorPanel } from "../../components/about/ModernAboutEditorPanel";
+import { clearStaleModernEditorPortals } from "../../components/modern/ModernEditorDialog";
 import { useAboutPageData, DEFAULT_ABOUT_HEADLINE, DEFAULT_ABOUT_LEAD } from "../../hooks/useAboutPageData";
 import { useAboutPageEditor } from "../../hooks/useAboutPageEditor";
 import { useSEO } from "../../hooks/useSEO";
 import { stripHtmlForDisplay } from "../../lib/modernCaseStudies";
 import { MarkdownRenderer } from "../../components/MarkdownRenderer";
 import { modernLayout } from "../../design/modernLayout";
+import { ModernAboutProcessSection } from "../../components/modern/ModernAboutProcessSection";
 import { MODERN_ABOUT_HIGHLIGHTS } from "../../design/modernAboutContent";
 import { modern, modernFont, modernPrimaryButtonStyle } from "../../design/modernTokens";
 
@@ -50,6 +52,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 export function ModernAbout({ onNavigateContact, onBack, isEditMode = false }: ModernAboutProps) {
   useSEO("about");
   const [aboutEditorOpen, setAboutEditorOpen] = useState(false);
+  const [focusProcessEditor, setFocusProcessEditor] = useState(false);
   const [saving, setSaving] = useState(false);
   const { loading, data, reload } = useAboutPageData();
   const editor = useAboutPageEditor();
@@ -59,13 +62,44 @@ export function ModernAbout({ onNavigateContact, onBack, isEditMode = false }: M
   }, [isEditMode]);
 
   useEffect(() => {
+    if (!aboutEditorOpen) return;
+    const mq = window.matchMedia("(max-width: 767px)");
+    if (!mq.matches) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [aboutEditorOpen]);
+
+  useEffect(() => {
     if (aboutEditorOpen) void editor.reload();
   }, [aboutEditorOpen, editor.reload]);
 
+  const openAboutEditor = () => {
+    clearStaleModernEditorPortals();
+    setAboutEditorOpen(true);
+  };
+
+  const openAboutEditorForProcess = () => {
+    setFocusProcessEditor(true);
+    openAboutEditor();
+  };
+
   const closeAboutEditor = () => {
     setAboutEditorOpen(false);
+    setFocusProcessEditor(false);
     reload();
   };
+
+  useEffect(() => {
+    if (!aboutEditorOpen || !focusProcessEditor) return;
+    const timer = window.setTimeout(() => {
+      document.getElementById("about-editor-process")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      setFocusProcessEditor(false);
+    }, 80);
+    return () => window.clearTimeout(timer);
+  }, [aboutEditorOpen, focusProcessEditor]);
 
   const handleAboutEditorDone = async () => {
     setSaving(true);
@@ -186,40 +220,33 @@ export function ModernAbout({ onNavigateContact, onBack, isEditMode = false }: M
           </div>
         </section>
       ) : null,
-    process: () =>
-      data.processItems.length > 0 ? (
-        <section key="process" className={`${modernLayout.sectionX} ${modernLayout.aboutSection}`}>
-          <div className={modernLayout.container}>
-            <SectionTitle>{data.processTitle}</SectionTitle>
-            {data.processSubheading ? (
-              <p className="mb-8 text-sm leading-relaxed max-w-2xl" style={{ ...modernFont, color: modern.muted }}>
-                {stripHtmlForDisplay(data.processSubheading)}
-              </p>
-            ) : null}
-            <div className="space-y-4">
-              {data.processItems.map((step) => (
-                <div key={step.title} className={modernLayout.aboutInlineCard}>
-                  <div className="flex items-baseline gap-3 mb-2">
-                    <span className="text-[10px]" style={{ ...modernFont, fontWeight: 600, color: modern.accent }}>
-                      {step.num}
-                    </span>
-                    <h3 style={{ ...modernFont, fontWeight: 500, fontSize: "0.9375rem", color: modern.text }}>
-                      {step.title}
-                    </h3>
-                  </div>
-                  <ul className="list-disc pl-5 space-y-1">
-                    {step.items.map((item) => (
-                      <li key={item} className="text-sm leading-relaxed" style={{ ...modernFont, color: modern.muted }}>
-                        {stripHtmlForDisplay(item)}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      ) : null,
+    process: () => {
+      const steps = data.processItems.length > 0 ? data.processItems : [];
+      return (
+        <ModernAboutProcessSection
+          key="process"
+          title={data.processTitle}
+          subheading={data.processSubheading}
+          steps={steps}
+          editAction={
+            isEditMode && !aboutEditorOpen ? (
+              <button
+                type="button"
+                className="modern-home-hero-editor__btn modern-home-hero-editor__btn--primary"
+                style={modernFont}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openAboutEditorForProcess();
+                }}
+              >
+                <Edit2 className="w-3.5 h-3.5" aria-hidden />
+                Edit how I work
+              </button>
+            ) : null
+          }
+        />
+      );
+    },
     certifications: () =>
       data.certificationsItems.length > 0 ? (
         <section key="certifications" className={`${modernLayout.sectionX} ${modernLayout.aboutSection}`}>
@@ -278,72 +305,87 @@ export function ModernAbout({ onNavigateContact, onBack, isEditMode = false }: M
 
   const sectionOrder = data.sectionOrder.filter((id) => sectionRenderers[id]);
 
+  const aboutEditor = (
+    <ModernAboutEditorPanel
+      presentation="inline"
+      open={aboutEditorOpen}
+      loading={editor.loading}
+      draft={editor.draft}
+      onPatch={editor.patch}
+      onCancel={closeAboutEditor}
+      onDone={() => void handleAboutEditorDone()}
+      saving={saving}
+    />
+  );
+
   return (
     <main className="min-h-screen" style={{ background: modern.bg }}>
-      <ModernAboutEditorPanel
-        open={isEditMode && aboutEditorOpen}
-        loading={editor.loading}
-        draft={editor.draft}
-        onPatch={editor.patch}
-        onCancel={closeAboutEditor}
-        onDone={() => void handleAboutEditorDone()}
-        saving={saving}
-      />
-
-      <section className={`relative overflow-hidden ${modernLayout.sectionX} ${modernLayout.heroPt} ${modernLayout.aboutHero}`}>
+      <section
+        className={`relative overflow-hidden ${modernLayout.sectionX} ${modernLayout.heroPt} ${modernLayout.aboutHero}${aboutEditorOpen ? " modern-hero-section--cms-open" : ""}`}
+      >
         <div className="absolute inset-0 pointer-events-none modern-hero-glow modern-hero-glow--about" />
         <div className={`relative ${modernLayout.container}`}>
-          {isEditMode ? (
-            <div className="mb-6">
+          {aboutEditorOpen ? <div className="modern-home-cms-editor-slot">{aboutEditor}</div> : null}
+
+          {isEditMode && !aboutEditorOpen ? (
+            <div className="mb-6 relative z-[2]">
               <button
                 type="button"
                 className="modern-home-hero-editor__btn modern-home-hero-editor__btn--primary"
                 style={modernFont}
-                onClick={() => setAboutEditorOpen(true)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openAboutEditor();
+                }}
               >
                 <Edit2 className="w-3.5 h-3.5" aria-hidden />
                 Edit about content
               </button>
             </div>
           ) : null}
-          <p className="text-xs uppercase tracking-widest mb-4" style={{ ...modernFont, fontWeight: 600, color: modern.accent }}>
-            About Brian
-          </p>
-          {loading ? (
-            <div className="space-y-4 mb-0" aria-hidden>
-              <div className="h-10 w-full max-w-xl rounded-md animate-pulse" style={{ background: modern.surface }} />
-              <div className="h-16 w-full max-w-2xl rounded-md animate-pulse" style={{ background: modern.surface }} />
-            </div>
-          ) : (
+
+          {!aboutEditorOpen ? (
             <>
-              <h1
-                className={modernLayout.aboutHeadline}
-                style={{
-                  ...modernFont,
-                  fontWeight: 600,
-                  fontSize: "clamp(28px, 3.5vw, 42px)",
-                  lineHeight: 1.15,
-                  color: modern.text,
-                }}
-              >
-                {data.headline || DEFAULT_ABOUT_HEADLINE}
-              </h1>
-              <p className={`${modernLayout.aboutLead} leading-relaxed`} style={{ ...modernFont, fontSize: "1rem", color: modern.muted }}>
-                {data.heroLead || DEFAULT_ABOUT_LEAD}
+              <p className="text-xs uppercase tracking-widest mb-4" style={{ ...modernFont, fontWeight: 600, color: modern.accent }}>
+                About Brian
               </p>
+              {loading ? (
+                <div className="space-y-4 mb-0" aria-hidden>
+                  <div className="h-10 w-full max-w-xl rounded-md animate-pulse" style={{ background: modern.surface }} />
+                  <div className="h-16 w-full max-w-2xl rounded-md animate-pulse" style={{ background: modern.surface }} />
+                </div>
+              ) : (
+                <>
+                  <h1
+                    className={modernLayout.aboutHeadline}
+                    style={{
+                      ...modernFont,
+                      fontWeight: 600,
+                      fontSize: "clamp(28px, 3.5vw, 42px)",
+                      lineHeight: 1.15,
+                      color: modern.text,
+                    }}
+                  >
+                    {data.headline || DEFAULT_ABOUT_HEADLINE}
+                  </h1>
+                  <p className={`${modernLayout.aboutLead} leading-relaxed`} style={{ ...modernFont, fontSize: "1rem", color: modern.muted }}>
+                    {data.heroLead || DEFAULT_ABOUT_LEAD}
+                  </p>
+                </>
+              )}
+              <div className={modernLayout.aboutActions}>
+                <button type="button" onClick={onNavigateContact} className="modern-btn-primary" style={modernPrimaryButtonStyle}>
+                  Get in touch
+                </button>
+                {data.resumeUrl ? (
+                  <ModernResumeLink resumeUrl={data.resumeUrl} className="modern-btn-outline" style={modernFont}>
+                    View resume
+                    <ArrowUpRight size={14} />
+                  </ModernResumeLink>
+                ) : null}
+              </div>
             </>
-          )}
-          <div className={modernLayout.aboutActions}>
-            <button type="button" onClick={onNavigateContact} className="modern-btn-primary" style={modernPrimaryButtonStyle}>
-              Get in touch
-            </button>
-            {data.resumeUrl ? (
-              <ModernResumeLink resumeUrl={data.resumeUrl} className="modern-btn-outline" style={modernFont}>
-                View resume
-                <ArrowUpRight size={14} />
-              </ModernResumeLink>
-            ) : null}
-          </div>
+          ) : null}
         </div>
       </section>
 

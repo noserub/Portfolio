@@ -9,6 +9,7 @@ export { useProfiles } from './useProfiles';
 export { useProjectsState } from './useProjects';
 export { ProjectsProvider, useProjects } from '../contexts/ProjectsContext';
 export { useHomePageContent } from './useHomePageContent';
+export { useModernHomeHeroEditor } from './useModernHomeHeroEditor';
 export { useContactMessages } from './useContactMessages';
 export { useSEOData } from './useSEOData';
 export { usePageVisibility } from './usePageVisibility';

@@ -242,6 +242,33 @@ export async function uploadImage(
   }
 }
 
+/** Upload a logo for the home employer strip (object/public URL, no crop transform). */
+export async function uploadLogoImage(file: File): Promise<string> {
+  const { supabase } = await import('../lib/supabaseClient');
+  const timestamp = Date.now();
+  const sanitizedName = file.name
+    .replace(/[^a-zA-Z0-9.-]/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_|_$/g, '');
+  const filename = `logos/${timestamp}_${sanitizedName || 'logo.png'}`;
+
+  const { error } = await supabase.storage.from('portfolio-images').upload(filename, file, {
+    cacheControl: '3600',
+    upsert: false,
+    contentType: file.type || 'image/png',
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  const {
+    data: { publicUrl },
+  } = supabase.storage.from('portfolio-images').getPublicUrl(filename);
+
+  return publicUrl;
+}
+
 /**
  * Strips all base64 images and blob URLs from an object and replaces with placeholders
  * Used during export to create lightweight JSON files

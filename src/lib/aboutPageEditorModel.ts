@@ -1,13 +1,190 @@
 import type { ProfileUpdate } from "../hooks/useProfiles";
+import { MODERN_ABOUT_HIGHLIGHTS, MODERN_ABOUT_PROCESS } from "../design/modernAboutContent";
 import {
   DEFAULT_ABOUT_HEADLINE,
   DEFAULT_ABOUT_LEAD,
   type AboutProfileRow,
 } from "./aboutPageProfile";
 
+function defaultAboutHighlights(): AboutTitleTextItem[] {
+  return MODERN_ABOUT_HIGHLIGHTS.map((h) => ({ title: h.title, text: h.text }));
+}
+
+function defaultAboutProcessItems(): AboutProcessItem[] {
+  return MODERN_ABOUT_PROCESS.steps.map((step) => ({
+    num: `${step.num} · ${step.phase.toUpperCase()}`,
+    title: step.title,
+    items: [step.description],
+  }));
+}
+
+function defaultAboutProcessSubheading(): string {
+  return MODERN_ABOUT_PROCESS.subheading;
+}
+
+function processItemsFingerprint(items: AboutProcessItem[]): string {
+  return JSON.stringify(
+    items.map((item) => ({
+      num: item.num,
+      title: item.title,
+      items: item.items,
+    })),
+  );
+}
+
+const LEGACY_ABOUT_PROCESS_ITEM_SETS: AboutProcessItem[][] = [
+  [
+    {
+      num: "01 · DISCOVER",
+      title: "Clarify the decision",
+      items: [
+        "Understand the real workflow, constraints, and what would count as success before design work spreads.",
+      ],
+    },
+    {
+      num: "02 · FRAME",
+      title: "Set direction",
+      items: [
+        "Align executives, product, and engineering on one bet: permissions, failure modes, and patterns the team can actually build.",
+      ],
+    },
+    {
+      num: "03 · PROTOTYPE",
+      title: "Learn before we commit",
+      items: [
+        "Research, prototypes in code, and eval checks when stakes are high. Reduce the cost of being wrong before engineering commits.",
+      ],
+    },
+    {
+      num: "04 · SHIP & LEARN",
+      title: "Ship and measure",
+      items: [
+        "Stay close through implementation and launch readiness. Track adoption and failure modes after release, then fix what production proved.",
+      ],
+    },
+  ],
+  [
+    {
+      num: "01 · DISCOVER",
+      title: "Align on the bet",
+      items: [
+        "Translate ambiguous goals into a clear problem, success metrics, and constraints (policy, risk, technical).",
+      ],
+    },
+    {
+      num: "02 · FRAME",
+      title: "Set direction",
+      items: [
+        "Roadmap tradeoffs, trust UX, and patterns that align executives, product, and engineering.",
+      ],
+    },
+    {
+      num: "03 · PROTOTYPE",
+      title: "Learn before we commit",
+      items: [
+        "Research, prototypes, eval harnesses, and code when speed matters. Lower the cost of being wrong early.",
+      ],
+    },
+    {
+      num: "04 · SHIP & LEARN",
+      title: "Ship and improve",
+      items: [
+        "Partner through implementation, launch readiness, and post-ship measurement. Evidence over opinions.",
+      ],
+    },
+  ],
+  [
+    {
+      num: "01 · DISCOVER",
+      title: "Map the mess",
+      items: ["Journeys, constraints, risk, and the real problem under the ask."],
+    },
+    {
+      num: "02 · FRAME",
+      title: "Set the north star",
+      items: ["Trust model, eval criteria, and a system teams can build against."],
+    },
+    {
+      num: "03 · PROTOTYPE",
+      title: "Make it testable early",
+      items: ["Research, hi-fi sims, eval harnesses, and fast AI-assisted iteration."],
+    },
+    {
+      num: "04 · SHIP & LEARN",
+      title: "Land and measure",
+      items: ["Launch readiness, governed rollout, adoption metrics, and org learning."],
+    },
+  ],
+  [
+    {
+      num: "01 · DISCOVER",
+      title: "Map the mess",
+      items: ["Journeys, flows, and the real problem under the ask."],
+    },
+    {
+      num: "02 · FRAME",
+      title: "Set the vision",
+      items: ["North star, trust model, and a system teams can build against."],
+    },
+    {
+      num: "03 · PROTOTYPE",
+      title: "Make it real",
+      items: ["Research, high-fi sims, eval harnesses, and fast AI-assisted iteration."],
+    },
+    {
+      num: "04 · SHIP",
+      title: "Land the outcome",
+      items: ["Design systems, launch readiness, and measurable adoption."],
+    },
+  ],
+];
+
+const LEGACY_ABOUT_PROCESS_SUBHEADINGS = new Set([
+  "Systems thinking, from ambiguity to shippable product.",
+  "My process adapts to each project, but it stays grounded in rapid learning, governed iteration, and shippable outcomes.",
+  "My process adapts to each project, but it stays grounded in rapid learning, stakeholder alignment, and outcomes you can measure.",
+]);
+
+function isLegacyAboutProcessItems(items: AboutProcessItem[]): boolean {
+  if (items.length === 0) return false;
+  const fp = processItemsFingerprint(items);
+  return LEGACY_ABOUT_PROCESS_ITEM_SETS.some((legacy) => processItemsFingerprint(legacy) === fp);
+}
+
+function resolveAboutProcessContent(
+  profile: AboutProfileRow | null,
+  mappedProcess: AboutProcessItem[],
+): { processItems: AboutProcessItem[]; processSubheading: string } {
+  const processSubheadingRaw =
+    typeof profile?.process_subheading === "string" ? profile.process_subheading.trim() : "";
+
+  if (profile?.process_items == null || mappedProcess.length === 0) {
+    return {
+      processItems: defaultAboutProcessItems(),
+      processSubheading: processSubheadingRaw || defaultAboutProcessSubheading(),
+    };
+  }
+
+  if (isLegacyAboutProcessItems(mappedProcess)) {
+    return {
+      processItems: defaultAboutProcessItems(),
+      processSubheading:
+        !processSubheadingRaw || LEGACY_ABOUT_PROCESS_SUBHEADINGS.has(processSubheadingRaw)
+          ? defaultAboutProcessSubheading()
+          : processSubheadingRaw,
+    };
+  }
+
+  return {
+    processItems: mappedProcess,
+    processSubheading: processSubheadingRaw,
+  };
+}
+
 /** Default section headings used when the CMS leaves a title blank. */
 export const DEFAULT_ABOUT_SECTION_TITLES = {
   superPowers: "Leadership strengths",
+  process: "How I work",
   highlights: "Highlights",
   expertise: "Expertise",
   howIUseAI: "How I use AI",
@@ -63,12 +240,12 @@ export interface AboutEditorDraft {
 }
 
 export const DEFAULT_ABOUT_SECTION_ORDER = [
-  "superPowers",
+  "process",
   "highlights",
+  "superPowers",
   "leadership",
   "expertise",
   "howIUseAI",
-  "process",
   "certifications",
   "tools",
 ] as const;
@@ -109,11 +286,11 @@ const MODERN_ABOUT_SECTION_IDS = new Set<string>(DEFAULT_ABOUT_SECTION_ORDER);
 
 export const ABOUT_SECTION_LABELS: Record<string, string> = {
   superPowers: "Leadership strengths",
+  process: "How I work",
   highlights: "Highlights",
   leadership: "Leadership & impact",
   expertise: "Expertise",
   howIUseAI: "How I use AI",
-  process: "Process",
   certifications: "Certifications",
   tools: "Tools & stack",
 };
@@ -194,6 +371,31 @@ export function normalizeAboutSectionOrder(rawOrder: string[]): string[] {
   return cleaned.length > 0 ? cleaned : [...DEFAULT_ABOUT_SECTION_ORDER];
 }
 
+/** Ensure process appears before highlights for existing saved section orders. */
+export function migrateAboutSectionOrder(rawOrder: string[]): string[] {
+  const order = normalizeAboutSectionOrder(rawOrder);
+  const processIndex = order.indexOf("process");
+  const highlightsIndex = order.indexOf("highlights");
+
+  if (processIndex === -1) {
+    if (highlightsIndex >= 0) {
+      const next = [...order];
+      next.splice(highlightsIndex, 0, "process");
+      return next;
+    }
+    return ["process", ...order];
+  }
+
+  if (highlightsIndex >= 0 && processIndex > highlightsIndex) {
+    const next = [...order];
+    next.splice(processIndex, 1);
+    next.splice(highlightsIndex, 0, "process");
+    return next;
+  }
+
+  return order;
+}
+
 export function hiddenAboutSections(sectionOrder: string[]): string[] {
   return DEFAULT_ABOUT_SECTION_ORDER.filter((id) => !sectionOrder.includes(id));
 }
@@ -219,20 +421,29 @@ export function mapProfileToAboutEditorDraft(profile: AboutProfileRow | null): A
       ? DEFAULT_ABOUT_TOOLS_CATEGORIES.map((c) => ({ ...c, tools: [...c.tools] }))
       : mappedTools;
 
+  const mappedHighlights = mapTitleTextItems(profile?.highlights);
+  const highlights =
+    profile?.highlights == null
+      ? defaultAboutHighlights()
+      : mappedHighlights;
+
+  const mappedProcess = mapProcessItems(profile?.process_items);
+  const { processItems, processSubheading } = resolveAboutProcessContent(profile, mappedProcess);
+
   const draftContent = {
     superPowers: Array.isArray(profile?.super_powers)
       ? profile.super_powers.filter((x): x is string => typeof x === "string")
       : [],
-    highlights: mapTitleTextItems(profile?.highlights),
+    highlights,
     leadershipItems: mapTitleTextItems(profile?.leadership_items),
     expertiseItems: mapTitleTextItems(profile?.expertise_items),
     howIUseAIItems: mapTitleTextItems(profile?.how_i_use_ai_items),
-    processItems: mapProcessItems(profile?.process_items),
+    processItems,
     certificationsItems: mapCertifications(profile?.certifications_items),
     toolsCategories,
   };
 
-  const sectionOrder = normalizeAboutSectionOrder(sectionOrderRaw);
+  const sectionOrder = migrateAboutSectionOrder(sectionOrderRaw);
 
   return {
     headline,
@@ -250,8 +461,8 @@ export function mapProfileToAboutEditorDraft(profile: AboutProfileRow | null): A
     expertiseItems: draftContent.expertiseItems,
     howIUseAITitle: resolveTitle(profile?.how_i_use_ai_title, DEFAULT_ABOUT_SECTION_TITLES.howIUseAI),
     howIUseAIItems: draftContent.howIUseAIItems,
-    processTitle: resolveTitle(profile?.process_title, "Process"),
-    processSubheading: typeof profile?.process_subheading === "string" ? profile.process_subheading : "",
+    processTitle: resolveTitle(profile?.process_title, DEFAULT_ABOUT_SECTION_TITLES.process),
+    processSubheading,
     processItems: draftContent.processItems,
     certificationsTitle: resolveTitle(profile?.certifications_title, "Certifications"),
     certificationsItems: draftContent.certificationsItems,
