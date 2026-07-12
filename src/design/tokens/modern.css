@@ -1126,14 +1126,23 @@ html[data-design="modern"]:not(.dark) .modern-case-study-card__protected-badge {
   object-position: center;
   transform: scale(var(--logo-scale, 1));
   transform-origin: center center;
-  opacity: 0.82;
-  filter: grayscale(1);
+  opacity: 0.58;
+  /* Monochrome strip: black silhouettes on light backgrounds */
+  filter: grayscale(1) brightness(0);
   transition: opacity 0.2s ease, filter 0.2s ease;
 }
 
+html.dark[data-design="modern"] .modern-logo-strip__img {
+  opacity: 0.82;
+  filter: grayscale(1) brightness(0) invert(1);
+}
+
 [data-design="modern"] .modern-logo-strip__item:hover .modern-logo-strip__img {
-  opacity: 0.9;
-  filter: grayscale(0.3);
+  opacity: 0.78;
+}
+
+html.dark[data-design="modern"] .modern-logo-strip__item:hover .modern-logo-strip__img {
+  opacity: 0.92;
 }
 
 /* Home leadership strip — intro left, proof bullets right */

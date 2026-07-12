@@ -320,19 +320,42 @@ export const DEFAULT_LOGO_STRIP: HomePageLogoStrip = {
 export const DEFAULT_LEADERSHIP_STRIP: HomePageLeadershipStrip = {
   enabled: true,
   label: "How I lead",
-  headline: "Most teams stop at the pilot. I lead design through GA.",
+  headline: "Player coach ... I lead design through dev.",
   subhead:
-    "I align executives, product, and engineering on strategy, then stay close to the craft from research through production-ready code. My lane is high-stakes products: regulated, medical, and enterprise AI made to feel trustworthy and shippable.",
+    "I lead by doing. I get the right things done. I untangle gnarly problems for the biggest impact.",
   bullets: [
     "Built and led design orgs (up to 7 designers): hiring, critique, career ladders, and delivery culture",
     "0→1 and platform-scale work in regulated, medical, and enterprise AI",
-    "Enterprise AI at global scale: conversational search, governed assistants, and trust UX from pilot to GA",
+    "Enterprise AI at global scale: conversational search, governed assistants, and trust UX",
     "Design → Code workflow: research, design systems, prototypes, and production-ready code",
   ],
 };
 
 /** Prior leadership strip defaults — auto-upgrade on load when fingerprint matches exactly. */
 const LEGACY_LEADERSHIP_STRIPS: HomePageLeadershipStrip[] = [
+  {
+    enabled: true,
+    label: "How I lead",
+    headline: "Player coach. I lead design through dev.",
+    bullets: [
+      "I lead by doing.",
+      "I get the right things done.",
+      "I untangle gnarly problems for the biggest impact.",
+    ],
+  },
+  {
+    enabled: true,
+    label: "How I lead",
+    headline: "Most teams stop at the pilot. I lead design through GA.",
+    subhead:
+      "I align executives, product, and engineering on strategy, then stay close to the craft from research through production-ready code. My lane is high-stakes products: regulated, medical, and enterprise AI made to feel trustworthy and shippable.",
+    bullets: [
+      "Built and led design orgs (up to 7 designers): hiring, critique, career ladders, and delivery culture",
+      "0→1 and platform-scale work in regulated, medical, and enterprise AI",
+      "Enterprise AI at global scale: conversational search, governed assistants, and trust UX from pilot to GA",
+      "Design → Code workflow: research, design systems, prototypes, and production-ready code",
+    ],
+  },
   {
     enabled: true,
     label: "How I lead",
