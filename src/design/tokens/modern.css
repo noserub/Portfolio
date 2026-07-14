@@ -1755,7 +1755,7 @@ html[data-design="modern"] .modern-contact-input:disabled {
 
 [data-design="modern"] .modern-about-process__step-num {
   margin: 0 0 1rem;
-  font-size: 0.5625rem;
+  font-size: 0.6875rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: color-mix(in srgb, var(--primary) 78%, transparent);
