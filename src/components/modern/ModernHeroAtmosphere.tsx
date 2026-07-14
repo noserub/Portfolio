@@ -232,7 +232,7 @@ export function ModernHeroAtmosphere() {
       const isDarkTheme = document.documentElement.classList.contains("dark");
       return {
         palette: deriveNebulaPalette(accent),
-        muted: parseColor(style.getPropertyValue("--modern-muted-text"), "#8c8c8c"),
+        muted: parseColor(style.getPropertyValue("--modern-muted-text"), "#a3a3a3"),
         navHeightPx: parseLengthPx(style.getPropertyValue("--modern-nav-height"), 56, rootFontSizePx),
         isDarkTheme,
       };

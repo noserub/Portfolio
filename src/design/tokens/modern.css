@@ -22,7 +22,8 @@
   --secondary: #141414;
   --secondary-foreground: #fafafa;
   --muted: #141414;
-  --muted-foreground: #8c8c8c;
+  /* AAA-safe muted body on #141414 (~7.3:1; was #8c8c8c at ~5.5:1 AA-only) */
+  --muted-foreground: #a3a3a3;
   --accent: #1f1f1f;
   --accent-foreground: #fafafa;
   --border: #27272a;
@@ -30,7 +31,7 @@
   --input-background: #0a0a0a;
   --modern-bg: #0a0a0a;
   --modern-text: #fafafa;
-  --modern-muted-text: #8c8c8c;
+  --modern-muted-text: #a3a3a3;
   --modern-surface: #141414;
   --modern-surface-inset: #0a0a0a;
   --modern-border: #27272a;
@@ -2169,7 +2170,7 @@ html.dark[data-design="modern"] .modern-hero-headline__brand {
   border: 1px solid var(--modern-surface-border, #606060);
   font-size: 0.875rem;
   font-weight: 500;
-  color: var(--muted-foreground, #8c8c8c);
+  color: var(--muted-foreground, #a3a3a3);
   background: transparent;
   transition: color 150ms ease, border-color 150ms ease;
 }
@@ -2188,7 +2189,7 @@ html.dark[data-design="modern"] .modern-hero-headline__brand {
   border: none;
   font-size: 0.875rem;
   font-weight: 500;
-  color: var(--muted-foreground, #8c8c8c);
+  color: var(--muted-foreground, #a3a3a3);
   background: transparent;
   transition: color 150ms ease;
 }
@@ -2223,7 +2224,7 @@ html.dark[data-design="modern"] .modern-hero-headline__brand {
   border-radius: 0.375rem;
   font-size: 0.875rem;
   font-weight: 500;
-  color: var(--muted-foreground, #8c8c8c);
+  color: var(--muted-foreground, #a3a3a3);
   background: transparent;
   transition: color 150ms ease;
 }
