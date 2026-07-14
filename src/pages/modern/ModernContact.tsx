@@ -132,7 +132,7 @@ export function ModernContact({ onBack, isEditMode = false }: ModernContactProps
       />
 
       <section className={`relative overflow-hidden ${modernLayout.sectionX} ${modernLayout.heroPt} ${modernLayout.contactHero}`}>
-        <div className="absolute inset-0 pointer-events-none modern-hero-glow modern-hero-glow--about" />
+        <div className="modern-hero-glow modern-hero-glow--about" aria-hidden />
         <div className={`relative ${modernLayout.container}`}>
           {isEditMode ? (
             <div className="mb-6">

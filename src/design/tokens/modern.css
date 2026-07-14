@@ -40,7 +40,8 @@
   --modern-nav-height: 3.5rem;
   --modern-accent-subtle: rgba(132, 189, 0, 0.12);
   --modern-accent-subtle-strong: rgba(132, 189, 0, 0.18);
-  --modern-accent-glow: rgba(132, 189, 0, 0.07);
+  /* Stronger than before: 0.07 on #0a0a0a was effectively invisible under nav. */
+  --modern-accent-glow: rgba(132, 189, 0, 0.16);
   --modern-link: var(--modern-text);
   --modern-link-underline: var(--modern-border-hover);
   --modern-link-hover: var(--modern-text);
@@ -1311,7 +1312,13 @@ html.dark[data-design="modern"] .modern-logo-strip__item:hover .modern-logo-stri
 }
 
 [data-design="modern"] .modern-contact-hero {
-  padding-bottom: 0;
+  padding-bottom: 3rem;
+}
+
+@media (min-width: 640px) {
+  [data-design="modern"] .modern-contact-hero {
+    padding-bottom: 3.5rem;
+  }
 }
 
 [data-design="modern"] .modern-contact-subtitle {
@@ -1485,7 +1492,20 @@ html[data-design="modern"] .modern-contact-input:disabled {
 /* ── About page ────────────────────────────────────────────────────────── */
 
 [data-design="modern"] .modern-about-hero {
-  padding-bottom: 0;
+  /* Was 0 when a bio card buffered Process; restore after that card was removed. */
+  padding-bottom: 3.5rem;
+}
+
+@media (min-width: 640px) {
+  [data-design="modern"] .modern-about-hero {
+    padding-bottom: 4.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  [data-design="modern"] .modern-about-hero {
+    padding-bottom: 5.5rem;
+  }
 }
 
 [data-design="modern"] .modern-about-headline {
@@ -1635,14 +1655,14 @@ html[data-design="modern"] .modern-contact-input:disabled {
 
 [data-design="modern"] .modern-about-section {
   border-top: 1px solid var(--border);
-  padding-top: 3.5rem;
-  padding-bottom: 3.5rem;
+  padding-top: 4rem;
+  padding-bottom: 4rem;
 }
 
 @media (min-width: 640px) {
   [data-design="modern"] .modern-about-section {
-    padding-top: 4rem;
-    padding-bottom: 4rem;
+    padding-top: 5rem;
+    padding-bottom: 5rem;
   }
 }
 
@@ -1687,7 +1707,7 @@ html[data-design="modern"] .modern-contact-input:disabled {
 [data-design="modern"] .modern-about-process__layout {
   display: flex;
   flex-direction: column;
-  gap: 2.5rem;
+  gap: 3rem;
   align-items: stretch;
 }
 
@@ -1717,19 +1737,19 @@ html[data-design="modern"] .modern-contact-input:disabled {
 @media (min-width: 640px) {
   [data-design="modern"] .modern-about-process__steps {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0 2rem;
+    gap: 0 2.5rem;
   }
 }
 
 @media (min-width: 1024px) {
   [data-design="modern"] .modern-about-process__steps {
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 0 1.5rem;
+    gap: 0 2rem;
   }
 }
 
 [data-design="modern"] .modern-about-process__step {
-  padding: 1.25rem 0 1.25rem 1rem;
+  padding: 1.35rem 0 1.35rem 1.25rem;
   border-left: 2px solid color-mix(in srgb, var(--primary) 55%, transparent);
 }
 
@@ -2434,10 +2454,28 @@ html[data-design="modern"]:not(.dark) .modern-hero-minifig {
 }
 
 [data-design="modern"] .modern-hero-glow--about {
+  /* Fixed wash height so short heroes (Contact) match About / Writing.
+     Own positioning so Tailwind inset-0 cannot collapse / stretch it. */
+  position: absolute;
+  pointer-events: none;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: min(22rem, 48vh);
   background: radial-gradient(
-    ellipse 50% 40% at 50% 0%,
+    ellipse 75% 70% at 50% 0%,
     var(--modern-accent-glow) 0%,
-    transparent 70%
+    transparent 72%
+  );
+}
+
+/* Dark: an extra soft lime core so the wash clears the sticky nav on black. */
+html.dark[data-design="modern"] .modern-hero-glow--about {
+  background: radial-gradient(
+    ellipse 70% 65% at 50% 0%,
+    rgba(132, 189, 0, 0.2) 0%,
+    rgba(132, 189, 0, 0.08) 38%,
+    transparent 72%
   );
 }
 
