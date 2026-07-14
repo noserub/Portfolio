@@ -116,6 +116,13 @@ body {
   transform: none !important;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  [data-motion="page-content"] {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
 /* Performance optimizations */
 /*! tailwindcss v4.1.3 | MIT License | https://tailwindcss.com */
 @layer properties {

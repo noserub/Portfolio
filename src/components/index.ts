@@ -2,6 +2,8 @@
 export { default as Header } from './layout/Header';
 export { default as PageLayout } from './layout/PageLayout';
 export { default as Footer } from './layout/Footer';
+export { PageContentTransition } from './layout/PageContentTransition';
+export { RouteContentFallback } from './layout/RouteContentFallback';
 
 // Common components
 export { default as Hero } from './common/Hero';
