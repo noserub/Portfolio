@@ -25,6 +25,7 @@ import {
   resolveHomeContentAfterLoad,
   shouldPersistHomePageContent,
   toPersistedPayload,
+  writeHomePageToLocalStorage,
   type HomePageContentV2,
 } from "../lib/homePageContent";
 import { getPortfolioOwnerUserId, getProfileWriterUserId, hasVitePublicPortfolioOwnerId } from "../lib/portfolioOwner";
@@ -98,7 +99,7 @@ export function useHomePageContent(options: UseHomePageContentOptions) {
         setHomePageContent(migratedContent);
         setHomeContentLoading(false);
         bumpBio();
-        localStorage.setItem("heroText", JSON.stringify(toPersistedPayload(migratedContent)));
+        writeHomePageToLocalStorage(migratedContent);
       };
 
       try {
@@ -242,11 +243,22 @@ export function useHomePageContent(options: UseHomePageContentOptions) {
       return false;
     }
     const payload = toPersistedPayload({ ...content, _clientSavedAt: Date.now() });
-    localStorage.setItem("heroText", JSON.stringify(payload));
+    const localWrite = writeHomePageToLocalStorage(payload);
+    if (!localWrite.ok) {
+      toast.error(
+        "Browser storage is full, so a local draft backup could not be saved. Still trying to publish to the cloud.",
+        { id: "hero-local-quota", duration: 8000 },
+      );
+    } else if (localWrite.slimmed) {
+      toast.message(
+        "Local draft saved without inlined logo images (browser storage was nearly full). Cloud publish still includes full logos.",
+        { id: "hero-local-slimmed", duration: 6000 },
+      );
+    }
 
     const applyRowFromServer = (row: { hero_text: unknown; updated_at: string | null }) => {
       const next = migrateLegacyWelcomeGreeting(parseStoredHomeContent(row.hero_text ?? {}));
-      localStorage.setItem("heroText", JSON.stringify(toPersistedPayload(next)));
+      writeHomePageToLocalStorage(next);
       setShowHeroCloudNotice(false);
       setHeroDraftAheadOfCloud(false);
       if (!isEditingHeroRef.current) {
@@ -284,7 +296,9 @@ export function useHomePageContent(options: UseHomePageContentOptions) {
         }
 
         console.log(
-          "💾 Home page: localStorage ✓ · syncing profiles.hero_text to Supabase for published row",
+          localWrite.ok
+            ? "💾 Home page: localStorage ✓ · syncing profiles.hero_text to Supabase for published row"
+            : "💾 Home page: localStorage full · still syncing profiles.hero_text to Supabase for published row",
           writerId,
         );
 
@@ -304,7 +318,9 @@ export function useHomePageContent(options: UseHomePageContentOptions) {
             setHeroDraftAheadOfCloud(true);
             toast.error(
               updateError.message?.trim() ||
-                "Could not sync home content to the cloud. Your changes are saved on this device.",
+                (localWrite.ok
+                  ? "Could not sync home content to the cloud. Your changes are saved on this device."
+                  : "Could not sync home content to the cloud, and browser storage is too full for a local backup."),
             );
             return false;
           }
@@ -333,7 +349,9 @@ export function useHomePageContent(options: UseHomePageContentOptions) {
           setHeroDraftAheadOfCloud(true);
           toast.error(
             insertError.message?.trim() ||
-              "Could not sync home content to the cloud. Your changes are saved on this device.",
+              (localWrite.ok
+                ? "Could not sync home content to the cloud. Your changes are saved on this device."
+                : "Could not sync home content to the cloud, and browser storage is too full for a local backup."),
           );
           return false;
         }
@@ -351,13 +369,24 @@ export function useHomePageContent(options: UseHomePageContentOptions) {
       console.log(
         "💾 Home page: localStorage ✓ · not signed in — cloud sync skipped (edits stay on this browser)",
       );
+      if (!localWrite.ok) {
+        toast.error(
+          "Could not save on this device (browser storage full) and you are not signed in, so nothing was published. Free storage or sign in and try again.",
+          { id: "hero-local-quota-unsigned", duration: 10000 },
+        );
+        return false;
+      }
       toast.message("Saved on this device. Sign in with Supabase to publish for all visitors.");
       return true;
     } catch (error) {
       console.warn("⚠️ Supabase save failed (egress limits?):", error);
       console.log("💾 Home page: localStorage still has your draft; Supabase sync failed");
       setHeroDraftAheadOfCloud(true);
-      toast.error("Could not sync home content to the cloud. Your changes are saved on this device.");
+      toast.error(
+        localWrite.ok
+          ? "Could not sync home content to the cloud. Your changes are saved on this device."
+          : "Could not sync home content to the cloud, and browser storage is too full for a local backup.",
+      );
       return false;
     }
   }, [bumpBio, isEditingHeroRef, homeContentFingerprint]);

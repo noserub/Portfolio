@@ -132,9 +132,7 @@ export function ModernWritingPostView({
     return (
       <main className="min-h-screen" style={{ background: modern.bg }}>
         <section className={`relative ${writingLayout.shell}`}>
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          <div className="modern-hero-glow modern-hero-glow--about" />
-        </div>
+        <div className="modern-hero-glow modern-hero-glow--about" aria-hidden />
         <div className={`relative ${modernLayout.container}`}>
           <ModernWritingEditBar onNewPost={() => void handleCreate()} creating={creating} />
             <button type="button" onClick={onBack} className={writingLayout.back}>
@@ -166,9 +164,7 @@ export function ModernWritingPostView({
   return (
     <main className="min-h-screen" style={{ background: modern.bg }}>
       <section className={`relative ${writingLayout.shell}`}>
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          <div className="modern-hero-glow modern-hero-glow--about" />
-        </div>
+        <div className="modern-hero-glow modern-hero-glow--about" aria-hidden />
         <div className={`relative ${modernLayout.container}`}>
           <button type="button" onClick={onBack} className={writingLayout.back}>
             <ArrowLeft className="w-4 h-4" aria-hidden />

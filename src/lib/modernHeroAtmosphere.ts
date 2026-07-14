@@ -43,13 +43,25 @@ const CLUSTER_X = 0.72;
 const CLUSTER_Y = 0.5;
 
 /** Slightly more visible drift than the original 0.012 field. */
-export const ATMOSPHERE_DRIFT_AMPLITUDE = 0.018;
+export const ATMOSPHERE_DRIFT_AMPLITUDE = 0.022;
 
 /** Global ambient speed. Lower values slow breath, drift, and nebula phases. */
 export const ATMOSPHERE_ANIMATION_SPEED = 0.82;
 
 /** Same pixel ramp below nav border and above section bottom border. */
 export const ATMOSPHERE_FEATHER_PX = 72;
+
+/** Mock: nebula peak multipliers (dark baseline). Pulled back so banding/grain can share stage. */
+export const ATMOSPHERE_NEBULA_INTENSITY = 1.15;
+
+/** Mock: particle opacity multiplier. */
+export const ATMOSPHERE_DOT_INTENSITY = 1.1;
+
+/**
+ * Mock: light theme needs denser color to read on #fafafa.
+ * Applied on top of ATMOSPHERE_NEBULA_INTENSITY for wash/whisper/core peaks.
+ */
+export const ATMOSPHERE_LIGHT_MODE_BOOST = 1.25;
 
 function pseudoRandom(seed: number): number {
   const x = Math.sin(seed * 127.1 + seed * 311.7) * 43758.5453;

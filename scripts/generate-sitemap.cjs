@@ -147,7 +147,7 @@ async function fetchPublishedSlugsFromSupabase() {
     process.env.SUPABASE_PUBLISHABLE_KEY;
   const key = serviceKey || publicKey;
   if (!url || !key) {
-    return [];
+    return { projects: [], profile: {} };
   }
 
   const { createClient } = require('@supabase/supabase-js');
@@ -290,7 +290,7 @@ function excerptFromWritingBlocks(blocks) {
 
 function mergeProjectEntries(supabaseEntries, localProjects) {
   const bySlug = new Map();
-  for (const e of supabaseEntries) {
+  for (const e of Array.isArray(supabaseEntries) ? supabaseEntries : []) {
     bySlug.set(e.slug, {
       path: `/project/${e.slug}`,
       title: e.title,
@@ -300,7 +300,7 @@ function mergeProjectEntries(supabaseEntries, localProjects) {
     });
   }
   const now = new Date().toISOString().split('T')[0];
-  for (const p of localProjects) {
+  for (const p of Array.isArray(localProjects) ? localProjects : []) {
     const slug = slugify(p.title);
     if (!slug || bySlug.has(slug)) continue;
     bySlug.set(slug, {

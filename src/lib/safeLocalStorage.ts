@@ -3,6 +3,7 @@ const DISPOSABLE_KEY_PREFIXES = [
   "projectRevisions:",
   "seo-case-study-",
   "seo-writing-post-",
+  "egress_",
 ] as const;
 
 const DISPOSABLE_EXACT_KEYS = new Set([
@@ -11,6 +12,7 @@ const DISPOSABLE_EXACT_KEYS = new Set([
   "freshImport",
   "positionsMigrated",
   "videoFieldsMigrated",
+  "pageVisibility",
 ]);
 
 export function isQuotaExceededError(err: unknown): boolean {

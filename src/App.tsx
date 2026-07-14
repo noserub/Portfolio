@@ -2299,7 +2299,8 @@ function AppShell() {
         <Suspense fallback={<RouteFallback />}>
           {currentPage === "home" && (
             <Home 
-              onStartClick={navigateToStart} 
+              onStartClick={navigateToStart}
+              onScrollToWork={scrollToCaseStudies}
               isEditMode={isEditMode}
               onProjectClick={navigateToProject}
               onProjectUpdate={handleUpdateProject}

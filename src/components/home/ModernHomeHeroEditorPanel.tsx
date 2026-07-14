@@ -540,24 +540,24 @@ export function ModernHomeHeroEditorPanel({
             </h3>
             <div className="space-y-2">
               <Label className="text-xs" style={{ color: modern.muted }}>
-                Primary button (About)
+                Primary (Selected work)
               </Label>
               <Input
-                value={heroText.buttonText}
-                onChange={(e) => patchHero({ buttonText: e.target.value })}
-                placeholder="About Brian"
+                value={homePageContent.ui.workCtaLabel}
+                onChange={(e) => patchUi({ workCtaLabel: e.target.value })}
+                placeholder="Selected work"
                 className="bg-transparent"
                 style={{ borderColor: modern.border, color: modern.text }}
               />
             </div>
             <div className="space-y-2">
               <Label className="text-xs" style={{ color: modern.muted }}>
-                Secondary button (Contact)
+                Ghost (Contact)
               </Label>
               <Input
                 value={homePageContent.ui.contactCtaLabel}
                 onChange={(e) => patchUi({ contactCtaLabel: e.target.value })}
-                placeholder="Get in touch"
+                placeholder="Discuss a partnership"
                 className="bg-transparent"
                 style={{ borderColor: modern.border, color: modern.text }}
               />

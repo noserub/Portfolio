@@ -131,9 +131,7 @@ export function ModernWritingIndex({
   return (
     <main className="min-h-screen" style={{ background: modern.bg }}>
       <section className={`relative ${writingLayout.shell}`}>
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          <div className="modern-hero-glow modern-hero-glow--about" />
-        </div>
+        <div className="modern-hero-glow modern-hero-glow--about" aria-hidden />
         <div className={`relative ${modernLayout.container}`}>
           {isEditMode ? (
             <ModernWritingEditBar

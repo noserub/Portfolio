@@ -20,24 +20,6 @@ interface ModernAboutProps {
   isEditMode?: boolean;
 }
 
-function AboutBioSkeleton() {
-  return (
-    <div className={modernLayout.aboutBioSkeleton} aria-hidden>
-      <div className="modern-about-bio-skeleton__block">
-        <div className="modern-about-bio-skeleton__line modern-about-bio-skeleton__line--w-full" />
-        <div className="modern-about-bio-skeleton__line modern-about-bio-skeleton__line--w-full" />
-        <div className="modern-about-bio-skeleton__line modern-about-bio-skeleton__line--w-95" />
-        <div className="modern-about-bio-skeleton__line modern-about-bio-skeleton__line--w-72" />
-      </div>
-      <div className="modern-about-bio-skeleton__block">
-        <div className="modern-about-bio-skeleton__line modern-about-bio-skeleton__line--w-full" />
-        <div className="modern-about-bio-skeleton__line modern-about-bio-skeleton__line--w-92" />
-        <div className="modern-about-bio-skeleton__line modern-about-bio-skeleton__line--w-68" />
-      </div>
-    </div>
-  );
-}
-
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
     <h2
@@ -323,7 +305,7 @@ export function ModernAbout({ onNavigateContact, onBack, isEditMode = false }: M
       <section
         className={`relative overflow-hidden ${modernLayout.sectionX} ${modernLayout.heroPt} ${modernLayout.aboutHero}${aboutEditorOpen ? " modern-hero-section--cms-open" : ""}`}
       >
-        <div className="absolute inset-0 pointer-events-none modern-hero-glow modern-hero-glow--about" />
+        <div className="modern-hero-glow modern-hero-glow--about" aria-hidden />
         <div className={`relative ${modernLayout.container}`}>
           {aboutEditorOpen ? <div className="modern-home-cms-editor-slot">{aboutEditor}</div> : null}
 
@@ -386,50 +368,6 @@ export function ModernAbout({ onNavigateContact, onBack, isEditMode = false }: M
               </div>
             </>
           ) : null}
-        </div>
-      </section>
-
-      <section className={`${modernLayout.sectionX} ${modernLayout.aboutBioSection}`}>
-        <div className={modernLayout.container}>
-          <div className={modernLayout.aboutBioCard}>
-            <div className={modernLayout.aboutBioGrid}>
-              <div className={modernLayout.aboutBioMain}>
-                {loading ? (
-                  <AboutBioSkeleton />
-                ) : (
-                  <>
-                    {data.bioParagraph1 ? (
-                      <p className="leading-relaxed" style={{ ...modernFont, fontSize: "0.9375rem", color: modern.text }}>
-                        {stripHtmlForDisplay(data.bioParagraph1)}
-                      </p>
-                    ) : null}
-                    {data.bioParagraph2 ? (
-                      <p className="leading-relaxed" style={{ ...modernFont, fontSize: "0.9375rem", color: modern.muted }}>
-                        {stripHtmlForDisplay(data.bioParagraph2)}
-                      </p>
-                    ) : null}
-                  </>
-                )}
-              </div>
-              <div className={modernLayout.aboutInfoStack}>
-                {[
-                  { label: "Company", value: "Oracle" },
-                  { label: "Location", value: "Colorado, USA" },
-                ].map((item) => (
-                  <div key={item.label} className={modernLayout.aboutInfoItem}>
-                    <div className="text-[10px] uppercase tracking-widest mb-1" style={{ ...modernFont, color: modern.muted }}>
-                      {item.label}
-                    </div>
-                    <div className={modernLayout.aboutInfoValue}>
-                      <span className="text-sm" style={{ ...modernFont, color: modern.text }}>
-                        {item.value}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
         </div>
       </section>
 

@@ -10,3 +10,4 @@ export { ModernNav } from "./ModernNav";
 export { ModernTypingHero } from "./ModernTypingHero";
 export { ModernCaseStudyCard } from "./ModernCaseStudyCard";
 export { ModernResumeLink } from "./ModernResumeLink";
+export { ModernHeroMinifig } from "./ModernHeroMinifig";
