@@ -5,6 +5,7 @@ import type { ProjectData } from "../components/ProjectImage";
 
 interface HomeProps {
   onStartClick: () => void;
+  onScrollToWork?: () => void;
   isEditMode: boolean;
   onProjectClick: (project: ProjectData, updateCallback: (project: ProjectData) => void) => void;
   onProjectUpdate?: (project: ProjectData) => void | Promise<void>;
@@ -14,6 +15,7 @@ interface HomeProps {
 
 export function Home({
   onStartClick,
+  onScrollToWork,
   isEditMode,
   onProjectClick,
   onProjectUpdate,
@@ -26,7 +28,7 @@ export function Home({
   if (variant === "modern") {
     return (
       <ModernHome
-        onStartClick={onStartClick}
+        onScrollToWork={onScrollToWork}
         onProjectClick={onProjectClick}
         onNavigateContact={onNavigateContact}
         isEditMode={isEditMode}

@@ -45,6 +45,7 @@
   --modern-link-underline: var(--modern-border-hover);
   --modern-link-hover: var(--modern-text);
   --modern-link-underline-hover: var(--modern-accent);
+  --modern-hero-headline: var(--modern-accent);
 }
 
 html[data-design="modern"]:not(.dark) {
@@ -81,6 +82,13 @@ html[data-design="modern"]:not(.dark) {
   --modern-link-underline: var(--modern-surface-border);
   --modern-link-hover: var(--modern-text);
   --modern-link-underline-hover: var(--modern-accent);
+  /* Near-black H1 lead on paper; brand tail uses accent via .modern-hero-headline__brand */
+  --modern-hero-headline: #12140f;
+  /* Quiet paper band colors (editorial, not glow) */
+  --modern-paper-hero: #f6f6f3;
+  --modern-paper-logos: #efefec;
+  --modern-paper-stats: #fafafa;
+  --modern-paper-leadership: #f3f3f0;
 }
 
 [data-design="modern"] body {
@@ -1098,7 +1106,7 @@ html[data-design="modern"]:not(.dark) .modern-case-study-card__protected-badge {
   letter-spacing: 0.02em;
   line-height: 1.15;
   text-align: center;
-  color: color-mix(in srgb, var(--foreground) 55%, transparent);
+  color: color-mix(in srgb, var(--foreground) 68%, transparent);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1126,7 +1134,7 @@ html[data-design="modern"]:not(.dark) .modern-case-study-card__protected-badge {
   object-position: center;
   transform: scale(var(--logo-scale, 1));
   transform-origin: center center;
-  opacity: 0.58;
+  opacity: 0.72;
   /* Monochrome strip: black silhouettes on light backgrounds */
   filter: grayscale(1) brightness(0);
   transition: opacity 0.2s ease, filter 0.2s ease;
@@ -1138,7 +1146,7 @@ html.dark[data-design="modern"] .modern-logo-strip__img {
 }
 
 [data-design="modern"] .modern-logo-strip__item:hover .modern-logo-strip__img {
-  opacity: 0.78;
+  opacity: 0.9;
 }
 
 html.dark[data-design="modern"] .modern-logo-strip__item:hover .modern-logo-strip__img {
@@ -1785,6 +1793,19 @@ html[data-design="modern"] .modern-contact-input:disabled {
   animation: blinkCursor 1.2s infinite;
 }
 
+/*
+  Light brand moment: ink lead + lime " & …" tail.
+  Dark: both spans inherit the accent H1 color (full green line).
+*/
+html[data-design="modern"]:not(.dark) .modern-hero-headline__brand {
+  color: var(--modern-accent);
+}
+
+html.dark[data-design="modern"] .modern-hero-headline__ink,
+html.dark[data-design="modern"] .modern-hero-headline__brand {
+  color: inherit;
+}
+
 @media (prefers-reduced-motion: reduce) {
   [data-design="modern"] .modern-typing-cursor {
     animation: none;
@@ -2138,6 +2159,30 @@ html[data-design="modern"] .modern-contact-input:disabled {
   border-color: var(--modern-accent);
 }
 
+[data-design="modern"] .modern-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 0.875rem;
+  border-radius: 0.375rem;
+  border: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--muted-foreground, #8c8c8c);
+  background: transparent;
+  transition: color 150ms ease;
+}
+
+[data-design="modern"] .modern-btn-ghost:hover,
+[data-design="modern"] .modern-btn-ghost:focus-visible {
+  color: var(--modern-text);
+}
+
+[data-design="modern"] .modern-btn-ghost:focus:not(:focus-visible) {
+  outline: none;
+  box-shadow: none;
+}
+
 /* Case study external CTAs (below hero) */
 .case-study-project-links {
   display: flex;
@@ -2205,50 +2250,187 @@ html[data-design="modern"] .modern-contact-input:disabled {
   );
 }
 
-[data-design="modern"] .modern-hero-atmosphere {
-  display: none;
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: -1.5rem;
-  right: -1.5rem;
-  z-index: 0;
-  pointer-events: none;
-  -webkit-mask-image: linear-gradient(
-    to right,
-    rgba(0, 0, 0, 0.2) 0%,
-    rgba(0, 0, 0, 0.55) 14%,
-    #000 36%,
-    #000 100%
-  );
-  mask-image: linear-gradient(
-    to right,
-    rgba(0, 0, 0, 0.2) 0%,
-    rgba(0, 0, 0, 0.55) 14%,
-    #000 36%,
-    #000 100%
-  );
+/* Home intro + authored minifig art (hero right pane). */
+[data-design="modern"] .modern-home-intro {
+  position: relative;
 }
 
-@media (min-width: 640px) {
-  [data-design="modern"] .modern-hero-atmosphere {
-    left: -2rem;
-    right: -2rem;
-  }
+/* Light mode: quiet paper hierarchy (editorial bands, not glow). */
+html[data-design="modern"]:not(.dark) .modern-home-intro {
+  background: var(--modern-paper-hero);
+}
+
+html[data-design="modern"]:not(.dark) .modern-home-intro .modern-hero-section {
+  border-bottom-color: color-mix(in srgb, var(--border) 70%, transparent);
+}
+
+html[data-design="modern"]:not(.dark) .modern-logo-strip {
+  background: var(--modern-paper-logos);
+  border-top-color: color-mix(in srgb, var(--border) 75%, transparent);
+}
+
+html[data-design="modern"]:not(.dark) .modern-stats-section {
+  background: var(--modern-paper-stats);
+}
+
+html[data-design="modern"]:not(.dark) .modern-leadership-strip {
+  background: var(--modern-paper-leadership);
+  border-top: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+}
+
+[data-design="modern"] .modern-home-intro .modern-hero-section {
+  overflow: visible;
+}
+
+[data-design="modern"] .modern-hero-minifig {
+  position: absolute;
+  /*
+    Right content column, held clear of the headline.
+    Larger left inset = more gap from copy; hug the page margin.
+  */
+  top: 0.75rem;
+  bottom: 0;
+  left: 56%;
+  right: 0;
+  width: auto;
+  z-index: 0;
+  /* Needed so :hover can swap rest/hands-up art. */
+  pointer-events: auto;
+  overflow: visible;
+  --minifig-glow: 0.18;
 }
 
 @media (min-width: 1024px) {
-  [data-design="modern"] .modern-hero-atmosphere {
-    display: block;
-    left: -2.5rem;
-    right: -2.5rem;
+  [data-design="modern"] .modern-hero-minifig {
+    top: 1rem;
+    left: 54%;
   }
 }
 
-[data-design="modern"] .modern-hero-atmosphere__canvas {
+@media (min-width: 1280px) {
+  [data-design="modern"] .modern-hero-minifig {
+    top: 1.25rem;
+    left: 52%;
+  }
+}
+
+/* Too little gutter for a clean figure: hide rather than collide. */
+@media (max-width: 899px) {
+  [data-design="modern"] .modern-hero-minifig {
+    display: none;
+  }
+}
+
+[data-design="modern"] .modern-hero-minifig__stage {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transform-origin: 70% 85%;
+  will-change: transform;
+  animation: modern-hero-minifig-drift 38s ease-in-out infinite alternate;
+}
+
+[data-design="modern"] .modern-hero-minifig[data-active="true"] .modern-hero-minifig__stage {
+  animation: none;
+}
+
+/* Soft pedestal / aura behind the figure. Keep small so the fig can scale up. */
+[data-design="modern"] .modern-hero-minifig__ground {
+  position: absolute;
+  right: 8%;
+  bottom: 8%;
+  width: min(58%, 16rem);
+  height: min(52%, 16rem);
+  pointer-events: none;
+  border-radius: 50%;
+  opacity: 0;
+  background:
+    radial-gradient(
+      ellipse 55% 50% at 55% 55%,
+      rgba(132, 189, 0, 0.14) 0%,
+      rgba(132, 189, 0, 0.04) 42%,
+      transparent 68%
+    );
+  filter: blur(1px);
+}
+
+html.dark[data-design="modern"] .modern-hero-minifig__ground {
+  opacity: 0.35;
+  background:
+    radial-gradient(
+      ellipse 55% 50% at 55% 55%,
+      rgba(132, 189, 0, 0.12) 0%,
+      rgba(132, 189, 0, 0.03) 45%,
+      transparent 70%
+    );
+}
+
+html[data-design="modern"]:not(.dark) .modern-hero-minifig__ground {
+  opacity: 0.4;
+  background:
+    radial-gradient(
+      ellipse 55% 50% at 58% 55%,
+      rgba(20, 28, 14, 0.06) 0%,
+      rgba(20, 28, 14, 0.02) 42%,
+      transparent 68%
+    );
+}
+
+[data-design="modern"] .modern-hero-minifig__art {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
   display: block;
   width: 100%;
   height: 100%;
+  object-fit: contain;
+  object-position: right bottom;
+  opacity: 1;
+  /* Keep full head in frame; size comes from the cropped art + column. */
+  transform: none;
+  transition: opacity 280ms ease, filter 320ms ease;
+  filter: drop-shadow(0 8px 16px rgba(132, 189, 0, calc(var(--minifig-glow) * 0.55)));
+}
+
+[data-design="modern"] .modern-hero-minifig__art--hover {
+  z-index: 2;
+  opacity: 0;
+}
+
+[data-design="modern"] .modern-hero-minifig:hover .modern-hero-minifig__art--hover,
+[data-design="modern"] .modern-hero-minifig[data-active="true"] .modern-hero-minifig__art--hover {
+  opacity: 1;
+}
+
+[data-design="modern"] .modern-hero-minifig:hover .modern-hero-minifig__art--rest,
+[data-design="modern"] .modern-hero-minifig[data-active="true"] .modern-hero-minifig__art--rest {
+  opacity: 0;
+}
+
+/* Light mode: vector ink — skip soft filters that read as blur. */
+html[data-design="modern"]:not(.dark) .modern-hero-minifig__art {
+  filter: none;
+  image-rendering: auto;
+}
+
+html[data-design="modern"]:not(.dark) .modern-hero-minifig {
+  --minifig-glow: 0;
+}
+
+@keyframes modern-hero-minifig-drift {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(-1.4%, 1%, 0) scale(1.02);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-design="modern"] .modern-hero-minifig__stage {
+    animation: none;
+  }
 }
 
 [data-design="modern"] .modern-hero-glow--about {

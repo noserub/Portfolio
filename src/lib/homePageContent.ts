@@ -4,6 +4,11 @@
  */
 
 import { resolveLogoImageUrl } from "../utils/imageOptimizer";
+import {
+  ensureLocalStorageHeadroom,
+  isQuotaExceededError,
+  safeLocalStorageSet,
+} from "./safeLocalStorage";
 import { clampLogoImageScale } from "./logoImageScale";
 
 export const HOME_PAGE_CONTENT_VERSION = 2 as const;
@@ -163,6 +168,22 @@ export function resolveStaticHeroHeadline(hero: HeroTextState): { prefix: string
   return { prefix, main };
 }
 
+/**
+ * Split a hero main line for light-mode brand accent.
+ * e.g. "AI Designer & Builder" → ink "AI Designer" + brand " & Builder".
+ * Returns null when there's no " & " pair yet (typing mid-string, or different copy).
+ */
+export function splitHeroHeadlineBrandMoment(
+  main: string,
+): { ink: string; brand: string } | null {
+  const idx = main.lastIndexOf(" & ");
+  if (idx <= 0) return null;
+  return {
+    ink: main.slice(0, idx),
+    brand: main.slice(idx),
+  };
+}
+
 export interface HomePageStat {
   number: string;
   label: string;
@@ -208,7 +229,11 @@ export type DefaultCaseStudyFilter = "all" | CaseStudyFilterTypeId;
 export interface HomePageUI {
   caseStudiesTitle: string;
   filterAll: string;
-  /** Modern home hero: secondary outline button (navigates to contact). */
+  /** Modern home hero: primary CTA (scrolls to case studies). */
+  workCtaLabel: string;
+  /** Modern home hero: secondary ghost (navigates to About / how I work). */
+  processCtaLabel: string;
+  /** Modern home hero: secondary ghost (navigates to contact). */
   contactCtaLabel: string;
   /** Which category filters appear on the home case studies row (subset/order/labels). */
   caseStudyFilters: CaseStudyFilterEntry[];
@@ -445,7 +470,9 @@ export const DEFAULT_CASE_STUDY_FILTERS: CaseStudyFilterEntry[] = [
 export const DEFAULT_UI: HomePageUI = {
   caseStudiesTitle: "Case studies",
   filterAll: "All",
-  contactCtaLabel: "Get in touch",
+  workCtaLabel: "Selected work",
+  processCtaLabel: "How I work",
+  contactCtaLabel: "Discuss a partnership",
   caseStudyFilters: DEFAULT_CASE_STUDY_FILTERS.map((f) => ({ ...f })),
   defaultCaseStudyFilter: "all",
   featuredCaseStudyId: null,
@@ -912,7 +939,13 @@ function mergeUI(raw: unknown): HomePageUI {
   return {
     caseStudiesTitle: String(o.caseStudiesTitle ?? DEFAULT_UI.caseStudiesTitle),
     filterAll: String(o.filterAll ?? DEFAULT_UI.filterAll),
-    contactCtaLabel: String(o.contactCtaLabel ?? DEFAULT_UI.contactCtaLabel),
+    workCtaLabel: String(o.workCtaLabel ?? DEFAULT_UI.workCtaLabel),
+    processCtaLabel: String(o.processCtaLabel ?? DEFAULT_UI.processCtaLabel),
+    contactCtaLabel: (() => {
+      const raw = String(o.contactCtaLabel ?? DEFAULT_UI.contactCtaLabel);
+      // Soft-migrate previous default so the new ghost label shows without a manual CMS edit.
+      return raw === "Get in touch" ? DEFAULT_UI.contactCtaLabel : raw;
+    })(),
     caseStudyFilters,
     defaultCaseStudyFilter,
     featuredCaseStudyId:
@@ -1050,6 +1083,75 @@ export function toPersistedPayload(content: HomePageContentV2): HomePagePersiste
   };
 }
 
+/** Drop inlined logo bytes from a local draft. Cloud payload stays full. */
+export function slimHomePagePayloadForLocalStorage(
+  payload: HomePagePersisted,
+): HomePagePersisted {
+  const strip = payload.logoStrip;
+  if (!strip?.entries?.length) return payload;
+  return {
+    ...payload,
+    logoStrip: {
+      ...strip,
+      entries: strip.entries.map((e) => {
+        const url = typeof e.imageUrl === "string" ? e.imageUrl : "";
+        if (url.startsWith("data:")) {
+          return { ...e, imageUrl: null };
+        }
+        return e;
+      }),
+    },
+  };
+}
+
+/**
+ * Write `heroText` draft to localStorage without throwing on quota.
+ * Retries after prune / remove-old / slim logos. Returns whether the write stuck.
+ */
+export function writeHomePageToLocalStorage(content: HomePageContentV2): {
+  ok: boolean;
+  slimmed: boolean;
+} {
+  if (typeof globalThis === "undefined" || !("localStorage" in globalThis)) {
+    return { ok: false, slimmed: false };
+  }
+
+  const full = toPersistedPayload(content);
+  const fullJson = JSON.stringify(full);
+
+  const trySet = (json: string): boolean => {
+    if (safeLocalStorageSet("heroText", json)) return true;
+    try {
+      globalThis.localStorage.removeItem("heroText");
+    } catch {
+      // ignore
+    }
+    ensureLocalStorageHeadroom();
+    try {
+      globalThis.localStorage.setItem("heroText", json);
+      return true;
+    } catch (err) {
+      if (!isQuotaExceededError(err)) {
+        console.warn("localStorage heroText write failed:", err);
+      }
+      return false;
+    }
+  };
+
+  if (trySet(fullJson)) return { ok: true, slimmed: false };
+
+  const slimJson = JSON.stringify(slimHomePagePayloadForLocalStorage(full));
+  if (slimJson !== fullJson && trySet(slimJson)) {
+    console.warn(
+      "heroText local draft saved without inlined logo images (storage quota). Cloud save still uses full images.",
+    );
+    return { ok: true, slimmed: true };
+  }
+
+  console.warn("heroText could not be written to localStorage (quota full).");
+  return { ok: false, slimmed: false };
+}
+
 export function heroHasMinimumContent(hero: HeroTextState): boolean {
   if (getHeroHeadlineMode(hero) === "static") {
     const { prefix, main } = resolveStaticHeroHeadline(hero);
@@ -1075,14 +1177,11 @@ export function shouldPersistHomePageContent(c: HomePageContentV2): boolean {
 
 /**
  * Synchronous local backup — safe for beforeunload (Supabase cannot finish in time).
- * Returns false when there is nothing meaningful to store.
+ * Returns false when there is nothing meaningful to store or quota blocks the write.
  */
 export function persistHomePageToLocalStorageSync(c: HomePageContentV2): boolean {
   if (!shouldPersistHomePageContent(c)) return false;
-  if (typeof globalThis === "undefined" || !("localStorage" in globalThis)) return false;
-  const payload = toPersistedPayload({ ...c, _clientSavedAt: Date.now() });
-  globalThis.localStorage.setItem("heroText", JSON.stringify(payload));
-  return true;
+  return writeHomePageToLocalStorage({ ...c, _clientSavedAt: Date.now() }).ok;
 }
 
 /** Parsed `heroText` from localStorage, or null if missing / invalid / empty. */

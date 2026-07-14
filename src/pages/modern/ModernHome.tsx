@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import type { ProjectData } from "../../components/ProjectImage";
 import { BioDocumentRenderer } from "../../components/HomeBioDocument";
 import { ModernTypingHero } from "../../components/modern/ModernTypingHero";
-import { ModernHeroAtmosphere } from "../../components/modern/ModernHeroAtmosphere";
+import { ModernHeroMinifig } from "../../components/modern/ModernHeroMinifig";
 import {
   ModernDraggableCaseStudyCard,
   useCaseStudyReorderSave,
@@ -50,7 +50,7 @@ const UnifiedProjectCreator = lazyWithRetry(() =>
 );
 
 interface ModernHomeProps {
-  onStartClick: () => void;
+  onScrollToWork?: () => void;
   onProjectClick: (project: ProjectData, updateCallback: (project: ProjectData) => void) => void;
   onNavigateContact: () => void;
   isEditMode?: boolean;
@@ -68,7 +68,7 @@ interface ModernHomeViewProps extends ModernHomeProps {
 }
 
 function ModernHomeView({
-  onStartClick,
+  onScrollToWork,
   onProjectClick,
   onNavigateContact,
   isEditMode = false,
@@ -443,72 +443,77 @@ function ModernHomeView({
 
   return (
     <main className="min-h-screen" style={{ background: modern.bg }}>
-      <section
-        className={`modern-hero-section relative overflow-hidden ${modernLayout.sectionX} ${modernLayout.heroPt} ${modernLayout.heroPb}${heroEditorOpen ? " modern-hero-section--cms-open" : ""}`}
-      >
-        <ModernHeroAtmosphere />
-        <div className={`relative z-[1] ${modernLayout.container}`}>
-          {heroEditorOpen && heroEditor ? (
-            <div className="modern-home-cms-editor-slot">{heroEditor}</div>
-          ) : null}
-
-          <div className="max-w-3xl min-w-0">
-            {isEditMode && onEditHomeContent && !heroEditorOpen ? (
-              <div className="mb-6 relative z-[2]">
-                <button
-                  type="button"
-                  className="modern-home-hero-editor__btn modern-home-hero-editor__btn--primary"
-                  style={modernFont}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onEditHomeContent();
-                  }}
-                >
-                  <Edit2 className="w-3.5 h-3.5" aria-hidden />
-                  Edit home content
-                </button>
-              </div>
+      <div className="modern-home-intro">
+        <section
+          className={`modern-hero-section relative ${modernLayout.sectionX} ${modernLayout.heroPt} ${modernLayout.heroPb}${heroEditorOpen ? " modern-hero-section--cms-open" : ""}`}
+        >
+          <div className={`relative z-[1] ${modernLayout.container}`}>
+            <ModernHeroMinifig />
+            {heroEditorOpen && heroEditor ? (
+              <div className="modern-home-cms-editor-slot">{heroEditor}</div>
             ) : null}
 
-            {!heroEditorOpen ? (
-              <>
-                <ModernTypingHero hero={heroText} loading={homeContentLoading} />
-
-                <div className="mt-6 sm:mt-8 max-w-xl modern-hero-bio">
-                  <BioDocumentRenderer
-                    document={bioDocument}
-                    variant="modern"
-                    paragraphGapRem={0.75}
-                    lineHeight={1.65}
-                  />
-                </div>
-
-                <div className="mt-8 sm:mt-10 flex flex-wrap items-center gap-3">
+            <div className="max-w-3xl min-w-0 relative z-[1]">
+              {isEditMode && onEditHomeContent && !heroEditorOpen ? (
+                <div className="mb-6 relative z-[2]">
                   <button
                     type="button"
-                    onClick={onStartClick}
-                    className="modern-btn-primary"
-                    style={modernPrimaryButtonStyle}
-                  >
-                    {heroText.buttonText?.trim() || "About Brian"}
-                    <ArrowRight size={15} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={onNavigateContact}
-                    className="modern-btn-outline"
+                    className="modern-home-hero-editor__btn modern-home-hero-editor__btn--primary"
                     style={modernFont}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEditHomeContent();
+                    }}
                   >
-                    {homePageContent.ui.contactCtaLabel?.trim() || "Get in touch"}
+                    <Edit2 className="w-3.5 h-3.5" aria-hidden />
+                    Edit home content
                   </button>
                 </div>
-              </>
-            ) : null}
-          </div>
-        </div>
-      </section>
+              ) : null}
 
-      {showLogoStrip ? <ModernLogoStrip strip={logoStrip} /> : null}
+              {!heroEditorOpen ? (
+                <>
+                  <ModernTypingHero hero={heroText} loading={homeContentLoading} />
+
+                  <div className="mt-6 sm:mt-8 max-w-xl modern-hero-bio">
+                    <BioDocumentRenderer
+                      document={bioDocument}
+                      variant="modern"
+                      paragraphGapRem={0.75}
+                      lineHeight={1.65}
+                    />
+                  </div>
+
+                  <div className="mt-8 sm:mt-10 flex flex-wrap items-center gap-2 sm:gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (onScrollToWork) onScrollToWork();
+                        else document.getElementById("case-studies")?.scrollIntoView({ behavior: "smooth" });
+                      }}
+                      className="modern-btn-primary"
+                      style={modernPrimaryButtonStyle}
+                    >
+                      {homePageContent.ui.workCtaLabel?.trim() || "Selected work"}
+                      <ArrowRight size={15} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={onNavigateContact}
+                      className="modern-btn-ghost"
+                      style={modernFont}
+                    >
+                      {homePageContent.ui.contactCtaLabel?.trim() || "Discuss a partnership"}
+                    </button>
+                  </div>
+                </>
+              ) : null}
+            </div>
+          </div>
+        </section>
+
+        {showLogoStrip ? <ModernLogoStrip strip={logoStrip} /> : null}
+      </div>
 
       {showLogoStrip ? <div className={modernLayout.sectionDivider} aria-hidden="true" /> : null}
 

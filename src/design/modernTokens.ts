@@ -9,6 +9,8 @@ export const modern = {
   muted: "var(--modern-muted-text)",
   /** Eyebrow labels, stats, hero emphasis — not inline links */
   accent: "var(--modern-accent)",
+  /** Hero H1; near-black on light, accent green on dark */
+  heroHeadline: "var(--modern-hero-headline)",
   /** Markdown and inline body links (foreground + underline; hover uses accent) */
   link: "var(--modern-link)",
   linkHover: "var(--modern-link-hover)",

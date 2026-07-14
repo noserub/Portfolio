@@ -3,6 +3,7 @@ import {
   getHeroGreetingAnimationPlan,
   getHeroHeadlineMode,
   resolveStaticHeroHeadline,
+  splitHeroHeadlineBrandMoment,
   type HeroTextState,
 } from "../../lib/homePageContent";
 import { useHeroTypingAnimation } from "../../hooks/useHeroTypingAnimation";
@@ -11,6 +12,18 @@ import { modern } from "../../design/modernTokens";
 interface ModernTypingHeroProps {
   hero: HeroTextState;
   loading?: boolean;
+}
+
+/** Light: ink lead + lime brand tail. Dark: both inherit full accent. */
+function HeroMainLine({ text }: { text: string }) {
+  const parts = splitHeroHeadlineBrandMoment(text);
+  if (!parts) return <>{text}</>;
+  return (
+    <>
+      <span className="modern-hero-headline__ink">{parts.ink}</span>
+      <span className="modern-hero-headline__brand">{parts.brand}</span>
+    </>
+  );
 }
 
 export function ModernTypingHero({ hero, loading = false }: ModernTypingHeroProps) {
@@ -80,14 +93,14 @@ export function ModernTypingHero({ hero, loading = false }: ModernTypingHeroProp
           {staticHeadline.prefix}
         </div>
         <div
-          className="modern-type-display leading-tight"
+          className="modern-type-display leading-tight modern-hero-headline"
           style={{
             fontWeight: 600,
             fontSize: "clamp(40px, 5.5vw, 64px)",
-            color: modern.accent,
+            color: modern.heroHeadline,
           }}
         >
-          {staticHeadline.main}
+          <HeroMainLine text={staticHeadline.main} />
         </div>
       </div>
     );
@@ -107,15 +120,15 @@ export function ModernTypingHero({ hero, loading = false }: ModernTypingHeroProp
           {sharedPrefix}
         </div>
         <div
-          className="modern-type-display leading-tight"
+          className="modern-type-display leading-tight modern-hero-headline"
           style={{
             fontWeight: 600,
             fontSize: "clamp(40px, 5.5vw, 64px)",
-            color: modern.accent,
+            color: modern.heroHeadline,
           }}
           aria-live="polite"
         >
-          {suffixDisplay}
+          <HeroMainLine text={suffixDisplay} />
           {!prefersReducedMotion ? <span className="modern-typing-cursor" aria-hidden /> : null}
         </div>
       </div>
@@ -124,15 +137,15 @@ export function ModernTypingHero({ hero, loading = false }: ModernTypingHeroProp
 
   return (
     <div
-      className="modern-type-display leading-tight"
+      className="modern-type-display leading-tight modern-hero-headline"
       style={{
         fontWeight: 600,
         fontSize: "clamp(32px, 5vw, 56px)",
-        color: modern.accent,
+        color: modern.heroHeadline,
       }}
       aria-live="polite"
     >
-      {suffixDisplay}
+      <HeroMainLine text={suffixDisplay} />
       {!prefersReducedMotion ? <span className="modern-typing-cursor" aria-hidden /> : null}
     </div>
   );

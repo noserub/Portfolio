@@ -1,7 +1,10 @@
 import { useEffect, useRef } from "react";
 import {
   ATMOSPHERE_ANIMATION_SPEED,
+  ATMOSPHERE_DOT_INTENSITY,
   ATMOSPHERE_DRIFT_AMPLITUDE,
+  ATMOSPHERE_LIGHT_MODE_BOOST,
+  ATMOSPHERE_NEBULA_INTENSITY,
   applyPointerToMotion,
   atmosphereClusterBreath,
   atmosphereNebulaMotion,
@@ -93,17 +96,20 @@ function drawNebulaGlows(
   const whisperColor = blendHex(whisperBase, palette.spark, sparkWeight * 0.62);
   const coreColor = blendHex(coreBase, palette.spark, sparkWeight * 0.16);
 
-  const washPeak = 0.028 + motion.washMix * 0.014 + sparkWeight * 0.008;
-  const whisperPeak = 0.02 + motion.whisperMix * 0.011 + sparkWeight * 0.01;
-  const corePeak = 0.062 + motion.pulse * 0.026 + sparkWeight * 0.004;
+  const themeBoost = useAdditiveBlend ? 1 : ATMOSPHERE_LIGHT_MODE_BOOST;
+  const intensity = ATMOSPHERE_NEBULA_INTENSITY * themeBoost;
+
+  const washPeak = (0.028 + motion.washMix * 0.014 + sparkWeight * 0.008) * intensity;
+  const whisperPeak = (0.02 + motion.whisperMix * 0.011 + sparkWeight * 0.01) * intensity;
+  const corePeak = (0.062 + motion.pulse * 0.026 + sparkWeight * 0.004) * intensity;
 
   ctx.save();
   if (useAdditiveBlend) {
     ctx.globalCompositeOperation = "lighter";
   }
 
-  drawNebulaLayer(ctx, width, height, motion.whisperX, motion.whisperY, 0.44, whisperColor, whisperPeak, whisperPeak * 0.34);
-  drawNebulaLayer(ctx, width, height, motion.washX, motion.washY, 0.36, washColor, washPeak, washPeak * 0.38);
+  drawNebulaLayer(ctx, width, height, motion.whisperX, motion.whisperY, 0.48, whisperColor, whisperPeak, whisperPeak * 0.34);
+  drawNebulaLayer(ctx, width, height, motion.washX, motion.washY, 0.4, washColor, washPeak, washPeak * 0.38);
 
   if (sparkWeight > 0.08) {
     drawNebulaLayer(
@@ -112,15 +118,15 @@ function drawNebulaGlows(
       height,
       pointer.x,
       pointer.y,
-      0.12,
+      0.14,
       palette.spark,
-      0.022 + sparkWeight * 0.018,
-      0.008 + sparkWeight * 0.006,
+      (0.022 + sparkWeight * 0.018) * intensity,
+      (0.008 + sparkWeight * 0.006) * intensity,
     );
   }
 
   ctx.globalCompositeOperation = "source-over";
-  drawNebulaLayer(ctx, width, height, motion.coreX, motion.coreY, 0.3, coreColor, corePeak, corePeak * 0.36);
+  drawNebulaLayer(ctx, width, height, motion.coreX, motion.coreY, 0.34, coreColor, corePeak, corePeak * 0.36);
   ctx.restore();
 }
 
@@ -168,11 +174,13 @@ function drawFrame(
 
     const readAlpha = atmosphereReadabilityAlpha(x, width);
     const edgeAlpha = atmosphereVerticalEdgeAlpha(ny, height, navHeightPx);
-    const baseAlpha = (0.15 + dot.depth * 0.18) * readAlpha * edgeAlpha;
-    const radius = 0.85 + dot.depth * 0.75;
+    const lightBoost = isDarkTheme ? 1 : 1.25;
+    const baseAlpha =
+      (0.15 + dot.depth * 0.18) * readAlpha * edgeAlpha * ATMOSPHERE_DOT_INTENSITY * lightBoost;
+    const radius = 0.9 + dot.depth * 0.85;
 
     const useAccent = dot.accent && readAlpha > 0.35;
-    const alpha = useAccent ? Math.min(0.5, baseAlpha * 1.7) : Math.min(0.34, baseAlpha);
+    const alpha = useAccent ? Math.min(0.58, baseAlpha * 1.7) : Math.min(0.42, baseAlpha);
 
     let dotColor = muted;
     if (useAccent) {
@@ -332,6 +340,8 @@ export function ModernHeroAtmosphere() {
 
   return (
     <div className="modern-hero-atmosphere" aria-hidden>
+      <div className="modern-hero-atmosphere__mark" />
+      <div className="modern-hero-atmosphere__glow" />
       <canvas ref={canvasRef} className="modern-hero-atmosphere__canvas" />
     </div>
   );
