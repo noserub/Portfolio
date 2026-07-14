@@ -21,6 +21,8 @@ import { ModernAppChrome } from "./layouts/modern/ModernAppChrome";
 import { ModernFooter } from "./components/modern/ModernFooter";
 import { clearStaleModernEditorPortals } from "./components/modern/ModernEditorDialog";
 import { SiteOverflowMenu } from "./components/SiteOverflowMenu";
+import { PageContentTransition } from "./components/layout/PageContentTransition";
+import { RouteContentFallback } from "./components/layout/RouteContentFallback";
 import Home from "./pages/Home";
 
 import About from "./pages/About";
@@ -59,21 +61,6 @@ import { ProjectsProvider, useProjects } from "./contexts/ProjectsContext";
 import { useContactMessages } from "./hooks/useContactMessages";
 import { useScrollHideChrome } from "./hooks/useScrollHideChrome";
 import { isLikelyStaleBuildChunkError, lazyWithRetry } from "./utils/lazyWithRetry";
-
-/** Shown while lazy route chunks load — keeps layout stable vs a blank flash */
-function RouteFallback() {
-  return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-background">
-      <div className="flex flex-col items-center gap-3 text-muted-foreground text-sm">
-        <div
-          className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full animate-spin"
-          aria-hidden
-        />
-        <span>Loading…</span>
-      </div>
-    </div>
-  );
-}
 
 // Lazy load diagnostics to avoid blocking React mount
 if (typeof window !== 'undefined') {
@@ -1307,7 +1294,7 @@ function AppShell() {
   // If in emergency mode, show emergency recovery
   if (isEmergencyMode) {
     return (
-      <Suspense fallback={<RouteFallback />}>
+      <Suspense fallback={<RouteContentFallback />}>
         <EmergencyRecovery />
       </Suspense>
     );
@@ -1316,7 +1303,7 @@ function AppShell() {
   // If in diagnostic mode, show diagnostic page
   if (isDiagnosticMode) {
     return (
-      <Suspense fallback={<RouteFallback />}>
+      <Suspense fallback={<RouteContentFallback />}>
         <DiagnosticPage />
       </Suspense>
     );
@@ -1931,6 +1918,19 @@ function AppShell() {
     currentPage !== "writing-detail" &&
     currentPage !== "supabase-test";
 
+  /** Identity for content crossfade; detail ids so project/writing swaps animate too. */
+  const pageContentKey =
+    currentPage === "project-detail" && selectedProject
+      ? `project-${selectedProject.id}`
+      : currentPage === "writing-detail" && selectedWritingPost
+        ? `writing-${selectedWritingPost.id}`
+        : currentPage === "project-detail" || currentPage === "writing-detail"
+          ? `${currentPage}-pending`
+          : currentPage;
+
+  const disablePageTransition =
+    isEditMode || currentPage === "lite-brite" || currentPage === "supabase-test";
+
   const siteOverflowMenu = (variant: "classic" | "modern") => (
     <SiteOverflowMenu
       variant={variant}
@@ -2296,58 +2296,60 @@ function AppShell() {
 
       <DndProvider backend={HTML5Backend}>
         <div className="relative z-10 min-w-0 w-full">
-        <Suspense fallback={<RouteFallback />}>
-          {currentPage === "home" && (
-            <Home 
-              onStartClick={navigateToStart}
-              onScrollToWork={scrollToCaseStudies}
-              isEditMode={isEditMode}
-              onProjectClick={navigateToProject}
-              onProjectUpdate={handleUpdateProject}
-              currentPage={currentPage}
-              onNavigateContact={navigateContact}
-            />
-          )}
-          {currentPage === "writing" && (isEditMode || pageVisibility.writing) && (
-            <Writing
-              isEditMode={isEditMode}
-              logoUrl={logo}
-              onPostClick={navigateToWritingPost}
-              onCreatePost={navigateToWritingPost}
-              indexGrid={pageVisibility.writing_index_grid}
-              onIndexGridChange={
-                isEditMode
-                  ? (grid) =>
-                      setPageVisibility((prev) => ({ ...prev, writing_index_grid: grid }))
-                  : undefined
-              }
-            />
-          )}
-          {currentPage === "writing-detail" && selectedWritingPost && (
-            <WritingPostPage
-              post={selectedWritingPost}
-              isEditMode={isEditMode}
-              logoUrl={logo}
-              onBack={navigateWriting}
-              onSave={handleSaveWritingPost}
-              onDelete={handleDeleteWritingPost}
-              onCreatePost={navigateToWritingPost}
-            />
-          )}
-          {currentPage === "writing-detail" && !selectedWritingPost && (
-            <RouteFallback />
-          )}
-          {currentPage === "about" && (isEditMode || pageVisibility.about) && (
-            <About onBack={navigateHome} onHoverChange={setIsBlurringBackground} isEditMode={isEditMode} onNavigateContact={navigateContact} />
-          )}
-          {currentPage === "contact" && (isEditMode || pageVisibility.contact) && (
-            <Contact onBack={navigateHome} isEditMode={isEditMode} />
-          )}
-          {currentPage === "messages" && isSupabaseAuthenticated && (
-            <Messages onBack={navigateHome} isEditMode={isEditMode} />
-          )}
-          {currentPage === "project-detail" && selectedProject && (
-            <div key={(selectedProject as any)._navTimestamp || selectedProject.id}>
+          <PageContentTransition
+            pageKey={pageContentKey}
+            disabled={disablePageTransition}
+          >
+            {currentPage === "home" && (
+              <Home
+                onStartClick={navigateToStart}
+                onScrollToWork={scrollToCaseStudies}
+                isEditMode={isEditMode}
+                onProjectClick={navigateToProject}
+                onProjectUpdate={handleUpdateProject}
+                currentPage={currentPage}
+                onNavigateContact={navigateContact}
+              />
+            )}
+            {currentPage === "writing" && (isEditMode || pageVisibility.writing) && (
+              <Writing
+                isEditMode={isEditMode}
+                logoUrl={logo}
+                onPostClick={navigateToWritingPost}
+                onCreatePost={navigateToWritingPost}
+                indexGrid={pageVisibility.writing_index_grid}
+                onIndexGridChange={
+                  isEditMode
+                    ? (grid) =>
+                        setPageVisibility((prev) => ({ ...prev, writing_index_grid: grid }))
+                    : undefined
+                }
+              />
+            )}
+            {currentPage === "writing-detail" && selectedWritingPost && (
+              <WritingPostPage
+                post={selectedWritingPost}
+                isEditMode={isEditMode}
+                logoUrl={logo}
+                onBack={navigateWriting}
+                onSave={handleSaveWritingPost}
+                onDelete={handleDeleteWritingPost}
+                onCreatePost={navigateToWritingPost}
+              />
+            )}
+            {currentPage === "writing-detail" && !selectedWritingPost && (
+              <RouteContentFallback />
+            )}
+            {currentPage === "about" && (isEditMode || pageVisibility.about) && (
+              <About onBack={navigateHome} onHoverChange={setIsBlurringBackground} isEditMode={isEditMode} onNavigateContact={navigateContact} />
+            )}
+            {currentPage === "contact" && (isEditMode || pageVisibility.contact) && (
+              <Contact onBack={navigateHome} isEditMode={isEditMode} />
+            )}
+            {currentPage === "messages" && isSupabaseAuthenticated && (
+              <Messages onBack={navigateHome} isEditMode={isEditMode} />
+            )}
+            {currentPage === "project-detail" && selectedProject && (
               <ProjectDetail
                 project={selectedProject}
                 onBack={navigateHome}
@@ -2357,15 +2359,13 @@ function AppShell() {
                   void navigateToProject(copy, () => {});
                 }}
               />
-            </div>
-          )}
-          {currentPage === "project-detail" && !selectedProject && (
-            <RouteFallback />
-          )}
-          {currentPage === "supabase-test" && <SupabaseTest />}
-          {currentPage === "lite-brite" && <LiteBriteMusic />}
-        </Suspense>
-          {/* Supabase test page removed */}
+            )}
+            {currentPage === "project-detail" && !selectedProject && (
+              <RouteContentFallback />
+            )}
+            {currentPage === "supabase-test" && <SupabaseTest />}
+            {currentPage === "lite-brite" && <LiteBriteMusic />}
+          </PageContentTransition>
       </div>
       </DndProvider>
 
