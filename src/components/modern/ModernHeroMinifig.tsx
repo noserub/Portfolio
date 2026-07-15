@@ -3,6 +3,10 @@ import { useEffect, useRef, useState } from "react";
 const POINTER_SMOOTHING = 0.08;
 const MAX_TILT_X = 7; // deg
 const MAX_TILT_Y = 9; // deg
+/** How long the mobile tap pose holds before returning to rest. */
+const TAP_POSE_MS = 2200;
+/** Cameo layout + tap (not phone-narrow hide, not desktop pane). */
+const CAMEO_MQ = "(min-width: 400px) and (max-width: 899px)";
 
 const SRC = {
   dark: {
@@ -21,10 +25,11 @@ function readIsDarkTheme(): boolean {
 }
 
 /**
- * Hero right-pane: authored neon minifig with soft pointer parallax.
- * Rest = hands down; hover = hands up (pose is the only delighter).
+ * Hero brand fig: right-pane with pointer parallax from 900px up;
+ * 400–899 top-right cameo with tap; hidden below 400 (narrow phones).
+ * Rest = hands down; active = hands up (pose is the only delighter).
  * Dark uses neon PNG line art; light uses crisp SVG ink traces.
- * Fine pointer only; respects reduced motion.
+ * Respects reduced motion.
  */
 export function ModernHeroMinifig() {
   const rootRef = useRef<HTMLDivElement>(null);
@@ -32,7 +37,11 @@ export function ModernHeroMinifig() {
   const targetRef = useRef({ x: 0, y: 0, active: 0 });
   const currentRef = useRef({ x: 0, y: 0, active: 0 });
   const frameRef = useRef(0);
+  const tapTimerRef = useRef(0);
   const [isDark, setIsDark] = useState(readIsDarkTheme);
+  const [isCameo, setIsCameo] = useState(() =>
+    typeof window !== "undefined" ? window.matchMedia(CAMEO_MQ).matches : false,
+  );
 
   useEffect(() => {
     const syncTheme = () => setIsDark(readIsDarkTheme());
@@ -46,9 +55,50 @@ export function ModernHeroMinifig() {
   }, []);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia(CAMEO_MQ);
+    const sync = () => setIsCameo(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+
+  useEffect(() => {
     const root = rootRef.current;
     const stage = stageRef.current;
     if (!root || !stage) return;
+
+    const themeKey = isDark ? "dark" : "light";
+    const preload = new Image();
+    preload.src = SRC[themeKey].hover;
+
+    if (isCameo) {
+      // Mobile/tablet cameo: tap toggles hands-up, then auto-returns to rest.
+      const clearTapTimer = () => {
+        if (tapTimerRef.current) {
+          window.clearTimeout(tapTimerRef.current);
+          tapTimerRef.current = 0;
+        }
+      };
+
+      const onTap = (event: PointerEvent) => {
+        if (event.pointerType === "mouse" && event.button !== 0) return;
+        event.preventDefault();
+        clearTapTimer();
+        root.dataset.active = "true";
+        tapTimerRef.current = window.setTimeout(() => {
+          root.dataset.active = "false";
+          tapTimerRef.current = 0;
+        }, TAP_POSE_MS);
+      };
+
+      root.addEventListener("pointerup", onTap);
+      return () => {
+        clearTapTimer();
+        root.removeEventListener("pointerup", onTap);
+        root.dataset.active = "false";
+      };
+    }
 
     const hero = root.closest(".modern-hero-section");
     if (!hero) return;
@@ -58,10 +108,6 @@ export function ModernHeroMinifig() {
       window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const finePointer =
       typeof window !== "undefined" && window.matchMedia("(pointer: fine)").matches;
-
-    const themeKey = isDark ? "dark" : "light";
-    const preload = new Image();
-    preload.src = SRC[themeKey].hover;
 
     if (reducedMotion || !finePointer) return;
 
@@ -123,7 +169,7 @@ export function ModernHeroMinifig() {
       stage.style.transform = "";
       delete root.dataset.active;
     };
-  }, [isDark]);
+  }, [isDark, isCameo]);
 
   const sources = isDark ? SRC.dark : SRC.light;
 
@@ -132,6 +178,7 @@ export function ModernHeroMinifig() {
       ref={rootRef}
       className="modern-hero-minifig"
       data-active="false"
+      data-layout={isCameo ? "cameo" : "pane"}
       data-theme={isDark ? "dark" : "light"}
       aria-hidden
     >

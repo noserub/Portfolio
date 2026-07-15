@@ -2316,10 +2316,14 @@ html[data-design="modern"]:not(.dark) .modern-leadership-strip {
   right: 0;
   width: auto;
   z-index: 0;
-  /* Needed so :hover can swap rest/hands-up art. */
+  /* Needed so :hover / tap can swap rest/hands-up art. */
   pointer-events: auto;
   overflow: visible;
   --minifig-glow: 0.18;
+  cursor: default;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
 }
 
 @media (min-width: 1024px) {
@@ -2336,10 +2340,46 @@ html[data-design="modern"]:not(.dark) .modern-leadership-strip {
   }
 }
 
-/* Too little gutter for a clean figure: hide rather than collide. */
-@media (max-width: 899px) {
+/*
+  <400: hide (S8+-class widths can't host a clean cameo beside the title).
+  400–899: top-right cameo. ≥900: right pane.
+*/
+@media (max-width: 399px) {
   [data-design="modern"] .modern-hero-minifig {
     display: none;
+  }
+}
+
+@media (min-width: 400px) and (max-width: 899px) {
+  [data-design="modern"] .modern-hero-minifig {
+    top: -0.25rem;
+    left: auto;
+    right: 0.15rem;
+    bottom: auto;
+    width: min(22vw, 7rem);
+    height: min(28vw, 8.5rem);
+    z-index: 2;
+    cursor: pointer;
+  }
+
+  /* Bio + CTAs clear the mid cameo; title stays full width. */
+  [data-design="modern"] .modern-hero-bio,
+  [data-design="modern"] .modern-hero-bio + div {
+    padding-right: min(24vw, 7.75rem);
+  }
+}
+
+@media (min-width: 400px) and (max-width: 639px) {
+  [data-design="modern"] .modern-hero-minifig {
+    top: -0.55rem;
+    right: 0.1rem;
+    width: min(20vw, 4.25rem);
+    height: min(25vw, 5.1rem);
+  }
+
+  [data-design="modern"] .modern-hero-bio,
+  [data-design="modern"] .modern-hero-bio + div {
+    padding-right: 0;
   }
 }
 
@@ -2354,6 +2394,31 @@ html[data-design="modern"]:not(.dark) .modern-leadership-strip {
 
 [data-design="modern"] .modern-hero-minifig[data-active="true"] .modern-hero-minifig__stage {
   animation: none;
+}
+
+@media (min-width: 400px) and (max-width: 899px) {
+  [data-design="modern"] .modern-hero-minifig__ground {
+    right: 8%;
+    bottom: 10%;
+    width: 70%;
+    height: 55%;
+  }
+
+  [data-design="modern"] .modern-hero-minifig__art {
+    object-position: center bottom;
+  }
+
+  /* Soft entrance so the cameo reads as a moment, not a static sticker. */
+  [data-design="modern"] .modern-hero-minifig__stage {
+    transform-origin: 90% 20%;
+    animation:
+      modern-hero-minifig-cameo-in 720ms cubic-bezier(0.22, 1, 0.36, 1) both,
+      modern-hero-minifig-drift 38s ease-in-out 720ms infinite alternate;
+  }
+
+  [data-design="modern"] .modern-hero-minifig[data-active="true"] .modern-hero-minifig__stage {
+    animation: none;
+  }
 }
 
 /* Soft pedestal / aura behind the figure. Keep small so the fig can scale up. */
@@ -2419,12 +2484,21 @@ html[data-design="modern"]:not(.dark) .modern-hero-minifig__ground {
   opacity: 0;
 }
 
-[data-design="modern"] .modern-hero-minifig:hover .modern-hero-minifig__art--hover,
+/* Desktop hover swap; cameo uses data-active from tap only. */
+@media (hover: hover) and (pointer: fine) {
+  [data-design="modern"] .modern-hero-minifig:hover .modern-hero-minifig__art--hover {
+    opacity: 1;
+  }
+
+  [data-design="modern"] .modern-hero-minifig:hover .modern-hero-minifig__art--rest {
+    opacity: 0;
+  }
+}
+
 [data-design="modern"] .modern-hero-minifig[data-active="true"] .modern-hero-minifig__art--hover {
   opacity: 1;
 }
 
-[data-design="modern"] .modern-hero-minifig:hover .modern-hero-minifig__art--rest,
 [data-design="modern"] .modern-hero-minifig[data-active="true"] .modern-hero-minifig__art--rest {
   opacity: 0;
 }
@@ -2448,9 +2522,21 @@ html[data-design="modern"]:not(.dark) .modern-hero-minifig {
   }
 }
 
+@keyframes modern-hero-minifig-cameo-in {
+  from {
+    opacity: 0;
+    transform: translate3d(4%, -4%, 0) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   [data-design="modern"] .modern-hero-minifig__stage {
-    animation: none;
+    animation: none !important;
+    opacity: 1;
   }
 }
 
