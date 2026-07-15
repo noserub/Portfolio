@@ -14,8 +14,9 @@ export const writingLayout = {
   cardTitle: 'modern-writing-card__title',
   cardExcerpt: 'modern-writing-card__excerpt',
   filterRow: 'modern-writing-filter-row',
-  filterChip: 'modern-writing-filter-chip',
-  filterChipActive: 'modern-writing-filter-chip--active',
+  /** Same chip language as Home case study filters. */
+  filterChip: 'modern-filter-chip',
+  filterChipActive: 'modern-filter-chip--active',
   back: 'modern-writing-back',
   layoutWithToc: 'modern-writing-layout modern-writing-layout--with-toc',
   layout: 'modern-writing-layout',

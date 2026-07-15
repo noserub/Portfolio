@@ -38,6 +38,7 @@ const LiteBriteMusic = lazyWithRetry(() =>
 );
 const Writing = lazyWithRetry(() => import("./pages/Writing"));
 const WritingPostPage = lazyWithRetry(() => import("./pages/WritingPost"));
+const DesignSystem = lazyWithRetry(() => import("./pages/DesignSystem"));
 const SupabaseTest = lazyWithRetry(() => import("./components/SupabaseTest"));
 import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
@@ -86,7 +87,8 @@ type Page =
   | "project-detail"
   | "supabase-test"
   | "messages"
-  | "lite-brite";
+  | "lite-brite"
+  | "design-system";
 
 // Error Boundary Component
 interface ErrorBoundaryState {
@@ -338,7 +340,7 @@ function AppShell() {
       return "writing";
     } else if (pathname.startsWith('/')) {
       const page = pathname.substring(1) as Page;
-      if (['about', 'contact', 'messages', 'lite-brite'].includes(page)) {
+      if (['about', 'contact', 'messages', 'lite-brite', 'design-system'].includes(page)) {
         return page;
       }
     }
@@ -1012,6 +1014,8 @@ function AppShell() {
       return '/messages';
     } else if (currentPage === "lite-brite") {
       return '/lite-brite';
+    } else if (currentPage === "design-system") {
+      return '/design-system';
     }
 
     return '/';
@@ -1260,7 +1264,7 @@ function AppShell() {
         setIsResolvingWritingRoute(false);
       } else if (pathname.startsWith('/')) {
         const page = pathname.substring(1) as Page;
-        if (['about', 'contact', 'messages', 'lite-brite'].includes(page)) {
+        if (['about', 'contact', 'messages', 'lite-brite', 'design-system'].includes(page)) {
           setCurrentPage(page);
           setSelectedProject(null);
           setSelectedWritingPost(null);
@@ -1430,6 +1434,13 @@ function AppShell() {
     setCurrentPage("writing");
     setSelectedWritingPost(null);
     setSelectedProject(null);
+    setTimeout(forceScrollToTop, 0);
+  };
+
+  const navigateDesignSystem = () => {
+    setCurrentPage("design-system");
+    setSelectedProject(null);
+    setSelectedWritingPost(null);
     setTimeout(forceScrollToTop, 0);
   };
 
@@ -1952,6 +1963,7 @@ function AppShell() {
       onShowPasswordReset={() => setShowPasswordReset(true)}
       onShowSEOEditor={() => setShowSEOEditor(true)}
       onShowComponentLibrary={() => setShowComponentLibrary(true)}
+      onNavigateDesignSystem={navigateDesignSystem}
       onSignOut={handleSignOut}
     />
   );
@@ -2341,11 +2353,18 @@ function AppShell() {
               <RouteContentFallback />
             )}
             {currentPage === "about" && (isEditMode || pageVisibility.about) && (
-              <About onBack={navigateHome} onHoverChange={setIsBlurringBackground} isEditMode={isEditMode} onNavigateContact={navigateContact} />
+              <About
+                onBack={navigateHome}
+                onHoverChange={setIsBlurringBackground}
+                isEditMode={isEditMode}
+                onNavigateContact={navigateContact}
+                onNavigateDesignSystem={navigateDesignSystem}
+              />
             )}
             {currentPage === "contact" && (isEditMode || pageVisibility.contact) && (
               <Contact onBack={navigateHome} isEditMode={isEditMode} />
             )}
+            {currentPage === "design-system" && <DesignSystem />}
             {currentPage === "messages" && isSupabaseAuthenticated && (
               <Messages onBack={navigateHome} isEditMode={isEditMode} />
             )}

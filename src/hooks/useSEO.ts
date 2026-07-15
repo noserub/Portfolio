@@ -113,6 +113,8 @@ export function useSEO(pageKey: 'home' | 'about' | 'caseStudies' | 'contact') {
 export type CaseStudySeoMeta = {
   createdAt?: string;
   updatedAt?: string;
+  /** When false, skip applying case study meta (e.g. embedded design-system specimens). */
+  enabled?: boolean;
 };
 
 // Hook specifically for case study detail pages
@@ -122,6 +124,8 @@ export function useCaseStudySEO(
   meta?: CaseStudySeoMeta
 ) {
   useEffect(() => {
+    if (meta?.enabled === false) return;
+
     let isCancelled = false;
 
     const applyCaseStudySEO = async () => {
@@ -185,7 +189,7 @@ export function useCaseStudySEO(
     return () => {
       isCancelled = true;
     };
-  }, [caseStudyId, caseStudyTitle, meta?.createdAt, meta?.updatedAt]);
+  }, [caseStudyId, caseStudyTitle, meta?.createdAt, meta?.updatedAt, meta?.enabled]);
 }
 
 export function useWritingIndexSEO() {

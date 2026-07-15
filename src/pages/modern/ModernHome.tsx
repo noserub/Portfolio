@@ -453,7 +453,7 @@ function ModernHomeView({
               <div className="modern-home-cms-editor-slot">{heroEditor}</div>
             ) : null}
 
-            <div className="max-w-3xl min-w-0 relative z-[1]">
+            <div className="modern-hero-copy max-w-3xl min-w-0 relative z-[1]">
               {isEditMode && onEditHomeContent && !heroEditorOpen ? (
                 <div className="mb-6 relative z-[2]">
                   <button
