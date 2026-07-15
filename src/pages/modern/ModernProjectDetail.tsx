@@ -9,17 +9,19 @@ interface ModernProjectDetailProps {
   onUpdate: (project: ProjectData) => void;
   isEditMode: boolean;
   onProjectDuplicated?: (copy: ProjectData) => void;
+  suppressSeo?: boolean;
 }
 
 /** Reuses classic case study CMS body; modern editorial chrome via CSS + layout tokens. */
 export function ModernProjectDetail(props: ModernProjectDetailProps) {
+  const { suppressSeo, ...detailProps } = props;
   return (
     <div
       data-modern-project-detail
       className={`${modernLayout.projectDetailShell} min-h-screen`}
       style={{ background: modern.bg }}
     >
-      <ClassicProjectDetail {...props} />
+      <ClassicProjectDetail {...detailProps} suppressSeo={suppressSeo} />
     </div>
   );
 }

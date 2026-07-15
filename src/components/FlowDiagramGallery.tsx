@@ -394,6 +394,7 @@ export function FlowDiagramGallery({
   const [dragOver, setDragOver] = useState(false);
   const [showAllImages, setShowAllImages] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const galleryRootRef = useRef<HTMLDivElement>(null);
   
   // Calculate the initial limit based on columns
   // 13th image for 3 columns, 9th for 2 columns, 5th for 1 column
@@ -591,7 +592,7 @@ export function FlowDiagramGallery({
   };
 
   return (
-    <div className="space-y-6">
+    <div ref={galleryRootRef} className="space-y-6 scroll-mt-24">
       {isEditMode && (
         <div className="space-y-4">
           {/* Gallery Controls Row */}
@@ -714,6 +715,7 @@ export function FlowDiagramGallery({
               className="flex justify-center mt-8"
             >
               <button
+                type="button"
                 onClick={() => setShowAllImages(true)}
                 className="flex items-center gap-1 text-sm font-medium transition-all relative cursor-pointer hover:translate-x-0.5"
               >
@@ -751,10 +753,16 @@ export function FlowDiagramGallery({
               className="flex justify-center mt-8"
             >
               <button
+                type="button"
                 onClick={() => {
                   setShowAllImages(false);
-                  // Scroll to top of gallery when collapsing
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                  // Keep collapse anchored to this gallery, not the document top.
+                  requestAnimationFrame(() => {
+                    galleryRootRef.current?.scrollIntoView({
+                      behavior: "smooth",
+                      block: "start",
+                    });
+                  });
                 }}
                 className="flex items-center gap-1 text-sm font-medium transition-all relative cursor-pointer hover:translate-x-0.5"
               >

@@ -4582,6 +4582,19 @@ html[data-design="modern"]:not(.dark) {
   max-width: 40rem;
 }
 
+[data-design="modern"] .modern-ds-cs-live__frame {
+  max-height: min(90vh, 56rem);
+  overflow: auto;
+  border-radius: 0.75rem;
+  border: 1px solid var(--modern-border);
+  background: var(--modern-bg);
+}
+
+[data-design="modern"] .modern-ds-cs-live__frame [data-modern-project-detail] {
+  min-height: 0 !important;
+  padding-bottom: 2rem;
+}
+
 [data-design="modern"] .modern-ds-writing-article {
   display: flex;
   flex-direction: column;

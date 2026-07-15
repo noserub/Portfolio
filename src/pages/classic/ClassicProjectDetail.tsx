@@ -73,6 +73,8 @@ interface ProjectDetailProps {
   onUpdate: (updatedProject: ProjectData) => void;
   isEditMode: boolean;
   onProjectDuplicated?: (copy: ProjectData) => void;
+  /** Skip case-study SEO when embedded outside the real project route. */
+  suppressSeo?: boolean;
 }
 
 interface CaseStudyImage {
@@ -488,7 +490,14 @@ const stripSolutionCardSections = (markdown: string): string => {
     .replace(/\n{3,}/g, '\n\n');
 };
 
-export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpdate, isEditMode, onProjectDuplicated }: ProjectDetailProps) {
+export function ClassicProjectDetail({
+  project,
+  onBack,
+  onUpdate: pushProjectUpdate,
+  isEditMode,
+  onProjectDuplicated,
+  suppressSeo = false,
+}: ProjectDetailProps) {
   const { duplicateProject } = useProjects();
   const { effectiveVariant } = useDesignVariant();
   const isModernChrome = effectiveVariant(isEditMode) === "modern";
@@ -585,6 +594,7 @@ export function ClassicProjectDetail({ project, onBack, onUpdate: pushProjectUpd
   useCaseStudySEO(project.id, project.title, {
     createdAt: project.createdAt,
     updatedAt: project.updatedAt,
+    enabled: !suppressSeo,
   });
   
   // Load case study SEO when project changes

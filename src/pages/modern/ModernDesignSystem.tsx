@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowRight, ArrowUpRight, CheckCircle, Linkedin, Mail, MapPin, FileText } from "lucide-react";
 import { Input } from "../../components/ui/input";
 import { Textarea } from "../../components/ui/textarea";
@@ -10,16 +10,13 @@ import { ModernAboutProcessSection } from "../../components/modern/ModernAboutPr
 import { ModernResumeLink } from "../../components/modern/ModernResumeLink";
 import { ModernTypingHero } from "../../components/modern/ModernTypingHero";
 import { ModernLogoStrip } from "../../components/modern/ModernLogoStrip";
-import { AtAGlanceSidebar } from "../../components/features/AtAGlanceSidebar";
-import { ImpactSidebar } from "../../components/features/ImpactSidebar";
 import { MarkdownRenderer } from "../../components/MarkdownRenderer";
-import { MediaGallerySection } from "../../components/MediaGallerySection";
-import { Lightbox } from "../../components/Lightbox";
 import { WritingBlockRenderer } from "../../components/writing/WritingBlockRenderer";
 import { WritingImage } from "../../components/writing/WritingImage";
 import { WritingPostMeta } from "../../components/writing/WritingPostMeta";
+import { ModernProjectDetail } from "./ModernProjectDetail";
 import type { CaseStudyGallerySection } from "../../types/caseStudySections";
-import type { WritingBlock } from "../../types/writingBlocks";
+import { filterGallerySectionsForDisplay } from "../../types/caseStudySections";
 import type { ProjectData } from "../../components/ProjectImage";
 import { modernLayout } from "../../design/modernLayout";
 import { MODERN_ABOUT_HIGHLIGHTS, MODERN_ABOUT_PROCESS } from "../../design/modernAboutContent";
@@ -32,6 +29,15 @@ import {
   defaultHeroTextState,
 } from "../../lib/homePageContent";
 import { applyPageSEO, getSEOData, loadSEODataFromSupabase } from "../../utils/seoManager";
+import { useProjects } from "../../contexts/ProjectsContext";
+import { useModernCaseStudies } from "../../lib/modernCaseStudies";
+import { resolveGallerySections } from "../../lib/caseStudySections";
+import { useWritingPosts } from "../../hooks/useWritingPosts";
+import { useWritingAuthorName } from "../../hooks/useWritingAuthorName";
+import {
+  estimateReadingTimeMinutes,
+  type WritingPost,
+} from "../../lib/writingPosts";
 
 const SECTIONS = [
   { id: "overview", label: "Overview" },
@@ -63,20 +69,6 @@ const DS_PROCESS_STEPS = MODERN_ABOUT_PROCESS.steps.map((step) => ({
   title: step.title,
   items: [step.description],
 }));
-
-const DS_AT_A_GLANCE = `# At a glance
-
-**Role** Lead design
-
-**Scope** Internal knowledge work
-
-**Outcome** Trust, escalation, recovery`;
-
-const DS_IMPACT = `# Impact
-
-- Clearer refusal and escalation paths
-- Eval harnesses for behavior, not demos
-- Adoption measured after launch`;
 
 type ColorSwatch = {
   name: string;
@@ -197,156 +189,88 @@ function mergeSwatchesByPaint(sources: ColorSwatch[]): ColorSwatch[] {
     role: group.roles.join(" "),
   }));
 }
-const SAMPLE_CARD_IMAGE =
-  "data:image/svg+xml," +
-  encodeURIComponent(`
-<svg xmlns="http://www.w3.org/2000/svg" width="960" height="720" viewBox="0 0 960 720">
-  <defs>
-    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#111408"/>
-      <stop offset="55%" stop-color="#1a2208"/>
-      <stop offset="100%" stop-color="#84bd00"/>
-    </linearGradient>
-  </defs>
-  <rect width="960" height="720" fill="url(#g)"/>
-  <rect x="72" y="96" width="280" height="16" rx="4" fill="#84bd00" opacity="0.85"/>
-  <rect x="72" y="140" width="520" height="36" rx="6" fill="#fafafa" opacity="0.92"/>
-  <rect x="72" y="196" width="420" height="18" rx="4" fill="#fafafa" opacity="0.45"/>
-  <rect x="72" y="480" width="180" height="96" rx="8" fill="#84bd00" opacity="0.35"/>
-  <rect x="280" y="520" width="140" height="56" rx="8" fill="#fafafa" opacity="0.12"/>
-</svg>`);
 
-const SAMPLE_PROJECT: ProjectData = {
-  id: "design-system-specimen",
-  url: SAMPLE_CARD_IMAGE,
-  title: "Enterprise AI Assistant",
-  description: "Trust, escalation, and recovery for internal knowledge work.",
-  position: { x: 50, y: 42 },
-  scale: 1.05,
+const FALLBACK_PROJECT: ProjectData = {
+  id: "design-system-fallback",
+  url: "",
+  title: "Case study",
+  description: "Published work loads here when projects are available.",
+  position: { x: 50, y: 50 },
+  scale: 1,
   published: true,
   projectType: "product-design",
 };
 
-function sampleGallerySvg(seed: string, accentOpacity: string) {
-  return (
-    "data:image/svg+xml," +
-    encodeURIComponent(`
-<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540">
-  <defs>
-    <linearGradient id="${seed}" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#0c0e08"/>
-      <stop offset="100%" stop-color="#1a2208"/>
-    </linearGradient>
-  </defs>
-  <rect width="960" height="540" fill="url(#${seed})"/>
-  <rect x="64" y="72" width="240" height="12" rx="3" fill="#84bd00" opacity="${accentOpacity}"/>
-  <rect x="64" y="108" width="420" height="28" rx="5" fill="#fafafa" opacity="0.9"/>
-  <rect x="64" y="160" width="360" height="14" rx="3" fill="#fafafa" opacity="0.4"/>
-  <rect x="64" y="360" width="200" height="120" rx="10" fill="#84bd00" opacity="0.28"/>
-  <rect x="300" y="400" width="160" height="80" rx="10" fill="#fafafa" opacity="0.1"/>
-</svg>`)
-  );
+function galleryImageCount(section: CaseStudyGallerySection): number {
+  if (section.gallery.mediaMode === "video") {
+    return section.gallery.videoItems.filter((item) => item.url?.trim()).length;
+  }
+  return section.gallery.imageItems.filter((item) => item.url?.trim()).length;
 }
 
-const DS_GALLERY_IMAGES = [
-  {
-    id: "ds-g1",
-    url: sampleGallerySvg("a", "0.9"),
-    alt: "Flow overview",
-    caption: "Refusal and escalation paths",
-  },
-  {
-    id: "ds-g2",
-    url: sampleGallerySvg("b", "0.55"),
-    alt: "Recovery states",
-    caption: "Retry, fallback, escalate",
-  },
-  {
-    id: "ds-g3",
-    url: sampleGallerySvg("c", "0.35"),
-    alt: "Eval harness",
-    caption: "Behavior checks before launch",
-  },
-];
+function pickCaseStudyForSpecimen(projects: ProjectData[]): ProjectData | null {
+  if (!projects.length) return null;
+  const scored = [...projects].map((project) => {
+    const galleries = filterGallerySectionsForDisplay(
+      resolveGallerySections(project as ProjectData & Record<string, unknown>),
+      false,
+    );
+    const mediaCount = galleries.reduce((sum, section) => sum + galleryImageCount(section), 0);
+    const hasCover = Boolean(project.url?.trim());
+    const hasBody = Boolean(project.caseStudyContent?.trim());
+    const hay = `${project.title} ${project.description}`;
+    let titleBoost = 0;
+    if (/qik|multimodal/i.test(hay)) titleBoost += 40;
+    else if (/skype|tandem|enterprise|assistant|oracle/i.test(hay)) titleBoost += 12;
+    return {
+      project,
+      score: mediaCount * 3 + (hasCover ? 4 : 0) + (hasBody ? 2 : 0) + titleBoost,
+    };
+  });
+  scored.sort((a, b) => b.score - a.score);
+  return scored[0]?.project ?? projects[0];
+}
 
-const DS_IMAGE_GALLERY: CaseStudyGallerySection = {
-  id: "ds-gallery-images",
-  type: "gallery",
-  title: "Key screens",
-  position: 0,
-  visible: true,
-  gallery: {
-    mediaMode: "image",
-    imageItems: DS_GALLERY_IMAGES,
-    videoItems: [],
-    columns: 3,
-    aspectRatio: "16x9",
-  },
-};
+function countFigureBlocks(post: WritingPost): number {
+  return post.blocks.filter((block) => block.visible && block.type === "figure" && block.url.trim())
+    .length;
+}
 
-const DS_MARKDOWN_BODY = `## Problem
+function pickWritingCards(posts: WritingPost[]): WritingPost[] {
+  const published = posts.filter((post) => post.published);
+  const withHero = published.filter((post) => post.hero_image?.trim());
+  const pool = withHero.length >= 2 ? withHero : published;
+  return pool.slice(0, 2);
+}
 
-Teams shipped demos that looked smart and broke under real workflows.
+function pickWritingFeature(posts: WritingPost[]): WritingPost | null {
+  const published = posts.filter((post) => post.published);
+  if (!published.length) return null;
+  const scored = [...published].map((post) => {
+    const figures = countFigureBlocks(post);
+    const hasHero = Boolean(post.hero_image?.trim());
+    const blockCount = post.blocks.filter((block) => block.visible).length;
+    return {
+      post,
+      score: figures * 5 + (hasHero ? 4 : 0) + blockCount,
+    };
+  });
+  scored.sort((a, b) => b.score - a.score);
+  return scored[0]?.post ?? published[0];
+}
 
-## Approach
-
-Design the recovery path first. Refusal, escalation, and handoff are product surfaces, not edge cases.
-
-## Outcome
-
-Clearer operator trust and a shared language for evals after launch.`;
-
-const DS_WRITING_HERO = sampleGallerySvg("wh", "0.85");
-const DS_WRITING_FIGURE_INLINE = sampleGallerySvg("wi", "0.6");
-const DS_WRITING_FIGURE_BLEED = sampleGallerySvg("wb", "0.4");
-
-const DS_WRITING_BLOCKS: WritingBlock[] = [
-  {
-    id: "ds-w-prose-1",
-    type: "prose",
-    visible: true,
-    content: `## The hard part
-
-Deploy is cheap. Behavior design is not. When teams skip refusal, escalation, and recovery, production writes the next sprint for them.
-
-The interface is the contract with the operator. If the product cannot say "I don't know" cleanly, it will invent answers at the worst moment.`,
-  },
-  {
-    id: "ds-w-figure-inline",
-    type: "figure",
-    visible: true,
-    url: DS_WRITING_FIGURE_INLINE,
-    alt: "Decision tree for refusal and escalation",
-    caption: "Inline figure · click opens lightbox",
-    layout: "inline",
-    lightbox: true,
-  },
-  {
-    id: "ds-w-quote",
-    type: "pull_quote",
-    visible: true,
-    text: "If recovery is an afterthought, trust never shows up in the first place.",
-    attribution: "Field notes",
-  },
-  {
-    id: "ds-w-prose-2",
-    type: "prose",
-    visible: true,
-    content: `## What to ship
-
-Ship the path under load: empty states, tool failure, handoff, and the language for "not this time." Eval the behavior, not the demo.`,
-  },
-  {
-    id: "ds-w-figure-bleed",
-    type: "figure",
-    visible: true,
-    url: DS_WRITING_FIGURE_BLEED,
-    alt: "Wide product capture across a workflow",
-    caption: "Full-bleed figure · magazine-scale media",
-    layout: "fullBleed",
-    lightbox: true,
-  },
-];
+function formatWritingDate(iso: string | null): string {
+  if (!iso) return "";
+  try {
+    return new Date(iso).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  } catch {
+    return "";
+  }
+}
 
 function Swatch({
   name,
@@ -427,8 +351,22 @@ function DoDont({ doText, dontText }: { doText: string; dontText: string }) {
 export function ModernDesignSystem() {
   const [activeSection, setActiveSection] = useState<string>("overview");
   const [colorSwatches, setColorSwatches] = useState<ColorSwatch[]>(COLOR_SWATCH_SOURCES);
-  const [lightboxOpen, setLightboxOpen] = useState(false);
-  const [lightboxIndex, setLightboxIndex] = useState(0);
+
+  const { projects, loading: projectsLoading } = useProjects();
+  const caseStudies = useModernCaseStudies(projects, projectsLoading, false);
+  const { posts: writingPosts, refetch: refetchWritingPosts } = useWritingPosts();
+  const writingAuthor = useWritingAuthorName();
+
+  const specimenProject = useMemo(
+    () => pickCaseStudyForSpecimen(caseStudies) ?? FALLBACK_PROJECT,
+    [caseStudies],
+  );
+  const writingCardPosts = useMemo(() => pickWritingCards(writingPosts), [writingPosts]);
+  const writingFeaturePost = useMemo(() => pickWritingFeature(writingPosts), [writingPosts]);
+
+  useEffect(() => {
+    void refetchWritingPosts(false);
+  }, [refetchWritingPosts]);
 
   useEffect(() => {
     let cancelled = false;
@@ -806,10 +744,10 @@ export function ModernDesignSystem() {
                     Overview
                   </p>
                   <h3 className="modern-ds-type-editorial__title" style={modernFont}>
-                    Enterprise AI Assistant
+                    {specimenProject.title}
                   </h3>
                   <p className="modern-ds-type-editorial__lede" style={{ ...modernFont, color: modern.muted }}>
-                    Trust, escalation, and recovery for internal knowledge work.
+                    {specimenProject.description}
                   </p>
                   <div
                     className="modern-ds-type-editorial__body markdown-content"
@@ -821,7 +759,11 @@ export function ModernDesignSystem() {
                     className="modern-ds-type-editorial__meta"
                     style={{ ...modernFont, color: modern.muted }}
                   >
-                    Product design · 2024
+                    {specimenProject.projectType === "development"
+                      ? "Development"
+                      : specimenProject.projectType === "branding"
+                        ? "Branding"
+                        : "Product design"}
                   </p>
                 </div>
                 <p
@@ -1171,9 +1113,12 @@ export function ModernDesignSystem() {
                   style={{ ...modernFont, color: modern.muted }}
                 >
                   Case study card
+                  {specimenProject.id !== FALLBACK_PROJECT.id
+                    ? ` · ${specimenProject.title}`
+                    : ""}
                 </p>
                 <div className="modern-ds-card-frame">
-                  <ModernCaseStudyCard project={SAMPLE_PROJECT} onClick={() => undefined} />
+                  <ModernCaseStudyCard project={specimenProject} onClick={() => undefined} />
                 </div>
               </div>
 
@@ -1479,9 +1424,9 @@ export function ModernDesignSystem() {
             <section className="modern-ds-section" aria-labelledby="case-study">
               <SectionHeader id="case-study" eyebrow="Production" title="Case study anatomy">
                 <p>
-                  <code className="modern-ds-code">ModernProjectDetail</code> wraps the shared
-                  case study body (<code className="modern-ds-code">ClassicProjectDetail</code>
-                  ): sticky rails, markdown sections, galleries, lightbox, password gate.
+                  Live preview of a published case study through{" "}
+                  <code className="modern-ds-code">ModernProjectDetail</code>. Same hero, rails,
+                  sections, galleries, and chrome as production.
                 </p>
               </SectionHeader>
 
@@ -1528,120 +1473,35 @@ export function ModernDesignSystem() {
               </div>
 
               <div
-                className="modern-ds-specimen"
+                className="modern-ds-specimen modern-ds-cs-live"
                 style={{ borderColor: modern.border, marginTop: "1.25rem" }}
-                data-modern-project-detail
               >
                 <p
                   className="modern-ds-specimen__label"
                   style={{ ...modernFont, color: modern.muted }}
                 >
-                  Hero · title, lead, cropped media
+                  Live published case study
+                  {specimenProject.id !== FALLBACK_PROJECT.id
+                    ? ` · ${specimenProject.title}`
+                    : ""}
                 </p>
-                <div className="modern-ds-cs-hero">
-                  <h3
-                    className="modern-type-body"
-                    style={{
-                      ...modernFont,
-                      color: modern.text,
-                      fontSize: "clamp(1.5rem, 3vw, 2rem)",
-                      fontWeight: 600,
-                      letterSpacing: "-0.02em",
-                      margin: 0,
-                    }}
-                  >
-                    {SAMPLE_PROJECT.title}
-                  </h3>
-                  <p
-                    style={{
-                      ...modernFont,
-                      color: modern.muted,
-                      fontSize: "1rem",
-                      lineHeight: 1.6,
-                      margin: "0.65rem 0 1.25rem",
-                      maxWidth: "36rem",
-                    }}
-                  >
-                    {SAMPLE_PROJECT.description}
-                  </p>
-                  <div className="case-study-hero">
-                    <div className="case-study-hero__media">
-                      <img
-                        src={SAMPLE_CARD_IMAGE}
-                        alt=""
-                        className="h-full w-full object-cover"
-                      />
-                    </div>
+                {specimenProject.id !== FALLBACK_PROJECT.id ? (
+                  <div className="modern-ds-cs-live__frame">
+                    <ModernProjectDetail
+                      project={specimenProject}
+                      onBack={() => undefined}
+                      onUpdate={() => undefined}
+                      isEditMode={false}
+                      suppressSeo
+                    />
                   </div>
-                </div>
-              </div>
-
-              <div
-                className="modern-ds-specimen"
-                style={{ borderColor: modern.border }}
-                data-modern-project-detail
-              >
-                <p
-                  className="modern-ds-specimen__label"
-                  style={{ ...modernFont, color: modern.muted }}
-                >
-                  Body · MarkdownRenderer in modern-case-study-overview
-                </p>
-                <div className="modern-case-study-overview">
-                  <h2>Overview</h2>
-                  <MarkdownRenderer content={DS_MARKDOWN_BODY} />
-                </div>
-              </div>
-
-              <div
-                className="modern-ds-specimen"
-                style={{ borderColor: modern.border }}
-                data-modern-project-detail
-              >
-                <p
-                  className="modern-ds-specimen__label"
-                  style={{ ...modernFont, color: modern.muted }}
-                >
-                  Gallery · MediaGallerySection → FlowDiagramGallery (click opens Lightbox)
-                </p>
-                <MediaGallerySection
-                  section={DS_IMAGE_GALLERY}
-                  isEditMode={false}
-                  onSectionChange={() => undefined}
-                  onImageClick={(image) => {
-                    const index = DS_GALLERY_IMAGES.findIndex((item) => item.id === image.id);
-                    setLightboxIndex(index >= 0 ? index : 0);
-                    setLightboxOpen(true);
-                  }}
-                />
-                <p
-                  style={{
-                    ...modernFont,
-                    color: modern.muted,
-                    fontSize: "0.8125rem",
-                    marginTop: "1rem",
-                  }}
-                >
-                  Video galleries use the same section shell with{" "}
-                  <code className="modern-ds-code">VideoGallery</code> when{" "}
-                  <code className="modern-ds-code">mediaMode</code> is video.
-                </p>
-              </div>
-
-              <div
-                className="modern-ds-specimen"
-                style={{ borderColor: modern.border, marginTop: "1.25rem" }}
-              >
-                <p
-                  className="modern-ds-specimen__label"
-                  style={{ ...modernFont, color: modern.muted }}
-                >
-                  Sticky rails · AtAGlanceSidebar + ImpactSidebar
-                </p>
-                <div className="modern-ds-cs-rails">
-                  <AtAGlanceSidebar content={DS_AT_A_GLANCE} />
-                  <ImpactSidebar content={DS_IMPACT} />
-                </div>
+                ) : (
+                  <p style={{ ...modernFont, color: modern.muted, fontSize: "0.875rem" }}>
+                    {projectsLoading
+                      ? "Loading published case studies…"
+                      : "No published case study available."}
+                  </p>
+                )}
               </div>
 
               <div className="modern-ds-specimen" style={{ borderColor: modern.border }}>
@@ -1663,7 +1523,7 @@ export function ModernDesignSystem() {
                     className="case-study-password-dialog__subtitle text-sm mt-1"
                     style={{ color: modern.muted }}
                   >
-                    Enterprise AI Assistant
+                    {specimenProject.title}
                   </p>
                   <div className="mt-6 space-y-3">
                     <Input type="password" placeholder="Password" readOnly style={modernFont} />
@@ -1684,181 +1544,143 @@ export function ModernDesignSystem() {
                   </div>
                 </div>
               </div>
-
-              <div className="modern-ds-btn-row" style={{ marginTop: "1.25rem" }}>
-                <button
-                  type="button"
-                  className="modern-btn-primary case-study-project-link"
-                  style={modernPrimaryButtonStyle}
-                >
-                  Try live site
-                  <ArrowUpRight className="w-4 h-4" aria-hidden />
-                </button>
-                <button
-                  type="button"
-                  className="modern-btn-outline case-study-project-link"
-                  style={modernFont}
-                >
-                  Design system
-                </button>
-                <button
-                  type="button"
-                  className="modern-btn-ghost case-study-project-link"
-                  style={modernFont}
-                >
-                  Source notes
-                </button>
-              </div>
             </section>
 
             <section className="modern-ds-section" aria-labelledby="writing">
               <SectionHeader id="writing" eyebrow="Production" title="Writing">
                 <p>
-                  Index cards with thumbs, magazine hero, and body blocks from{" "}
-                  <code className="modern-ds-code">WritingBlockRenderer</code> (prose, figures,
-                  pull quote). Layouts: essay, magazine, note.
+                  Index cards and a post specimen from published writing. Body blocks render through{" "}
+                  <code className="modern-ds-code">WritingBlockRenderer</code>.
                 </p>
               </SectionHeader>
 
               <div className="modern-ds-writing-grid">
-                <article
-                  className={writingLayout.card}
-                  style={{ background: modern.surface, borderColor: modern.border }}
-                >
-                  <WritingImage
-                    src={DS_WRITING_HERO}
-                    alt=""
-                    wrapperClassName="modern-writing-card__thumb-wrap"
-                    className="modern-writing-card__thumb"
-                  />
-                  <p
-                    style={{
-                      ...modernFont,
-                      color: modern.accent,
-                      fontSize: "0.75rem",
-                      fontWeight: 600,
-                    }}
-                  >
-                    Essay
+                {writingCardPosts.length > 0 ? (
+                  writingCardPosts.map((post) => (
+                    <article
+                      key={post.id}
+                      className={writingLayout.card}
+                      style={{ background: modern.surface, borderColor: modern.border }}
+                    >
+                      {post.hero_image ? (
+                        <WritingImage
+                          src={post.hero_image}
+                          alt=""
+                          crop={post.hero_image_crop}
+                          wrapperClassName="modern-writing-card__thumb-wrap"
+                          className="modern-writing-card__thumb"
+                        />
+                      ) : null}
+                      <p
+                        style={{
+                          ...modernFont,
+                          color: modern.accent,
+                          fontSize: "0.75rem",
+                          fontWeight: 600,
+                        }}
+                      >
+                        {post.layout === "note"
+                          ? "Note"
+                          : post.layout === "magazine"
+                            ? "Magazine"
+                            : "Essay"}
+                      </p>
+                      <h3
+                        className={writingLayout.cardTitle}
+                        style={{ ...modernFont, color: modern.text }}
+                      >
+                        {post.title}
+                      </h3>
+                      {post.excerpt ? (
+                        <p
+                          className={writingLayout.cardExcerpt}
+                          style={{ ...modernFont, color: modern.muted }}
+                        >
+                          {post.excerpt}
+                        </p>
+                      ) : null}
+                      <WritingPostMeta
+                        author={writingAuthor}
+                        date={formatWritingDate(post.published_at)}
+                        readingMinutes={estimateReadingTimeMinutes(post.blocks)}
+                        topics={post.topics.slice(0, 3)}
+                      />
+                    </article>
+                  ))
+                ) : (
+                  <p style={{ ...modernFont, color: modern.muted }}>
+                    No published writing posts found.
                   </p>
-                  <h3
-                    className={writingLayout.cardTitle}
-                    style={{ ...modernFont, color: modern.text }}
-                  >
-                    Behavior design when deploy is cheap
-                  </h3>
-                  <p
-                    className={writingLayout.cardExcerpt}
-                    style={{ ...modernFont, color: modern.muted }}
-                  >
-                    Teams skip the hard part of AI product work. The interface is the contract.
-                  </p>
-                  <WritingPostMeta
-                    author="Brian Bureson"
-                    date="Jul 2026"
-                    readingMinutes={4}
-                    topics={["AI", "Product"]}
-                  />
-                </article>
-                <article
-                  className={writingLayout.card}
-                  style={{ background: modern.surface, borderColor: modern.border }}
-                >
-                  <WritingImage
-                    src={DS_WRITING_FIGURE_INLINE}
-                    alt=""
-                    wrapperClassName="modern-writing-card__thumb-wrap"
-                    className="modern-writing-card__thumb"
-                  />
-                  <p
-                    style={{
-                      ...modernFont,
-                      color: modern.accent,
-                      fontSize: "0.75rem",
-                      fontWeight: 600,
-                    }}
-                  >
-                    Note
-                  </p>
-                  <h3
-                    className={writingLayout.cardTitle}
-                    style={{ ...modernFont, color: modern.text }}
-                  >
-                    Three interaction roles
-                  </h3>
-                  <p
-                    className={writingLayout.cardExcerpt}
-                    style={{ ...modernFont, color: modern.muted }}
-                  >
-                    CTA fill, nav active, control rest. Keep the chrome honest.
-                  </p>
-                  <WritingPostMeta
-                    author="Brian Bureson"
-                    date="Jun 2026"
-                    readingMinutes={2}
-                    topics={["Systems"]}
-                  />
-                </article>
+                )}
               </div>
 
-              <div
-                className="modern-ds-specimen"
-                style={{ borderColor: modern.border, marginTop: "1.25rem" }}
-              >
-                <p
-                  className="modern-ds-specimen__label"
-                  style={{ ...modernFont, color: modern.muted }}
+              {writingFeaturePost ? (
+                <div
+                  className="modern-ds-specimen"
+                  style={{ borderColor: modern.border, marginTop: "1.25rem" }}
                 >
-                  Magazine post · hero, meta, prose, figures, pull quote
-                </p>
-                <div className="modern-ds-writing-article">
-                  <div className="modern-writing-hero">
-                    <WritingImage
-                      src={DS_WRITING_HERO}
-                      alt=""
-                      wrapperClassName="modern-writing-hero__media"
-                      className="modern-writing-hero__img"
-                    />
-                  </div>
-                  <div className={writingLayout.layout}>
-                    <article className={writingArticleClass("magazine")}>
-                      <header className={writingLayout.articleHeader}>
-                        <button
-                          type="button"
-                          className={writingLayout.back}
-                          style={{ ...modernFont, color: modern.muted }}
-                        >
-                          ← All writing
-                        </button>
-                        <h3
-                          className={writingLayout.articleTitle}
-                          style={{ ...modernFont, color: modern.text }}
-                        >
-                          Behavior design when deploy is cheap
-                        </h3>
-                        <p
-                          className={writingLayout.articleSubtitle}
-                          style={{ ...modernFont, color: modern.muted }}
-                        >
-                          The interface is the contract.
-                        </p>
-                        <WritingPostMeta
-                          author="Brian Bureson"
-                          date="Jul 14, 2026"
-                          readingMinutes={4}
-                          topics={["AI", "Behavior design"]}
+                  <p
+                    className="modern-ds-specimen__label"
+                    style={{ ...modernFont, color: modern.muted }}
+                  >
+                    Published post · {writingFeaturePost.title}
+                  </p>
+                  <div className="modern-ds-writing-article">
+                    {writingFeaturePost.hero_image ? (
+                      <div className="modern-writing-hero">
+                        <WritingImage
+                          src={writingFeaturePost.hero_image}
+                          alt=""
+                          crop={writingFeaturePost.hero_image_crop}
+                          wrapperClassName="modern-writing-hero__media"
+                          className="modern-writing-hero__img"
                         />
-                      </header>
-                      <WritingBlockRenderer blocks={DS_WRITING_BLOCKS} />
-                      <footer className={writingLayout.footerNav}>
-                        <span style={{ ...modernFont, fontSize: "0.875rem", color: modern.muted }}>
-                          ← All writing
-                        </span>
-                      </footer>
-                    </article>
+                      </div>
+                    ) : null}
+                    <div className={writingLayout.layout}>
+                      <article className={writingArticleClass(writingFeaturePost.layout)}>
+                        <header className={writingLayout.articleHeader}>
+                          <button
+                            type="button"
+                            className={writingLayout.back}
+                            style={{ ...modernFont, color: modern.muted }}
+                          >
+                            ← All writing
+                          </button>
+                          <h3
+                            className={writingLayout.articleTitle}
+                            style={{ ...modernFont, color: modern.text }}
+                          >
+                            {writingFeaturePost.title}
+                          </h3>
+                          {writingFeaturePost.subtitle ? (
+                            <p
+                              className={writingLayout.articleSubtitle}
+                              style={{ ...modernFont, color: modern.muted }}
+                            >
+                              {writingFeaturePost.subtitle}
+                            </p>
+                          ) : null}
+                          <WritingPostMeta
+                            author={writingAuthor}
+                            date={formatWritingDate(writingFeaturePost.published_at)}
+                            readingMinutes={estimateReadingTimeMinutes(writingFeaturePost.blocks)}
+                            topics={writingFeaturePost.topics.slice(0, 4)}
+                          />
+                        </header>
+                        <WritingBlockRenderer blocks={writingFeaturePost.blocks} />
+                        <footer className={writingLayout.footerNav}>
+                          <span
+                            style={{ ...modernFont, fontSize: "0.875rem", color: modern.muted }}
+                          >
+                            ← All writing
+                          </span>
+                        </footer>
+                      </article>
+                    </div>
                   </div>
                 </div>
-              </div>
+              ) : null}
             </section>
 
             <section className="modern-ds-section" aria-labelledby="motion">
@@ -1938,9 +1760,8 @@ export function ModernDesignSystem() {
                     <li>--modern-* paints (deduped) + theme forks</li>
                     <li>.modern-btn-* · .modern-filter-chip (Home and Writing)</li>
                     <li>Home hero, logo strip, stats</li>
-                    <li>Case study card, hero, body, gallery, lightbox, rails, password</li>
-                    <li>About hero, list, cards, tool pills, process, resume + DS ghost</li>
-                    <li>Writing index thumbs + magazine post with figures</li>
+                    <li>Case study + writing specimens from published work</li>
+                    <li>About hero, list, cards, tool pills, process, resume</li>
                     <li>Contact four-up + form + success state</li>
                   </ul>
                 </div>
@@ -1967,18 +1788,6 @@ export function ModernDesignSystem() {
 
       <ModernFooter />
 
-      {lightboxOpen ? (
-        <Lightbox
-          isOpen={lightboxOpen}
-          onClose={() => setLightboxOpen(false)}
-          imageUrl={DS_GALLERY_IMAGES[lightboxIndex]?.url ?? DS_GALLERY_IMAGES[0].url}
-          imageAlt={DS_GALLERY_IMAGES[lightboxIndex]?.alt ?? DS_GALLERY_IMAGES[0].alt}
-          imageCaption={DS_GALLERY_IMAGES[lightboxIndex]?.caption}
-          images={DS_GALLERY_IMAGES.map(({ url, alt, caption }) => ({ url, alt, caption }))}
-          currentIndex={lightboxIndex}
-          onNavigate={setLightboxIndex}
-        />
-      ) : null}
     </div>
   );
 }
