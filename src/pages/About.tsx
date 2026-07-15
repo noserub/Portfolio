@@ -7,9 +7,16 @@ interface AboutProps {
   onHoverChange?: (isHovering: boolean) => void;
   isEditMode?: boolean;
   onNavigateContact: () => void;
+  onNavigateDesignSystem?: () => void;
 }
 
-export function About({ onBack, onHoverChange, isEditMode, onNavigateContact }: AboutProps) {
+export function About({
+  onBack,
+  onHoverChange,
+  isEditMode,
+  onNavigateContact,
+  onNavigateDesignSystem,
+}: AboutProps) {
   const { effectiveVariant, publishedVariant } = useDesignVariant();
   const isModernSite = publishedVariant === "modern";
 
@@ -17,6 +24,7 @@ export function About({ onBack, onHoverChange, isEditMode, onNavigateContact }: 
     return (
       <ModernAbout
         onNavigateContact={onNavigateContact}
+        onNavigateDesignSystem={onNavigateDesignSystem}
         onBack={onBack}
         isEditMode={isEditMode}
       />
@@ -24,7 +32,13 @@ export function About({ onBack, onHoverChange, isEditMode, onNavigateContact }: 
   }
 
   if (!isEditMode && effectiveVariant(false) === "modern") {
-    return <ModernAbout onNavigateContact={onNavigateContact} onBack={onBack} />;
+    return (
+      <ModernAbout
+        onNavigateContact={onNavigateContact}
+        onNavigateDesignSystem={onNavigateDesignSystem}
+        onBack={onBack}
+      />
+    );
   }
 
   return (

@@ -26,7 +26,7 @@ export function ModernFooter({ ownerName = "Brian Bureson", logoUrl: logoUrlProp
         </div>
         <div className="modern-footer-meta">
           <span className="text-xs" style={{ ...modernFont, color: modern.muted }}>
-            © {year} {ownerName}
+            © {year} {ownerName} · Designed and built by me
           </span>
           <div className="flex items-center gap-6">
             {email ? (

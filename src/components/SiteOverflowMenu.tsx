@@ -4,6 +4,7 @@ import {
   LogOut,
   Moon,
   MoreHorizontal,
+  Palette,
   RefreshCw,
   Search,
   Settings,
@@ -45,6 +46,7 @@ export interface SiteOverflowMenuProps {
   onShowPasswordReset: () => void;
   onShowSEOEditor: () => void;
   onShowComponentLibrary: () => void;
+  onNavigateDesignSystem?: () => void;
   onSignOut: () => void;
 }
 
@@ -76,6 +78,7 @@ export function SiteOverflowMenu({
   onShowPasswordReset,
   onShowSEOEditor,
   onShowComponentLibrary,
+  onNavigateDesignSystem,
   onSignOut,
 }: SiteOverflowMenuProps) {
   const triggerClass =
@@ -281,6 +284,22 @@ export function SiteOverflowMenu({
               </DropdownMenuSubContent>
             </DropdownMenuSub>
           </>
+        ) : null}
+
+        <DropdownMenuSeparator />
+        <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground">
+          Reference
+        </DropdownMenuLabel>
+        {onNavigateDesignSystem ? (
+          <DropdownMenuItem
+            onClick={() => {
+              onNavigateDesignSystem();
+              blurActiveElement();
+            }}
+          >
+            <Palette className="w-4 h-4 mr-2" />
+            Design System
+          </DropdownMenuItem>
         ) : null}
 
         {isEditMode ? (

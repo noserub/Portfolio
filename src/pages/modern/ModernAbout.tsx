@@ -16,6 +16,7 @@ import { modern, modernFont, modernPrimaryButtonStyle } from "../../design/moder
 
 interface ModernAboutProps {
   onNavigateContact: () => void;
+  onNavigateDesignSystem?: () => void;
   onBack?: () => void;
   isEditMode?: boolean;
 }
@@ -31,7 +32,12 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function ModernAbout({ onNavigateContact, onBack, isEditMode = false }: ModernAboutProps) {
+export function ModernAbout({
+  onNavigateContact,
+  onNavigateDesignSystem,
+  onBack,
+  isEditMode = false,
+}: ModernAboutProps) {
   useSEO("about");
   const [aboutEditorOpen, setAboutEditorOpen] = useState(false);
   const [focusProcessEditor, setFocusProcessEditor] = useState(false);
@@ -364,6 +370,16 @@ export function ModernAbout({ onNavigateContact, onBack, isEditMode = false }: M
                     View resume
                     <ArrowUpRight size={14} />
                   </ModernResumeLink>
+                ) : null}
+                {onNavigateDesignSystem ? (
+                  <button
+                    type="button"
+                    onClick={onNavigateDesignSystem}
+                    className="modern-btn-ghost"
+                    style={modernFont}
+                  >
+                    Design system
+                  </button>
                 ) : null}
               </div>
             </>
