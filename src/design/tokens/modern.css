@@ -3499,26 +3499,8 @@ html[data-design="modern"]:not(.dark) {
   margin-bottom: 2.5rem;
 }
 
-[data-design="modern"] .modern-writing-filter-chip {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.25rem 0.75rem;
-  border-radius: 9999px;
-  border: 1px solid var(--modern-border);
-  background: transparent;
-  font-family: var(--font-body), sans-serif;
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: var(--modern-muted-text);
-  cursor: pointer;
-  transition: border-color 0.2s ease, color 0.2s ease;
-}
-
-[data-design="modern"] .modern-writing-filter-chip:hover,
-[data-design="modern"] .modern-writing-filter-chip--active {
-  border-color: color-mix(in srgb, var(--modern-accent) 50%, var(--modern-border));
-  color: var(--modern-text);
-}
+/* Writing filter chips use .modern-filter-chip (same as Home). Legacy
+   .modern-writing-filter-chip classes are intentionally unused. */
 
 [data-design="modern"] .modern-writing-back {
   display: inline-flex;
@@ -3993,12 +3975,15 @@ html[data-design="modern"]:not(.dark) {
 
 [data-design="modern"] .modern-ds-list {
   margin: 0.85rem 0 0;
-  padding-left: 1.1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.55rem;
+  padding-left: 1.25rem;
+  list-style: disc;
+  list-style-position: outside;
   font-size: 0.9375rem;
   line-height: 1.5;
+}
+
+[data-design="modern"] .modern-ds-list > li + li {
+  margin-top: 0.55rem;
 }
 
 [data-design="modern"] .modern-ds-swatch-grid {
@@ -4252,6 +4237,14 @@ html[data-design="modern"]:not(.dark) {
   padding: 1rem;
   margin-bottom: 1.25rem;
   background: color-mix(in srgb, var(--modern-surface) 55%, transparent);
+  overflow-x: auto;
+  min-width: 0;
+}
+
+@media (min-width: 640px) {
+  [data-design="modern"] .modern-ds-specimen {
+    padding: 1.25rem 1.35rem;
+  }
 }
 
 [data-design="modern"] .modern-ds-specimen__label {
@@ -4565,18 +4558,6 @@ html[data-design="modern"]:not(.dark) {
   border-color: #27272a;
 }
 
-[data-design="modern"] .modern-ds-filter-compare {
-  display: grid;
-  gap: 1.25rem;
-}
-
-@media (min-width: 768px) {
-  [data-design="modern"] .modern-ds-filter-compare {
-    grid-template-columns: 1fr 1fr;
-    gap: 1.5rem;
-  }
-}
-
 [data-design="modern"] .modern-ds-home-hero {
   max-width: 40rem;
   padding: 0.25rem 0.15rem 0.5rem;
@@ -4597,6 +4578,29 @@ html[data-design="modern"]:not(.dark) {
   gap: 1rem;
 }
 
+[data-design="modern"] .modern-ds-cs-hero {
+  max-width: 40rem;
+}
+
+[data-design="modern"] .modern-ds-writing-article {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  min-width: 0;
+  overflow-x: clip;
+}
+
+[data-design="modern"] .modern-ds-writing-article .modern-writing-hero {
+  margin: 0;
+}
+
+/* Keep magazine bleed figures inside the specimen on this page. */
+[data-design="modern"] .modern-ds-writing-article .modern-writing-figure--bleed {
+  width: 100%;
+  margin-left: 0;
+  transform: none;
+}
+
 @media (min-width: 900px) {
   [data-design="modern"] .modern-ds-cs-rails {
     grid-template-columns: 1fr 1fr;
@@ -4610,15 +4614,6 @@ html[data-design="modern"]:not(.dark) {
   width: 100%;
   margin: 0;
   box-shadow: none;
-}
-
-[data-design="modern"] .modern-ds-writing-toc-list {
-  list-style: none;
-  margin: 0.5rem 0 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
 }
 
 [data-design="modern"] .modern-ds-type-editorial {

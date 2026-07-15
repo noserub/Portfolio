@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowRight, ArrowUpRight, Linkedin, Mail, MapPin, FileText } from "lucide-react";
-import { toast } from "sonner";
+import { ArrowRight, ArrowUpRight, CheckCircle, Linkedin, Mail, MapPin, FileText } from "lucide-react";
 import { Input } from "../../components/ui/input";
 import { Textarea } from "../../components/ui/textarea";
 import { Label } from "../../components/ui/label";
@@ -14,6 +13,13 @@ import { ModernLogoStrip } from "../../components/modern/ModernLogoStrip";
 import { AtAGlanceSidebar } from "../../components/features/AtAGlanceSidebar";
 import { ImpactSidebar } from "../../components/features/ImpactSidebar";
 import { MarkdownRenderer } from "../../components/MarkdownRenderer";
+import { MediaGallerySection } from "../../components/MediaGallerySection";
+import { Lightbox } from "../../components/Lightbox";
+import { WritingBlockRenderer } from "../../components/writing/WritingBlockRenderer";
+import { WritingImage } from "../../components/writing/WritingImage";
+import { WritingPostMeta } from "../../components/writing/WritingPostMeta";
+import type { CaseStudyGallerySection } from "../../types/caseStudySections";
+import type { WritingBlock } from "../../types/writingBlocks";
 import type { ProjectData } from "../../components/ProjectImage";
 import { modernLayout } from "../../design/modernLayout";
 import { MODERN_ABOUT_HIGHLIGHTS, MODERN_ABOUT_PROCESS } from "../../design/modernAboutContent";
@@ -25,6 +31,7 @@ import {
   DEFAULT_STATS,
   defaultHeroTextState,
 } from "../../lib/homePageContent";
+import { applyPageSEO, getSEOData, loadSEODataFromSupabase } from "../../utils/seoManager";
 
 const SECTIONS = [
   { id: "overview", label: "Overview" },
@@ -220,6 +227,127 @@ const SAMPLE_PROJECT: ProjectData = {
   projectType: "product-design",
 };
 
+function sampleGallerySvg(seed: string, accentOpacity: string) {
+  return (
+    "data:image/svg+xml," +
+    encodeURIComponent(`
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540">
+  <defs>
+    <linearGradient id="${seed}" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0c0e08"/>
+      <stop offset="100%" stop-color="#1a2208"/>
+    </linearGradient>
+  </defs>
+  <rect width="960" height="540" fill="url(#${seed})"/>
+  <rect x="64" y="72" width="240" height="12" rx="3" fill="#84bd00" opacity="${accentOpacity}"/>
+  <rect x="64" y="108" width="420" height="28" rx="5" fill="#fafafa" opacity="0.9"/>
+  <rect x="64" y="160" width="360" height="14" rx="3" fill="#fafafa" opacity="0.4"/>
+  <rect x="64" y="360" width="200" height="120" rx="10" fill="#84bd00" opacity="0.28"/>
+  <rect x="300" y="400" width="160" height="80" rx="10" fill="#fafafa" opacity="0.1"/>
+</svg>`)
+  );
+}
+
+const DS_GALLERY_IMAGES = [
+  {
+    id: "ds-g1",
+    url: sampleGallerySvg("a", "0.9"),
+    alt: "Flow overview",
+    caption: "Refusal and escalation paths",
+  },
+  {
+    id: "ds-g2",
+    url: sampleGallerySvg("b", "0.55"),
+    alt: "Recovery states",
+    caption: "Retry, fallback, escalate",
+  },
+  {
+    id: "ds-g3",
+    url: sampleGallerySvg("c", "0.35"),
+    alt: "Eval harness",
+    caption: "Behavior checks before launch",
+  },
+];
+
+const DS_IMAGE_GALLERY: CaseStudyGallerySection = {
+  id: "ds-gallery-images",
+  type: "gallery",
+  title: "Key screens",
+  position: 0,
+  visible: true,
+  gallery: {
+    mediaMode: "image",
+    imageItems: DS_GALLERY_IMAGES,
+    videoItems: [],
+    columns: 3,
+    aspectRatio: "16x9",
+  },
+};
+
+const DS_MARKDOWN_BODY = `## Problem
+
+Teams shipped demos that looked smart and broke under real workflows.
+
+## Approach
+
+Design the recovery path first. Refusal, escalation, and handoff are product surfaces, not edge cases.
+
+## Outcome
+
+Clearer operator trust and a shared language for evals after launch.`;
+
+const DS_WRITING_HERO = sampleGallerySvg("wh", "0.85");
+const DS_WRITING_FIGURE_INLINE = sampleGallerySvg("wi", "0.6");
+const DS_WRITING_FIGURE_BLEED = sampleGallerySvg("wb", "0.4");
+
+const DS_WRITING_BLOCKS: WritingBlock[] = [
+  {
+    id: "ds-w-prose-1",
+    type: "prose",
+    visible: true,
+    content: `## The hard part
+
+Deploy is cheap. Behavior design is not. When teams skip refusal, escalation, and recovery, production writes the next sprint for them.
+
+The interface is the contract with the operator. If the product cannot say "I don't know" cleanly, it will invent answers at the worst moment.`,
+  },
+  {
+    id: "ds-w-figure-inline",
+    type: "figure",
+    visible: true,
+    url: DS_WRITING_FIGURE_INLINE,
+    alt: "Decision tree for refusal and escalation",
+    caption: "Inline figure · click opens lightbox",
+    layout: "inline",
+    lightbox: true,
+  },
+  {
+    id: "ds-w-quote",
+    type: "pull_quote",
+    visible: true,
+    text: "If recovery is an afterthought, trust never shows up in the first place.",
+    attribution: "Field notes",
+  },
+  {
+    id: "ds-w-prose-2",
+    type: "prose",
+    visible: true,
+    content: `## What to ship
+
+Ship the path under load: empty states, tool failure, handoff, and the language for "not this time." Eval the behavior, not the demo.`,
+  },
+  {
+    id: "ds-w-figure-bleed",
+    type: "figure",
+    visible: true,
+    url: DS_WRITING_FIGURE_BLEED,
+    alt: "Wide product capture across a workflow",
+    caption: "Full-bleed figure · magazine-scale media",
+    layout: "fullBleed",
+    lightbox: true,
+  },
+];
+
 function Swatch({
   name,
   tokens,
@@ -299,12 +427,70 @@ function DoDont({ doText, dontText }: { doText: string; dontText: string }) {
 export function ModernDesignSystem() {
   const [activeSection, setActiveSection] = useState<string>("overview");
   const [colorSwatches, setColorSwatches] = useState<ColorSwatch[]>(COLOR_SWATCH_SOURCES);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
 
   useEffect(() => {
-    const previous = document.title;
-    document.title = "Design System · Brian Bureson";
+    let cancelled = false;
+    const previousTitle = document.title;
+
+    const applyDesignSystemSeo = async () => {
+      try {
+        const seoData = await loadSEODataFromSupabase();
+        if (cancelled) return;
+        const siteUrl = seoData.sitewide.siteUrl.replace(/\/$/, "");
+        applyPageSEO(
+          {
+            title: "Design System · Brian Bureson",
+            description:
+              "Design system for Brian Bureson's custom portfolio: color, type, interaction, and production components from Home, About, Contact, Writing, and case studies.",
+            keywords:
+              "design system, portfolio design system, modern UI, Brian Bureson, product design",
+            ogTitle: "Design System · Brian Bureson",
+            ogDescription:
+              "Production components and foundations from Brian Bureson's custom portfolio site.",
+            ogImage: "",
+            twitterCard: "summary_large_image",
+            twitterTitle: "Design System · Brian Bureson",
+            twitterDescription:
+              "Production components and foundations from Brian Bureson's custom portfolio site.",
+            twitterImage: "",
+            canonicalUrl: `${siteUrl}/design-system`,
+          },
+          seoData.sitewide,
+        );
+      } catch {
+        if (cancelled) return;
+        const local = getSEOData();
+        const siteUrl = local.sitewide.siteUrl.replace(/\/$/, "");
+        applyPageSEO(
+          {
+            title: "Design System · Brian Bureson",
+            description:
+              "Design system for Brian Bureson's custom portfolio: color, type, interaction, and production components from Home, About, Contact, Writing, and case studies.",
+            keywords:
+              "design system, portfolio design system, modern UI, Brian Bureson, product design",
+            ogTitle: "Design System · Brian Bureson",
+            ogDescription:
+              "Production components and foundations from Brian Bureson's custom portfolio site.",
+            ogImage: "",
+            twitterCard: "summary_large_image",
+            twitterTitle: "Design System · Brian Bureson",
+            twitterDescription:
+              "Production components and foundations from Brian Bureson's custom portfolio site.",
+            twitterImage: "",
+            canonicalUrl: `${siteUrl}/design-system`,
+          },
+          local.sitewide,
+        );
+      }
+    };
+
+    void applyDesignSystemSeo();
+
     return () => {
-      document.title = previous;
+      cancelled = true;
+      document.title = previousTitle;
     };
   }, []);
 
@@ -380,8 +566,8 @@ export function ModernDesignSystem() {
             <section className="modern-ds-section" aria-labelledby="overview">
               <SectionHeader id="overview" eyebrow="Portfolio" title="Design system">
                 <p>
-                  This is the published modern surface: Work, About, Contact, Writing, and case
-                  studies. Specimens are production components.
+                  This is the design system overview for my custom portfolio site. Examples shown are
+                  production components.
                 </p>
               </SectionHeader>
 
@@ -417,9 +603,7 @@ export function ModernDesignSystem() {
             </section>
 
             <section className="modern-ds-section" aria-labelledby="principles">
-              <SectionHeader id="principles" eyebrow="Intent" title="Principles">
-                <p>What I optimize for when this UI changes.</p>
-              </SectionHeader>
+              <SectionHeader id="principles" eyebrow="Intent" title="Principles" />
 
               <div className="modern-ds-principles">
                 {[
@@ -429,7 +613,7 @@ export function ModernDesignSystem() {
                   },
                   {
                     title: "Subtract first",
-                    body: "If the visitor does not need it, it does not ship. Kit left in the repo is fine. Kit on the page is noise.",
+                    body: "If the visitor does not need it, it does not ship. Extra UI on the page is noise.",
                   },
                   {
                     title: "Spend lime carefully",
@@ -437,15 +621,15 @@ export function ModernDesignSystem() {
                   },
                   {
                     title: "Honest interaction",
-                    body: "Primary fill moves the task. Outline and ghost stay chrome. Active nav is accent text, not a second CTA.",
+                    body: "Filled primary advances the task. Outline and ghost handle secondary paths. Active nav uses accent text, not another CTA.",
                   },
                   {
-                    title: "One source of paint",
-                    body: "Reuse a role or extend --modern-*. Ad-hoc color is how light and dark stop matching.",
+                    title: "Tokens over one-offs",
+                    body: "Pull color from --modern-* roles. One-off hex values break light and dark parity.",
                   },
                   {
                     title: "Clarity over decoration",
-                    body: "Hierarchy and contrast do the work. Atmosphere is allowed. Decoration that compete with the content are not.",
+                    body: "Hierarchy and contrast do the heavy lifting, with decoration supporting the brand message.",
                   },
                 ].map((item) => (
                   <div
@@ -517,8 +701,7 @@ export function ModernDesignSystem() {
                 </p>
                 <p style={{ ...modernFont, color: modern.muted, margin: "0.35rem 0 0.85rem" }}>
                   Light and dark disagree on purpose. Light keeps the lead quiet. Dark lets the
-                  whole line take lime. Specimens below are forced panels so you can compare without
-                  flipping the site.
+                  whole line take lime.
                 </p>
                 <div className="modern-ds-theme-pair" aria-label="Hero headline in light and dark">
                   <div className="modern-ds-theme-panel modern-ds-theme-panel--light">
@@ -685,8 +868,8 @@ export function ModernDesignSystem() {
             <section className="modern-ds-section" aria-labelledby="interaction">
               <SectionHeader id="interaction" eyebrow="Foundations" title="Interaction">
                 <p>
-                  Three roles. If you need a fourth, you probably need a clearer primary action
-                  instead.
+                  Three roles cover the published UI: primary CTA, secondary chrome, and active
+                  navigation.
                 </p>
               </SectionHeader>
 
@@ -763,51 +946,40 @@ export function ModernDesignSystem() {
                   className="modern-ds-specimen__label"
                   style={{ ...modernFont, color: modern.muted }}
                 >
-                  Filter chips · two class systems (do not mix)
+                  Filter chips · Home and Writing share one system
                 </p>
-                <div className="modern-ds-filter-compare">
-                  <div>
-                    <p className="modern-ds-eyebrow" style={{ ...modernFont, color: modern.accent }}>
-                      Home · case studies
-                    </p>
-                    <div className="modern-ds-btn-row" style={{ marginTop: "0.65rem" }}>
-                      <span className="modern-filter-chip modern-filter-chip--active">All</span>
-                      <span className="modern-filter-chip">Product design</span>
-                      <span className="modern-filter-chip">Development</span>
-                    </div>
-                    <code className="modern-ds-code modern-ds-code--block">
-                      .modern-filter-chip · .modern-filter-chip--active
-                    </code>
-                  </div>
-                  <div>
-                    <p className="modern-ds-eyebrow" style={{ ...modernFont, color: modern.accent }}>
-                      Writing · index
-                    </p>
-                    <div className="modern-ds-btn-row" style={{ marginTop: "0.65rem" }}>
-                      <span className={`${writingLayout.filterChip} ${writingLayout.filterChipActive}`}>
-                        All
-                      </span>
-                      <span className={writingLayout.filterChip}>Essays</span>
-                      <span className={writingLayout.filterChip}>Notes</span>
-                    </div>
-                    <code className="modern-ds-code modern-ds-code--block">
-                      writingLayout.filterChip
-                    </code>
-                  </div>
+                <div className="modern-ds-btn-row">
+                  <span className="modern-filter-chip modern-filter-chip--active">All</span>
+                  <span className="modern-filter-chip">Product design</span>
+                  <span className="modern-filter-chip">Essays</span>
+                  <span className="modern-filter-chip">Notes</span>
                 </div>
+                <code className="modern-ds-code modern-ds-code--block">
+                  .modern-filter-chip · .modern-filter-chip--active
+                </code>
+                <p
+                  style={{
+                    ...modernFont,
+                    color: modern.muted,
+                    fontSize: "0.8125rem",
+                    marginTop: "0.75rem",
+                  }}
+                >
+                  Writing index uses the same classes via{" "}
+                  <code className="modern-ds-code">writingLayout.filterChip</code>.
+                </p>
               </div>
 
               <DoDont
                 doText="One primary fill per view. Everything else stays quieter."
-                dontText="Do not mark the active tab with primary fill. That fight is already lost."
+                dontText="Do not mark the active tab with primary fill. Active nav uses accent text."
               />
             </section>
 
             <section className="modern-ds-section" aria-labelledby="accessibility">
               <SectionHeader id="accessibility" eyebrow="Foundations" title="Accessibility">
                 <p>
-                  This is a portfolio, not a design system product. Still: contrast, focus, and
-                  reduced motion are non-negotiable on what ships.
+                  Contrast, focus, and reduced motion are required on everything that ships.
                 </p>
               </SectionHeader>
 
@@ -847,8 +1019,8 @@ export function ModernDesignSystem() {
             <section className="modern-ds-section" aria-labelledby="layout">
               <SectionHeader id="layout" eyebrow="Foundations" title="Layout">
                 <p>
-                  Spacing comes from <code className="modern-ds-code">modernLayout</code> classes
-                  in CSS. One-off Tailwind padding is how gutters disagree across pages.
+                  Spacing uses <code className="modern-ds-code">modernLayout</code> classes so
+                  gutters stay consistent across pages.
                 </p>
               </SectionHeader>
 
@@ -901,8 +1073,8 @@ export function ModernDesignSystem() {
             <section className="modern-ds-section" aria-labelledby="home">
               <SectionHeader id="home" eyebrow="Production" title="Home">
                 <p>
-                  First viewport plus mid-page stack. Typing hero, CTAs, logo strip, stats,
-                  then case study filters (documented under Interaction).
+                  Hero, CTAs, logo strip, and stats. Case study filters use the shared chip system
+                  under Interaction.
                 </p>
               </SectionHeader>
 
@@ -988,8 +1160,8 @@ export function ModernDesignSystem() {
             <section className="modern-ds-section" aria-labelledby="surfaces">
               <SectionHeader id="surfaces" eyebrow="Production" title="Surfaces">
                 <p>
-                  Interactive containers on home and contact. About has its own section below.
-                  Not a generic Card component.
+                  Interactive containers used on Home and Contact. About patterns are covered in
+                  the About section.
                 </p>
               </SectionHeader>
 
@@ -1069,8 +1241,8 @@ export function ModernDesignSystem() {
             <section className="modern-ds-section" aria-labelledby="about">
               <SectionHeader id="about" eyebrow="Production" title="About">
                 <p>
-                  Patterns from the About page: hero, section title, numbered list, inline cards,
-                  tool pills, process steps, resume outline. Same tokens as the rest of the site.
+                  Hero, section titles, numbered lists, inline cards, tool pills, process steps,
+                  and the resume outline.
                 </p>
               </SectionHeader>
 
@@ -1243,8 +1415,8 @@ export function ModernDesignSystem() {
             <section className="modern-ds-section" aria-labelledby="forms">
               <SectionHeader id="forms" eyebrow="Production" title="Forms">
                 <p>
-                  Contact uses Input and Textarea with lime focus. Labels stay muted. One primary
-                  submit. No cancel on the live form.
+                  Contact uses Input and Textarea with lime focus rings, muted labels, and a single
+                  primary submit.
                 </p>
               </SectionHeader>
 
@@ -1281,14 +1453,25 @@ export function ModernDesignSystem() {
                   />
                 </div>
                 <div className="modern-ds-btn-row">
-                  <button
-                    type="button"
-                    className="modern-btn-primary"
-                    style={modernPrimaryButtonStyle}
-                    onClick={() => toast.success("Sent-pattern toast from Contact")}
-                  >
+                  <button type="button" className="modern-btn-primary" style={modernPrimaryButtonStyle}>
                     Send message
                   </button>
+                </div>
+              </div>
+
+              <div className="modern-ds-specimen" style={{ borderColor: modern.border }}>
+                <p
+                  className="modern-ds-specimen__label"
+                  style={{ ...modernFont, color: modern.muted }}
+                >
+                  Success · .modern-form-success (replaces the form after submit)
+                </p>
+                <div
+                  className="modern-form-success flex items-center gap-3 py-8 px-4 rounded-lg"
+                  role="status"
+                >
+                  <CheckCircle className="w-6 h-6 shrink-0 modern-form-success__icon" aria-hidden />
+                  <p style={modernFont}>Thanks! Your message has been sent.</p>
                 </div>
               </div>
             </section>
@@ -1342,6 +1525,107 @@ export function ModernDesignSystem() {
                     </div>
                   </div>
                 ))}
+              </div>
+
+              <div
+                className="modern-ds-specimen"
+                style={{ borderColor: modern.border, marginTop: "1.25rem" }}
+                data-modern-project-detail
+              >
+                <p
+                  className="modern-ds-specimen__label"
+                  style={{ ...modernFont, color: modern.muted }}
+                >
+                  Hero · title, lead, cropped media
+                </p>
+                <div className="modern-ds-cs-hero">
+                  <h3
+                    className="modern-type-body"
+                    style={{
+                      ...modernFont,
+                      color: modern.text,
+                      fontSize: "clamp(1.5rem, 3vw, 2rem)",
+                      fontWeight: 600,
+                      letterSpacing: "-0.02em",
+                      margin: 0,
+                    }}
+                  >
+                    {SAMPLE_PROJECT.title}
+                  </h3>
+                  <p
+                    style={{
+                      ...modernFont,
+                      color: modern.muted,
+                      fontSize: "1rem",
+                      lineHeight: 1.6,
+                      margin: "0.65rem 0 1.25rem",
+                      maxWidth: "36rem",
+                    }}
+                  >
+                    {SAMPLE_PROJECT.description}
+                  </p>
+                  <div className="case-study-hero">
+                    <div className="case-study-hero__media">
+                      <img
+                        src={SAMPLE_CARD_IMAGE}
+                        alt=""
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div
+                className="modern-ds-specimen"
+                style={{ borderColor: modern.border }}
+                data-modern-project-detail
+              >
+                <p
+                  className="modern-ds-specimen__label"
+                  style={{ ...modernFont, color: modern.muted }}
+                >
+                  Body · MarkdownRenderer in modern-case-study-overview
+                </p>
+                <div className="modern-case-study-overview">
+                  <h2>Overview</h2>
+                  <MarkdownRenderer content={DS_MARKDOWN_BODY} />
+                </div>
+              </div>
+
+              <div
+                className="modern-ds-specimen"
+                style={{ borderColor: modern.border }}
+                data-modern-project-detail
+              >
+                <p
+                  className="modern-ds-specimen__label"
+                  style={{ ...modernFont, color: modern.muted }}
+                >
+                  Gallery · MediaGallerySection → FlowDiagramGallery (click opens Lightbox)
+                </p>
+                <MediaGallerySection
+                  section={DS_IMAGE_GALLERY}
+                  isEditMode={false}
+                  onSectionChange={() => undefined}
+                  onImageClick={(image) => {
+                    const index = DS_GALLERY_IMAGES.findIndex((item) => item.id === image.id);
+                    setLightboxIndex(index >= 0 ? index : 0);
+                    setLightboxOpen(true);
+                  }}
+                />
+                <p
+                  style={{
+                    ...modernFont,
+                    color: modern.muted,
+                    fontSize: "0.8125rem",
+                    marginTop: "1rem",
+                  }}
+                >
+                  Video galleries use the same section shell with{" "}
+                  <code className="modern-ds-code">VideoGallery</code> when{" "}
+                  <code className="modern-ds-code">mediaMode</code> is video.
+                </p>
               </div>
 
               <div
@@ -1402,40 +1686,37 @@ export function ModernDesignSystem() {
               </div>
 
               <div className="modern-ds-btn-row" style={{ marginTop: "1.25rem" }}>
-                <a
-                  href="#"
+                <button
+                  type="button"
                   className="modern-btn-primary case-study-project-link"
                   style={modernPrimaryButtonStyle}
-                  onClick={(e) => e.preventDefault()}
                 >
                   Try live site
                   <ArrowUpRight className="w-4 h-4" aria-hidden />
-                </a>
-                <a
-                  href="#"
+                </button>
+                <button
+                  type="button"
                   className="modern-btn-outline case-study-project-link"
                   style={modernFont}
-                  onClick={(e) => e.preventDefault()}
                 >
                   Design system
-                </a>
-                <a
-                  href="#"
+                </button>
+                <button
+                  type="button"
                   className="modern-btn-ghost case-study-project-link"
                   style={modernFont}
-                  onClick={(e) => e.preventDefault()}
                 >
                   Source notes
-                </a>
+                </button>
               </div>
             </section>
 
             <section className="modern-ds-section" aria-labelledby="writing">
               <SectionHeader id="writing" eyebrow="Production" title="Writing">
                 <p>
-                  Index cards plus post chrome from{" "}
-                  <code className="modern-ds-code">writingLayout</code>. Layouts: essay, magazine,
-                  note via <code className="modern-ds-code">writingArticleClass</code>.
+                  Index cards with thumbs, magazine hero, and body blocks from{" "}
+                  <code className="modern-ds-code">WritingBlockRenderer</code> (prose, figures,
+                  pull quote). Layouts: essay, magazine, note.
                 </p>
               </SectionHeader>
 
@@ -1444,6 +1725,12 @@ export function ModernDesignSystem() {
                   className={writingLayout.card}
                   style={{ background: modern.surface, borderColor: modern.border }}
                 >
+                  <WritingImage
+                    src={DS_WRITING_HERO}
+                    alt=""
+                    wrapperClassName="modern-writing-card__thumb-wrap"
+                    className="modern-writing-card__thumb"
+                  />
                   <p
                     style={{
                       ...modernFont,
@@ -1466,11 +1753,23 @@ export function ModernDesignSystem() {
                   >
                     Teams skip the hard part of AI product work. The interface is the contract.
                   </p>
+                  <WritingPostMeta
+                    author="Brian Bureson"
+                    date="Jul 2026"
+                    readingMinutes={4}
+                    topics={["AI", "Product"]}
+                  />
                 </article>
                 <article
                   className={writingLayout.card}
                   style={{ background: modern.surface, borderColor: modern.border }}
                 >
+                  <WritingImage
+                    src={DS_WRITING_FIGURE_INLINE}
+                    alt=""
+                    wrapperClassName="modern-writing-card__thumb-wrap"
+                    className="modern-writing-card__thumb"
+                  />
                   <p
                     style={{
                       ...modernFont,
@@ -1493,6 +1792,12 @@ export function ModernDesignSystem() {
                   >
                     CTA fill, nav active, control rest. Keep the chrome honest.
                   </p>
+                  <WritingPostMeta
+                    author="Brian Bureson"
+                    date="Jun 2026"
+                    readingMinutes={2}
+                    topics={["Systems"]}
+                  />
                 </article>
               </div>
 
@@ -1504,72 +1809,54 @@ export function ModernDesignSystem() {
                   className="modern-ds-specimen__label"
                   style={{ ...modernFont, color: modern.muted }}
                 >
-                  Post anatomy · back, TOC, essay layout, related
+                  Magazine post · hero, meta, prose, figures, pull quote
                 </p>
-                <div className={writingLayout.layoutWithToc}>
-                  <aside className={writingLayout.tocWrap}>
-                    <p className={writingLayout.tocTitle} style={modernFont}>
-                      On this page
-                    </p>
-                    <ul className="modern-ds-writing-toc-list">
-                      <li>
-                        <a href="#ds-writing-sample" className={writingLayout.tocLink}>
-                          The hard part
-                        </a>
-                      </li>
-                      <li>
-                        <a href="#ds-writing-sample" className={writingLayout.tocLink}>
-                          What to ship
-                        </a>
-                      </li>
-                    </ul>
-                  </aside>
-                  <article className={writingArticleClass("essay")}>
-                    <header className={writingLayout.articleHeader}>
-                      <button
-                        type="button"
-                        className={writingLayout.back}
-                        style={{ ...modernFont, color: modern.muted }}
-                      >
-                        ← All writing
-                      </button>
-                      <h3
-                        id="ds-writing-sample"
-                        className={writingLayout.articleTitle}
-                        style={{ ...modernFont, color: modern.text }}
-                      >
-                        Behavior design when deploy is cheap
-                      </h3>
-                      <p
-                        className={writingLayout.articleSubtitle}
-                        style={{ ...modernFont, color: modern.muted }}
-                      >
-                        The interface is the contract.
-                      </p>
-                    </header>
-                    <div
-                      className={writingLayout.proseWrap}
-                      style={{ ...modernFont, color: modern.text }}
-                    >
-                      <p>
-                        Teams skip behavior design when deploy is cheap. Production writes the
-                        next sprint for them.
-                      </p>
-                    </div>
-                    <footer className={writingLayout.footerNav}>
-                      <span style={{ ...modernFont, fontSize: "0.875rem", color: modern.muted }}>
-                        ← All writing
-                      </span>
-                    </footer>
-                    <section className="modern-writing-related">
-                      <h4 className="modern-writing-related__title">Related</h4>
-                      <div className="modern-writing-card-grid">
-                        <span className="modern-writing-related__link" style={modernFont}>
-                          Three interaction roles
+                <div className="modern-ds-writing-article">
+                  <div className="modern-writing-hero">
+                    <WritingImage
+                      src={DS_WRITING_HERO}
+                      alt=""
+                      wrapperClassName="modern-writing-hero__media"
+                      className="modern-writing-hero__img"
+                    />
+                  </div>
+                  <div className={writingLayout.layout}>
+                    <article className={writingArticleClass("magazine")}>
+                      <header className={writingLayout.articleHeader}>
+                        <button
+                          type="button"
+                          className={writingLayout.back}
+                          style={{ ...modernFont, color: modern.muted }}
+                        >
+                          ← All writing
+                        </button>
+                        <h3
+                          className={writingLayout.articleTitle}
+                          style={{ ...modernFont, color: modern.text }}
+                        >
+                          Behavior design when deploy is cheap
+                        </h3>
+                        <p
+                          className={writingLayout.articleSubtitle}
+                          style={{ ...modernFont, color: modern.muted }}
+                        >
+                          The interface is the contract.
+                        </p>
+                        <WritingPostMeta
+                          author="Brian Bureson"
+                          date="Jul 14, 2026"
+                          readingMinutes={4}
+                          topics={["AI", "Behavior design"]}
+                        />
+                      </header>
+                      <WritingBlockRenderer blocks={DS_WRITING_BLOCKS} />
+                      <footer className={writingLayout.footerNav}>
+                        <span style={{ ...modernFont, fontSize: "0.875rem", color: modern.muted }}>
+                          ← All writing
                         </span>
-                      </div>
-                    </section>
-                  </article>
+                      </footer>
+                    </article>
+                  </div>
                 </div>
               </div>
             </section>
@@ -1600,7 +1887,7 @@ export function ModernDesignSystem() {
 
             <section className="modern-ds-section" aria-labelledby="conventions">
               <SectionHeader id="conventions" eyebrow="Build" title="Implementation conventions">
-                <p>How to keep this system from rotting as I (or an agent) touch the code.</p>
+                <p>Rules for changing this UI without drifting from the system.</p>
               </SectionHeader>
 
               <div className="modern-ds-layout-table" style={{ borderColor: modern.border }}>
@@ -1649,12 +1936,12 @@ export function ModernDesignSystem() {
                   </p>
                   <ul className="modern-ds-list" style={{ ...modernFont, color: modern.text }}>
                     <li>--modern-* paints (deduped) + theme forks</li>
-                    <li>.modern-btn-* plus home vs writing filter chips</li>
+                    <li>.modern-btn-* · .modern-filter-chip (Home and Writing)</li>
                     <li>Home hero, logo strip, stats</li>
-                    <li>Case study card, rails, password gate, project links</li>
+                    <li>Case study card, hero, body, gallery, lightbox, rails, password</li>
                     <li>About hero, list, cards, tool pills, process, resume + DS ghost</li>
-                    <li>Writing index + post anatomy</li>
-                    <li>Contact four-up + form toast</li>
+                    <li>Writing index thumbs + magazine post with figures</li>
+                    <li>Contact four-up + form + success state</li>
                   </ul>
                 </div>
                 <div
@@ -1679,6 +1966,19 @@ export function ModernDesignSystem() {
       </div>
 
       <ModernFooter />
+
+      {lightboxOpen ? (
+        <Lightbox
+          isOpen={lightboxOpen}
+          onClose={() => setLightboxOpen(false)}
+          imageUrl={DS_GALLERY_IMAGES[lightboxIndex]?.url ?? DS_GALLERY_IMAGES[0].url}
+          imageAlt={DS_GALLERY_IMAGES[lightboxIndex]?.alt ?? DS_GALLERY_IMAGES[0].alt}
+          imageCaption={DS_GALLERY_IMAGES[lightboxIndex]?.caption}
+          images={DS_GALLERY_IMAGES.map(({ url, alt, caption }) => ({ url, alt, caption }))}
+          currentIndex={lightboxIndex}
+          onNavigate={setLightboxIndex}
+        />
+      ) : null}
     </div>
   );
 }
