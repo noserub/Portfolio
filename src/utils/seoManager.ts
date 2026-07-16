@@ -1019,67 +1019,178 @@ export function applyPageSEO(
   // from page SEO would overwrite the server-resolved favicon on every route.
 }
 
-// Function to update favicon dynamically
-export function updateFavicon(sitewide: SitewideSEO): void {
-  const faviconType = sitewide.faviconType || 'text';
-  
-  let mainFaviconUrl: string;
-  let appleTouchIconUrl: string;
-  let faviconMimeType: string = 'image/svg+xml';
+const ADAPTIVE_FAVICON_CACHE = 'v=adaptive-mark-2';
 
-  if (faviconType === 'image' && sitewide.faviconImageUrl) {
-    // Use custom uploaded image
-    mainFaviconUrl = sitewide.faviconImageUrl;
-    appleTouchIconUrl = sitewide.faviconImageUrl;
-    
-    // Detect MIME type from data URI or default to PNG
-    if (sitewide.faviconImageUrl.startsWith('data:image/png')) {
-      faviconMimeType = 'image/png';
-    } else if (sitewide.faviconImageUrl.startsWith('data:image/jpeg')) {
-      faviconMimeType = 'image/jpeg';
-    } else if (sitewide.faviconImageUrl.startsWith('data:image/svg')) {
-      faviconMimeType = 'image/svg+xml';
-    } else if (sitewide.faviconImageUrl.startsWith('data:image/x-icon')) {
-      faviconMimeType = 'image/x-icon';
-    } else {
-      faviconMimeType = 'image/png';
-    }
-  } else {
-    // Generate text-based SVG favicon
-    const text = (sitewide.faviconText || 'BB').toString();
-    const gradientStart = (sitewide.faviconGradientStart || '#6a8f00').toString();
-    const gradientEnd = (sitewide.faviconGradientEnd || '#95d004').toString();
+function withFaviconCacheBust(url: string): string {
+  if (!url || url.startsWith('data:')) return url;
+  const join = url.includes('?') ? '&' : '?';
+  return `${url}${join}${ADAPTIVE_FAVICON_CACHE}`;
+}
 
-    // Create SVG favicon with defensive encoding
-    const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='grad' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' style='stop-color:${gradientStart};stop-opacity:1' /><stop offset='100%' style='stop-color:${gradientEnd};stop-opacity:1' /></linearGradient></defs><rect width='100' height='100' rx='20' fill='url(#grad)'/><text x='50' y='50' dominant-baseline='central' text-anchor='middle' font-family='Arial, sans-serif' font-size='45' font-weight='bold' fill='white'>${text}</text></svg>`;
-    
-    const encoded = encodeURIComponent(svg);
-    mainFaviconUrl = `data:image/svg+xml,${encoded}`;
-
-    // Create Apple Touch Icon
-    const appleSvg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><defs><linearGradient id='grad2' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' style='stop-color:${gradientStart};stop-opacity:1' /><stop offset='100%' style='stop-color:${gradientEnd};stop-opacity:1' /></linearGradient></defs><rect width='180' height='180' rx='40' fill='url(#grad2)'/><text x='90' y='90' dominant-baseline='central' text-anchor='middle' font-family='Arial, sans-serif' font-size='80' font-weight='bold' fill='white'>${text}</text></svg>`;
-    const appleEncoded = encodeURIComponent(appleSvg);
-    appleTouchIconUrl = `data:image/svg+xml,${appleEncoded}`;
+/** Pair stored light/dark adaptive mark assets in Supabase Storage. */
+function resolveAdaptiveFaviconPair(url: string): { light: string; dark: string } | null {
+  if (url.includes('favicon-light-adaptive.png')) {
+    return {
+      light: url,
+      dark: url.replace('favicon-light-adaptive.png', 'favicon-dark-adaptive.png'),
+    };
   }
-
-  // Update main favicon
-  let favicon = document.querySelector('link[rel="icon"]') as HTMLLinkElement;
-  if (!favicon) {
-    favicon = document.createElement('link');
-    favicon.rel = 'icon';
-    document.head.appendChild(favicon);
+  if (url.includes('favicon-dark-adaptive.png')) {
+    return {
+      dark: url,
+      light: url.replace('favicon-dark-adaptive.png', 'favicon-light-adaptive.png'),
+    };
   }
-  favicon.type = faviconMimeType;
-  favicon.href = mainFaviconUrl;
+  return null;
+}
 
-  // Update Apple Touch Icon
-  let appleTouchIcon = document.querySelector('link[rel="apple-touch-icon"]') as HTMLLinkElement;
+function clearDocumentIconLinks(): void {
+  document.querySelectorAll('link[rel="icon"]').forEach((el) => el.remove());
+}
+
+function addDocumentIconLink(href: string, type: string, media?: string): void {
+  const link = document.createElement('link');
+  link.rel = 'icon';
+  link.type = type;
+  link.href = href;
+  if (media) link.media = media;
+  document.head.appendChild(link);
+}
+
+function ensureAppleTouchIcon(href: string): void {
+  let appleTouchIcon = document.querySelector('link[rel="apple-touch-icon"]') as HTMLLinkElement | null;
   if (!appleTouchIcon) {
     appleTouchIcon = document.createElement('link');
     appleTouchIcon.rel = 'apple-touch-icon';
     document.head.appendChild(appleTouchIcon);
   }
-  appleTouchIcon.href = appleTouchIconUrl;
+  appleTouchIcon.href = href;
+}
+
+function applyLightDarkIconPair(lightHref: string, darkHref: string, mimeType = 'image/png'): void {
+  clearDocumentIconLinks();
+
+  const media = typeof window !== 'undefined' ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+  const useDark = Boolean(media?.matches);
+
+  // Single active icon: media-query link tags are unreliable (unconditional
+  // fallbacks and some Chromium builds ignore dark media). Drive from matchMedia.
+  addDocumentIconLink(useDark ? darkHref : lightHref, mimeType);
+  ensureAppleTouchIcon(lightHref);
+
+  const listenerKey = '__portfolioFaviconSchemeListener';
+  const previous = (window as unknown as Record<string, unknown>)[listenerKey] as
+    | ((event: MediaQueryListEvent) => void)
+    | undefined;
+  if (media && previous) {
+    media.removeEventListener('change', previous);
+  }
+  if (media) {
+    const onChange = (event: MediaQueryListEvent) => {
+      clearDocumentIconLinks();
+      addDocumentIconLink(event.matches ? darkHref : lightHref, mimeType);
+      ensureAppleTouchIcon(lightHref);
+    };
+    media.addEventListener('change', onChange);
+    (window as unknown as Record<string, unknown>)[listenerKey] = onChange;
+  }
+}
+
+/** Recolor opaque pixels to black or white while preserving alpha (for custom mark favicons). */
+async function buildMonochromeFaviconDataUrls(sourceUrl: string): Promise<{ light: string; dark: string } | null> {
+  try {
+    const response = await fetch(sourceUrl, { mode: 'cors' });
+    if (!response.ok) return null;
+    const blob = await response.blob();
+    const bitmap = await createImageBitmap(blob);
+    const canvas = document.createElement('canvas');
+    canvas.width = bitmap.width;
+    canvas.height = bitmap.height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    ctx.drawImage(bitmap, 0, 0);
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const { data } = imageData;
+
+    const toDataUrl = (r: number, g: number, b: number) => {
+      const copy = new Uint8ClampedArray(data);
+      for (let i = 0; i < copy.length; i += 4) {
+        if (copy[i + 3] > 0) {
+          copy[i] = r;
+          copy[i + 1] = g;
+          copy[i + 2] = b;
+        }
+      }
+      const out = new ImageData(copy, canvas.width, canvas.height);
+      ctx.putImageData(out, 0, 0);
+      return canvas.toDataURL('image/png');
+    };
+
+    return {
+      light: toDataUrl(10, 10, 10),
+      dark: toDataUrl(255, 255, 255),
+    };
+  } catch (error) {
+    console.error('Error building adaptive favicon variants:', error);
+    return null;
+  }
+}
+
+// Function to update favicon dynamically
+export function updateFavicon(sitewide: SitewideSEO): void {
+  if (faviconTypeIsImage(sitewide)) {
+    const sourceUrl = sitewide.faviconImageUrl!.trim();
+    const pair = resolveAdaptiveFaviconPair(sourceUrl);
+    if (pair) {
+      applyLightDarkIconPair(
+        withFaviconCacheBust(pair.light),
+        withFaviconCacheBust(pair.dark),
+      );
+      return;
+    }
+
+    // Custom mark: derive black (light UI) / white (dark UI) variants at runtime
+    void buildMonochromeFaviconDataUrls(sourceUrl).then((variants) => {
+      if (!variants) {
+        clearDocumentIconLinks();
+        addDocumentIconLink(sourceUrl, guessFaviconMime(sourceUrl));
+        ensureAppleTouchIcon(sourceUrl);
+        return;
+      }
+      applyLightDarkIconPair(variants.light, variants.dark);
+    });
+    return;
+  }
+
+  // Text fallback only when no custom image is configured
+  const text = (sitewide.faviconText || 'BB').toString();
+  const safeText = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/'/g, '&apos;');
+
+  const makeTextSvg = (bg: string, fg: string, size: number, rx: number, fontSize: number) =>
+    `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 ${size} ${size}'><rect width='${size}' height='${size}' rx='${rx}' fill='${bg}'/><text x='${size / 2}' y='${size / 2}' dominant-baseline='central' text-anchor='middle' font-family='system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial' font-size='${fontSize}' font-weight='800' fill='${fg}'>${safeText}</text></svg>`;
+
+  const lightHref = `data:image/svg+xml,${encodeURIComponent(makeTextSvg('#f5f5f5', '#0a0a0a', 100, 20, 45))}`;
+  const darkHref = `data:image/svg+xml,${encodeURIComponent(makeTextSvg('#0a0a0a', '#ffffff', 100, 20, 45))}`;
+  const appleHref = `data:image/svg+xml,${encodeURIComponent(makeTextSvg('#f5f5f5', '#0a0a0a', 180, 40, 80))}`;
+
+  applyLightDarkIconPair(lightHref, darkHref, 'image/svg+xml');
+  ensureAppleTouchIcon(appleHref);
+}
+
+function faviconTypeIsImage(sitewide: SitewideSEO): boolean {
+  return sitewide.faviconType === 'image' && Boolean(sitewide.faviconImageUrl?.trim());
+}
+
+function guessFaviconMime(url: string): string {
+  if (url.startsWith('data:image/png') || url.includes('.png')) return 'image/png';
+  if (url.startsWith('data:image/jpeg') || url.includes('.jpg') || url.includes('.jpeg')) return 'image/jpeg';
+  if (url.startsWith('data:image/svg') || url.includes('.svg')) return 'image/svg+xml';
+  if (url.startsWith('data:image/x-icon') || url.includes('.ico')) return 'image/x-icon';
+  return 'image/png';
 }
 
 // Upload favicon to Supabase Storage
