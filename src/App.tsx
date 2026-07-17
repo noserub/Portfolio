@@ -405,16 +405,12 @@ function AppShell() {
         console.log('🔍 Favicon URL from Supabase:', faviconUrl);
         
         if (faviconUrl) {
-          console.log('✅ Found favicon, applying to document...');
-          // Update the SEO data with the favicon
-          const updatedSitewide = {
+          console.log('✅ Found custom favicon, applying adaptive light/dark variants...');
+          updateFavicon({
             ...seoData.sitewide,
-            faviconType: 'image' as const,
-            faviconImageUrl: faviconUrl
-          };
-          
-          // Apply the favicon immediately
-          updateFavicon(updatedSitewide);
+            faviconType: 'image',
+            faviconImageUrl: faviconUrl,
+          });
           console.log('✅ Favicon applied successfully');
         } else {
           console.log('❌ No favicon in Supabase; applying sitewide fallback from canonical SEO data');

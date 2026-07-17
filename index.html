@@ -43,8 +43,19 @@
     <meta name="twitter:title" content="Brian Bureson · AI product design &amp; trust UX · Denver" />
     <meta name="twitter:description" content="Enterprise AI product design and trust UX. Case studies, essays, and 20+ years shipping regulated, consumer-scale, and enterprise products." />
     <meta name="twitter:image" content="https://www.bureson.com/share/og-default.png" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="apple-touch-icon" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/favicon-light.png?v=adaptive-mark-2" />
+    <script>
+      (function () {
+        try {
+          var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+          var link = document.querySelector('link[rel="icon"]') || document.createElement('link');
+          link.rel = 'icon';
+          link.type = 'image/png';
+          link.href = dark ? '/favicon-dark.png?v=adaptive-mark-2' : '/favicon-light.png?v=adaptive-mark-2';
+          if (!link.parentNode) document.head.appendChild(link);
+        } catch (e) {}
+      })();
+    </script>
     
     <!-- Static Structured Data (JSON-LD) - Injected at build time -->
     <!-- This ensures crawlers see structured data in initial HTML -->
