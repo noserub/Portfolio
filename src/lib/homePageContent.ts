@@ -472,7 +472,7 @@ export const DEFAULT_UI: HomePageUI = {
   filterAll: "All",
   workCtaLabel: "Selected work",
   processCtaLabel: "How I work",
-  contactCtaLabel: "Discuss a partnership",
+  contactCtaLabel: "Get in touch",
   caseStudyFilters: DEFAULT_CASE_STUDY_FILTERS.map((f) => ({ ...f })),
   defaultCaseStudyFilter: "all",
   featuredCaseStudyId: null,

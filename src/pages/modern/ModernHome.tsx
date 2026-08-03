@@ -484,7 +484,7 @@ function ModernHomeView({
                     />
                   </div>
 
-                  <div className="mt-8 sm:mt-10 flex flex-wrap items-center gap-2 sm:gap-3">
+                  <div className="mt-8 sm:mt-10 flex flex-wrap items-center justify-start gap-2 sm:gap-3">
                     <button
                       type="button"
                       onClick={() => {
@@ -503,7 +503,7 @@ function ModernHomeView({
                       className="modern-btn-ghost"
                       style={modernFont}
                     >
-                      {homePageContent.ui.contactCtaLabel?.trim() || "Discuss a partnership"}
+                      {homePageContent.ui.contactCtaLabel?.trim() || "Get in touch"}
                     </button>
                   </div>
                 </>

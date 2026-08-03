@@ -96,8 +96,16 @@ export function useHomePageContent(options: UseHomePageContentOptions) {
         if (gen !== heroLoadGenerationRef.current) return;
         homeContentHydratedRef.current = true;
         setHomeContentReady(true);
-        setHomePageContent(migratedContent);
         setHomeContentLoading(false);
+        // Auth reloads / late fetches must not wipe in-progress CMS edits
+        // (contact CTA label, bio, etc.). Persist still uses React state.
+        if (isEditingHeroRef.current) {
+          console.log(
+            "⏸️ Skipping home content apply from server — hero CMS editor is open",
+          );
+          return;
+        }
+        setHomePageContent(migratedContent);
         bumpBio();
         writeHomePageToLocalStorage(migratedContent);
       };
