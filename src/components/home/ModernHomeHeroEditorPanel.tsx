@@ -557,7 +557,7 @@ export function ModernHomeHeroEditorPanel({
               <Input
                 value={homePageContent.ui.contactCtaLabel}
                 onChange={(e) => patchUi({ contactCtaLabel: e.target.value })}
-                placeholder="Discuss a partnership"
+                placeholder="Get in touch"
                 className="bg-transparent"
                 style={{ borderColor: modern.border, color: modern.text }}
               />
