@@ -941,11 +941,7 @@ function mergeUI(raw: unknown): HomePageUI {
     filterAll: String(o.filterAll ?? DEFAULT_UI.filterAll),
     workCtaLabel: String(o.workCtaLabel ?? DEFAULT_UI.workCtaLabel),
     processCtaLabel: String(o.processCtaLabel ?? DEFAULT_UI.processCtaLabel),
-    contactCtaLabel: (() => {
-      const raw = String(o.contactCtaLabel ?? DEFAULT_UI.contactCtaLabel);
-      // Soft-migrate previous default so the new ghost label shows without a manual CMS edit.
-      return raw === "Get in touch" ? DEFAULT_UI.contactCtaLabel : raw;
-    })(),
+    contactCtaLabel: String(o.contactCtaLabel ?? DEFAULT_UI.contactCtaLabel),
     caseStudyFilters,
     defaultCaseStudyFilter,
     featuredCaseStudyId:
