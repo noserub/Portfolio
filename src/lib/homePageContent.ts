@@ -660,6 +660,12 @@ export function mergeLogoStrip(raw: unknown): HomePageLogoStrip {
   };
 }
 
+/** Present string wins, including blank. Omitted keys keep the default (legacy payloads). */
+function mergeLeadershipStripText(raw: unknown, fallback: string | undefined): string {
+  if (typeof raw === "string") return raw.trim();
+  return fallback ?? "";
+}
+
 export function mergeLeadershipStrip(raw: unknown): HomePageLeadershipStrip {
   const base = DEFAULT_LEADERSHIP_STRIP;
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
@@ -674,10 +680,9 @@ export function mergeLeadershipStrip(raw: unknown): HomePageLeadershipStrip {
     : [...base.bullets];
   const merged: HomePageLeadershipStrip = {
     enabled: o.enabled !== false,
-    label: typeof o.label === "string" && o.label.trim() ? o.label.trim() : base.label,
-    headline: String(o.headline ?? base.headline).trim() || base.headline,
-    subhead:
-      typeof o.subhead === "string" && o.subhead.trim() ? o.subhead.trim() : base.subhead,
+    label: mergeLeadershipStripText(o.label, base.label),
+    headline: mergeLeadershipStripText(o.headline, base.headline),
+    subhead: mergeLeadershipStripText(o.subhead, base.subhead),
     bullets: bullets.length > 0 ? bullets : [...base.bullets],
   };
   if (isLegacyLeadershipStrip(merged)) {
