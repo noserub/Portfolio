@@ -885,16 +885,19 @@ export function ModernHomeHeroEditorPanel({
                 aria-label="Show leadership strip"
               />
             </div>
-            <ModernEditorField label="Eyebrow label (optional)">
+            <ModernEditorField label="Eyebrow label (optional)" hint="Leave blank to hide.">
               <Input
                 value={leadershipStrip.label ?? ""}
                 onChange={(e) => patchLeadershipStrip({ label: e.target.value })}
-                placeholder="How I lead"
+                placeholder="Led"
                 className="bg-transparent"
                 style={{ borderColor: modern.border, color: modern.text }}
               />
             </ModernEditorField>
-            <ModernEditorField label="Headline">
+            <ModernEditorField
+              label="Headline (optional)"
+              hint="Leave blank to hide. Empty values are saved; they no longer snap back to the default."
+            >
               <Input
                 value={leadershipStrip.headline}
                 onChange={(e) => patchLeadershipStrip({ headline: e.target.value })}
@@ -902,7 +905,10 @@ export function ModernHomeHeroEditorPanel({
                 style={{ borderColor: modern.border, color: modern.text }}
               />
             </ModernEditorField>
-            <ModernEditorField label="Subhead (optional)">
+            <ModernEditorField
+              label="Subhead (optional)"
+              hint="Leave blank to hide."
+            >
               <Textarea
                 value={leadershipStrip.subhead ?? ""}
                 onChange={(e) => patchLeadershipStrip({ subhead: e.target.value })}
