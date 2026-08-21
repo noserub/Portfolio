@@ -8,7 +8,11 @@ import { Input } from "../../components/ui/input";
 import { Textarea } from "../../components/ui/textarea";
 import { Lightbox } from "../../components/Lightbox";
 import { ProjectData } from "../../components/ProjectImage";
-import { getProjectDetailHeroFrame, projectDetailHeroImageStyle } from "../../lib/projectHeroFrame";
+import { getProjectDetailHeroFrame, panCropPosition, projectDetailHeroImageStyle } from "../../lib/projectHeroFrame";
+import {
+  DECISION_PREVIEW_SENTENCES_KEY,
+  parseDecisionPreviewSentences,
+} from "../../lib/splitExpandableCardBody";
 import { CaseStudySections } from "../../components/features/CaseStudySections";
 import { CaseStudyProjectLinks } from "../../components/features/CaseStudyProjectLinks";
 import { CaseStudyProjectLinksEditor } from "../../components/features/CaseStudyProjectLinksEditor";
@@ -168,6 +172,10 @@ const DraggableImage = ({ image, index, isEditMode, onRemove, onImageClick, move
   const [isEditingImage, setIsEditingImage] = useState(false);
   const [isDraggingPosition, setIsDraggingPosition] = useState(false);
   const imageRef = useRef(null);
+  const dragStartRef = useRef<{
+    pointer: { clientX: number; clientY: number };
+    position: { x: number; y: number };
+  } | null>(null);
   
   // Local state for position/scale during editing (to avoid saving on every pixel)
   // Initialize from image prop, but only update when image ID changes
@@ -262,20 +270,24 @@ const DraggableImage = ({ image, index, isEditMode, onRemove, onImageClick, move
     if (!isEditingImage) return;
     e.stopPropagation();
     setIsDraggingPosition(true);
+    dragStartRef.current = {
+      pointer: { clientX: e.clientX, clientY: e.clientY },
+      position: { ...position },
+    };
   };
 
   const handleImageMouseMove = (e: any) => {
-    if (!isDraggingPosition || !imageRef.current) return;
+    if (!isDraggingPosition || !imageRef.current || !dragStartRef.current) return;
     e.stopPropagation();
     e.preventDefault();
     
     const rect = imageRef.current.getBoundingClientRect();
-    // Calculate position as percentage within the container
-    const x = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
-    const y = Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100));
-    
-    // Update local state immediately for smooth dragging (don't save yet)
-    setLocalPosition({ x, y });
+    setLocalPosition(
+      panCropPosition(dragStartRef.current.position, dragStartRef.current.pointer, e, {
+        width: rect.width,
+        height: rect.height,
+      }),
+    );
   };
 
   const handleImageMouseUp = () => {
@@ -284,6 +296,7 @@ const DraggableImage = ({ image, index, isEditMode, onRemove, onImageClick, move
       onImageUpdate(image.id, { position: localPosition, scale: localScale });
     }
     setIsDraggingPosition(false);
+    dragStartRef.current = null;
   };
 
   // Show drop indicator when this position would receive the dragged item
@@ -1162,6 +1175,11 @@ export function ClassicProjectDetail({
     (projectSectionPositionsRaw as any).__RESEARCH_COLUMNS__
   );
   const [researchInsightsColumns, setResearchInsightsColumns] = useState<1 | 2 | 3>(initialResearchColumns);
+  const [decisionPreviewSentences, setDecisionPreviewSentences] = useState(() =>
+    parseDecisionPreviewSentences(
+      (projectSectionPositionsRaw as Record<string, unknown>)[DECISION_PREVIEW_SENTENCES_KEY],
+    ),
+  );
   
   // Sync researchInsightsColumns with project prop changes, but only if project actually has a value
   // This prevents resetting user's settings during hot reloads
@@ -1193,6 +1211,17 @@ export function ClassicProjectDetail({
     (project.sectionPositions as any)?.__RESEARCH_COLUMNS__,
     (project as any).section_positions?.__RESEARCH_COLUMNS__
   ]);
+  useEffect(() => {
+    const projectPositions =
+      project.sectionPositions ||
+      (project as any).sectionPositions ||
+      (project as any).section_positions ||
+      {};
+    const raw = (projectPositions as Record<string, unknown>)[DECISION_PREVIEW_SENTENCES_KEY];
+    if (raw === undefined || raw === null || raw === "") return;
+    const next = parseDecisionPreviewSentences(raw);
+    setDecisionPreviewSentences((prev) => (prev === next ? prev : next));
+  }, [(project.sectionPositions as any)?.[DECISION_PREVIEW_SENTENCES_KEY], (project as any).section_positions?.[DECISION_PREVIEW_SENTENCES_KEY]]);
   const [lightboxImage, setLightboxImage] = useState<GalleryImageItem | null>(null);
   const [lightboxImages, setLightboxImages] = useState<GalleryImageItem[]>([]);
   const [flowDiagramLightboxImage, setFlowDiagramLightboxImage] = useState<GalleryImageItem | null>(null);
@@ -1610,13 +1639,14 @@ export function ClassicProjectDetail({
       // IMPORTANT: Avoid using a subsection titled "Impact" here, because the sidebar parser
       // extracts any "Impact" subsection as the Impact sidebar. Use a different heading.
       seeded = '## Problem statement\nDescribe the main problem or challenge.\n\n## Context\nProvide background and context.\n\n## Consequences\nExplain what happens if this challenge is not solved.';
+    } else if (lower === 'results' || lower.startsWith('results ')) {
+      seeded = 'The lab did not declare the assistant ready. It selected a provisional instruction set and named what still had to be proven by hand.\n\n**Bar:** Each run used the same weighted rubric: accuracy (35%), source grounding (25%), usefulness (20%), actionability (10%), safety/escalation (10%). An honest “I cannot find a source” was not scored as a fabricated policy.\n\n**Signal:** Custom led in 6 of 10 controlled runs on 191 scenarios, same collections and model. That became the provisional instruction set.\n\n**What the average could not retire:** Wrong-country guidance, unsupported eligibility or pay, confidentiality, and unsafe advice stayed release-blocking. Reviewers classified misses as retrieval, instruction, test, or scoring.\n\n**After the score:** Manual testing focused on country-specific leave and benefits, immigration, pay and tax, local policy, safety, and confidentiality. Testers did not review the bank blind.';
     }
     const newContent = `${base}${prefix}# ${title}\n\n${seeded}`;
     console.log('📝 Adding markdown section:', { title, newContentLength: newContent.length });
     setCaseStudyContent(newContent);
-    // Mark unsaved and update local flags/state; defer persist until Save
+    setCleanedContent(stripSidebarMarkdownSections(newContent));
     try { document.body.setAttribute('data-unsaved', 'true'); } catch {}
-    // Clear persistent hide flags when adding sidebars back
     const lowerTitle = title.toLowerCase();
     const updatedSectionPositions = {
       ...(sectionPositions as any) || (project as any)?.sectionPositions || {},
@@ -1624,6 +1654,28 @@ export function ClassicProjectDetail({
       ...(lowerTitle === 'at a glance' ? { hideAtAGlance: false } : {})
     };
     setSectionPositions(updatedSectionPositions as any);
+    persistUpdate({
+      ...project,
+      title: editedTitle,
+      description: editedDescription,
+      projectType: editedProjectType,
+      caseStudyContent: newContent,
+      case_study_content: newContent,
+      caseStudyImages: caseStudyImagesRef.current,
+      flowDiagramImages: flowDiagramImagesRef.current,
+      videoItems: videoItemsRef.current,
+      galleryAspectRatio,
+      flowDiagramAspectRatio,
+      videoAspectRatio,
+      galleryColumns,
+      flowDiagramColumns,
+      videoColumns,
+      projectImagesPosition,
+      videosPosition,
+      flowDiagramsPosition,
+      solutionCardsPosition,
+      sectionPositions: updatedSectionPositions,
+    } as any);
   }, [caseStudyContent, project, editedTitle, editedDescription, editedProjectType, galleryAspectRatio, flowDiagramAspectRatio, videoAspectRatio, galleryColumns, flowDiagramColumns, videoColumns, projectImagesPosition, videosPosition, flowDiagramsPosition, solutionCardsPosition, sectionPositions, persistUpdate]);
 
   const removeMarkdownSection = useCallback((title: string) => {
@@ -1670,8 +1722,16 @@ export function ClassicProjectDetail({
   const initialHeroFrame = getProjectDetailHeroFrame(project);
   const [heroScale, setHeroScale] = useState(initialHeroFrame.scale);
   const [heroPosition, setHeroPosition] = useState(initialHeroFrame.position);
+  const heroScaleRef = useRef(heroScale);
+  const heroPositionRef = useRef(heroPosition);
+  heroScaleRef.current = heroScale;
+  heroPositionRef.current = heroPosition;
   const [isDraggingHero, setIsDraggingHero] = useState(false);
   const heroImageRef = useRef(null);
+  const heroDragStartRef = useRef<{
+    pointer: { clientX: number; clientY: number };
+    position: { x: number; y: number };
+  } | null>(null);
 
   useEffect(() => {
     const frame = getProjectDetailHeroFrame(project);
@@ -3045,22 +3105,29 @@ export function ClassicProjectDetail({
     if (!isEditingHeroImage) return;
     e.stopPropagation();
     setIsDraggingHero(true);
+    heroDragStartRef.current = {
+      pointer: { clientX: e.clientX, clientY: e.clientY },
+      position: { ...heroPosition },
+    };
   };
 
   const handleHeroMouseMove = (e: any) => {
-    if (!isDraggingHero || !heroImageRef.current) return;
+    if (!isDraggingHero || !heroImageRef.current || !heroDragStartRef.current) return;
     e.stopPropagation();
     e.preventDefault();
     
     const rect = heroImageRef.current.getBoundingClientRect();
-    const x = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
-    const y = Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100));
-    
-    setHeroPosition({ x, y });
+    setHeroPosition(
+      panCropPosition(heroDragStartRef.current.position, heroDragStartRef.current.pointer, e, {
+        width: rect.width,
+        height: rect.height,
+      }),
+    );
   };
 
   const handleHeroMouseUp = () => {
     setIsDraggingHero(false);
+    heroDragStartRef.current = null;
   };
 
   const handleMoveProjectImages = (direction: 'up' | 'down') => {
@@ -4770,9 +4837,19 @@ export function ClassicProjectDetail({
               <DropdownMenuItem disabled={hasMarkdownTitle('The challenge')} onClick={() => addMarkdownSection('The challenge', 'Describe the problem or challenge you were solving.')}>The challenge</DropdownMenuItem>
               <DropdownMenuItem disabled={hasMarkdownTitle('My role & impact')} onClick={() => addMarkdownSection('My role & impact', 'Describe your role and impact.')}>My role & impact</DropdownMenuItem>
               <DropdownMenuItem disabled={hasMarkdownTitle('Research insights')} onClick={() => addMarkdownSection('Research insights', 'Add your key research insights here.')}>Research insights</DropdownMenuItem>
+              <DropdownMenuItem
+                disabled={hasMarkdownTitle('Key decisions')}
+                onClick={() => addMarkdownSection(
+                  'Key decisions',
+                  '## First decision\n\nOne sentence of judgment. Second sentence names the tradeoff.\n\n<!-- more -->\n\nOptional extra context behind Show more.\n\n## Second decision\n\nOne sentence of judgment. Second sentence names the tradeoff.\n\n<!-- more -->\n\nOptional extra context behind Show more.',
+                )}
+              >
+                Key decisions
+              </DropdownMenuItem>
               <DropdownMenuItem disabled={hasMarkdownTitle('Competitive analysis')} onClick={() => addMarkdownSection('Competitive analysis', 'Add your competitive analysis here.')}>Competitive analysis</DropdownMenuItem>
               <DropdownMenuItem disabled={hasMarkdownTitle('The solution')} onClick={() => addMarkdownSection('The solution', 'Describe your solution and approach.')}>The solution</DropdownMenuItem>
               <DropdownMenuItem disabled={hasMarkdownTitle('Key features')} onClick={() => addMarkdownSection('Key features', 'List key features and their impact.')}>Key features</DropdownMenuItem>
+              <DropdownMenuItem disabled={hasMarkdownTitle('Results')} onClick={() => addMarkdownSection('Results', 'Summarize outcomes, metrics, and what remained unproven.')}>Results</DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem disabled={solutionCardsPosition !== undefined} onClick={handleAddSolutionCardsSection}>Solution Cards</DropdownMenuItem>
             </DropdownMenuContent>
@@ -4888,7 +4965,12 @@ export function ClassicProjectDetail({
               src={project.url}
               alt={project.title}
               className="w-full h-full"
-              style={projectDetailHeroImageStyle({ scale: heroScale, position: heroPosition })}
+              style={projectDetailHeroImageStyle({
+                scale: heroScale,
+                position: heroPosition,
+                heroScale,
+                heroPosition,
+              })}
               quality={90}
               fit="contain"
               priority={true}
@@ -4947,7 +5029,7 @@ export function ClassicProjectDetail({
                   className="absolute bottom-4 right-4 z-30 shadow-lg"
                   onClick={(e) => {
                     e.stopPropagation();
-                    saveHeroFrame(heroScale, heroPosition);
+                    saveHeroFrame(heroScaleRef.current, heroPositionRef.current);
                     setIsEditingHeroImage(false);
                   }}
                 >
@@ -5684,6 +5766,41 @@ export function ClassicProjectDetail({
                 section_positions: updatedSectionPositions,
               } as any;
               persistUpdate(updatedProject);
+            }}
+            decisionPreviewSentences={decisionPreviewSentences}
+            onDecisionPreviewSentencesChange={(count) => {
+              setDecisionPreviewSentences(count);
+              const updatedSectionPositions = {
+                ...((sectionPositions as any) || {}),
+                [DECISION_PREVIEW_SENTENCES_KEY]: count,
+              };
+              setSectionPositions(updatedSectionPositions as any);
+              persistUpdate({
+                ...project,
+                title: editedTitle,
+                description: editedDescription,
+                projectType: editedProjectType,
+                caseStudyContent,
+                caseStudyImages: caseStudyImagesRef.current,
+                flowDiagramImages: flowDiagramImagesRef.current,
+                videoItems: videoItemsRef.current,
+                galleryAspectRatio,
+                flowDiagramAspectRatio,
+                videoAspectRatio,
+                galleryColumns,
+                flowDiagramColumns,
+                videoColumns,
+                projectImagesPosition,
+                videosPosition,
+                flowDiagramsPosition,
+                solutionCardsPosition,
+                keyFeaturesColumns,
+                key_features_columns: keyFeaturesColumns,
+                researchInsightsColumns,
+                research_insights_columns: researchInsightsColumns,
+                sectionPositions: updatedSectionPositions,
+                section_positions: updatedSectionPositions,
+              } as any);
             }}
             caseStudyDecorativeIcons={caseStudyDecorativeIcons}
           />
