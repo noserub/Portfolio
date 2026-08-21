@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
 import { useDesignVariant } from "../../design/DesignVariantContext";
 import { MarkdownRenderer } from "../MarkdownRenderer";
@@ -6,6 +6,7 @@ import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
 import { Input } from "../ui/input";
 import { cn } from "../ui/utils";
+import { sanitizeCaseStudySectionBody } from "../../utils/sanitizeCaseStudySectionBody";
 import {
   PORTFOLIO_ACCENT,
   PORTFOLIO_ANIMATED_BORDER_GRADIENTS,
@@ -47,6 +48,10 @@ import {
 } from "lucide-react";
 import type { CaseStudyGallerySection } from "../../types/caseStudySections";
 import { gallerySectionKey, parseGallerySectionKey } from "../../types/caseStudySections";
+import {
+  isKeyDecisionsSectionTitle,
+  splitExpandableCardBody,
+} from "../../lib/splitExpandableCardBody";
 
 interface CaseStudySectionsProps {
   content: string;
@@ -85,6 +90,9 @@ interface CaseStudySectionsProps {
   onKeyFeaturesColumnsChange?: (columns: 2 | 3) => void;
   researchInsightsColumns?: 1 | 2 | 3;
   onResearchInsightsColumnsChange?: (columns: 1 | 2 | 3) => void;
+  /** 0 = show full Key decisions cards. 1–6 = collapse after that many sentences. `<!-- more -->` in a card always wins. */
+  decisionPreviewSentences?: number;
+  onDecisionPreviewSentencesChange?: (count: number) => void;
   /** Lucide icons on My role subsection cards and similar. Off by default. */
   caseStudyDecorativeIcons?: boolean;
   /** Repeatable image/video galleries with custom titles (preferred over legacy slots). */
@@ -124,6 +132,11 @@ const sectionConfig: Record<string, { icon: any; gradient: string; iconColor: st
   "Research insights": { 
     icon: Lightbulb, 
     gradient: portfolioSectionGradientAt(3),
+    iconColor: PORTFOLIO_ICON_COLOR_CLASS
+  },
+  "Key decisions": {
+    icon: Key,
+    gradient: portfolioSectionGradientAt(6),
     iconColor: PORTFOLIO_ICON_COLOR_CLASS
   },
   "Competitive analysis": { 
@@ -226,6 +239,9 @@ const getSectionConfig = (title: string) => {
   if (titleLower.includes("key feature") || titleLower.includes("project phase")) {
     return sectionConfig["Key features"];
   }
+  if (isKeyDecisionsSectionTitle(title)) {
+    return sectionConfig["Key decisions"];
+  }
 
   // Default configuration for custom narrative sections
   return {
@@ -327,6 +343,91 @@ function mapGalleryPositionToBeforeSolutionInsertIndex(
   return Math.min(count, beforeSolution.length);
 }
 
+function KeyDecisionCard({
+  title,
+  body,
+  clampLines,
+  gradient,
+  isExpanded,
+  onToggle,
+}: {
+  title: string;
+  body: string;
+  clampLines: number;
+  gradient: string;
+  isExpanded: boolean;
+  onToggle: () => void;
+}) {
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const [overflows, setOverflows] = useState(false);
+  const { preview, rest, hasMore: hasMarkedRest } = splitExpandableCardBody(body, 0);
+  const collapsedMarkdown = preview;
+  const expandedMarkdown = hasMarkedRest ? `${preview}\n\n${rest}` : preview;
+  const clampActive = clampLines > 0 && !isExpanded;
+
+  useLayoutEffect(() => {
+    const el = bodyRef.current;
+    if (!el) return;
+    if (isExpanded) return;
+    setOverflows(el.scrollHeight > el.clientHeight + 1);
+  }, [collapsedMarkdown, clampLines, isExpanded]);
+
+  const showToggle = clampLines === 0 ? false : hasMarkedRest || overflows;
+
+  return (
+    <div className="relative p-6 bg-gradient-to-br from-slate-50/10 via-white/15 to-gray-50/8 dark:from-slate-800/30 dark:via-slate-900/25 dark:to-slate-800/20 backdrop-blur-md rounded-xl border border-border/30 shadow-md overflow-hidden">
+      <div
+        className="absolute left-0 top-0 bottom-0 w-1 rounded-l-xl"
+        style={{ background: gradient }}
+      />
+      <div className="relative z-10 flex flex-col">
+        <h3 className="text-lg mb-3">{title}</h3>
+        <div
+          ref={bodyRef}
+          className={cn(
+            "text-muted-foreground text-sm leading-snug key-decision-card-body",
+            clampActive &&
+              "overflow-hidden [&_.markdown-content-compact_p]:!my-0 [&_.markdown-content-compact_p]:inline [&_.markdown-content-compact_p+p]:before:content-[' ']",
+          )}
+          style={
+            clampActive
+              ? {
+                  display: "-webkit-box",
+                  WebkitLineClamp: clampLines,
+                  WebkitBoxOrient: "vertical",
+                  overflow: "hidden",
+                }
+              : undefined
+          }
+        >
+          <MarkdownRenderer
+            content={isExpanded ? expandedMarkdown : collapsedMarkdown}
+            variant="compact"
+          />
+        </div>
+        {showToggle ? (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggle();
+              e.currentTarget.blur();
+            }}
+            className="mt-3 flex items-center gap-1 text-sm font-medium cursor-pointer hover:translate-x-0.5 transition-transform"
+          >
+            <span>{isExpanded ? "Show less" : "Show more"}</span>
+            {isExpanded ? (
+              <ChevronUp className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            )}
+          </button>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 export function CaseStudySections({ 
   content, 
   latestProjectContent,
@@ -357,6 +458,8 @@ export function CaseStudySections({
   onKeyFeaturesColumnsChange,
   researchInsightsColumns = 3,
   onResearchInsightsColumnsChange,
+  decisionPreviewSentences = 2,
+  onDecisionPreviewSentencesChange,
   caseStudyDecorativeIcons = false,
   unifiedGallerySections = [],
   renderUnifiedGallery,
@@ -412,6 +515,7 @@ export function CaseStudySections({
     const contentToEdit = latestProjectContent || content;
     const lookupTitle = (originalSectionTitle || sectionTitle).trim();
     const nextTitle = editedSectionTitle.trim() || lookupTitle;
+    const sanitizedBody = sanitizeCaseStudySectionBody(editedSectionContent, nextTitle);
 
     // Replace the section title and content in the full content
     const lines = contentToEdit.split('\n');
@@ -423,20 +527,20 @@ export function CaseStudySections({
       const line = lines[i];
       
       // Check if this is the start of our target section
-      const headerMatch = line.match(/^# (.+)$/);
-      if (headerMatch && headerMatch[1].trim() === lookupTitle) {
+      const headerMatch = line.trim().match(/^#\s+(.+)$/);
+      if (headerMatch && headerMatch[1].trim() === lookupTitle && !sectionReplaced) {
         inTargetSection = true;
         sectionReplaced = true;
         // Add the EDITED header (new title) and content lines
         newLines.push(`# ${nextTitle}`);
-        if (editedSectionContent) {
-          newLines.push(...editedSectionContent.split('\n'));
+        if (sanitizedBody) {
+          newLines.push(...sanitizedBody.split('\n'));
         }
         continue;
       }
 
       // Check if we've hit another top-level section
-      if (inTargetSection && line.match(/^# (.+)$/)) {
+      if (inTargetSection && line.trim().match(/^#\s+(.+)$/)) {
         inTargetSection = false;
       }
 
@@ -1524,10 +1628,12 @@ export function CaseStudySections({
   };
 
   const extractFeatureCards = (content: string = '') => {
+    // Only real ## headings are cards. Prose (a renamed Results section) must
+    // not become a fake single card or get dropped as empty.
     const blocks = content
       .split(/\n(?=##+\s)/)
       .map(block => block.trim())
-      .filter(block => block.length > 0);
+      .filter(block => /^##+\s+\S/.test(block));
 
     return blocks.map(block => {
       const [headingLine, ...rest] = block.split('\n');
@@ -1566,7 +1672,11 @@ export function CaseStudySections({
       'overview',
       'challenge',
       'my role',
-      'solution'
+      'solution',
+      'decision',
+      'result',
+      'looking ahead',
+      'evaluation',
     ];
 
     if (excludedByTitle.some(keyword => titleLower.includes(keyword))) {
@@ -1586,15 +1696,6 @@ export function CaseStudySections({
 
     if (titleKeywords.some(keyword => titleLower.includes(keyword))) {
       return true;
-    }
-
-    const featureCards = extractFeatureCards(section.content || '');
-
-    if (featureCards.length >= 2) {
-      const averageHeadingLength = featureCards.reduce((acc, item) => acc + item.title.length, 0) / featureCards.length;
-      const maxBodyLength = Math.max(...featureCards.map(item => item.description.length || 0));
-
-      return averageHeadingLength <= 60 && maxBodyLength <= 1600;
     }
 
     return false;
@@ -1629,7 +1730,11 @@ export function CaseStudySections({
 
   // Find key section indices
   const overviewIndex = regularSections.findIndex(s => s.title === "Overview");
-  const solutionIndex = regularSections.findIndex(s => s.title.toLowerCase().includes("solution"));
+  const isPrimarySolutionTitle = (title: string) => {
+    const titleLower = title.toLowerCase();
+    return titleLower === "the solution" || (titleLower.startsWith("the solution") && !titleLower.includes("card"));
+  };
+  const solutionIndex = regularSections.findIndex(s => isPrimarySolutionTitle(s.title));
   
   const isSolutionCardSection = (section: { title: string; content: string }, index: number) => {
     if (solutionIndex === -1 || index <= solutionIndex) return false;
@@ -1642,6 +1747,10 @@ export function CaseStudySections({
     if (titleLower.includes("overview")) return false;
     if (titleLower.includes("challenge")) return false;
     if (titleLower.includes("solution") && !titleLower.includes("cards")) return false;
+    if (titleLower.includes("decision")) return false;
+    if (titleLower.includes("result")) return false;
+    if (titleLower.includes("looking ahead")) return false;
+    if (titleLower.includes("evaluation")) return false;
 
     return true;
   };
@@ -1669,8 +1778,12 @@ export function CaseStudySections({
     });
   });
 
-  const solutionCardTitles = new Set(afterSolution.map((section) => section.title));
-  const beforeSolution = regularSections.filter((section) => !solutionCardTitles.has(section.title));
+  const afterSolutionIndexes = new Set(
+    regularSections
+      .map((section, index) => (afterSolution.includes(section) ? index : -1))
+      .filter((index) => index >= 0),
+  );
+  const beforeSolution = regularSections.filter((_, index) => !afterSolutionIndexes.has(index));
   
   console.log('🔍 Solution Cards Filtering:', {
     solutionIndex,
@@ -2593,16 +2706,21 @@ export function CaseStudySections({
                   </div>
                 </div>
               ) : (
-                /* Layout: One large card on top, two smaller cards below */
+                /* 1 card: full width. 2 cards: equal columns. 3+: longest on top, rest in a pair. */
                 <div className="space-y-6">
-                  {/* Largest Card - Full Width on Top */}
-                  {largestCard && renderRoleCard(largestCard, 'largest-card')}
-                  
-                  {/* Remaining Cards - Two Column Grid */}
-                  {otherCards.length > 0 && (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                      {otherCards.map((card, idx) => renderRoleCard(card, `other-card-${idx}`))}
+                  {subsections.length <= 2 ? (
+                    <div className={`grid grid-cols-1 gap-6 ${subsections.length === 2 ? "lg:grid-cols-2" : ""}`}>
+                      {subsections.map((card, idx) => renderRoleCard(card, `role-card-${idx}`))}
                     </div>
+                  ) : (
+                    <>
+                      {largestCard && renderRoleCard(largestCard, 'largest-card')}
+                      {otherCards.length > 0 && (
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                          {otherCards.map((card, idx) => renderRoleCard(card, `other-card-${idx}`))}
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               )}
@@ -2637,14 +2755,17 @@ export function CaseStudySections({
             description: item.content.trim()
           }));
 
-          // If no insights parsed, don't render the section
+          // Card layout needs ## headings. Prose without them used to vanish
+          // (including the Edit button). Fall through to regular markdown.
           if (insights.length === 0) {
             console.warn('Research insights section has no parsed insights', {
               contentLength: section.content?.length || 0,
               contentPreview: section.content?.substring(0, 200)
             });
-            return null;
-          }
+            if (!isEditMode && !(section.content || "").trim()) {
+              return null;
+            }
+          } else {
 
 
           const insightGradients = [...PORTFOLIO_CARD_TILE_GRADIENTS];
@@ -2907,6 +3028,7 @@ export function CaseStudySections({
               )}
             </motion.div>
           );
+          }
         }
 
         // Special handling for Solution highlights section (titleless, 3 cards in a row)
@@ -3042,10 +3164,164 @@ export function CaseStudySections({
           );
         }
 
+        // Key decisions: card grid with a controllable collapsed preview
+        if (isKeyDecisionsSectionTitle(section.title)) {
+          const decisionCards = extractFeatureCards(section.content);
+          if (decisionCards.length > 0 || (isEditMode && !(section.content || "").trim())) {
+            const previewCount = Number.isFinite(decisionPreviewSentences)
+              ? decisionPreviewSentences
+              : 2;
+
+            return (
+            <motion.div
+              key={index}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 + index * 0.08 }}
+            >
+              <div className="mb-8 flex items-center justify-between gap-3 flex-wrap">
+                <h2>{section.title}</h2>
+                {isEditMode && editingSection !== section.title && (
+                  <div className="flex gap-2 items-center flex-wrap">
+                    {onDecisionPreviewSentencesChange && (
+                      <div className="flex items-center gap-1 mr-1">
+                        <span className="text-xs text-muted-foreground whitespace-nowrap">Collapsed:</span>
+                        {[
+                          { value: 0, label: "All" },
+                          { value: 1, label: "1 line" },
+                          { value: 2, label: "2 lines" },
+                          { value: 3, label: "3 lines" },
+                        ].map((opt) => (
+                          <Button
+                            key={opt.value}
+                            size="sm"
+                            variant={previewCount === opt.value ? "default" : "outline"}
+                            onClick={() => onDecisionPreviewSentencesChange(opt.value)}
+                            className="h-8 px-2.5"
+                            title={
+                              opt.value === 0
+                                ? "Show the full card"
+                                : `Clamp the body to ${opt.value} line${opt.value === 1 ? "" : "s"}, then Show more`
+                            }
+                          >
+                            {opt.label}
+                          </Button>
+                        ))}
+                      </div>
+                    )}
+                    {index > 0 && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => moveSectionUp(section.title)}
+                        className="rounded-full p-2"
+                        title="Move section up"
+                      >
+                        <ArrowUp className="w-4 h-4" />
+                      </Button>
+                    )}
+                    {index < sectionsWithInserts.length - 1 && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => moveSectionDown(section.title)}
+                        className="rounded-full p-2"
+                        title="Move section down"
+                      >
+                        <ArrowDown className="w-4 h-4" />
+                      </Button>
+                    )}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => startEditingSection(section.title, section.content)}
+                      className="rounded-full"
+                    >
+                      <Edit2 className="w-4 h-4 mr-1" />
+                      Edit
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => removeCard(section.title)}
+                      className="rounded-full text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                      title="Delete this section"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              {isEditMode && editingSection === section.title ? (
+                <div className="space-y-4 bg-card/50 p-6 rounded-xl border border-border">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Section Title</label>
+                    <Input
+                      value={editedSectionTitle}
+                      onChange={(e) => setEditedSectionTitle(e.target.value)}
+                      placeholder="Key decisions"
+                      className="font-semibold"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Content (Markdown)</label>
+                    <p className="text-xs text-muted-foreground">
+                      Each ## heading is a card. Collapsed uses a 2-line clamp by default. Put <code className="text-[11px]">{'<!-- more -->'}</code> on its own line if you want a custom fold.
+                    </p>
+                    <Textarea
+                      value={editedSectionContent}
+                      onChange={(e) => setEditedSectionContent(e.target.value)}
+                      className="min-h-[400px] font-mono text-sm"
+                      placeholder={"## Hold it out of search until quality is good enough\n\nSearch was the destination. Early answers were not reliable enough to sit next to directory results.\n\n<!-- more -->\n\nOptional extra context behind Show more."}
+                    />
+                  </div>
+                  <div className="flex gap-2 justify-end">
+                    <Button size="sm" variant="outline" onClick={cancelSectionEdit}>
+                      <X className="w-4 h-4 mr-2" />
+                      Cancel
+                    </Button>
+                    <Button size="sm" onClick={() => saveSectionEdit(section.title)}>
+                      <Save className="w-4 h-4 mr-2" />
+                      Save
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {decisionCards.map((decision, idx) => {
+                    const decisionKey = 9000 + idx;
+                    return (
+                      <motion.div
+                        key={idx}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.6 + idx * 0.1 }}
+                      >
+                        <KeyDecisionCard
+                          title={decision.title}
+                          body={decision.description}
+                          clampLines={previewCount}
+                          gradient={portfolioSectionGradientAt(6)}
+                          isExpanded={expandedCards.has(decisionKey)}
+                          onToggle={() => toggleCard(decisionKey)}
+                        />
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              )}
+            </motion.div>
+            );
+          }
+        }
+
         // Special handling for Key Features section (flexible title matching)
         const keyFeaturesBlock = isKeyFeaturesSection(section);
-        if (keyFeaturesBlock) {
-          const featureCards = extractFeatureCards(section.content);
+        const featureCards = keyFeaturesBlock ? extractFeatureCards(section.content) : [];
+        // Card layout only when there are ## headings. Renaming Key features to
+        // Results (prose, no ##) used to hit "0 cards" and return null.
+        if (keyFeaturesBlock && (featureCards.length > 0 || (isEditMode && !(section.content || "").trim()))) {
 
           console.log('🧩 Key features detection:', {
             title: section.title,
@@ -3062,10 +3338,6 @@ export function CaseStudySections({
               descriptionPreview: card.description.slice(0, 120)
             });
           });
-
-          if (featureCards.length === 0) {
-            return null;
-          }
 
           return (
             <motion.div
@@ -3308,8 +3580,8 @@ export function CaseStudySections({
         // Special handling for Competitive Analysis section (flexible title matching)
         const isCompetitiveSection = section.title.toLowerCase().includes("competitive") || 
                                      section.title.toLowerCase().includes("competitor");
-        if (isCompetitiveSection) {
-          const competitors = parseCompetitiveAnalysis(section.content);
+        const competitors = isCompetitiveSection ? parseCompetitiveAnalysis(section.content) : [];
+        if (isCompetitiveSection && (competitors.length > 0 || (isEditMode && !(section.content || "").trim()))) {
           
           return (
             <motion.div
