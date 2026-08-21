@@ -1,6 +1,8 @@
 import type { CSSProperties } from "react";
 import type { ProjectData } from "../components/ProjectImage";
 
+type PointerLike = { clientX: number; clientY: number };
+
 export type ImageCropFrame = {
   scale: number;
   position: { x: number; y: number };
@@ -33,6 +35,52 @@ function normalizeFrame(
 }
 
 const DEFAULT_FRAME: ImageCropFrame = { scale: 1, position: { x: 50, y: 50 } };
+
+const CROP_IMAGE_STYLE_KEYS = [
+  "transform",
+  "transformOrigin",
+  "objectFit",
+  "objectPosition",
+  "transition",
+  "cursor",
+] as const;
+
+/**
+ * Drag the image with the pointer. Position is a 0-100 focal point, so moving
+ * the photo right decreases x (more of the left side becomes visible).
+ */
+export function panCropPosition(
+  startPosition: { x: number; y: number },
+  startPointer: PointerLike,
+  currentPointer: PointerLike,
+  container: { width: number; height: number },
+): { x: number; y: number } {
+  if (container.width <= 0 || container.height <= 0) {
+    return startPosition;
+  }
+  const dx = ((currentPointer.clientX - startPointer.clientX) / container.width) * 100;
+  const dy = ((currentPointer.clientY - startPointer.clientY) / container.height) * 100;
+  return {
+    x: Math.max(0, Math.min(100, startPosition.x - dx)),
+    y: Math.max(0, Math.min(100, startPosition.y - dy)),
+  };
+}
+
+/** Crop transforms belong on the <img>, not the overflow frame around it. */
+export function splitCropImageStyle(style: CSSProperties): {
+  frameStyle: CSSProperties;
+  imageStyle: CSSProperties;
+} {
+  const frameStyle: CSSProperties = { ...style };
+  const imageStyle: CSSProperties = {};
+  for (const key of CROP_IMAGE_STYLE_KEYS) {
+    if (style[key] !== undefined) {
+      (imageStyle as Record<string, unknown>)[key] = style[key];
+      delete (frameStyle as Record<string, unknown>)[key];
+    }
+  }
+  return { frameStyle, imageStyle };
+}
 
 /** Card / home grid thumbnail crop (`projects.scale`, `position_x`, `position_y`). */
 export function getProjectCardFrame(
