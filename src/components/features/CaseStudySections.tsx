@@ -52,6 +52,7 @@ import {
   collapseDuplicateCaseStudySections,
   isResearchInsightsSectionTitle,
   parseCaseStudySections,
+  splitCardSectionLeadIn,
 } from "../../lib/parseCaseStudySections";
 import {
   isKeyDecisionsSectionTitle,
@@ -556,7 +557,13 @@ export function CaseStudySections({
     }
 
     if (!sectionReplaced) {
-      console.error('Could not find section to update:', lookupTitle);
+      const nextContent = `${contentToEdit.trim()}\n\n# ${nextTitle}\n\n${sanitizedBody}\n`;
+      onContentUpdate(nextContent);
+      setEditingSection(null);
+      setEditedSectionTitle("");
+      setEditedSectionContent("");
+      setOriginalSectionTitle("");
+      setOriginalSectionContent("");
       return;
     }
 
@@ -1714,6 +1721,7 @@ export function CaseStudySections({
     if (titleLower.includes("solution") && !titleLower.includes("cards")) return false;
     if (titleLower.includes("decision")) return false;
     if (titleLower.includes("result")) return false;
+    if (titleLower.includes("insight")) return false;
     if (titleLower.includes("looking ahead")) return false;
     if (titleLower.includes("evaluation")) return false;
 
@@ -1733,6 +1741,7 @@ export function CaseStudySections({
     "Project phases", // Also exclude when Key features is renamed
     "Research insights",
     "Research", // Also exclude when Research insights is renamed
+    "Insights",
     "The solution"
   ];
   const afterSolution = afterSolutionRaw.filter(section => {
@@ -2850,7 +2859,18 @@ export function CaseStudySections({
                   </div>
                 </div>
               ) : (
-                /* Insights Cards Grid */
+                <div className="space-y-6">
+                {(() => {
+                  const leadIn = splitCardSectionLeadIn(section.content).leadIn;
+                  return leadIn ? (
+                  <div className="text-muted-foreground leading-relaxed">
+                    <MarkdownRenderer
+                      content={leadIn}
+                      variant="compact"
+                    />
+                  </div>
+                  ) : null;
+                })()}
                 <div className={`grid gap-6 ${
                   researchInsightsColumns === 1 ? 'grid-cols-1' :
                   researchInsightsColumns === 2 ? 'grid-cols-1 md:grid-cols-2' :
@@ -2988,6 +3008,7 @@ export function CaseStudySections({
                   );
                 })}
               </div>
+                </div>
               )}
             </motion.div>
           );

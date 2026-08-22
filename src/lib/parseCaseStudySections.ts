@@ -10,6 +10,7 @@ const STRUCTURAL_SECTION_TITLES = [
   "decisions",
   "research insights",
   "research",
+  "insights",
   "competitive analysis",
   "the solution",
   "key features",
@@ -58,6 +59,19 @@ export function isStructuralCaseStudyTitle(title: string): boolean {
   if (normalized.startsWith("the solution") && !normalized.includes("card")) return true;
   if (normalized.startsWith("results ")) return true;
   if (normalized.startsWith("research insight")) return true;
+  if (isResearchInsightsSectionTitle(title)) return true;
+  return false;
+}
+
+/** Prose chapters. Inner `# Bar` lines stay in the section instead of becoming new pages. */
+export function isProseCaseStudyTitle(title: string): boolean {
+  const normalized = normalizeCaseStudySectionTitle(title);
+  if (!normalized) return false;
+  if (normalized === "overview") return true;
+  if (normalized === "the challenge" || normalized === "challenge") return true;
+  if (normalized.startsWith("the solution") && !normalized.includes("card")) return true;
+  if (normalized === "results" || normalized.startsWith("results ")) return true;
+  if (normalized === "looking ahead") return true;
   return false;
 }
 
@@ -67,7 +81,23 @@ export function isCardBasedCaseStudyTitle(title: string): boolean {
   if (isExactTitleInList(title, CARD_SECTION_TITLES)) return true;
   if (normalized.startsWith("research insight")) return true;
   if (normalized.startsWith("key decision")) return true;
+  if (isResearchInsightsSectionTitle(title)) return true;
   return false;
+}
+
+export function splitCardSectionLeadIn(content: string): { leadIn: string; cardsSource: string } {
+  const text = String(content || "");
+  const match = text.match(/\n(?=##+\s+\S)/);
+  if (match && match.index !== undefined) {
+    return {
+      leadIn: text.slice(0, match.index).trim(),
+      cardsSource: text.slice(match.index).trim(),
+    };
+  }
+  if (/^##+\s+\S/.test(text.trim())) {
+    return { leadIn: "", cardsSource: text.trim() };
+  }
+  return { leadIn: text.trim(), cardsSource: "" };
 }
 
 export function isResearchInsightsSectionTitle(title: string): boolean {
@@ -141,8 +171,9 @@ export function parseCaseStudySections(markdown: string): CaseStudyParsedSection
       const title = headerMatch[1].trim();
       if (
         currentSection &&
-        isCardBasedCaseStudyTitle(currentSection.title) &&
-        !isStructuralCaseStudyTitle(title)
+        !isStructuralCaseStudyTitle(title) &&
+        (isCardBasedCaseStudyTitle(currentSection.title) ||
+          isProseCaseStudyTitle(currentSection.title))
       ) {
         currentSection.content += `## ${title}\n`;
         skipImpactSubsection = false;
