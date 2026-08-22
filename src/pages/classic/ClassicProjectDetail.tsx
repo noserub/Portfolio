@@ -70,6 +70,7 @@ import {
 } from "../../types/caseStudySections";
 import { gallerySectionKey } from "../../types/caseStudySections";
 import { toast } from "sonner";
+import { removeCaseStudySectionMarkdown } from "../../lib/parseCaseStudySections";
 
 interface ProjectDetailProps {
   project: ProjectData;
@@ -1685,22 +1686,7 @@ export function ClassicProjectDetail({
   }, [caseStudyContent, project, editedTitle, editedDescription, editedProjectType, galleryAspectRatio, flowDiagramAspectRatio, videoAspectRatio, galleryColumns, flowDiagramColumns, videoColumns, projectImagesPosition, videosPosition, flowDiagramsPosition, solutionCardsPosition, sectionPositions, persistUpdate]);
 
   const removeMarkdownSection = useCallback((title: string) => {
-    const lines = (caseStudyContent || '').split('\n');
-    const newLines: string[] = [];
-    let inTarget = false;
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      const header = line.trim().match(/^# (.+)$/);
-      if (header && header[1].trim() === title) {
-        inTarget = true; // start skipping
-        continue;
-      }
-      if (inTarget && line.trim().match(/^# (.+)$/)) {
-        inTarget = false; // hit next section
-      }
-      if (!inTarget) newLines.push(line);
-    }
-    const newContent = newLines.join('\n');
+    const newContent = removeCaseStudySectionMarkdown(caseStudyContent || '', title);
     setCaseStudyContent(newContent);
     persistUpdate({
       ...project,
@@ -5175,6 +5161,7 @@ export function ClassicProjectDetail({
                 description: editedDescription,
       projectType: editedProjectType,
                 caseStudyContent: mergedContent,
+                case_study_content: mergedContent,
                 caseStudyImages: caseStudyImagesRef.current,
                 flowDiagramImages: flowDiagramImagesRef.current,
                 galleryAspectRatio,

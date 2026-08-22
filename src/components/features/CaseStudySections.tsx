@@ -55,7 +55,8 @@ import {
   isProseCaseStudyTitle,
   isResearchInsightsSectionTitle,
   parseCaseStudySections,
-  sameCaseStudySection,
+  removeCaseStudySectionMarkdown,
+  replaceCaseStudySectionMarkdown,
   splitCardSectionLeadIn,
 } from "../../lib/parseCaseStudySections";
 import {
@@ -528,55 +529,13 @@ export function CaseStudySections({
     const lookupTitle = (originalSectionTitle || sectionTitle).trim();
     const nextTitle = editedSectionTitle.trim() || lookupTitle;
     const sanitizedBody = sanitizeCaseStudySectionBody(editedSectionContent, nextTitle);
+    const newContent = replaceCaseStudySectionMarkdown(
+      contentToEdit,
+      lookupTitle,
+      nextTitle,
+      sanitizedBody,
+    );
 
-    // Replace the section title and content in the full content
-    const lines = contentToEdit.split('\n');
-    const newLines: string[] = [];
-    let inTargetSection = false;
-    let sectionReplaced = false;
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      const headerMatch = line.trim().match(/^#\s+(.+)$/);
-      const headingTitle = headerMatch?.[1]?.trim() || "";
-      const headingIsTarget = Boolean(headingTitle && sameCaseStudySection(headingTitle, lookupTitle));
-
-      if (headingIsTarget && !sectionReplaced) {
-        inTargetSection = true;
-        sectionReplaced = true;
-        newLines.push(`# ${nextTitle}`);
-        if (sanitizedBody) {
-          newLines.push(...sanitizedBody.split("\n"));
-        }
-        continue;
-      }
-
-      if (headingIsTarget && sectionReplaced) {
-        inTargetSection = true;
-        continue;
-      }
-
-      if (inTargetSection && headerMatch && !headingIsTarget) {
-        inTargetSection = false;
-      }
-
-      if (!inTargetSection) {
-        newLines.push(line);
-      }
-    }
-
-    if (!sectionReplaced) {
-      const nextContent = `${contentToEdit.trim()}\n\n# ${nextTitle}\n\n${sanitizedBody}\n`;
-      onContentUpdate(nextContent);
-      setEditingSection(null);
-      setEditedSectionTitle("");
-      setEditedSectionContent("");
-      setOriginalSectionTitle("");
-      setOriginalSectionContent("");
-      return;
-    }
-
-    const newContent = newLines.join('\n');
     onContentUpdate(newContent);
     setEditingSection(null);
     setEditedSectionTitle("");
@@ -1500,62 +1459,7 @@ export function CaseStudySections({
     const contentToEdit = latestProjectContent || content;
     console.log('🗑️ Removing card:', sectionTitle, '| Using:', latestProjectContent ? 'latestProjectContent (has all cards)' : 'content (may be missing cards)');
 
-    // Remove the section from the content
-    const lines = contentToEdit.split('\n');
-    const newLines: string[] = [];
-    let inTargetSection = false;
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      
-      // Check if this is the start of our target section
-      const headerMatch = line.match(/^# (.+)$/);
-      if (headerMatch && headerMatch[1].trim() === sectionTitle) {
-        inTargetSection = true;
-        console.log('🗑️ Found target section header at line', i, ':', sectionTitle);
-        continue; // Skip the header line - don't add it to newLines
-      }
-
-      // Check if we've hit another top-level section
-      if (inTargetSection && headerMatch) {
-        // Found next section header - stop skipping
-        inTargetSection = false;
-        console.log('🗑️ Found next section header at line', i, '- stopping deletion, adding this header');
-        // Add this new header (it's the start of the next section)
-        newLines.push(line);
-        continue;
-      }
-
-      // Only keep lines that are not in the target section
-      if (!inTargetSection) {
-        newLines.push(line);
-      } else {
-        // We're skipping this line because it's part of the target section
-        // This includes both the header (already skipped above) and all content lines
-      }
-    }
-    
-    // If we were still in the target section at the end, that's fine - it means it was the last section
-    if (inTargetSection) {
-      console.log('🗑️ Deleted section was the last section in the file');
-    }
-
-    const newContent = newLines.join('\n');
-    
-    // Verify the deletion
-    const remainingHeaders = newContent.split('\n').filter(l => l.trim().match(/^# (.+)$/)).map(l => l.trim());
-    const deletedHeaderExists = remainingHeaders.some(h => h.includes(sectionTitle));
-    console.log('🗑️ Deletion complete:', {
-      originalLines: lines.length,
-      newLines: newLines.length,
-      deletedHeaderExists,
-      remainingCardHeaders: remainingHeaders.filter(h => !h.includes('The solution') && !h.includes('Overview') && !h.includes('Research insights') && !h.includes('Competitive analysis') && !h.includes('The challenge') && !h.includes('My role'))
-    });
-    
-    if (deletedHeaderExists) {
-      console.warn('⚠️ WARNING: Deleted header still exists in content!');
-    }
-    
+    const newContent = removeCaseStudySectionMarkdown(contentToEdit, sectionTitle);
     onContentUpdate(newContent);
   };
 

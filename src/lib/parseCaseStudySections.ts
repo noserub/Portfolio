@@ -156,6 +156,130 @@ export function sameCaseStudySection(a: string, b: string): boolean {
   return Boolean(leftKey && rightKey && leftKey === rightKey);
 }
 
+/** Inner `# Bar` stays in Results / cards. A real chapter title starts a new section. */
+export function isNestedCaseStudyHeading(currentTitle: string, nextTitle: string): boolean {
+  if (!currentTitle.trim() || !nextTitle.trim()) return false;
+  if (isStructuralCaseStudyTitle(nextTitle)) return false;
+  return isCardBasedCaseStudyTitle(currentTitle) || isProseCaseStudyTitle(currentTitle);
+}
+
+function matchTopLevelHeading(line: string): string {
+  const trimmed = line.trim();
+  const headerMatch = trimmed.match(/^#\s+(.+)$/);
+  if (!headerMatch || /^#{2,}/.test(trimmed)) return "";
+  return headerMatch[1].trim();
+}
+
+/**
+ * Replace the first matching H1 section and drop later duplicates.
+ * Inner `# Bar` lines are part of the section, not a save boundary.
+ */
+export function replaceCaseStudySectionMarkdown(
+  markdown: string,
+  lookupTitle: string,
+  nextTitle: string,
+  nextBody: string,
+): string {
+  const contentToEdit = String(markdown || "").replace(/\r\n/g, "\n");
+  const lines = contentToEdit.split("\n");
+  const newLines: string[] = [];
+  let currentTitle: string | null = null;
+  let inTargetSection = false;
+  let sectionReplaced = false;
+
+  for (const line of lines) {
+    const headingTitle = matchTopLevelHeading(line);
+    if (headingTitle) {
+      const nested = Boolean(currentTitle && isNestedCaseStudyHeading(currentTitle, headingTitle));
+      const headingIsTarget = sameCaseStudySection(headingTitle, lookupTitle);
+
+      if (headingIsTarget && !nested && !sectionReplaced) {
+        inTargetSection = true;
+        sectionReplaced = true;
+        currentTitle = nextTitle;
+        newLines.push(`# ${nextTitle}`);
+        if (nextBody) {
+          newLines.push(...nextBody.split("\n"));
+        }
+        continue;
+      }
+
+      if (headingIsTarget && !nested && sectionReplaced) {
+        inTargetSection = true;
+        currentTitle = headingTitle;
+        continue;
+      }
+
+      if (inTargetSection && (nested || (currentTitle && isNestedCaseStudyHeading(currentTitle, headingTitle)))) {
+        continue;
+      }
+
+      if (inTargetSection) {
+        inTargetSection = false;
+      }
+
+      if (!nested) {
+        currentTitle = headingTitle;
+      }
+    }
+
+    if (!inTargetSection) {
+      newLines.push(line);
+    }
+  }
+
+  if (!sectionReplaced) {
+    const trimmed = contentToEdit.trim();
+    const bodyBlock = nextBody ? `\n\n${nextBody}\n` : "\n";
+    return trimmed ? `${trimmed}\n\n# ${nextTitle}${bodyBlock}` : `# ${nextTitle}${bodyBlock}`;
+  }
+
+  return newLines.join("\n");
+}
+
+/** Delete the first matching H1 section, including inner `# Bar` lines. */
+export function removeCaseStudySectionMarkdown(markdown: string, lookupTitle: string): string {
+  const contentToEdit = String(markdown || "").replace(/\r\n/g, "\n");
+  const lines = contentToEdit.split("\n");
+  const newLines: string[] = [];
+  let currentTitle: string | null = null;
+  let inTargetSection = false;
+  let sectionRemoved = false;
+
+  for (const line of lines) {
+    const headingTitle = matchTopLevelHeading(line);
+    if (headingTitle) {
+      const nested = Boolean(currentTitle && isNestedCaseStudyHeading(currentTitle, headingTitle));
+      const headingIsTarget = sameCaseStudySection(headingTitle, lookupTitle);
+
+      if (headingIsTarget && !nested) {
+        inTargetSection = true;
+        sectionRemoved = true;
+        currentTitle = headingTitle;
+        continue;
+      }
+
+      if (inTargetSection && (nested || (currentTitle && isNestedCaseStudyHeading(currentTitle, headingTitle)))) {
+        continue;
+      }
+
+      if (inTargetSection) {
+        inTargetSection = false;
+      }
+
+      if (!nested) {
+        currentTitle = headingTitle;
+      }
+    }
+
+    if (!inTargetSection) {
+      newLines.push(line);
+    }
+  }
+
+  return sectionRemoved ? newLines.join("\n") : contentToEdit;
+}
+
 export function caseStudySectionTitlesMatch(a: string, b: string): boolean {
   const left = normalizeCaseStudySectionTitle(a);
   const right = normalizeCaseStudySectionTitle(b);
@@ -202,15 +326,9 @@ export function parseCaseStudySections(markdown: string): CaseStudyParsedSection
   };
 
   for (const line of lines) {
-    const headerMatch = line.trim().match(/^#\s+(.+)$/);
-    if (headerMatch && !/^#{2,}/.test(line.trim())) {
-      const title = headerMatch[1].trim();
-      if (
-        currentSection &&
-        !isStructuralCaseStudyTitle(title) &&
-        (isCardBasedCaseStudyTitle(currentSection.title) ||
-          isProseCaseStudyTitle(currentSection.title))
-      ) {
+    const title = matchTopLevelHeading(line);
+    if (title) {
+      if (currentSection && isNestedCaseStudyHeading(currentSection.title, title)) {
         currentSection.content += isProseCaseStudyTitle(currentSection.title)
           ? `${line}\n`
           : `## ${title}\n`;
@@ -263,14 +381,9 @@ export function extractRawSectionBody(
   };
 
   for (const line of lines) {
-    const headerMatch = line.trim().match(/^#\s+(.+)$/);
-    if (headerMatch && !/^#{2,}/.test(line.trim())) {
-      const title = headerMatch[1].trim();
-      if (
-        currentTitle &&
-        !isStructuralCaseStudyTitle(title) &&
-        (isCardBasedCaseStudyTitle(currentTitle) || isProseCaseStudyTitle(currentTitle))
-      ) {
+    const title = matchTopLevelHeading(line);
+    if (title) {
+      if (currentTitle && isNestedCaseStudyHeading(currentTitle, title)) {
         currentBody.push(line);
         continue;
       }
