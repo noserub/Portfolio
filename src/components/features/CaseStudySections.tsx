@@ -2775,7 +2775,16 @@ export function CaseStudySections({
                 <div className="space-y-6">
                 {(() => {
                   const leadIn = splitCardSectionLeadIn(section.content).leadIn;
-                  return leadIn ? (
+                  const firstCard = insights[0];
+                  const normalizeInsightText = (value: string) =>
+                    value.replace(/^#+\s+/gm, "").replace(/\s+/g, " ").trim().toLowerCase();
+                  const leadInIsFirstCard = Boolean(
+                    leadIn &&
+                    firstCard &&
+                    normalizeInsightText(leadIn) ===
+                      normalizeInsightText(`${firstCard.title}\n${firstCard.description}`),
+                  );
+                  return leadIn && !leadInIsFirstCard ? (
                   <div className="text-muted-foreground leading-relaxed">
                     <MarkdownRenderer
                       content={leadIn}

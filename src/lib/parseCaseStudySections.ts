@@ -126,6 +126,10 @@ export function isCardBasedCaseStudyTitle(title: string): boolean {
 
 export function splitCardSectionLeadIn(content: string): { leadIn: string; cardsSource: string } {
   const text = String(content || "");
+  const trimmed = text.trim();
+  if (/^##+\s+\S/.test(trimmed)) {
+    return { leadIn: "", cardsSource: trimmed };
+  }
   const match = text.match(/\n(?=##+\s+\S)/);
   if (match && match.index !== undefined) {
     return {
@@ -133,10 +137,7 @@ export function splitCardSectionLeadIn(content: string): { leadIn: string; cards
       cardsSource: text.slice(match.index).trim(),
     };
   }
-  if (/^##+\s+\S/.test(text.trim())) {
-    return { leadIn: "", cardsSource: text.trim() };
-  }
-  return { leadIn: text.trim(), cardsSource: "" };
+  return { leadIn: trimmed, cardsSource: "" };
 }
 
 export function isResearchInsightsSectionTitle(title: string): boolean {
@@ -156,11 +157,12 @@ export function sameCaseStudySection(a: string, b: string): boolean {
   return Boolean(leftKey && rightKey && leftKey === rightKey);
 }
 
-/** Inner `# Bar` stays in Results / cards. A real chapter title starts a new section. */
+/** Inner `# Bar` stays in Results. Research-insight H1s stay cards. My role does not swallow the next chapter. */
 export function isNestedCaseStudyHeading(currentTitle: string, nextTitle: string): boolean {
   if (!currentTitle.trim() || !nextTitle.trim()) return false;
   if (isStructuralCaseStudyTitle(nextTitle)) return false;
-  return isCardBasedCaseStudyTitle(currentTitle) || isProseCaseStudyTitle(currentTitle);
+  if (isProseCaseStudyTitle(currentTitle)) return true;
+  return isResearchInsightsSectionTitle(currentTitle);
 }
 
 function matchTopLevelHeading(line: string): string {
