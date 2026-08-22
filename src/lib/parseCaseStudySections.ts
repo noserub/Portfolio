@@ -149,6 +149,13 @@ export function isResearchInsightsSectionTitle(title: string): boolean {
   return false;
 }
 
+export function sameCaseStudySection(a: string, b: string): boolean {
+  if (caseStudySectionTitlesMatch(a, b)) return true;
+  const leftKey = uniqueSectionKey(a);
+  const rightKey = uniqueSectionKey(b);
+  return Boolean(leftKey && rightKey && leftKey === rightKey);
+}
+
 export function caseStudySectionTitlesMatch(a: string, b: string): boolean {
   const left = normalizeCaseStudySectionTitle(a);
   const right = normalizeCaseStudySectionTitle(b);
@@ -171,21 +178,6 @@ function uniqueSectionKey(title: string): string | null {
   if (normalized.startsWith("the solution") && !normalized.includes("card")) return "the solution";
   if (normalized === "results" || normalized.startsWith("results ")) return "results";
   return null;
-}
-
-function normalizeSectionBody(content: string): string {
-  return content.replace(/\s+/g, " ").trim().toLowerCase();
-}
-
-function bodiesAreDuplicate(a: string, b: string): boolean {
-  const left = normalizeSectionBody(a);
-  const right = normalizeSectionBody(b);
-  if (!left && !right) return true;
-  if (!left || !right) return false;
-  if (left === right) return true;
-  const shorter = left.length <= right.length ? left : right;
-  const longer = left.length > right.length ? left : right;
-  return shorter.length >= 80 && longer.includes(shorter);
 }
 
 /**
@@ -259,7 +251,11 @@ export function extractRawSectionBody(
   let found: string | null = null;
 
   const take = () => {
-    if (currentTitle && caseStudySectionTitlesMatch(currentTitle, sectionTitle)) {
+    if (
+      found === null &&
+      currentTitle &&
+      sameCaseStudySection(currentTitle, sectionTitle)
+    ) {
       found = currentBody.join("\n");
     }
     currentTitle = null;
@@ -288,55 +284,15 @@ export function extractRawSectionBody(
   return found;
 }
 
-/**
- * One Overview / Results / Research insights / etc. per page.
- * Later copies are dropped; the longest body wins.
- */
+/** One Overview / Results / The solution / etc. The first copy wins. Later copies are dropped. */
 export function collapseDuplicateCaseStudySections(
   sections: CaseStudyParsedSection[],
 ): CaseStudyParsedSection[] {
   const kept: CaseStudyParsedSection[] = [];
 
   for (const section of sections) {
-    const uniqueKey = uniqueSectionKey(section.title);
-    const existingIndex = kept.findIndex((item) => {
-      if (uniqueKey && uniqueSectionKey(item.title) === uniqueKey) return true;
-      return caseStudySectionTitlesMatch(item.title, section.title);
-    });
-
-    if (existingIndex === -1) {
-      kept.push(section);
-      continue;
-    }
-
-    const existing = kept[existingIndex];
-    const sameUnique = Boolean(uniqueKey);
-    if (sameUnique || bodiesAreDuplicate(existing.content, section.content)) {
-      const preferResearchTitle =
-        normalizeCaseStudySectionTitle(existing.title).includes("research")
-          ? existing.title
-          : normalizeCaseStudySectionTitle(section.title).includes("research")
-            ? section.title
-            : existing.title;
-      const nextTitle =
-        uniqueKey === "research insights" ? preferResearchTitle : existing.title;
-
-      let nextContent = existing.content;
-      if (bodiesAreDuplicate(existing.content, section.content)) {
-        if (section.content.trim().length > existing.content.trim().length) {
-          nextContent = section.content;
-        }
-      } else if (uniqueKey === "research insights") {
-        nextContent = `${existing.content.trim()}\n\n${section.content.trim()}\n`;
-      } else if (section.content.trim().length > existing.content.trim().length) {
-        nextContent = section.content;
-      }
-
-      kept[existingIndex] = { title: nextTitle, content: nextContent };
-      continue;
-    }
-
-    kept.push(section);
+    const alreadyKept = kept.some((item) => sameCaseStudySection(item.title, section.title));
+    if (!alreadyKept) kept.push(section);
   }
 
   return kept;

@@ -55,6 +55,7 @@ import {
   isProseCaseStudyTitle,
   isResearchInsightsSectionTitle,
   parseCaseStudySections,
+  sameCaseStudySection,
   splitCardSectionLeadIn,
 } from "../../lib/parseCaseStudySections";
 import {
@@ -536,26 +537,29 @@ export function CaseStudySections({
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
-      
-      // Check if this is the start of our target section
       const headerMatch = line.trim().match(/^#\s+(.+)$/);
-      if (headerMatch && headerMatch[1].trim() === lookupTitle && !sectionReplaced) {
+      const headingTitle = headerMatch?.[1]?.trim() || "";
+      const headingIsTarget = Boolean(headingTitle && sameCaseStudySection(headingTitle, lookupTitle));
+
+      if (headingIsTarget && !sectionReplaced) {
         inTargetSection = true;
         sectionReplaced = true;
-        // Add the EDITED header (new title) and content lines
         newLines.push(`# ${nextTitle}`);
         if (sanitizedBody) {
-          newLines.push(...sanitizedBody.split('\n'));
+          newLines.push(...sanitizedBody.split("\n"));
         }
         continue;
       }
 
-      // Check if we've hit another top-level section
-      if (inTargetSection && line.trim().match(/^#\s+(.+)$/)) {
+      if (headingIsTarget && sectionReplaced) {
+        inTargetSection = true;
+        continue;
+      }
+
+      if (inTargetSection && headerMatch && !headingIsTarget) {
         inTargetSection = false;
       }
 
-      // If not in target section, keep the line
       if (!inTargetSection) {
         newLines.push(line);
       }
