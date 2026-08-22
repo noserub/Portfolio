@@ -175,8 +175,8 @@ function uniqueSectionKey(title: string): string | null {
   if (normalized.includes("key decision") || normalized === "decisions") return "key decisions";
   if (isResearchInsightsSectionTitle(title)) return "research insights";
   if (normalized.includes("competitive")) return "competitive analysis";
-  if (normalized.startsWith("the solution") && !normalized.includes("card")) return "the solution";
-  if (normalized === "results" || normalized.startsWith("results ")) return "results";
+  if (normalized === "the solution") return "the solution";
+  if (normalized === "results") return "results";
   return null;
 }
 
