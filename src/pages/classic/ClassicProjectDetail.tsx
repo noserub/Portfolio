@@ -1567,8 +1567,14 @@ export function ClassicProjectDetail({
   // Helpers to detect presence of markdown sections
   const hasMarkdownTitle = useCallback((title: string) => {
     const lines = (caseStudyContent || '').split('\n');
-    const hasTitle = lines.some(l => l.trim().match(/^# (.+)$/)?.[1].trim() === title);
-    console.log('🔍 hasMarkdownTitle check:', { title, hasTitle, caseStudyContent: caseStudyContent?.substring(0, 200) });
+    const wanted = title.trim().toLowerCase();
+    const hasTitle = lines.some((line) => {
+      const heading = line.trim().match(/^#\s+(.+)$/)?.[1]?.trim().toLowerCase();
+      if (!heading) return false;
+      if (heading === wanted) return true;
+      if (wanted === 'results' && (heading === 'results' || heading.startsWith('results '))) return true;
+      return false;
+    });
     return hasTitle;
   }, [caseStudyContent]);
 
@@ -1640,7 +1646,7 @@ export function ClassicProjectDetail({
       // extracts any "Impact" subsection as the Impact sidebar. Use a different heading.
       seeded = '## Problem statement\nDescribe the main problem or challenge.\n\n## Context\nProvide background and context.\n\n## Consequences\nExplain what happens if this challenge is not solved.';
     } else if (lower === 'results' || lower.startsWith('results ')) {
-      seeded = 'The lab did not declare the assistant ready. It selected a provisional instruction set and named what still had to be proven by hand.\n\n**Bar:** Each run used the same weighted rubric: accuracy (35%), source grounding (25%), usefulness (20%), actionability (10%), safety/escalation (10%). An honest “I cannot find a source” was not scored as a fabricated policy.\n\n**Signal:** Custom led in 6 of 10 controlled runs on 191 scenarios, same collections and model. That became the provisional instruction set.\n\n**What the average could not retire:** Wrong-country guidance, unsupported eligibility or pay, confidentiality, and unsafe advice stayed release-blocking. Reviewers classified misses as retrieval, instruction, test, or scoring.\n\n**After the score:** Manual testing focused on country-specific leave and benefits, immigration, pay and tax, local policy, safety, and confidentiality. Testers did not review the bank blind.';
+      seeded = body || 'Summarize outcomes, metrics, and what remained unproven.';
     }
     const newContent = `${base}${prefix}# ${title}\n\n${seeded}`;
     console.log('📝 Adding markdown section:', { title, newContentLength: newContent.length });

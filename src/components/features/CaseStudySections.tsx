@@ -49,6 +49,11 @@ import {
 import type { CaseStudyGallerySection } from "../../types/caseStudySections";
 import { gallerySectionKey, parseGallerySectionKey } from "../../types/caseStudySections";
 import {
+  collapseDuplicateCaseStudySections,
+  isResearchInsightsSectionTitle,
+  parseCaseStudySections,
+} from "../../lib/parseCaseStudySections";
+import {
   isKeyDecisionsSectionTitle,
   splitExpandableCardBody,
 } from "../../lib/splitExpandableCardBody";
@@ -227,7 +232,7 @@ const getSectionConfig = (title: string) => {
   if (titleLower.includes("my role") || titleLower.includes("role & impact")) {
     return sectionConfig["My role & impact"];
   }
-  if (titleLower.includes("research")) {
+  if (isResearchInsightsSectionTitle(title)) {
     return sectionConfig["Research insights"];
   }
   if (titleLower.includes("competitive") || titleLower.includes("competitor")) {
@@ -1556,49 +1561,9 @@ export function CaseStudySections({
     }
   };
 
-  // Parse content into sections based on top-level headers (# Header)
-  // Use latestProjectContent if available (for accurate solution cards parsing), otherwise fall back to content
   const parseSections = () => {
     const contentToParse = latestProjectContent || content;
-    const lines = contentToParse.split('\n');
-    const sections: Array<{ title: string; content: string }> = [];
-    let currentSection: { title: string; content: string } | null = null;
-    let skipImpactSubsection = false;
-
-    lines.forEach(line => {
-      // Check for top-level header (# Title only, not ## subsections)
-      if (line.trim().match(/^# (.+)$/)) {
-        // Save previous section if exists
-        if (currentSection) {
-          sections.push(currentSection);
-        }
-        // Start new section
-        const title = (line || '').trim().substring(2).trim();
-        currentSection = { title, content: '' };
-        skipImpactSubsection = false;
-      } else if (currentSection) {
-        // Check if this is the ## Impact subsection header (only skip if we're in the Impact section)
-        if (line.trim() === '## Impact' && currentSection.title === 'Impact') {
-          skipImpactSubsection = true;
-          return; // Don't add this line
-        }
-        // Check if we've hit a new subsection (stop skipping Impact)
-        if (line.trim().startsWith('## ') && skipImpactSubsection) {
-          skipImpactSubsection = false;
-        }
-        // Add line to current section (unless we're skipping Impact content)
-        if (!skipImpactSubsection) {
-          currentSection.content += line + '\n';
-        }
-      }
-    });
-
-    // Add last section
-    if (currentSection) {
-      sections.push(currentSection);
-    }
-
-    return sections;
+    return collapseDuplicateCaseStudySections(parseCaseStudySections(contentToParse));
   };
 
   // Parse subsections with h2 headers (## Name)
@@ -2729,9 +2694,7 @@ export function CaseStudySections({
         }
 
         // Special handling for Research Insights section (flexible title matching)
-        const isResearchSection = section.title.toLowerCase().includes("research") && 
-                                  (section.title.toLowerCase().includes("insights") || 
-                                   section.title.toLowerCase() === "research");
+        const isResearchSection = isResearchInsightsSectionTitle(section.title);
         if (isResearchSection) {
           console.log('🔍 Research section detected:', {
             title: section.title,
