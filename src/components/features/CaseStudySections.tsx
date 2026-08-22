@@ -50,6 +50,9 @@ import type { CaseStudyGallerySection } from "../../types/caseStudySections";
 import { gallerySectionKey, parseGallerySectionKey } from "../../types/caseStudySections";
 import {
   collapseDuplicateCaseStudySections,
+  extractRawSectionBody,
+  flattenProseSectionHeadings,
+  isProseCaseStudyTitle,
   isResearchInsightsSectionTitle,
   parseCaseStudySections,
   splitCardSectionLeadIn,
@@ -495,11 +498,13 @@ export function CaseStudySections({
   };
 
   const startEditingSection = (sectionTitle: string, sectionContent: string) => {
+    const rawBody = extractRawSectionBody(latestProjectContent || content, sectionTitle);
+    const editorBody = sanitizeCaseStudySectionBody(rawBody ?? sectionContent, sectionTitle);
     setEditingSection(sectionTitle);
     setEditedSectionTitle(sectionTitle);
-    setEditedSectionContent(sectionContent);
+    setEditedSectionContent(editorBody);
     setOriginalSectionTitle(sectionTitle);
-    setOriginalSectionContent(sectionContent);
+    setOriginalSectionContent(editorBody);
   };
 
   const cancelSectionEdit = () => {
@@ -3979,7 +3984,13 @@ export function CaseStudySections({
                   </div>
                 </div>
               ) : (
-                <MarkdownRenderer content={section.content.trim()} />
+                <MarkdownRenderer
+                  content={
+                    isProseCaseStudyTitle(section.title)
+                      ? flattenProseSectionHeadings(section.content.trim())
+                      : section.content.trim()
+                  }
+                />
               )}
             </div>
           </motion.div>

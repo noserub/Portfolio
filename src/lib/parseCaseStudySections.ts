@@ -63,6 +63,45 @@ export function isStructuralCaseStudyTitle(title: string): boolean {
   return false;
 }
 
+/**
+ * Turn leftover `#` / `##` labels into inline bold so Results stays paragraphs.
+ * `## Bar` + the next sentence becomes `**Bar:** sentence`.
+ */
+export function flattenProseSectionHeadings(body: string): string {
+  const lines = String(body || "").replace(/\r\n/g, "\n").split("\n");
+  const out: string[] = [];
+
+  for (let i = 0; i < lines.length; i += 1) {
+    const heading = lines[i].match(/^#{1,6}\s+(.+)$/);
+    if (!heading) {
+      out.push(lines[i]);
+      continue;
+    }
+
+    const label = heading[1].trim().replace(/:+\s*$/, "");
+    if (!label) continue;
+
+    let nextIndex = i + 1;
+    while (nextIndex < lines.length && lines[nextIndex].trim() === "") {
+      nextIndex += 1;
+    }
+    const nextLine = lines[nextIndex];
+    const nextIsHeading = Boolean(nextLine && /^#{1,6}\s+/.test(nextLine));
+
+    if (nextLine && !nextIsHeading) {
+      const rest = nextLine.trim();
+      const restHasLabel = rest.toLowerCase().startsWith(label.toLowerCase());
+      out.push(restHasLabel ? rest : `**${label}:** ${rest}`);
+      i = nextIndex;
+      continue;
+    }
+
+    out.push(`**${label}:**`);
+  }
+
+  return out.join("\n");
+}
+
 /** Prose chapters. Inner `# Bar` lines stay in the section instead of becoming new pages. */
 export function isProseCaseStudyTitle(title: string): boolean {
   const normalized = normalizeCaseStudySectionTitle(title);
@@ -160,7 +199,12 @@ export function parseCaseStudySections(markdown: string): CaseStudyParsedSection
   let skipImpactSubsection = false;
 
   const flush = () => {
-    if (currentSection) sections.push(currentSection);
+    if (currentSection) {
+      if (isProseCaseStudyTitle(currentSection.title)) {
+        currentSection.content = flattenProseSectionHeadings(currentSection.content);
+      }
+      sections.push(currentSection);
+    }
     currentSection = null;
     skipImpactSubsection = false;
   };
@@ -175,7 +219,9 @@ export function parseCaseStudySections(markdown: string): CaseStudyParsedSection
         (isCardBasedCaseStudyTitle(currentSection.title) ||
           isProseCaseStudyTitle(currentSection.title))
       ) {
-        currentSection.content += `## ${title}\n`;
+        currentSection.content += isProseCaseStudyTitle(currentSection.title)
+          ? `${line}\n`
+          : `## ${title}\n`;
         skipImpactSubsection = false;
         continue;
       }
@@ -200,6 +246,46 @@ export function parseCaseStudySections(markdown: string): CaseStudyParsedSection
 
   flush();
   return sections;
+}
+
+/** Body of one H1 as stored, without display rewrites. */
+export function extractRawSectionBody(
+  markdown: string,
+  sectionTitle: string,
+): string | null {
+  const lines = String(markdown || "").replace(/\r\n/g, "\n").split("\n");
+  let currentTitle: string | null = null;
+  let currentBody: string[] = [];
+  let found: string | null = null;
+
+  const take = () => {
+    if (currentTitle && caseStudySectionTitlesMatch(currentTitle, sectionTitle)) {
+      found = currentBody.join("\n");
+    }
+    currentTitle = null;
+    currentBody = [];
+  };
+
+  for (const line of lines) {
+    const headerMatch = line.trim().match(/^#\s+(.+)$/);
+    if (headerMatch && !/^#{2,}/.test(line.trim())) {
+      const title = headerMatch[1].trim();
+      if (
+        currentTitle &&
+        !isStructuralCaseStudyTitle(title) &&
+        (isCardBasedCaseStudyTitle(currentTitle) || isProseCaseStudyTitle(currentTitle))
+      ) {
+        currentBody.push(line);
+        continue;
+      }
+      take();
+      currentTitle = title;
+      continue;
+    }
+    if (currentTitle) currentBody.push(line);
+  }
+  take();
+  return found;
 }
 
 /**
