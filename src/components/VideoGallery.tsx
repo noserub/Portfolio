@@ -1,6 +1,6 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion } from "motion/react";
-import { Upload, X, Edit2, Link as LinkIcon, Play, ArrowUp, ArrowDown, Video as VideoIcon } from "lucide-react";
+import { Upload, X, Edit2, Link as LinkIcon, ArrowUp, ArrowDown, Video as VideoIcon, Volume2, VolumeX, Play } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
@@ -8,6 +8,12 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Label } from "./ui/label";
 import { useDesignVariant } from "../design/DesignVariantContext";
 import { portfolioMediaWellBackground } from "../lib/modernSurfaces";
+import {
+  activateExclusiveMedia,
+  registerExclusiveVideo,
+  releaseExclusiveMedia,
+  subscribeExclusiveMedia,
+} from "../lib/exclusiveVideoPlayback";
 
 interface VideoItem {
   id: string;
@@ -56,6 +62,10 @@ function getVimeoId(url: string): string | null {
 }
 
 // Helper function to determine video type from URL
+function isDirectVideoFile(url: string): boolean {
+  return /\.(mp4|webm|ogg|mov)(\?|#|$)/i.test(url);
+}
+
 function detectVideoType(url: string): 'youtube' | 'vimeo' | 'url' {
   if (url.includes('youtube.com') || url.includes('youtu.be')) {
     return 'youtube';
@@ -63,6 +73,205 @@ function detectVideoType(url: string): 'youtube' | 'vimeo' | 'url' {
     return 'vimeo';
   }
   return 'url';
+}
+
+function usePauseWhenOffscreen(onLeave: () => void) {
+  const ref = useRef<HTMLDivElement>(null);
+  const onLeaveRef = useRef(onLeave);
+  onLeaveRef.current = onLeave;
+
+  useEffect(() => {
+    const node = ref.current;
+    if (!node) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) onLeaveRef.current();
+      },
+      { threshold: 0.25 }
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
+  return ref;
+}
+
+function PlayOverlay({
+  title,
+  thumbnailUrl,
+  onPlay,
+}: {
+  title: string;
+  thumbnailUrl?: string;
+  onPlay: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onPlay}
+      className="absolute inset-0 z-10 flex items-center justify-center bg-black/40 text-white"
+      aria-label={`Play ${title}`}
+    >
+      {thumbnailUrl ? (
+        <img
+          src={thumbnailUrl}
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+      ) : null}
+      <span className="relative z-10 inline-flex h-14 w-14 items-center justify-center rounded-full bg-background/90 text-foreground shadow-lg">
+        <Play className="h-6 w-6 fill-current" />
+      </span>
+    </button>
+  );
+}
+
+function CaseStudyVideo({
+  src,
+  title,
+  playbackKey,
+}: {
+  src: string;
+  title: string;
+  playbackKey: string;
+}) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [muted, setMuted] = useState(false);
+  const [playing, setPlaying] = useState(false);
+  const containerRef = usePauseWhenOffscreen(() => {
+    const el = videoRef.current;
+    if (el && !el.paused) el.pause();
+    releaseExclusiveMedia(playbackKey);
+  });
+
+  useEffect(() => {
+    const el = videoRef.current;
+    if (!el) return;
+    return registerExclusiveVideo(el, playbackKey);
+  }, [playbackKey, src]);
+
+  useEffect(() => {
+    return subscribeExclusiveMedia((activeKey) => {
+      if (activeKey === playbackKey) return;
+      const el = videoRef.current;
+      if (el && !el.paused) el.pause();
+    });
+  }, [playbackKey]);
+
+  const playWithSound = () => {
+    const el = videoRef.current;
+    if (!el) return;
+    el.muted = false;
+    setMuted(false);
+    void el.play();
+  };
+
+  const setMutedState = (next: boolean) => {
+    const el = videoRef.current;
+    if (el) el.muted = next;
+    setMuted(next);
+  };
+
+  return (
+    <div ref={containerRef} className="absolute inset-0">
+      <video
+        ref={videoRef}
+        src={src}
+        className="w-full h-full object-contain"
+        style={{ objectFit: "contain" }}
+        muted={muted}
+        playsInline
+        controls={playing}
+        preload="metadata"
+        disablePictureInPicture
+        controlsList="nodownload noremoteplayback noplaybackrate"
+        title={title}
+        onLoadedData={() => {
+          const el = videoRef.current;
+          if (el && el.paused && el.currentTime === 0) {
+            el.currentTime = 0.001;
+          }
+        }}
+        onPlay={() => {
+          const el = videoRef.current;
+          if (el?.muted) {
+            el.muted = false;
+            setMuted(false);
+          }
+          setPlaying(true);
+        }}
+        onPause={() => setPlaying(false)}
+        onVolumeChange={() => {
+          const el = videoRef.current;
+          if (el && el.muted !== muted) setMuted(el.muted);
+        }}
+      >
+        Your browser does not support the video tag.
+      </video>
+      {!playing ? (
+        <PlayOverlay title={title} onPlay={playWithSound} />
+      ) : (
+        <button
+          type="button"
+          onClick={() => setMutedState(!muted)}
+          className="absolute top-3 left-3 z-20 inline-flex items-center gap-2 rounded-full bg-background/80 px-3 py-1.5 text-xs font-medium shadow-sm backdrop-blur-sm hover:bg-background"
+          aria-label={muted ? "Unmute video" : "Mute video"}
+        >
+          {muted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+          {muted ? "Unmute" : "Mute"}
+        </button>
+      )}
+    </div>
+  );
+}
+
+function useExclusiveMediaActive(playbackKey: string) {
+  const [isActive, setIsActive] = useState(false);
+
+  useEffect(() => {
+    return subscribeExclusiveMedia((activeKey) => {
+      setIsActive(activeKey === playbackKey);
+    });
+  }, [playbackKey]);
+
+  return isActive;
+}
+
+function ExclusiveEmbedPlayer({
+  playbackKey,
+  embedUrl,
+  thumbnailUrl,
+  title,
+}: {
+  playbackKey: string;
+  embedUrl: string;
+  thumbnailUrl?: string;
+  title: string;
+}) {
+  const isActive = useExclusiveMediaActive(playbackKey);
+  const containerRef = usePauseWhenOffscreen(() => {
+    releaseExclusiveMedia(playbackKey);
+  });
+
+  return (
+    <div ref={containerRef} className="absolute inset-0">
+      {isActive ? (
+        <iframe
+          src={embedUrl}
+          className="w-full h-full"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope"
+          allowFullScreen
+          title={title}
+        />
+      ) : (
+        <PlayOverlay
+          title={title}
+          thumbnailUrl={thumbnailUrl}
+          onPlay={() => activateExclusiveMedia(playbackKey)}
+        />
+      )}
+    </div>
+  );
 }
 
 function VideoItemComponent({
@@ -85,10 +294,14 @@ function VideoItemComponent({
   const getEmbedUrl = () => {
     if (video.type === 'youtube') {
       const videoId = getYouTubeId(video.url);
-      return videoId ? `https://www.youtube.com/embed/${videoId}` : video.url;
+      return videoId
+        ? `https://www.youtube.com/embed/${videoId}?autoplay=1&playsinline=1`
+        : video.url;
     } else if (video.type === 'vimeo') {
       const videoId = getVimeoId(video.url);
-      return videoId ? `https://player.vimeo.com/video/${videoId}` : video.url;
+      return videoId
+        ? `https://player.vimeo.com/video/${videoId}?autoplay=1`
+        : video.url;
     }
     return video.url;
   };
@@ -127,21 +340,17 @@ function VideoItemComponent({
           background: portfolioMediaWellBackground(isModernChrome),
         }}
       >
-        {video.type === 'upload' ? (
-          <video
+        {video.type === 'upload' || isDirectVideoFile(video.url) ? (
+          <CaseStudyVideo
             src={video.url}
-            controls
-            className="w-full h-full object-contain"
-            style={{ objectFit: 'contain' }}
-          >
-            Your browser does not support the video tag.
-          </video>
+            title={video.caption || `Video ${index + 1}`}
+            playbackKey={video.id}
+          />
         ) : (
-          <iframe
-            src={getEmbedUrl()}
-            className="w-full h-full"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
+          <ExclusiveEmbedPlayer
+            playbackKey={video.id}
+            embedUrl={getEmbedUrl()}
+            thumbnailUrl={getThumbnailUrl()}
             title={video.caption || `Video ${index + 1}`}
           />
         )}
