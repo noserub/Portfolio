@@ -48,6 +48,7 @@ import { migrateResearchInsights, migrateProjectsArray, runSafetyChecks } from "
 import { FLUSH_HOME_PAGE_CMS_EVENT } from "./lib/homePageContent";
 import { getPortfolioOwnerUserId, getProfileWriterUserId, hasVitePublicPortfolioOwnerId } from "./lib/portfolioOwner";
 import { devLog } from "./lib/devLog";
+import { trackGooglePageView } from "./lib/googleAnalytics";
 import { safeLocalStorageSet } from "./lib/safeLocalStorage";
 import { PasswordRecovery } from "./components/PasswordRecovery";
 import { useSiteAuth } from "./contexts/SiteAuthContext";
@@ -1066,6 +1067,7 @@ function AppShell() {
       try {
         // Use the Vercel Analytics API to track page views
         // window.va is injected by the Analytics component
+        trackGooglePageView(path);
         if (typeof window !== 'undefined' && window.va) {
           window.va('pageview', { url: path });
         } else {

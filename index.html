@@ -113,24 +113,28 @@
   }
 }
   </script>
-</head>
+  </head>
 
     <body>
       <div id="root"></div>
-      <!-- Defer GA until after load so first paint is not competing with gtag main-thread work -->
+      <!-- Defer GA until after load so first paint is not competing with gtag main-thread work.
+           send_page_view is false because this is a single-page app; route changes call gtag from the app. -->
       <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        window.gtag = gtag;
         window.addEventListener('load', function loadGtag() {
           window.removeEventListener('load', loadGtag);
+          var host = window.location.hostname;
+          if (host === 'localhost' || host === '127.0.0.1' || host === '[::1]') return;
+          gtag('js', new Date());
+          gtag('config', 'G-90060JE72X', { send_page_view: false });
+          window.__gaConfigured = true;
+          window.dispatchEvent(new Event('ga-configured'));
           var s = document.createElement('script');
           s.async = true;
-          s.src = 'https://www.googletagmanager.com/gtag/js?id=G-T7DZ7EQL03';
+          s.src = 'https://www.googletagmanager.com/gtag/js?id=G-90060JE72X';
           document.head.appendChild(s);
-          s.onload = function () {
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', 'G-T7DZ7EQL03');
-          };
         });
       </script>
       <script type="module" src="/src/main.tsx"></script>
