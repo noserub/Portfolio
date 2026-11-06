@@ -21,19 +21,27 @@ export type PublishedSnapshot = {
 
 export const publishedSnapshot = snapshotJson as PublishedSnapshot;
 
+/** How long a public read may wait before the saved snapshot is shown. */
+export const PUBLISHED_SNAPSHOT_FALLBACK_MS = 4000;
+
 /** Dev/preview switch. Set VITE_FORCE_PUBLISHED_SNAPSHOT=true to render the snapshot without calling Supabase. */
 export function preferPublishedSnapshot(): boolean {
   return import.meta.env.VITE_FORCE_PUBLISHED_SNAPSHOT === "true";
 }
 
-function errorText(error: unknown): string {
-  if (!error) return "";
+function errorText(error: unknown, depth = 0): string {
+  if (!error || depth > 2) return "";
   if (typeof error === "string") return error;
-  if (error instanceof Error) return `${error.name} ${error.message}`;
+  if (error instanceof Error) {
+    const cause = "cause" in error ? errorText(error.cause, depth + 1) : "";
+    return `${error.name} ${error.message} ${cause}`.trim();
+  }
   if (typeof error === "object") {
     const record = error as Record<string, unknown>;
+    const cause = errorText(record.cause, depth + 1);
     return ["name", "message", "details", "hint", "code"]
       .map((key) => (typeof record[key] === "string" ? record[key] : ""))
+      .concat(cause)
       .filter(Boolean)
       .join(" ");
   }
@@ -67,7 +75,7 @@ export function isSupabaseUnavailable(error: unknown): boolean {
   ) {
     return false;
   }
-  return /failed to fetch|networkerror|network request failed|load failed|authretryablefetcherror|fetcherror|econnrefused|enotfound|etimedout|timed out|timeout|project is paused|paused|gateway|522|503/i.test(
+  return /failed to fetch|fetch failed|networkerror|network request failed|load failed|authretryablefetcherror|fetcherror|econnrefused|enotfound|getaddrinfo|etimedout|timed out|timeout|project is paused|paused|gateway|abort|522|503/i.test(
     text,
   );
 }

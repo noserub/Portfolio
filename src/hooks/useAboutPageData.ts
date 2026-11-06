@@ -12,7 +12,11 @@ import {
   DEFAULT_ABOUT_SECTION_ORDER,
   DEFAULT_ABOUT_SECTION_TITLES,
 } from "../lib/aboutPageEditorModel";
-import { isSupabaseUnavailable, snapshotAboutProfile } from "../lib/publishedSnapshot";
+import {
+  isSupabaseUnavailable,
+  PUBLISHED_SNAPSHOT_FALLBACK_MS,
+  snapshotAboutProfile,
+} from "../lib/publishedSnapshot";
 
 export { DEFAULT_ABOUT_HEADLINE, DEFAULT_ABOUT_LEAD };
 
@@ -132,6 +136,12 @@ export function useAboutPageData() {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
+    const showSnapshot = () => {
+      if (cancelled) return;
+      setData(mapProfileToAboutPageData(snapshotAboutProfile<AboutProfileRow>()));
+      setLoading(false);
+    };
+    const timer = window.setTimeout(showSnapshot, PUBLISHED_SNAPSHOT_FALLBACK_MS);
 
     async function load() {
       try {
@@ -148,6 +158,7 @@ export function useAboutPageData() {
           setData(mapProfileToAboutPageData(snapshotAboutProfile<AboutProfileRow>()));
         }
       } finally {
+        window.clearTimeout(timer);
         if (!cancelled) setLoading(false);
       }
     }
@@ -155,6 +166,7 @@ export function useAboutPageData() {
     void load();
     return () => {
       cancelled = true;
+      window.clearTimeout(timer);
     };
   }, [reloadToken]);
 

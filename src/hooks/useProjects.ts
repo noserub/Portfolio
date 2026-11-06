@@ -6,6 +6,7 @@ import { copyCaseStudySEO } from '../utils/seoManager';
 import {
   isSupabaseUnavailable,
   preferPublishedSnapshot,
+  PUBLISHED_SNAPSHOT_FALLBACK_MS,
   snapshotProjectById,
   snapshotProjects,
 } from '../lib/publishedSnapshot';
@@ -720,7 +721,7 @@ export function useProjectsState() {
         setError(null);
         setLoading(false);
       }
-    }, 8000);
+    }, PUBLISHED_SNAPSHOT_FALLBACK_MS);
     return () => window.clearTimeout(timer);
   }, []);
 

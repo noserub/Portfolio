@@ -140,7 +140,7 @@ export function writeLocalContactDraft(data: ContactPageData) {
   );
 }
 
-function contactFromSnapshot(): ContactPageData {
+export function contactPageFromPublishedSnapshot(): ContactPageData {
   const email =
     typeof publishedSnapshot.profile.email === "string"
       ? publishedSnapshot.profile.email.trim()
@@ -157,7 +157,7 @@ function contactFromSnapshot(): ContactPageData {
 }
 
 export async function fetchContactPageData(): Promise<ContactPageData> {
-  if (preferPublishedSnapshot()) return contactFromSnapshot();
+  if (preferPublishedSnapshot()) return contactPageFromPublishedSnapshot();
 
   const local = readLocalContactDraft();
 
@@ -193,7 +193,7 @@ export async function fetchContactPageData(): Promise<ContactPageData> {
       typeof profile?.resume_url === "string" ? profile.resume_url.trim() : "";
     next.resumeUrl = profileResume || (await fetchPublishedResumeUrl()) || null;
   } catch (error) {
-    if (isSupabaseUnavailable(error)) return contactFromSnapshot();
+    if (isSupabaseUnavailable(error)) return contactPageFromPublishedSnapshot();
     if (local?.email?.trim()) next.email = local.email.trim();
     if (local?.linkedinUrl?.trim()) next.linkedinUrl = normalizeLinkedInUrl(local.linkedinUrl);
     try {
@@ -228,6 +228,10 @@ async function fetchOwnerContactProfile(ownerId: string): Promise<OwnerContactPr
 
   if (!withLinkedIn.error) {
     return (withLinkedIn.data as OwnerContactProfileRow | null) ?? null;
+  }
+
+  if (isSupabaseUnavailable(withLinkedIn.error)) {
+    throw withLinkedIn.error;
   }
 
   if (isLinkedInColumnMissingError(withLinkedIn.error)) {

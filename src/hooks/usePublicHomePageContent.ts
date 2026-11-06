@@ -8,6 +8,7 @@ import {
 import {
   isSupabaseUnavailable,
   preferPublishedSnapshot,
+  PUBLISHED_SNAPSHOT_FALLBACK_MS,
   snapshotHeroText,
 } from "../lib/publishedSnapshot";
 import { getPortfolioOwnerUserId } from "../lib/portfolioOwner";
@@ -22,6 +23,12 @@ export function usePublicHomePageContent() {
 
   useEffect(() => {
     let cancelled = false;
+    const showSnapshot = () => {
+      if (cancelled) return;
+      setHomePageContent(parseStoredHomeContent(snapshotHeroText() ?? {}));
+      setLoading(false);
+    };
+    const timer = window.setTimeout(showSnapshot, PUBLISHED_SNAPSHOT_FALLBACK_MS);
 
     async function load() {
       if (preferPublishedSnapshot()) {
@@ -63,6 +70,7 @@ export function usePublicHomePageContent() {
           );
         }
       } finally {
+        window.clearTimeout(timer);
         if (!cancelled) setLoading(false);
       }
     }
@@ -70,6 +78,7 @@ export function usePublicHomePageContent() {
     void load();
     return () => {
       cancelled = true;
+      window.clearTimeout(timer);
     };
   }, []);
 

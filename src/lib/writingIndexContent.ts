@@ -56,9 +56,12 @@ export function writeLocalWritingIndexContent(content: WritingIndexContent) {
   }
 }
 
+export function writingIndexFromPublishedSnapshot(): WritingIndexContent {
+  return parseWritingIndexContent(publishedSnapshot.pageVisibility.writing_index_content);
+}
+
 export async function fetchWritingIndexContent(): Promise<WritingIndexContent> {
-  const fromSnapshot = () =>
-    parseWritingIndexContent(publishedSnapshot.pageVisibility.writing_index_content);
+  const fromSnapshot = writingIndexFromPublishedSnapshot;
 
   if (preferPublishedSnapshot()) return fromSnapshot();
 

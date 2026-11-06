@@ -2,8 +2,10 @@ import { useCallback, useEffect, useReducer, useState } from 'react';
 import {
   DEFAULT_WRITING_INDEX_CONTENT,
   fetchWritingIndexContent,
+  writingIndexFromPublishedSnapshot,
   type WritingIndexContent,
 } from '../lib/writingIndexContent';
+import { PUBLISHED_SNAPSHOT_FALLBACK_MS } from '../lib/publishedSnapshot';
 
 type State = {
   content: WritingIndexContent;
@@ -26,11 +28,16 @@ export function useWritingIndexContent() {
 
   useEffect(() => {
     let cancelled = false;
+    const timer = window.setTimeout(() => {
+      if (!cancelled) dispatch({ type: 'success', content: writingIndexFromPublishedSnapshot() });
+    }, PUBLISHED_SNAPSHOT_FALLBACK_MS);
     void fetchWritingIndexContent().then((content) => {
+      window.clearTimeout(timer);
       if (!cancelled) dispatch({ type: 'success', content });
     });
     return () => {
       cancelled = true;
+      window.clearTimeout(timer);
     };
   }, [reloadToken]);
 

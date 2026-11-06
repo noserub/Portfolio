@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useReducer, useState } from "react";
 import {
+  contactPageFromPublishedSnapshot,
   DEFAULT_CONTACT_PAGE,
   fetchContactPageData,
   type ContactPageData,
 } from "../lib/contactPageContent";
+import { PUBLISHED_SNAPSHOT_FALLBACK_MS } from "../lib/publishedSnapshot";
 
 type ContactPageState = {
   data: ContactPageData;
@@ -27,13 +29,20 @@ export function useContactPageData() {
 
   useEffect(() => {
     let cancelled = false;
+    const timer = window.setTimeout(() => {
+      if (!cancelled) {
+        dispatch({ type: "success", data: contactPageFromPublishedSnapshot() });
+      }
+    }, PUBLISHED_SNAPSHOT_FALLBACK_MS);
 
     void fetchContactPageData().then((resolved) => {
+      window.clearTimeout(timer);
       if (!cancelled) dispatch({ type: "success", data: resolved });
     });
 
     return () => {
       cancelled = true;
+      window.clearTimeout(timer);
     };
   }, [reloadToken]);
 

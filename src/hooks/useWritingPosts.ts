@@ -16,6 +16,7 @@ import { getPostgrestErrorMessage } from '../lib/supabaseClient';
 import {
   isSupabaseUnavailable,
   preferPublishedSnapshot,
+  PUBLISHED_SNAPSHOT_FALLBACK_MS,
   snapshotWritingPosts,
 } from '../lib/publishedSnapshot';
 
@@ -34,6 +35,12 @@ export function useWritingPosts() {
       setLoading(false);
       return;
     }
+    const timer = window.setTimeout(() => {
+      if (generation !== fetchGeneration.current) return;
+      setPosts(snapshotWritingPosts<WritingPost>());
+      setError(null);
+      setLoading(false);
+    }, PUBLISHED_SNAPSHOT_FALLBACK_MS);
     try {
       const { data: authData } = await supabase.auth.getUser();
       const ownerId = getPortfolioOwnerUserId(authData.user?.id);
@@ -65,9 +72,10 @@ export function useWritingPosts() {
       } else {
         console.error('Failed to load writing posts:', err);
         setError(getPostgrestErrorMessage(err));
-        setPosts([]);
+        setPosts((prev) => (prev.length > 0 ? prev : []));
       }
     } finally {
+      window.clearTimeout(timer);
       if (generation === fetchGeneration.current) {
         setLoading(false);
       }
