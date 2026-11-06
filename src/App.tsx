@@ -63,6 +63,12 @@ import { ProjectsProvider, useProjects } from "./contexts/ProjectsContext";
 import { useContactMessages } from "./hooks/useContactMessages";
 import { useScrollHideChrome } from "./hooks/useScrollHideChrome";
 import { isLikelyStaleBuildChunkError, lazyWithRetry } from "./utils/lazyWithRetry";
+import {
+  isSupabaseUnavailable,
+  preferPublishedSnapshot,
+  publishedSnapshot,
+  snapshotProjectById,
+} from "./lib/publishedSnapshot";
 
 // Lazy load diagnostics to avoid blocking React mount
 if (typeof window !== 'undefined') {
@@ -519,6 +525,17 @@ function AppShell() {
       }
     })();
 
+    if (preferPublishedSnapshot()) {
+      const vis = publishedSnapshot.pageVisibility;
+      setPageVisibility({
+        about: vis.about ?? true,
+        contact: vis.contact ?? true,
+        writing: vis.writing ?? true,
+        writing_index_grid: parseWritingIndexGrid(vis.writing_index_grid),
+      });
+      return;
+    }
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
       authUser = user ?? null;
@@ -533,6 +550,17 @@ function AppShell() {
         .single();
 
       devLog('📄 page_visibility query:', { publicData: !!publicData, publicError });
+
+      if (publicError && isSupabaseUnavailable(publicError)) {
+        const vis = publishedSnapshot.pageVisibility;
+        setPageVisibility({
+          about: vis.about ?? true,
+          contact: vis.contact ?? true,
+          writing: vis.writing ?? true,
+          writing_index_grid: parseWritingIndexGrid(vis.writing_index_grid),
+        });
+        return;
+      }
 
       if (publicData && !publicError) {
         devLog('✅ Page visibility loaded from Supabase');
@@ -621,6 +649,16 @@ function AppShell() {
       }
     } catch (error) {
       console.error('❌ Error loading page visibility:', error);
+      if (isSupabaseUnavailable(error)) {
+        const vis = publishedSnapshot.pageVisibility;
+        setPageVisibility({
+          about: vis.about ?? true,
+          contact: vis.contact ?? true,
+          writing: vis.writing ?? true,
+          writing_index_grid: parseWritingIndexGrid(vis.writing_index_grid),
+        });
+        return;
+      }
       if (!authUser && (hasVitePublicPortfolioOwnerId() || import.meta.env.DEV)) {
         devLog('📄 Page visibility: load error — defaulting pages visible (anonymous)');
         setPageVisibility({
@@ -1110,9 +1148,20 @@ function AppShell() {
 
       // Deep-link fast path: resolve from public published projects first.
       // This avoids waiting on auth/session checks before rendering case-study routes.
-      const publicRes = await withTimeout(supabase.rpc("get_projects_public"));
-      if (publicRes.data && !publicRes.error) {
-        rows = publicRes.data as Record<string, unknown>[];
+      if (preferPublishedSnapshot()) {
+        rows = publishedSnapshot.projects;
+      } else {
+        try {
+          const publicRes = await withTimeout(supabase.rpc("get_projects_public"));
+          if (publicRes.data && !publicRes.error) {
+            rows = publicRes.data as Record<string, unknown>[];
+          } else if (isSupabaseUnavailable(publicRes.error)) {
+            rows = publishedSnapshot.projects;
+          }
+        } catch (lookupError) {
+          if (!isSupabaseUnavailable(lookupError)) throw lookupError;
+          rows = publishedSnapshot.projects;
+        }
       }
 
       // Fallback for signed-in/private visibility cases.
@@ -1508,8 +1557,16 @@ function AppShell() {
 
     // Try to load fresh data from Supabase first
     let freshProject: ProjectData | null = null;
-    
+
+    if (preferPublishedSnapshot()) {
+      const snap = snapshotProjectById(projectNav.id);
+      if (snap) freshProject = mapSupabaseProjectRowToProjectData(snap);
+    }
+
     try {
+      if (freshProject) {
+        /* snapshot already resolved */
+      } else {
       const { data: authUser } = await supabase.auth.getUser();
       let data: Record<string, unknown> | null = null;
       let error: { message?: string } | null = null;
@@ -1536,11 +1593,19 @@ function AppShell() {
         if (import.meta.env.DEV) {
           console.log("Loaded project from Supabase:", freshProject.id);
         }
+      } else if (preferPublishedSnapshot() || isSupabaseUnavailable(error)) {
+        const snap = snapshotProjectById(projectNav.id);
+        if (snap) freshProject = mapSupabaseProjectRowToProjectData(snap);
       } else {
         console.log("⚠️ Supabase load failed, falling back to localStorage");
       }
+      }
     } catch (e) {
       console.error("Error loading from Supabase:", e);
+      if (isSupabaseUnavailable(e)) {
+        const snap = snapshotProjectById(projectNav.id);
+        if (snap) freshProject = mapSupabaseProjectRowToProjectData(snap);
+      }
     }
     
     // If Supabase failed, try localStorage as fallback

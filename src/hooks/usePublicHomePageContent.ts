@@ -1,9 +1,15 @@
 import { useEffect, useState } from "react";
 import {
   createDefaultHomePageContent,
+  parseStoredHomeContent,
   resolveHomeContentAfterLoad,
   type HomePageContentV2,
 } from "../lib/homePageContent";
+import {
+  isSupabaseUnavailable,
+  preferPublishedSnapshot,
+  snapshotHeroText,
+} from "../lib/publishedSnapshot";
 import { getPortfolioOwnerUserId } from "../lib/portfolioOwner";
 import { supabase } from "../lib/supabaseClient";
 
@@ -18,6 +24,14 @@ export function usePublicHomePageContent() {
     let cancelled = false;
 
     async function load() {
+      if (preferPublishedSnapshot()) {
+        if (!cancelled) {
+          setHomePageContent(parseStoredHomeContent(snapshotHeroText() ?? {}));
+          setLoading(false);
+        }
+        return;
+      }
+
       try {
         const {
           data: { user },
@@ -34,12 +48,20 @@ export function usePublicHomePageContent() {
 
         const profileMs = row?.updated_at ? Date.parse(row.updated_at) : 0;
         const { content } = resolveHomeContentAfterLoad(row?.hero_text, {
+          // Never prefer localStorage on the public home path. Slimmed local drafts
+          // strip inlined logo images and will make the logo strip disappear.
           allowLocalDraftPreference: false,
           remoteProfileUpdatedAtMs: Number.isNaN(profileMs) ? 0 : profileMs,
         });
         setHomePageContent(content);
-      } catch {
-        if (!cancelled) setHomePageContent(createDefaultHomePageContent());
+      } catch (error) {
+        if (!cancelled) {
+          setHomePageContent(
+            isSupabaseUnavailable(error)
+              ? parseStoredHomeContent(snapshotHeroText() ?? {})
+              : createDefaultHomePageContent(),
+          );
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }

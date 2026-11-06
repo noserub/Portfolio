@@ -4,6 +4,11 @@ import { getPortfolioOwnerUserId } from '../lib/portfolioOwner';
 import { mapWritingPostRow, type WritingPost } from '../lib/writingPosts';
 import { normalizeWritingSlug } from '../lib/writingSlug';
 import { getPostgrestErrorMessage } from '../lib/supabaseClient';
+import {
+  isSupabaseUnavailable,
+  preferPublishedSnapshot,
+  snapshotWritingPostBySlug,
+} from '../lib/publishedSnapshot';
 
 export function useWritingPost(slug: string | null, options?: { includeDrafts?: boolean }) {
   const [post, setPost] = useState<WritingPost | null>(null);
@@ -20,6 +25,13 @@ export function useWritingPost(slug: string | null, options?: { includeDrafts?: 
     setLoading(true);
     setError(null);
     const normalized = normalizeWritingSlug(slug);
+
+    if (preferPublishedSnapshot()) {
+      const row = snapshotWritingPostBySlug(normalized);
+      setPost(row ? mapWritingPostRow(row) : null);
+      setLoading(false);
+      return;
+    }
 
     try {
       const { data: authData } = await supabase.auth.getUser();
@@ -45,9 +57,15 @@ export function useWritingPost(slug: string | null, options?: { includeDrafts?: 
       const row = Array.isArray(data) ? data[0] : data;
       setPost(row ? mapWritingPostRow(row as Record<string, unknown>) : null);
     } catch (err) {
-      console.error('Failed to load writing post:', err);
-      setError(getPostgrestErrorMessage(err));
-      setPost(null);
+      if (isSupabaseUnavailable(err)) {
+        const row = snapshotWritingPostBySlug(normalized);
+        setPost(row ? mapWritingPostRow(row) : null);
+        setError(null);
+      } else {
+        console.error('Failed to load writing post:', err);
+        setError(getPostgrestErrorMessage(err));
+        setPost(null);
+      }
     } finally {
       setLoading(false);
     }

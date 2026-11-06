@@ -110,6 +110,8 @@ export function resolveLogoImageUrl(raw: unknown): string | null {
 
   if (candidate.startsWith('//')) {
     candidate = `https:${candidate}`;
+  } else if (candidate.startsWith('/') && !candidate.startsWith('/storage/')) {
+    return candidate;
   } else if (!/^https?:\/\//i.test(candidate)) {
     const isSupabasePath =
       candidate.startsWith('/storage/') ||

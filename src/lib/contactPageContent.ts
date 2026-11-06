@@ -2,6 +2,11 @@ import { getPortfolioOwnerUserId } from "./portfolioOwner";
 import { fetchPublishedResumeUrl } from "./aboutPageProfile";
 import { getPublicContactEmail } from "./publicContactEmail";
 import { LINKEDIN_PROFILE_URL } from "./portfolioLinks";
+import {
+  isSupabaseUnavailable,
+  preferPublishedSnapshot,
+  publishedSnapshot,
+} from "./publishedSnapshot";
 import { supabase } from "./supabaseClient";
 
 export const DEFAULT_CONTACT_SUBTITLE =
@@ -135,7 +140,25 @@ export function writeLocalContactDraft(data: ContactPageData) {
   );
 }
 
+function contactFromSnapshot(): ContactPageData {
+  const email =
+    typeof publishedSnapshot.profile.email === "string"
+      ? publishedSnapshot.profile.email.trim()
+      : "";
+  const resumeUrl =
+    typeof publishedSnapshot.profile.resume_url === "string"
+      ? publishedSnapshot.profile.resume_url.trim()
+      : "";
+  return {
+    ...DEFAULT_CONTACT_PAGE,
+    email: email || DEFAULT_CONTACT_PAGE.email,
+    resumeUrl: resumeUrl || null,
+  };
+}
+
 export async function fetchContactPageData(): Promise<ContactPageData> {
+  if (preferPublishedSnapshot()) return contactFromSnapshot();
+
   const local = readLocalContactDraft();
 
   let next: ContactPageData = {
@@ -169,7 +192,8 @@ export async function fetchContactPageData(): Promise<ContactPageData> {
     const profileResume =
       typeof profile?.resume_url === "string" ? profile.resume_url.trim() : "";
     next.resumeUrl = profileResume || (await fetchPublishedResumeUrl()) || null;
-  } catch {
+  } catch (error) {
+    if (isSupabaseUnavailable(error)) return contactFromSnapshot();
     if (local?.email?.trim()) next.email = local.email.trim();
     if (local?.linkedinUrl?.trim()) next.linkedinUrl = normalizeLinkedInUrl(local.linkedinUrl);
     try {

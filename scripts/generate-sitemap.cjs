@@ -85,7 +85,55 @@ function llmsLinkLine(title, url, description) {
   return desc ? `- [${safeTitle}](${url}): ${desc}` : `- [${safeTitle}](${url})`;
 }
 
+function loadSnapshotWriting() {
+  try {
+    const file = path.join(ROOT, "src", "data", "publishedSnapshot.json");
+    if (!fs.existsSync(file)) return [];
+    const data = JSON.parse(fs.readFileSync(file, "utf8"));
+    const posts = Array.isArray(data?.writingPosts) ? data.writingPosts : [];
+    return posts
+      .filter((post) => post && post.published !== false && String(post.slug || "").trim())
+      .map((post) => ({
+        slug: String(post.slug).trim(),
+        title: post.title,
+        excerpt: typeof post.excerpt === "string" ? post.excerpt.trim() : "",
+        heroImage: typeof post.hero_image === "string" ? post.hero_image.trim() : "",
+        publishedAt:
+          typeof post.published_at === "string" && post.published_at ? post.published_at : null,
+        blocks: post.blocks,
+        lastmod:
+          typeof post.updated_at === "string" && post.updated_at
+            ? post.updated_at.split("T")[0]
+            : null,
+      }));
+  } catch (_) {
+    return [];
+  }
+}
+
+function loadSnapshotProjects() {
+  try {
+    const file = path.join(ROOT, "src", "data", "publishedSnapshot.json");
+    if (!fs.existsSync(file)) return [];
+    const data = JSON.parse(fs.readFileSync(file, "utf8"));
+    const projects = Array.isArray(data?.projects) ? data.projects : [];
+    return projects
+      .filter((project) => project && project.published !== false && project.requires_password !== true)
+      .map((project) => ({
+        title: String(project.title || "").trim(),
+        description: typeof project.description === "string" ? project.description.trim() : "",
+        caseStudyContent:
+          typeof project.case_study_content === "string" ? project.case_study_content : "",
+      }))
+      .filter((project) => project.title);
+  } catch (_) {
+    return [];
+  }
+}
+
 function loadLocalProjects() {
+  const fromSnapshot = loadSnapshotProjects();
+  if (fromSnapshot.length) return fromSnapshot;
   try {
     const candidates = fs
       .readdirSync(ROOT)
@@ -842,6 +890,11 @@ async function main() {
   const { projects: fromDb, profile } = await fetchPublishedSlugsFromSupabase();
   let writingFromDb = await fetchPublishedWritingFromSupabase();
   if (!writingFromDb.length) {
+    const fromSnapshot = loadSnapshotWriting();
+    if (fromSnapshot.length) {
+      console.warn('⚠️ Sitemap: using published snapshot writing posts');
+      writingFromDb = fromSnapshot;
+    } else {
     console.warn('⚠️ Sitemap: using fallback writing posts for static HTML and sitemap');
     writingFromDb = FALLBACK_WRITING_POSTS.map((post) => ({
       ...post,
@@ -849,6 +902,7 @@ async function main() {
       blocks: null,
       lastmod: null,
     }));
+    }
   }
   const localProjects = loadLocalProjects();
   const projectEntries = mergeProjectEntries(fromDb, localProjects);

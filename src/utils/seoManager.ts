@@ -1,6 +1,11 @@
 // SEO Manager - Manages SEO metadata for all pages
 import { supabase } from '../lib/supabaseClient';
 import { getPortfolioOwnerUserId } from '../lib/portfolioOwner';
+import {
+  isSupabaseUnavailable,
+  preferPublishedSnapshot,
+  publishedSnapshot,
+} from '../lib/publishedSnapshot';
 import { resolveStoragePublicUrl } from './imageOptimizer';
 
 export interface SEOData {
@@ -455,7 +460,17 @@ async function syncAppSettingsFaviconFromSitewide(ownerId: string, sitewide: Sit
   }
 }
 
+function seoFromPublishedSnapshot(): AllSEOData {
+  return mergeSEODataFromRows(publishedSnapshot.seoRows as SeoDataRow[]);
+}
+
+function snapshotSeoRow(pageType: string): SeoDataRow | null {
+  const row = publishedSnapshot.seoRows.find((item) => item.page_type === pageType);
+  return (row as SeoDataRow | undefined) ?? null;
+}
+
 export async function loadSEODataFromSupabase(): Promise<AllSEOData> {
+  if (preferPublishedSnapshot()) return seoFromPublishedSnapshot();
   const local = getSEOData();
   try {
     const {
@@ -467,6 +482,7 @@ export async function loadSEODataFromSupabase(): Promise<AllSEOData> {
     localStorage.setItem(SEO_STORAGE_KEY, JSON.stringify(merged));
     return merged;
   } catch (error) {
+    if (isSupabaseUnavailable(error)) return seoFromPublishedSnapshot();
     console.warn('⚠️ SEO: Falling back to local SEO data (Supabase unavailable):', error);
     return local;
   }
@@ -596,6 +612,11 @@ export async function loadCaseStudySEOFromSupabase(
   caseStudyTitle?: string
 ): Promise<SEOData> {
   const local = getCaseStudySEO(caseStudyId, caseStudyTitle);
+  const fromSnapshot = () => {
+    const row = snapshotSeoRow(`${CASE_STUDY_SEO_PREFIX}${caseStudyId}`);
+    return row ? mapSeoRowToSeoData(row, local) : local;
+  };
+  if (preferPublishedSnapshot()) return fromSnapshot();
   try {
     const {
       data: { user },
@@ -614,6 +635,7 @@ export async function loadCaseStudySEOFromSupabase(
     localStorage.setItem(`seo-case-study-${caseStudyId}`, JSON.stringify(merged));
     return merged;
   } catch (error) {
+    if (isSupabaseUnavailable(error)) return fromSnapshot();
     console.warn('⚠️ SEO: Falling back to local case study SEO:', error);
     return local;
   }
@@ -823,12 +845,20 @@ export async function loadWritingPostSEOFromSupabase(
   postId: string,
   source: WritingPostSeoSource = {},
 ): Promise<SEOData> {
-  const seoData = getSEOData();
+  const seoData = preferPublishedSnapshot() ? seoFromPublishedSnapshot() : getSEOData();
   const auto = buildAutoWritingPostSEO(
     source,
     seoData.writingPostDefaults,
     seoData.sitewide,
   );
+
+  const fromSnapshot = () => {
+    const row = snapshotSeoRow(`${WRITING_POST_SEO_PREFIX}${postId}`);
+    if (!row) return auto;
+    const custom = mapSeoRowToSeoData(row, {});
+    return applyWritingPostSeoOverrides(auto, custom, seoData.writingPostDefaults);
+  };
+  if (preferPublishedSnapshot()) return fromSnapshot();
 
   try {
     const {
@@ -850,6 +880,7 @@ export async function loadWritingPostSEOFromSupabase(
     localStorage.setItem(`seo-writing-post-${postId}`, JSON.stringify(merged));
     return merged;
   } catch (error) {
+    if (isSupabaseUnavailable(error)) return fromSnapshot();
     console.warn('⚠️ SEO: Falling back to local writing post SEO:', error);
     return getWritingPostSEO(postId, source);
   }
@@ -1229,6 +1260,9 @@ export async function uploadFaviconToSupabase(file: File): Promise<string | null
 // Resolve favicon URL: env override → app_settings (owner) → seo_data sitewide → any public app_settings row.
 export async function getFaviconFromSupabase(): Promise<string | null> {
   try {
+    if (preferPublishedSnapshot() && publishedSnapshot.faviconUrl) {
+      return publishedSnapshot.faviconUrl;
+    }
     const fromEnv = import.meta.env.VITE_PUBLIC_FAVICON_URL;
     if (typeof fromEnv === 'string' && fromEnv.trim().length > 0) {
       return fromEnv.trim();
@@ -1245,6 +1279,10 @@ export async function getFaviconFromSupabase(): Promise<string | null> {
       .eq('user_id', ownerId)
       .not('favicon_url', 'is', null)
       .maybeSingle();
+
+    if (ownerErr && isSupabaseUnavailable(ownerErr)) {
+      return publishedSnapshot.faviconUrl;
+    }
 
     if (!ownerErr && ownerSettings?.favicon_url) {
       return ownerSettings.favicon_url;
@@ -1276,6 +1314,7 @@ export async function getFaviconFromSupabase(): Promise<string | null> {
 
     return null;
   } catch (error) {
+    if (isSupabaseUnavailable(error)) return publishedSnapshot.faviconUrl;
     console.error('Error getting favicon from Supabase:', error);
     return null;
   }

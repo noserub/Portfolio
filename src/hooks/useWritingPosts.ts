@@ -13,6 +13,11 @@ import {
 } from '../lib/writingPosts';
 import { ensureUniqueWritingSlug, slugFromWritingTitle } from '../lib/writingSlug';
 import { getPostgrestErrorMessage } from '../lib/supabaseClient';
+import {
+  isSupabaseUnavailable,
+  preferPublishedSnapshot,
+  snapshotWritingPosts,
+} from '../lib/publishedSnapshot';
 
 export function useWritingPosts() {
   const [posts, setPosts] = useState<WritingPost[]>([]);
@@ -24,6 +29,11 @@ export function useWritingPosts() {
     const generation = ++fetchGeneration.current;
     setLoading(true);
     setError(null);
+    if (preferPublishedSnapshot()) {
+      setPosts(snapshotWritingPosts<WritingPost>());
+      setLoading(false);
+      return;
+    }
     try {
       const { data: authData } = await supabase.auth.getUser();
       const ownerId = getPortfolioOwnerUserId(authData.user?.id);
@@ -49,9 +59,14 @@ export function useWritingPosts() {
       }
     } catch (err) {
       if (generation !== fetchGeneration.current) return;
-      console.error('Failed to load writing posts:', err);
-      setError(getPostgrestErrorMessage(err));
-      setPosts([]);
+      if (isSupabaseUnavailable(err)) {
+        setPosts(snapshotWritingPosts<WritingPost>());
+        setError(null);
+      } else {
+        console.error('Failed to load writing posts:', err);
+        setError(getPostgrestErrorMessage(err));
+        setPosts([]);
+      }
     } finally {
       if (generation === fetchGeneration.current) {
         setLoading(false);

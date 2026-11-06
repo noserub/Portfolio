@@ -1,8 +1,14 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { getPortfolioOwnerUserId } from '../lib/portfolioOwner';
 import { devLog } from '../lib/devLog';
 import { copyCaseStudySEO } from '../utils/seoManager';
+import {
+  isSupabaseUnavailable,
+  preferPublishedSnapshot,
+  snapshotProjectById,
+  snapshotProjects,
+} from '../lib/publishedSnapshot';
 
 export interface Project {
   id: string;
@@ -125,9 +131,21 @@ export function useProjectsState() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const networkSettled = useRef(false);
+
+  const useSnapshotProjects = useCallback(() => {
+    setProjects(snapshotProjects<Project>());
+    setError(null);
+    setLoading(false);
+    networkSettled.current = true;
+  }, []);
 
   // Fetch all projects (signed-in owner: full rows; anonymous: RPC strips password-gated payloads)
   const fetchProjects = useCallback(async () => {
+    if (preferPublishedSnapshot()) {
+      useSnapshotProjects();
+      return;
+    }
     try {
       setLoading(true);
       setError(null);
@@ -146,15 +164,25 @@ export function useProjectsState() {
         if (error) throw error;
         setProjects((data as Project[]) || []);
       }
+      networkSettled.current = true;
     } catch (err: any) {
-      setError(err.message);
+      if (isSupabaseUnavailable(err)) {
+        useSnapshotProjects();
+      } else {
+        setError(err.message);
+        networkSettled.current = true;
+      }
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [useSnapshotProjects]);
 
   // Fetch published projects only
   const fetchPublishedProjects = useCallback(async () => {
+    if (preferPublishedSnapshot()) {
+      useSnapshotProjects();
+      return;
+    }
     try {
       setLoading(true);
       setError(null);
@@ -174,15 +202,24 @@ export function useProjectsState() {
         if (error) throw error;
         setProjects((data as Project[]) || []);
       }
+      networkSettled.current = true;
     } catch (err: any) {
-      setError(err.message);
+      if (isSupabaseUnavailable(err)) {
+        useSnapshotProjects();
+      } else {
+        setError(err.message);
+        networkSettled.current = true;
+      }
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [useSnapshotProjects]);
 
   // Get project by ID
   const getProject = useCallback(async (id: string): Promise<Project | null> => {
+    if (preferPublishedSnapshot()) {
+      return (snapshotProjectById(id) as Project | null) ?? null;
+    }
     try {
       const { data: { user } } = await supabase.auth.getUser();
 
@@ -197,6 +234,9 @@ export function useProjectsState() {
       const rows = data as Project[] | null;
       return rows?.[0] ?? null;
     } catch (err: any) {
+      if (isSupabaseUnavailable(err)) {
+        return (snapshotProjectById(id) as Project | null) ?? null;
+      }
       setError(err.message);
       return null;
     }
@@ -672,6 +712,17 @@ export function useProjectsState() {
       return [];
     }
   }, [getUserProjects]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      if (!networkSettled.current) {
+        setProjects(snapshotProjects<Project>());
+        setError(null);
+        setLoading(false);
+      }
+    }, 8000);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   // Load projects when auth session is known (avoids anon public RPC before sign-in restores).
   useEffect(() => {

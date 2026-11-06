@@ -1,5 +1,10 @@
 import { getPostgrestErrorMessage, supabase } from "./supabaseClient";
 import { getProfileWriterUserId } from "./portfolioOwner";
+import {
+  isSupabaseUnavailable,
+  preferPublishedSnapshot,
+  snapshotAboutProfile,
+} from "./publishedSnapshot";
 
 export const DEFAULT_ABOUT_HEADLINE = "AI-first design leader who still ships.";
 
@@ -177,15 +182,28 @@ export async function probeAboutHeroColumns(): Promise<boolean> {
  * Falls back to the newest profile with bio content if the owner row is missing.
  */
 export async function fetchAboutProfileRow(): Promise<AboutProfileRow | null> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  if (preferPublishedSnapshot()) {
+    return snapshotAboutProfile<AboutProfileRow>();
+  }
+
+  let user: { id: string } | null = null;
+  try {
+    const auth = await supabase.auth.getUser();
+    user = auth.data.user;
+  } catch (error) {
+    if (isSupabaseUnavailable(error)) return snapshotAboutProfile<AboutProfileRow>();
+    throw error;
+  }
   const profileRowId = getProfileWriterUserId(user?.id);
 
   const withHero = await fetchProfileBySelect(ABOUT_PROFILE_SELECT_WITH_HERO, profileRowId);
   if (!withHero.error) {
     aboutHeroColumnsAvailable = true;
     return withHero.row;
+  }
+
+  if (isSupabaseUnavailable(withHero.error)) {
+    return snapshotAboutProfile<AboutProfileRow>();
   }
 
   if (isAboutHeroColumnMissingError(withHero.error)) {

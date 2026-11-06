@@ -12,6 +12,7 @@ import {
   DEFAULT_ABOUT_SECTION_ORDER,
   DEFAULT_ABOUT_SECTION_TITLES,
 } from "../lib/aboutPageEditorModel";
+import { isSupabaseUnavailable, snapshotAboutProfile } from "../lib/publishedSnapshot";
 
 export { DEFAULT_ABOUT_HEADLINE, DEFAULT_ABOUT_LEAD };
 
@@ -142,8 +143,10 @@ export function useAboutPageData() {
         if (profile) {
           setData(mapProfileToAboutPageData(profile));
         }
-      } catch {
-        /* keep defaults */
+      } catch (error) {
+        if (!cancelled && isSupabaseUnavailable(error)) {
+          setData(mapProfileToAboutPageData(snapshotAboutProfile<AboutProfileRow>()));
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }

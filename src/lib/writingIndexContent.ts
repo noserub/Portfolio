@@ -1,4 +1,9 @@
 import { getPortfolioOwnerUserId, getProfileWriterUserId } from './portfolioOwner';
+import {
+  isSupabaseUnavailable,
+  preferPublishedSnapshot,
+  publishedSnapshot,
+} from './publishedSnapshot';
 import { supabase } from './supabaseClient';
 
 export interface WritingIndexContent {
@@ -52,6 +57,11 @@ export function writeLocalWritingIndexContent(content: WritingIndexContent) {
 }
 
 export async function fetchWritingIndexContent(): Promise<WritingIndexContent> {
+  const fromSnapshot = () =>
+    parseWritingIndexContent(publishedSnapshot.pageVisibility.writing_index_content);
+
+  if (preferPublishedSnapshot()) return fromSnapshot();
+
   const local = readLocalWritingIndexContent();
 
   try {
@@ -66,13 +76,15 @@ export async function fetchWritingIndexContent(): Promise<WritingIndexContent> {
       .eq('user_id', ownerId)
       .maybeSingle();
 
+    if (error && isSupabaseUnavailable(error)) return fromSnapshot();
+
     if (data && !error && data.writing_index_content != null) {
       const parsed = parseWritingIndexContent(data.writing_index_content);
       writeLocalWritingIndexContent(parsed);
       return parsed;
     }
-  } catch {
-    /* fall through */
+  } catch (error) {
+    if (isSupabaseUnavailable(error)) return fromSnapshot();
   }
 
   if (local) return local;

@@ -3,6 +3,11 @@ import { parseWritingBlocks } from '../types/writingBlocks';
 import { parseWritingImageCrop, type ImageCropFrame } from './writingImageFrame';
 import { supabase } from './supabaseClient';
 import { getPortfolioOwnerUserId } from './portfolioOwner';
+import {
+  isSupabaseUnavailable,
+  preferPublishedSnapshot,
+  snapshotWritingPostBySlug,
+} from './publishedSnapshot';
 import { normalizeWritingSlug } from './writingSlug';
 
 export interface WritingPost {
@@ -179,6 +184,11 @@ export async function findWritingPostBySlug(
   const normalized = normalizeWritingSlug(slug);
   if (!normalized) return null;
 
+  if (preferPublishedSnapshot()) {
+    const row = snapshotWritingPostBySlug(normalized);
+    return row ? mapWritingPostRow(row) : null;
+  }
+
   try {
     const { data: authData } = await supabase.auth.getUser();
     if (options?.includeDrafts && authData.user) {
@@ -202,6 +212,10 @@ export async function findWritingPostBySlug(
     const row = Array.isArray(data) ? data[0] : data;
     return row ? mapWritingPostRow(row as Record<string, unknown>) : null;
   } catch (error) {
+    if (isSupabaseUnavailable(error)) {
+      const row = snapshotWritingPostBySlug(normalized);
+      return row ? mapWritingPostRow(row) : null;
+    }
     console.error('findWritingPostBySlug failed:', error);
     return null;
   }

@@ -1,6 +1,11 @@
 import { supabase } from "./supabaseClient";
 import { getPortfolioOwnerUserId, getProfileWriterUserId } from "./portfolioOwner";
 import {
+  isSupabaseUnavailable,
+  preferPublishedSnapshot,
+  publishedSnapshot,
+} from "./publishedSnapshot";
+import {
   DEFAULT_FONT_THEME_ID,
   parseFontThemeId,
   type FontThemeId,
@@ -11,6 +16,9 @@ export type FontThemeSaveResult =
   | { ok: false; reason: "not_signed_in" | "db_error"; message: string };
 
 export async function loadPublishedFontTheme(): Promise<FontThemeId> {
+  const fromSnapshot = () => parseFontThemeId(publishedSnapshot.fontTheme) ?? DEFAULT_FONT_THEME_ID;
+  if (preferPublishedSnapshot()) return fromSnapshot();
+
   try {
     const {
       data: { user },
@@ -24,12 +32,14 @@ export async function loadPublishedFontTheme(): Promise<FontThemeId> {
       .maybeSingle();
 
     if (error && error.code !== "PGRST116") {
+      if (isSupabaseUnavailable(error)) return fromSnapshot();
       console.warn("Could not load font theme:", error.message);
       return DEFAULT_FONT_THEME_ID;
     }
 
     return parseFontThemeId(data?.font_theme) ?? DEFAULT_FONT_THEME_ID;
   } catch (error) {
+    if (isSupabaseUnavailable(error)) return fromSnapshot();
     console.warn("Could not load font theme:", error);
     return DEFAULT_FONT_THEME_ID;
   }

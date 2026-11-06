@@ -42,6 +42,9 @@ export function SiteAuthProvider({ children }: { children: React.ReactNode }) {
       if (!mounted) return;
       applySession(s);
       setIsAuthInitialized(true);
+    }).catch(() => {
+      if (!mounted) return;
+      setIsAuthInitialized(true);
     });
 
     const {

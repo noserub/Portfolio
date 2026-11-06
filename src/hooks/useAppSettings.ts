@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
+import { DEFAULT_PORTFOLIO_LOGO_URL } from '../lib/portfolioLogo';
 
 export interface AppSettings {
   id: string;
@@ -198,7 +199,7 @@ export const useAppSettings = () => {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         user_id: 'direct-storage',
-        logo_url: 'https://ljapwsajftxltykmpsmz.supabase.co/storage/v1/object/public/portfolio-images/BrB-black.png',
+        logo_url: DEFAULT_PORTFOLIO_LOGO_URL,
         theme: 'dark',
         is_authenticated: false,
         show_debug_panel: false

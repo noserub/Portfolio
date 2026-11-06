@@ -29,6 +29,11 @@ import {
   type HomePageContentV2,
 } from "../lib/homePageContent";
 import { getPortfolioOwnerUserId, getProfileWriterUserId, hasVitePublicPortfolioOwnerId } from "../lib/portfolioOwner";
+import {
+  isSupabaseUnavailable,
+  preferPublishedSnapshot,
+  snapshotHeroText,
+} from "../lib/publishedSnapshot";
 
 export interface UseHomePageContentOptions {
   /** Call when server-applied content should reset bio editor (TipTap). */
@@ -85,9 +90,25 @@ export function useHomePageContent(options: UseHomePageContentOptions) {
       setHomeContentLoading(true);
 
       const { supabase } = await import("../lib/supabaseClient");
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      let user: { id: string } | null = null;
+      try {
+        const auth = await supabase.auth.getUser();
+        user = auth.data.user;
+      } catch (error) {
+        if (isSupabaseUnavailable(error)) {
+          const content = migrateLegacyWelcomeGreeting(
+            parseStoredHomeContent(snapshotHeroText() ?? {}),
+          );
+          if (gen === heroLoadGenerationRef.current && !isEditingHeroRef.current) {
+            setHeroDraftAheadOfCloud(false);
+            setHomePageContent(content);
+            bumpBio();
+            setHomeContentLoading(false);
+            setHomeContentReady(true);
+          }
+          return;
+        }
+      }
       const portfolioOwnerId = getPortfolioOwnerUserId(user?.id);
       const allowLocalDraftPreference =
         Boolean(user?.id) && user.id === portfolioOwnerId;
@@ -109,6 +130,23 @@ export function useHomePageContent(options: UseHomePageContentOptions) {
         bumpBio();
         writeHomePageToLocalStorage(migratedContent);
       };
+
+      const showPublishedSnapshot = () => {
+        if (gen !== heroLoadGenerationRef.current || isEditingHeroRef.current) return;
+        const content = migrateLegacyWelcomeGreeting(
+          parseStoredHomeContent(snapshotHeroText() ?? {}),
+        );
+        setHeroDraftAheadOfCloud(false);
+        setHomePageContent(content);
+        bumpBio();
+        setHomeContentLoading(false);
+        setHomeContentReady(true);
+      };
+
+      if (preferPublishedSnapshot()) {
+        showPublishedSnapshot();
+        return;
+      }
 
       try {
         console.log("🔄 Loading home page content from Supabase...");
@@ -213,6 +251,11 @@ export function useHomePageContent(options: UseHomePageContentOptions) {
         console.log("✅ Home page content loaded from Supabase (published row is source of truth)");
       } catch (error) {
         console.error("❌ Error loading home page content from Supabase:", error);
+        if (isSupabaseUnavailable(error)) {
+          showPublishedSnapshot();
+          console.log("✅ Home page content loaded from published snapshot");
+          return;
+        }
         const { content, draftAheadOfPublished } = resolveHomeContentAfterLoad(undefined, {
           allowLocalDraftPreference,
         });
@@ -347,7 +390,7 @@ export function useHomePageContent(options: UseHomePageContentOptions) {
             id: writerId,
             email: user?.email?.trim() || import.meta.env.VITE_SITE_OWNER_SIGNIN_EMAIL?.trim() || "",
             full_name: "Brian Bureson",
-            hero_text: payload,
+            hero_text: cloudSafePayload,
           })
           .select("hero_text, updated_at")
           .single();
