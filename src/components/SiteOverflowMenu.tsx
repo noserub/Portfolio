@@ -44,6 +44,7 @@ export interface SiteOverflowMenuProps {
   onThemeDark: () => void;
   onThemeSystem: () => void;
   onShowPasswordReset: () => void;
+  onShowOwnerPassword: () => void;
   onShowSEOEditor: () => void;
   onShowComponentLibrary: () => void;
   onNavigateDesignSystem?: () => void;
@@ -76,6 +77,7 @@ export function SiteOverflowMenu({
   onThemeDark,
   onThemeSystem,
   onShowPasswordReset,
+  onShowOwnerPassword,
   onShowSEOEditor,
   onShowComponentLibrary,
   onNavigateDesignSystem,
@@ -263,6 +265,15 @@ export function SiteOverflowMenu({
                 Settings
               </DropdownMenuSubTrigger>
               <DropdownMenuSubContent>
+                <DropdownMenuItem
+                  onClick={() => {
+                    onShowOwnerPassword();
+                    blurActiveElement();
+                  }}
+                >
+                  <Key className="w-4 h-4 mr-2" />
+                  Owner sign-in password
+                </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => {
                     onShowPasswordReset();

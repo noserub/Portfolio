@@ -5,42 +5,75 @@ import { Input } from "./ui/input";
 import { KeyRound } from "lucide-react";
 import { supabase } from "../lib/supabaseClient";
 import {
+  clearPendingPasswordRecovery,
   clearSupabaseAuthHashFromUrl,
   getAuthErrorMessage,
+  hasPendingPasswordRecovery,
   hasRecoveryHashInUrl,
 } from "../lib/authRecovery";
 
 interface PasswordRecoveryProps {
   onComplete?: () => void;
+  /** Increment to open the form for a signed-in user who already has a session. */
+  openSignal?: number;
 }
 
-export function PasswordRecovery({ onComplete }: PasswordRecoveryProps) {
+export function PasswordRecovery({ onComplete, openSignal = 0 }: PasswordRecoveryProps) {
   const [open, setOpen] = useState(false);
+  const [fromRecoveryLink, setFromRecoveryLink] = useState(true);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const openRecovery = useCallback(() => {
+  const openRecovery = useCallback((recoveryLink: boolean) => {
+    setFromRecoveryLink(recoveryLink);
     setOpen(true);
     setErrorMessage(null);
   }, []);
 
   useEffect(() => {
-    if (hasRecoveryHashInUrl()) {
-      openRecovery();
-    }
+    const openIfPending = () => {
+      if (hasRecoveryHashInUrl() || hasPendingPasswordRecovery()) {
+        openRecovery(true);
+      }
+    };
+
+    openIfPending();
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event) => {
+      // PASSWORD_RECOVERY is the intended event. PKCE bugs and init timing often
+      // emit SIGNED_IN instead after a reset link, so also honor the pending flag.
       if (event === "PASSWORD_RECOVERY") {
-        openRecovery();
+        openRecovery(true);
+        return;
+      }
+      if (
+        (event === "SIGNED_IN" || event === "INITIAL_SESSION" || event === "TOKEN_REFRESHED") &&
+        hasPendingPasswordRecovery()
+      ) {
+        openRecovery(true);
       }
     });
 
-    return () => subscription.unsubscribe();
+    // Client may finish URL exchange after this effect runs.
+    const retry = window.setTimeout(openIfPending, 0);
+    const retryLate = window.setTimeout(openIfPending, 500);
+
+    return () => {
+      subscription.unsubscribe();
+      window.clearTimeout(retry);
+      window.clearTimeout(retryLate);
+    };
   }, [openRecovery]);
+
+  useEffect(() => {
+    if (openSignal > 0) {
+      openRecovery(false);
+    }
+  }, [openSignal, openRecovery]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,6 +97,7 @@ export function PasswordRecovery({ onComplete }: PasswordRecoveryProps) {
         return;
       }
 
+      clearPendingPasswordRecovery();
       clearSupabaseAuthHashFromUrl();
       setPassword("");
       setConfirmPassword("");
@@ -92,7 +126,9 @@ export function PasswordRecovery({ onComplete }: PasswordRecoveryProps) {
           </div>
           <h2 className="mb-2 text-xl font-semibold">Set a new owner password</h2>
           <p className="text-sm text-muted-foreground text-center">
-            Your reset link worked. Choose a new password for edit mode, then you will be signed in.
+            {fromRecoveryLink
+              ? "Your reset link signed you in. Choose a new password for edit mode before you continue."
+              : "Choose a new password for edit mode. This replaces the password you use to sign in."}
           </p>
         </div>
 
@@ -106,6 +142,7 @@ export function PasswordRecovery({ onComplete }: PasswordRecoveryProps) {
               setErrorMessage(null);
             }}
             autoFocus
+            autoComplete="new-password"
           />
           <Input
             type="password"
@@ -115,6 +152,7 @@ export function PasswordRecovery({ onComplete }: PasswordRecoveryProps) {
               setConfirmPassword(e.target.value);
               setErrorMessage(null);
             }}
+            autoComplete="new-password"
           />
 
           {errorMessage ? (
@@ -122,8 +160,24 @@ export function PasswordRecovery({ onComplete }: PasswordRecoveryProps) {
           ) : null}
 
           <Button type="submit" className="w-full" disabled={saving}>
-            {saving ? "Saving…" : "Save password and sign in"}
+            {saving ? "Saving…" : "Save password"}
           </Button>
+          {!fromRecoveryLink ? (
+            <Button
+              type="button"
+              variant="ghost"
+              className="w-full"
+              disabled={saving}
+              onClick={() => {
+                clearPendingPasswordRecovery();
+                setPassword("");
+                setConfirmPassword("");
+                setOpen(false);
+              }}
+            >
+              Not now
+            </Button>
+          ) : null}
         </form>
       </motion.div>
     </div>

@@ -481,6 +481,7 @@ function AppShell() {
   const [showSaveIndicator, setShowSaveIndicator] = useState(false);
   const [pendingProtectedProject, setPendingProtectedProject] = useState(null);
   const [showPasswordReset, setShowPasswordReset] = useState(false);
+  const [ownerPasswordSignal, setOwnerPasswordSignal] = useState(0);
   const [newPassword, setNewPassword] = useState("");
   const [showSEOEditor, setShowSEOEditor] = useState(false);
   const [showComponentLibrary, setShowComponentLibrary] = useState(false);
@@ -2024,6 +2025,7 @@ function AppShell() {
       onThemeDark={handleThemeDark}
       onThemeSystem={handleThemeSystem}
       onShowPasswordReset={() => setShowPasswordReset(true)}
+      onShowOwnerPassword={() => setOwnerPasswordSignal((n) => n + 1)}
       onShowSEOEditor={() => setShowSEOEditor(true)}
       onShowComponentLibrary={() => setShowComponentLibrary(true)}
       onNavigateDesignSystem={navigateDesignSystem}
@@ -2044,7 +2046,10 @@ function AppShell() {
         )}
       
       {/* Sign In Modal */}
-      <PasswordRecovery onComplete={() => void handlePasswordRecoveryComplete()} />
+      <PasswordRecovery
+        openSignal={ownerPasswordSignal}
+        onComplete={() => void handlePasswordRecoveryComplete()}
+      />
 
       {showSignIn && (
         <SignIn 

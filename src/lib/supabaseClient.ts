@@ -1,6 +1,9 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+import { capturePasswordRecoveryFromUrl } from './authRecovery'
 import { devLog } from './devLog'
 import { ensureLocalStorageHeadroom, isQuotaExceededError } from './safeLocalStorage'
+
+capturePasswordRecoveryFromUrl()
 
 // Get environment variables
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
