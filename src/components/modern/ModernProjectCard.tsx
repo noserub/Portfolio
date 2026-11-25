@@ -3,6 +3,7 @@ import type { ProjectData } from "../ProjectImage";
 import { projectTypeTag } from "../../lib/modernCaseStudies";
 import { projectCardImageStyle } from "../../lib/projectHeroFrame";
 import { cn } from "../ui/utils";
+import { resolveStoragePublicUrl } from "../../utils/imageOptimizer";
 
 interface ModernProjectCardProps {
   project: ProjectData;
@@ -43,7 +44,7 @@ export function ModernProjectCard({
       >
         {project.url ? (
           <img
-            src={project.url}
+            src={resolveStoragePublicUrl(project.url)}
             alt={project.title}
             className="h-full w-full"
             style={projectCardImageStyle(project)}

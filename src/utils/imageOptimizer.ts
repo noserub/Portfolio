@@ -146,83 +146,64 @@ export function resolveLogoImageUrl(raw: unknown): string | null {
 }
 
 /**
- * Supabase image transforms must use `/storage/v1/render/image/public/...`, not `/object/public/...`.
- * @see https://supabase.com/docs/guides/storage/serving/image-transformations
+ * Prefer direct `/object/public/` URLs.
  *
- * Also: never append `?params` to a URL that may already have a query (e.g. `?quality=85` from uploads),
- * or the browser requests a broken URL (`...?quality=85?width=320`).
+ * Image Transformations (`/render/image/public/...`) return 403 FeatureNotEnabled on this
+ * tenant after pause/resume, so building transform URLs breaks card and gallery images.
+ * Object URLs still serve. Options are accepted for call-site compatibility but ignored.
+ *
+ * @see https://supabase.com/docs/guides/storage/serving/image-transformations
  */
 export function generateOptimizedImageUrl(
   originalUrl: string,
-  options: ImageOptimizationOptions = {}
+  _options: ImageOptimizationOptions = {}
 ): string {
-  const {
-    quality = 80,
-    format = 'auto',
-    width,
-    height,
-    fit = 'cover',
-    blur = 0
-  } = options;
-
   if (!originalUrl.includes('supabase.co/storage')) {
     return originalUrl;
   }
+  return resolveStoragePublicUrl(originalUrl);
+}
 
-  try {
-    const parsed = new URL(originalUrl);
-    const pathname = parsed.pathname;
-
-    // Signed URLs embed transform options in the token — do not mutate.
-    if (pathname.includes('/object/sign/')) {
-      return originalUrl;
+/** Rewrite render/transform storage URLs on a media item `{ url }` without mutating other fields. */
+function normalizeMediaItemUrls<T>(items: T[] | null | undefined): T[] | undefined {
+  if (!Array.isArray(items)) return items ?? undefined;
+  return items.map((item) => {
+    if (!item || typeof item !== 'object') return item;
+    const record = item as Record<string, unknown>;
+    let changed = false;
+    const next: Record<string, unknown> = { ...record };
+    for (const key of ['url', 'poster', 'thumbnail', 'imageUrl'] as const) {
+      const value = record[key];
+      if (typeof value !== 'string' || !value.includes('supabase.co/storage')) continue;
+      const resolved = resolveStoragePublicUrl(value);
+      if (resolved !== value) {
+        next[key] = resolved;
+        changed = true;
+      }
     }
+    return (changed ? next : item) as T;
+  });
+}
 
-    let transformPath: string;
+/**
+ * Normalize project media URLs for display after Image Transformations are disabled.
+ * Does not write back to Supabase.
+ */
+export function normalizeProjectStorageUrls<T extends { url?: string | null; case_study_images?: unknown; flow_diagram_images?: unknown; video_items?: unknown }>(
+  project: T,
+): T {
+  const url =
+    typeof project.url === 'string' && project.url.includes('supabase.co/storage')
+      ? resolveStoragePublicUrl(project.url)
+      : project.url;
 
-    if (pathname.includes(RENDER_PUBLIC_MARKER)) {
-      transformPath = pathname;
-    } else if (pathname.includes(OBJECT_PUBLIC_MARKER)) {
-      const rest = pathname.slice(pathname.indexOf(OBJECT_PUBLIC_MARKER) + OBJECT_PUBLIC_MARKER.length);
-      transformPath = `${RENDER_PUBLIC_MARKER}${rest}`;
-    } else {
-      return originalUrl;
-    }
-
-    const params = new URLSearchParams();
-
-    if (width) params.set('width', width.toString());
-    if (height) params.set('height', height.toString());
-    if (quality !== 80) params.set('quality', quality.toString());
-    if (blur > 0) params.set('blur', blur.toString());
-
-    // API uses `resize`, not `fit` (cover | contain | fill).
-    const resizeByFit: Record<string, 'cover' | 'contain' | 'fill'> = {
-      cover: 'cover',
-      contain: 'contain',
-      fill: 'fill',
-      inside: 'contain',
-      outside: 'cover',
-    };
-    const resize = resizeByFit[fit] ?? 'cover';
-    if (resize !== 'cover') {
-      params.set('resize', resize);
-    }
-
-    // Let Supabase negotiate WebP; `format=webp|jpeg` is not a documented query value and can break transforms.
-    if (format === 'origin') {
-      params.set('format', 'origin');
-    }
-
-    const queryString = params.toString();
-    if (!queryString) {
-      return originalUrl;
-    }
-
-    return `${parsed.origin}${transformPath}?${queryString}`;
-  } catch {
-    return originalUrl;
-  }
+  return {
+    ...project,
+    url: url ?? project.url,
+    case_study_images: normalizeMediaItemUrls(project.case_study_images as unknown[] | undefined),
+    flow_diagram_images: normalizeMediaItemUrls(project.flow_diagram_images as unknown[] | undefined),
+    video_items: normalizeMediaItemUrls(project.video_items as unknown[] | undefined),
+  };
 }
 
 /**

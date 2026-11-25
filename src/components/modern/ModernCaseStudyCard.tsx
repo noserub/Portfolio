@@ -5,6 +5,7 @@ import { projectTypeTag } from "../../lib/modernCaseStudies";
 import { croppedCardImageStyle, computeCardFitToFrameScale, getProjectCardFrame } from "../../lib/projectHeroFrame";
 import { modern, modernFont } from "../../design/modernTokens";
 import { CardImageCropControls } from "./CardImageCropControls";
+import { resolveStoragePublicUrl } from "../../utils/imageOptimizer";
 
 interface ModernCaseStudyCardProps {
   project: ProjectData;
@@ -49,7 +50,7 @@ const CaseStudyCardImage = forwardRef<
   { project, title, requiresPassword, cropFrame, isCropping, onCropDrag, cropOverlay },
   forwardedRef,
 ) {
-  const cover = project.url;
+  const cover = project.url ? resolveStoragePublicUrl(project.url) : project.url;
   const mediaRef = useRef<HTMLDivElement>(null);
   const draggingRef = useRef(false);
 

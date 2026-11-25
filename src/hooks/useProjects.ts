@@ -10,6 +10,7 @@ import {
   snapshotProjectById,
   snapshotProjects,
 } from '../lib/publishedSnapshot';
+import { normalizeProjectStorageUrls } from '../utils/imageOptimizer';
 
 export interface Project {
   id: string;
@@ -135,10 +136,14 @@ export function useProjectsState() {
   const networkSettled = useRef(false);
 
   const useSnapshotProjects = useCallback(() => {
-    setProjects(snapshotProjects<Project>());
+    setProjects(snapshotProjects<Project>().map((p) => normalizeProjectStorageUrls(p)));
     setError(null);
     setLoading(false);
     networkSettled.current = true;
+  }, []);
+
+  const applyProjects = useCallback((rows: Project[] | null | undefined) => {
+    setProjects((rows || []).map((p) => normalizeProjectStorageUrls(p)));
   }, []);
 
   // Fetch all projects (signed-in owner: full rows; anonymous: RPC strips password-gated payloads)
@@ -159,11 +164,11 @@ export function useProjectsState() {
           .order("sort_order", { ascending: true })
           .order("created_at", { ascending: false });
         if (error) throw error;
-        setProjects(data || []);
+        applyProjects(data || []);
       } else {
         const { data, error } = await supabase.rpc("get_projects_public");
         if (error) throw error;
-        setProjects((data as Project[]) || []);
+        applyProjects(data as Project[]);
       }
       networkSettled.current = true;
     } catch (err: any) {
@@ -176,7 +181,7 @@ export function useProjectsState() {
     } finally {
       setLoading(false);
     }
-  }, [useSnapshotProjects]);
+  }, [applyProjects, useSnapshotProjects]);
 
   // Fetch published projects only
   const fetchPublishedProjects = useCallback(async () => {
@@ -197,11 +202,11 @@ export function useProjectsState() {
           .order("sort_order", { ascending: true })
           .order("created_at", { ascending: false });
         if (error) throw error;
-        setProjects(data || []);
+        applyProjects(data || []);
       } else {
         const { data, error } = await supabase.rpc("get_projects_public");
         if (error) throw error;
-        setProjects((data as Project[]) || []);
+        applyProjects(data as Project[]);
       }
       networkSettled.current = true;
     } catch (err: any) {
@@ -214,12 +219,13 @@ export function useProjectsState() {
     } finally {
       setLoading(false);
     }
-  }, [useSnapshotProjects]);
+  }, [applyProjects, useSnapshotProjects]);
 
   // Get project by ID
   const getProject = useCallback(async (id: string): Promise<Project | null> => {
     if (preferPublishedSnapshot()) {
-      return (snapshotProjectById(id) as Project | null) ?? null;
+      const snap = snapshotProjectById(id) as Project | null;
+      return snap ? normalizeProjectStorageUrls(snap) : null;
     }
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -227,16 +233,18 @@ export function useProjectsState() {
       if (user) {
         const { data, error } = await supabase.from("projects").select("*").eq("id", id).single();
         if (error) throw error;
-        return data;
+        return data ? normalizeProjectStorageUrls(data) : null;
       }
 
       const { data, error } = await supabase.rpc("get_project_by_id_public", { p_id: id });
       if (error) throw error;
       const rows = data as Project[] | null;
-      return rows?.[0] ?? null;
+      const row = rows?.[0] ?? null;
+      return row ? normalizeProjectStorageUrls(row) : null;
     } catch (err: any) {
       if (isSupabaseUnavailable(err)) {
-        return (snapshotProjectById(id) as Project | null) ?? null;
+        const snap = snapshotProjectById(id) as Project | null;
+        return snap ? normalizeProjectStorageUrls(snap) : null;
       }
       setError(err.message);
       return null;
@@ -262,10 +270,11 @@ export function useProjectsState() {
         .single();
 
       if (error) throw error;
-      
+
+      const normalized = normalizeProjectStorageUrls(data);
       // Update local state
-      setProjects(prev => [...prev, data].sort((a, b) => a.sort_order - b.sort_order));
-      return data;
+      setProjects(prev => [...prev, normalized].sort((a, b) => a.sort_order - b.sort_order));
+      return normalized;
     } catch (err: any) {
       console.error('❌ useProjects: createProject error:', err);
       setError(err.message);
@@ -381,8 +390,9 @@ export function useProjectsState() {
         console.warn('⚠️ useProjects: case study SEO copy failed (project was still duplicated):', seoErr);
       }
 
-      setProjects(prev => [...prev, data].sort((a, b) => a.sort_order - b.sort_order));
-      return data;
+      const normalized = normalizeProjectStorageUrls(data);
+      setProjects(prev => [...prev, normalized].sort((a, b) => a.sort_order - b.sort_order));
+      return normalized;
     } catch (err: any) {
       console.error('❌ useProjects: duplicateProject error:', err);
       setError(err.message);
@@ -613,10 +623,11 @@ export function useProjectsState() {
       }
       
       console.log('✅ useProjects: Project updated successfully:', data);
-      
+
+      const normalized = normalizeProjectStorageUrls(data);
       // Update local state
-      setProjects(prev => prev.map(p => p.id === id ? data : p));
-      return data;
+      setProjects(prev => prev.map(p => p.id === id ? normalized : p));
+      return normalized;
     } catch (err: any) {
       console.log('❌ useProjects: updateProject error:', err);
       setError(err.message);
@@ -694,7 +705,7 @@ export function useProjectsState() {
         .order('sort_order', { ascending: true });
 
       if (error) throw error;
-      return data || [];
+      return (data || []).map((p) => normalizeProjectStorageUrls(p));
     } catch (err: any) {
       setError(err.message);
       return [];
@@ -717,13 +728,13 @@ export function useProjectsState() {
   useEffect(() => {
     const timer = window.setTimeout(() => {
       if (!networkSettled.current) {
-        setProjects(snapshotProjects<Project>());
+        applyProjects(snapshotProjects<Project>());
         setError(null);
         setLoading(false);
       }
     }, PUBLISHED_SNAPSHOT_FALLBACK_MS);
     return () => window.clearTimeout(timer);
-  }, []);
+  }, [applyProjects]);
 
   // Load projects when auth session is known (avoids anon public RPC before sign-in restores).
   useEffect(() => {
