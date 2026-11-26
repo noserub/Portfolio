@@ -289,11 +289,15 @@ function buildProjectUpdatePayloadForSupabase(
 }
 
 function AppShell() {
-  const { isSupabaseAuthenticated } = useSiteAuth();
+  const { isSupabaseAuthenticated, isAuthInitialized } = useSiteAuth();
   const { designVariant, setDesignVariant, effectiveVariant, publishedVariant } = useDesignVariant();
   const { fontTheme, setFontTheme } = useFontTheme();
   const [isDiagnosticMode, setIsDiagnosticMode] = useState(false);
   const [isEmergencyMode, setIsEmergencyMode] = useState(false);
+  const isSupabaseAuthenticatedRef = useRef(isSupabaseAuthenticated);
+  const isAuthInitializedRef = useRef(isAuthInitialized);
+  isSupabaseAuthenticatedRef.current = isSupabaseAuthenticated;
+  isAuthInitializedRef.current = isAuthInitialized;
   
   // Check URL parameters in useEffect
   useEffect(() => {
@@ -465,6 +469,8 @@ function AppShell() {
   });
   
   const [isEditMode, setIsEditMode] = useState(false);
+  const isEditModeRef = useRef(isEditMode);
+  isEditModeRef.current = isEditMode;
   const [isBlurringBackground, setIsBlurringBackground] = useState(false);
 
   useEffect(() => {
@@ -479,19 +485,27 @@ function AppShell() {
   }, [isBlurringBackground]);
   const [showSignIn, setShowSignIn] = useState(false);
   const [showSaveIndicator, setShowSaveIndicator] = useState(false);
-  const [pendingProtectedProject, setPendingProtectedProject] = useState(null);
+  const [pendingProtectedProject, setPendingProtectedProject] = useState<{
+    project: ProjectData;
+    updateCallback: (project: ProjectData) => void;
+  } | null>(null);
   const [showPasswordReset, setShowPasswordReset] = useState(false);
   const [ownerPasswordSignal, setOwnerPasswordSignal] = useState(0);
   const [newPassword, setNewPassword] = useState("");
   const [showSEOEditor, setShowSEOEditor] = useState(false);
   const [showComponentLibrary, setShowComponentLibrary] = useState(false);
 
-  // If owner auth/edit mode becomes active, clear any stale visitor password prompt.
+  // Owner session resolved after deep-link: drop visitor unlock UI and finish loading.
   useEffect(() => {
-    if ((isSupabaseAuthenticated || isEditMode) && pendingProtectedProject) {
-      setPendingProtectedProject(null);
-    }
-  }, [isSupabaseAuthenticated, isEditMode, pendingProtectedProject]);
+    if (!pendingProtectedProject) return;
+    if (!isAuthInitialized) return;
+    if (!isSupabaseAuthenticated && !isEditMode) return;
+    const { project, updateCallback } = pendingProtectedProject;
+    setPendingProtectedProject(null);
+    void navigateToProject(project, updateCallback);
+    // navigateToProject is stable enough via refs for auth; intentionally omit from deps.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthInitialized, isSupabaseAuthenticated, isEditMode, pendingProtectedProject]);
   
   const [pageVisibility, setPageVisibility] = useState<{
     about: boolean;
@@ -1528,6 +1542,21 @@ function AppShell() {
     return ok;
   };
 
+  const waitForAuthInitialized = async (timeoutMs = 2500) => {
+    if (isAuthInitializedRef.current) return;
+    const started = Date.now();
+    await new Promise<void>((resolve) => {
+      const tick = () => {
+        if (isAuthInitializedRef.current || Date.now() - started >= timeoutMs) {
+          resolve();
+          return;
+        }
+        window.setTimeout(tick, 40);
+      };
+      tick();
+    });
+  };
+
   const navigateToProject = async (project: ProjectData, updateCallback: (project: ProjectData) => void) => {
     const raw = project as any;
     const projectNav = {
@@ -1535,10 +1564,18 @@ function AppShell() {
       requiresPassword: Boolean(raw.requiresPassword ?? raw.requires_password),
     } as ProjectData;
 
+    // Avoid flashing the visitor unlock dialog before Supabase session hydrates
+    // (deep links / refresh race: requiresPassword true while auth still false).
+    if (Boolean(projectNav.requiresPassword) && !isEditModeRef.current) {
+      await waitForAuthInitialized();
+    }
+
     // Fast path for locked projects: show unlock immediately instead of waiting on
     // additional project fetches that can stall deep-link navigation.
     const shouldRequireProjectPasswordEarly =
-      Boolean(projectNav.requiresPassword) && !isSupabaseAuthenticated && !isEditMode;
+      Boolean(projectNav.requiresPassword) &&
+      !isSupabaseAuthenticatedRef.current &&
+      !isEditModeRef.current;
     if (shouldRequireProjectPasswordEarly) {
       setPendingProtectedProject({ project: projectNav, updateCallback });
       if (window.location.pathname.startsWith('/project/')) {
@@ -2058,9 +2095,12 @@ function AppShell() {
         />
       )}
       
-      {/* Case Study Password Prompt */}
+      {/* Case Study Password Prompt — only after auth init so owners never see a flash */}
       <AnimatePresence>
-        {pendingProtectedProject && (
+        {pendingProtectedProject &&
+          isAuthInitialized &&
+          !isSupabaseAuthenticated &&
+          !isEditMode && (
           <CaseStudyPasswordPrompt
             projectTitle={pendingProtectedProject.project.title}
             onUnlock={handleUnlockCaseStudy}
