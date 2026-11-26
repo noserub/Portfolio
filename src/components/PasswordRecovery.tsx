@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -25,6 +25,7 @@ export function PasswordRecovery({ onComplete, openSignal = 0 }: PasswordRecover
   const [confirmPassword, setConfirmPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const consumedPendingRef = useRef(false);
 
   const openRecovery = useCallback((recoveryLink: boolean) => {
     setFromRecoveryLink(recoveryLink);
@@ -32,35 +33,47 @@ export function PasswordRecovery({ onComplete, openSignal = 0 }: PasswordRecover
     setErrorMessage(null);
   }, []);
 
+  const dismiss = useCallback(() => {
+    clearPendingPasswordRecovery();
+    clearSupabaseAuthHashFromUrl();
+    setPassword("");
+    setConfirmPassword("");
+    setErrorMessage(null);
+    setOpen(false);
+  }, []);
+
   useEffect(() => {
-    const openIfPending = () => {
-      if (hasRecoveryHashInUrl() || hasPendingPasswordRecovery()) {
-        openRecovery(true);
-      }
+    const openIfPendingOnce = () => {
+      if (consumedPendingRef.current) return;
+      if (!hasRecoveryHashInUrl() && !hasPendingPasswordRecovery()) return;
+      consumedPendingRef.current = true;
+      // Consume the flag so a later refresh does not reopen forever.
+      clearPendingPasswordRecovery();
+      clearSupabaseAuthHashFromUrl();
+      openRecovery(true);
     };
 
-    openIfPending();
+    openIfPendingOnce();
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event) => {
-      // PASSWORD_RECOVERY is the intended event. PKCE bugs and init timing often
-      // emit SIGNED_IN instead after a reset link, so also honor the pending flag.
       if (event === "PASSWORD_RECOVERY") {
+        if (consumedPendingRef.current) return;
+        consumedPendingRef.current = true;
+        clearPendingPasswordRecovery();
+        clearSupabaseAuthHashFromUrl();
         openRecovery(true);
         return;
       }
-      if (
-        (event === "SIGNED_IN" || event === "INITIAL_SESSION" || event === "TOKEN_REFRESHED") &&
-        hasPendingPasswordRecovery()
-      ) {
-        openRecovery(true);
+      // Only the first SIGNED_IN after a recovery callback should open the form.
+      if (event === "SIGNED_IN") {
+        openIfPendingOnce();
       }
     });
 
-    // Client may finish URL exchange after this effect runs.
-    const retry = window.setTimeout(openIfPending, 0);
-    const retryLate = window.setTimeout(openIfPending, 500);
+    const retry = window.setTimeout(openIfPendingOnce, 0);
+    const retryLate = window.setTimeout(openIfPendingOnce, 500);
 
     return () => {
       subscription.unsubscribe();
@@ -162,22 +175,15 @@ export function PasswordRecovery({ onComplete, openSignal = 0 }: PasswordRecover
           <Button type="submit" className="w-full" disabled={saving}>
             {saving ? "Saving…" : "Save password"}
           </Button>
-          {!fromRecoveryLink ? (
-            <Button
-              type="button"
-              variant="ghost"
-              className="w-full"
-              disabled={saving}
-              onClick={() => {
-                clearPendingPasswordRecovery();
-                setPassword("");
-                setConfirmPassword("");
-                setOpen(false);
-              }}
-            >
-              Not now
-            </Button>
-          ) : null}
+          <Button
+            type="button"
+            variant="ghost"
+            className="w-full"
+            disabled={saving}
+            onClick={dismiss}
+          >
+            Not now
+          </Button>
         </form>
       </motion.div>
     </div>

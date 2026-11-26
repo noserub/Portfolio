@@ -1,7 +1,7 @@
 /** Helpers for Supabase password-recovery redirects in this SPA. */
 
 const PASSWORD_RECOVERY_FLAG = "sb-portfolio-password-recovery";
-const CODE_VERIFIER_SUFFIX = "sb-portfolio-code-verifier";
+const CODE_VERIFIER_KEY = "sb-portfolio-code-verifier";
 
 /** True when a Supabase auth redirect is a password recovery, not a magic link. */
 export function isPasswordRecoveryUrl(href: string): boolean {
@@ -24,12 +24,25 @@ function readStorageItem(key: string): string | null {
   }
 }
 
+function urlHasAuthCallbackCode(href: string): boolean {
+  try {
+    return Boolean(new URL(href).searchParams.get("code"));
+  } catch {
+    return false;
+  }
+}
+
 /**
- * PKCE stores `codeVerifier/recovery` (or `/PASSWORD_RECOVERY`) before the email is clicked.
- * Read it before createClient exchanges the code and deletes the key.
+ * PKCE stores `codeVerifier/recovery` before the email is clicked.
+ * Only treat it as a live recovery callback when the current URL also has `?code=`.
  */
-export function hasStoredPasswordRecoveryVerifier(): boolean {
-  const raw = readStorageItem(CODE_VERIFIER_SUFFIX);
+export function hasActivePasswordRecoveryCallback(): boolean {
+  if (typeof window === "undefined") return false;
+  if (isPasswordRecoveryUrl(window.location.href)) return true;
+
+  if (!urlHasAuthCallbackCode(window.location.href)) return false;
+
+  const raw = readStorageItem(CODE_VERIFIER_KEY);
   if (!raw) return false;
   const suffix = raw.split("/")[1]?.toLowerCase() ?? "";
   return suffix === "recovery" || suffix === "password_recovery";
@@ -46,18 +59,16 @@ export function markPendingPasswordRecovery(): void {
 
 /**
  * Remember a recovery redirect before the Supabase client starts.
- * The client clears the hash / exchanges the PKCE code and may emit SIGNED_IN
- * (or PASSWORD_RECOVERY before React subscribes), which signs the user in and
- * skips the new-password form without this flag.
+ * Only mark pending when this navigation is an actual recovery callback.
+ * Clear stale flags on normal loads so the set-password dialog does not reopen forever.
  */
 export function capturePasswordRecoveryFromUrl(): void {
   if (typeof window === "undefined") return;
-  if (
-    isPasswordRecoveryUrl(window.location.href) ||
-    hasStoredPasswordRecoveryVerifier()
-  ) {
+  if (hasActivePasswordRecoveryCallback()) {
     markPendingPasswordRecovery();
+    return;
   }
+  clearPendingPasswordRecovery();
 }
 
 export function hasPendingPasswordRecovery(): boolean {

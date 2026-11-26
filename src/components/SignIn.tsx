@@ -9,7 +9,6 @@ import {
   getAuthErrorMessage,
   hasRecoveryHashInUrl,
   isSupabaseConfigured,
-  markPendingPasswordRecovery,
 } from "../lib/authRecovery";
 import {
   ensureLocalStorageHeadroom,
@@ -135,9 +134,6 @@ export function SignIn({ onSignIn, onCancel }: SignInProps) {
 
     setSendingReset(true);
     try {
-      // Remember intent before the email is clicked. PKCE return URLs are often
-      // just ?code=... with no type=recovery, and the client may only emit SIGNED_IN.
-      markPendingPasswordRecovery();
       const redirectTo = `${window.location.origin}${window.location.pathname || "/"}`;
       const { error } = await supabase.auth.resetPasswordForEmail(ownerEmail, {
         redirectTo,
