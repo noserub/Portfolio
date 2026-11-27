@@ -136,19 +136,18 @@ function ModernHomeView({
   );
 
   const visibleFilters = useMemo(() => {
-    if (isEditMode) return homePageContent.ui.caseStudyFilters;
     const types = new Set<string>();
     caseStudies.forEach((p) => {
       const t = p.projectType || (p as { project_type?: string }).project_type;
       if (t) types.add(t);
     });
     return homePageContent.ui.caseStudyFilters.filter((f) => types.has(f.id));
-  }, [isEditMode, caseStudies, homePageContent.ui.caseStudyFilters]);
+  }, [caseStudies, homePageContent.ui.caseStudyFilters]);
 
   useEffect(() => {
     if (
       filter !== "all" &&
-      !visibleFilters.some((f) => f.id === filter)
+      (visibleFilters.length < 2 || !visibleFilters.some((f) => f.id === filter))
     ) {
       setFilter("all");
     }
@@ -575,6 +574,7 @@ function ModernHomeView({
                     New case study
                   </button>
                 ) : null}
+                {visibleFilters.length > 1 ? <>
                 <button
                   type="button"
                   onClick={() => {
@@ -600,6 +600,7 @@ function ModernHomeView({
                     {f.label}
                   </button>
                 ))}
+                </> : null}
               </div>
             </div>
           </div>
