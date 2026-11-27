@@ -68,9 +68,9 @@ import {
   filterGallerySectionsForDisplay,
   sanitizeGallerySectionsForPersist,
 } from "../../types/caseStudySections";
-import { gallerySectionKey } from "../../types/caseStudySections";
+import { gallerySectionKey, parseGallerySectionKey } from "../../types/caseStudySections";
 import { toast } from "sonner";
-import { removeCaseStudySectionMarkdown } from "../../lib/parseCaseStudySections";
+import { removeCaseStudySectionMarkdown, parseCaseStudySections } from "../../lib/parseCaseStudySections";
 
 interface ProjectDetailProps {
   project: ProjectData;
@@ -3416,7 +3416,16 @@ export function ClassicProjectDetail({
   };
 
   // Simplified markdown section move handler
-  const handleMoveMarkdownSection = (sectionTitle: string, direction: 'up' | 'down') => {
+  const handleMoveMarkdownSection = (sectionTitle: string, direction: 'up' | 'down', layoutKeys: string[]) => {
+    const visibleIndex = layoutKeys.indexOf(sectionTitle);
+    const adjacentIndex = visibleIndex + (direction === 'up' ? -1 : 1);
+    if (visibleIndex < 0 || adjacentIndex < 0 || adjacentIndex >= layoutKeys.length) return;
+    const adjacentKey = layoutKeys[adjacentIndex];
+    const adjacentGalleryId = parseGallerySectionKey(adjacentKey);
+    if (adjacentGalleryId) {
+      handleMoveUnifiedGallery(adjacentGalleryId, direction === 'up' ? 'down' : 'up', layoutKeys, adjacentIndex);
+      return;
+    }
     console.log(`📝 Moving markdown section "${sectionTitle}" ${direction}`);
     
     // Build the combined sections list to find actual positions
@@ -3484,6 +3493,10 @@ export function ClassicProjectDetail({
       }
     }
     
+    // Follow the order rendered by the editor, including legacy special panels.
+    combined.splice(0, combined.length, ...layoutKeys.map((title, position) => ({
+      title, type: title.startsWith('__') ? 'special' as const : 'markdown' as const, position,
+    })));
     console.log('📋 Combined sections:', combined.map(c => `${c.title} (${c.type}) @${c.position}`));
     
     // Find current section in combined list
@@ -3879,16 +3892,25 @@ export function ClassicProjectDetail({
       const newLines = direction === 'up' ? [
         ...lines.slice(0, targetSection.startLine),
         ...currentLines,
+        ...lines.slice(targetSection.endLine + 1, currentSection.startLine),
         ...targetLines,
         ...lines.slice(currentSection.endLine + 1)
       ] : [
         ...lines.slice(0, currentSection.startLine),
         ...targetLines,
+        ...lines.slice(currentSection.endLine + 1, targetSection.startLine),
         ...currentLines,
         ...lines.slice(targetSection.endLine + 1)
       ];
       
       const newContent = newLines.join('\n');
+      // Never persist a reorder that changes the number or identity of visible sections.
+      const before = parseCaseStudySections(caseStudyContent || '').map(s => s.title).sort();
+      const after = parseCaseStudySections(newContent).map(s => s.title).sort();
+      if (JSON.stringify(before) !== JSON.stringify(after)) {
+        toast.error('Could not move this panel without combining sections. Your content was not changed.');
+        return;
+      }
       console.log('✅ Markdown content updated');
       
       // Update content state - this will trigger useEffect to update cleanedContent

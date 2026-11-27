@@ -87,7 +87,7 @@ interface CaseStudySectionsProps {
   onRemoveVideos?: () => void;
   onRemoveFlowDiagrams?: () => void;
   onRemoveSolutionCards?: () => void;
-  onMoveMarkdownSection?: (sectionTitle: string, direction: 'up' | 'down') => void;
+  onMoveMarkdownSection?: (sectionTitle: string, direction: 'up' | 'down', layoutKeys: string[]) => void;
   sectionPositions?: Record<string, number>;
   actualPositions?: {
     projectImages: number;
@@ -1466,7 +1466,7 @@ export function CaseStudySections({
   const moveSectionUp = (sectionTitle: string) => {
     
     if (onMoveMarkdownSection) {
-      onMoveMarkdownSection(sectionTitle, 'up');
+      onMoveMarkdownSection(sectionTitle, 'up', sectionsWithInserts.filter(item => item.type !== 'sidebar').map(item => item.title));
     } else {
       console.error('❌ No onMoveMarkdownSection callback provided');
     }
@@ -1475,7 +1475,7 @@ export function CaseStudySections({
   const moveSectionDown = (sectionTitle: string) => {
     
     if (onMoveMarkdownSection) {
-      onMoveMarkdownSection(sectionTitle, 'down');
+      onMoveMarkdownSection(sectionTitle, 'down', sectionsWithInserts.filter(item => item.type !== 'sidebar').map(item => item.title));
     } else {
       console.error('❌ No onMoveMarkdownSection callback provided');
     }
