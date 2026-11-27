@@ -156,12 +156,9 @@ export function sameCaseStudySection(a: string, b: string): boolean {
   return Boolean(leftKey && rightKey && leftKey === rightKey);
 }
 
-/** Only Results keeps leftover `# Bar` labels inside. Other chapters do not swallow the next `#`. */
-export function isNestedCaseStudyHeading(currentTitle: string, nextTitle: string): boolean {
-  if (!currentTitle.trim() || !nextTitle.trim()) return false;
-  if (isStructuralCaseStudyTitle(nextTitle)) return false;
-  const current = normalizeCaseStudySectionTitle(currentTitle);
-  return current === "results" || current.startsWith("results ");
+/** Every H1 is a separate section; use H2 for headings within a panel. */
+export function isNestedCaseStudyHeading(_currentTitle: string, _nextTitle: string): boolean {
+  return false;
 }
 
 function matchTopLevelHeading(line: string): string {
