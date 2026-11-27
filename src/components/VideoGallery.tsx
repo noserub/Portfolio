@@ -96,6 +96,33 @@ function usePauseWhenOffscreen(onLeave: () => void) {
   return ref;
 }
 
+function VideoThumbnail({ src }: { src: string }) {
+  const youtubeMatch = src.match(/^https:\/\/img\.youtube\.com\/vi\/([^/]+)\/maxresdefault\.jpg$/);
+  const candidates = youtubeMatch
+    ? ['maxresdefault', 'sddefault', 'hqdefault', 'mqdefault', 'default'].map(
+        (size) => `https://img.youtube.com/vi/${youtubeMatch[1]}/${size}.jpg`
+      )
+    : [src];
+  const [candidateIndex, setCandidateIndex] = useState(0);
+
+  const tryNextSize = () => {
+    setCandidateIndex((index) => Math.min(index + 1, candidates.length - 1));
+  };
+
+  return (
+    <img
+      src={candidates[candidateIndex]}
+      alt=""
+      className="absolute inset-0 h-full w-full object-cover"
+      onError={tryNextSize}
+      onLoad={(event) => {
+        // YouTube can return a 120px placeholder with a successful HTTP status.
+        if (youtubeMatch && event.currentTarget.naturalWidth <= 120) tryNextSize();
+      }}
+    />
+  );
+}
+
 function PlayOverlay({
   title,
   thumbnailUrl,
@@ -113,11 +140,7 @@ function PlayOverlay({
       aria-label={`Play ${title}`}
     >
       {thumbnailUrl ? (
-        <img
-          src={thumbnailUrl}
-          alt=""
-          className="absolute inset-0 h-full w-full object-cover"
-        />
+        <VideoThumbnail key={thumbnailUrl} src={thumbnailUrl} />
       ) : null}
       <span className="relative z-10 inline-flex h-14 w-14 items-center justify-center rounded-full bg-background/90 text-foreground shadow-lg">
         <Play className="h-6 w-6 fill-current" />
