@@ -102,6 +102,7 @@ export function ModernEditorShell({
   return createPortal(
     <div
       className="modern-home-hero-editor fixed inset-0 z-[110] flex flex-col md:flex-row md:justify-end overflow-hidden"
+      style={{ zIndex: 110 }}
       data-design="modern"
       role="dialog"
       aria-modal="true"
