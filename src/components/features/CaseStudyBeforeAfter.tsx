@@ -31,7 +31,7 @@ export function CaseStudyBeforeAfter({ question, before, after }: CaseStudyBefor
               aria-label={`${state}${detail ? `: ${detail}` : ''}`}
               className="flex min-w-0 flex-col border-l-4 px-6 py-7 md:px-8 md:py-8"
               style={{
-                background: isAfter ? 'color-mix(in srgb, var(--modern-surface, #141414) 92%, var(--modern-accent, #84bd00) 8%)' : 'var(--modern-surface, #141414)',
+                background: 'var(--modern-surface, #141414)',
                 borderColor: isAfter ? 'var(--modern-accent, #84bd00)' : 'transparent',
               }}
             >
