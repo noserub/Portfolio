@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
 import { useDesignVariant } from "../../design/DesignVariantContext";
 import { MarkdownRenderer } from "../MarkdownRenderer";
+import { CaseStudyBeforeAfter } from "./CaseStudyBeforeAfter";
 import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
 import { Input } from "../ui/input";
@@ -1637,6 +1638,7 @@ export function CaseStudySections({
     if (titleLower.includes("insight")) return false;
     if (titleLower.includes("looking ahead")) return false;
     if (titleLower.includes("evaluation")) return false;
+    if (titleLower === "before and after") return false;
 
     return true;
   };
@@ -3900,7 +3902,18 @@ export function CaseStudySections({
                     </Button>
                   </div>
                 </div>
-              ) : (
+              ) : section.title.trim().toLowerCase() === "before and after" && /^##\s+/m.test(section.content) ? (() => {
+                const parts = section.content.split(/^##\s+(.+)$/m);
+                if (parts.length < 5) return <MarkdownRenderer content={section.content.trim()} />;
+                const lead = parts[0].trim();
+                const question = lead.match(/^Employee asks:\s*(.+)$/im)?.[1]?.replace(/^[“"']|[”"']$/g, '');
+                return <>
+                  {lead && !question && <MarkdownRenderer content={lead} />}
+                  <CaseStudyBeforeAfter question={question}
+                    before={{ label: parts[1].trim(), content: <MarkdownRenderer content={parts[2].trim()} /> }}
+                    after={{ label: parts[3].trim(), content: <MarkdownRenderer content={parts[4].trim()} /> }} />
+                </>;
+              })() : (
                 <MarkdownRenderer
                   content={
                     isProseCaseStudyTitle(section.title)

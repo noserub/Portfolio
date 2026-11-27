@@ -119,7 +119,6 @@ export function isCardBasedCaseStudyTitle(title: string): boolean {
   if (!normalized) return false;
   if (isExactTitleInList(title, CARD_SECTION_TITLES)) return true;
   if (normalized.startsWith("research insight")) return true;
-  if (normalized.startsWith("key decision")) return true;
   if (isResearchInsightsSectionTitle(title)) return true;
   return false;
 }
@@ -157,12 +156,12 @@ export function sameCaseStudySection(a: string, b: string): boolean {
   return Boolean(leftKey && rightKey && leftKey === rightKey);
 }
 
-/** Inner `# Bar` stays in Results. Research-insight H1s stay cards. My role does not swallow the next chapter. */
+/** Only Results keeps leftover `# Bar` labels inside. Other chapters do not swallow the next `#`. */
 export function isNestedCaseStudyHeading(currentTitle: string, nextTitle: string): boolean {
   if (!currentTitle.trim() || !nextTitle.trim()) return false;
   if (isStructuralCaseStudyTitle(nextTitle)) return false;
-  if (isProseCaseStudyTitle(currentTitle)) return true;
-  return isResearchInsightsSectionTitle(currentTitle);
+  const current = normalizeCaseStudySectionTitle(currentTitle);
+  return current === "results" || current.startsWith("results ");
 }
 
 function matchTopLevelHeading(line: string): string {

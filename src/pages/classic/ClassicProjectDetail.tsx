@@ -4863,6 +4863,7 @@ export function ClassicProjectDetail({
               <DropdownMenuItem disabled={hasMarkdownTitle('Competitive analysis')} onClick={() => addMarkdownSection('Competitive analysis', 'Add your competitive analysis here.')}>Competitive analysis</DropdownMenuItem>
               <DropdownMenuItem disabled={hasMarkdownTitle('The solution')} onClick={() => addMarkdownSection('The solution', 'Describe your solution and approach.')}>The solution</DropdownMenuItem>
               <DropdownMenuItem disabled={hasMarkdownTitle('Key features')} onClick={() => addMarkdownSection('Key features', 'List key features and their impact.')}>Key features</DropdownMenuItem>
+              <DropdownMenuItem disabled={hasMarkdownTitle('Before and after')} onClick={() => addMarkdownSection('Before and after', 'Employee asks: How do job levels and careers work here?\n\n## Before · Links first\n\nA list of career framework, leveling, and related pages. The employee still has to synthesize the answer.\n\n## After · Answer first\n\nA concise explanation of how roles are leveled, why levels matter, and what to do next, followed by source links.')}>Before and after</DropdownMenuItem>
               <DropdownMenuItem disabled={hasMarkdownTitle('Results')} onClick={() => addMarkdownSection('Results', 'Summarize outcomes, metrics, and what remained unproven.')}>Results</DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem disabled={solutionCardsPosition !== undefined} onClick={handleAddSolutionCardsSection}>Solution Cards</DropdownMenuItem>
