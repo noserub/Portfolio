@@ -7,6 +7,7 @@ import {
   loadSEODataFromSupabase,
   loadCaseStudySEOFromSupabase,
   loadWritingPostSEOFromSupabase,
+  normalizeSiteUrlForSeo,
 } from '../utils/seoManager';
 import {
   generateWebSiteSchema,
@@ -17,7 +18,7 @@ import {
   injectMultipleStructuredData,
   mergeSitewideSameAsUrls,
 } from '../utils/structuredData';
-import { slugFromProjectTitle } from '../lib/projectSlug';
+import { canonicalProjectSlug, slugFromProjectTitle, TSLIM_PROJECT_SLUG } from '../lib/projectSlug';
 
 export function useSEO(pageKey: 'home' | 'about' | 'caseStudies' | 'contact') {
   useEffect(() => {
@@ -135,19 +136,21 @@ export function useCaseStudySEO(
         const caseStudySEO = await loadCaseStudySEOFromSupabase(caseStudyId, caseStudyTitle);
         if (isCancelled) return;
 
-        // Apply meta tags for case study page
-        applyPageSEO(caseStudySEO, seoData.sitewide);
+        const slug = canonicalProjectSlug(slugFromProjectTitle(caseStudyTitle || ''));
+        const projectUrl = slug ? `${normalizeSiteUrlForSeo(seoData.sitewide.siteUrl)}/project/${slug}` : undefined;
+        const articleUrl = slug === TSLIM_PROJECT_SLUG ? projectUrl : caseStudySEO.canonicalUrl || projectUrl;
+
+        applyPageSEO(
+          slug === TSLIM_PROJECT_SLUG ? { ...caseStudySEO, canonicalUrl: articleUrl } : caseStudySEO,
+          seoData.sitewide,
+          slug === TSLIM_PROJECT_SLUG ? { ogType: 'article' } : undefined,
+        );
 
         // Inject structured data for case study
         const schemas: Array<object> = [];
 
         // Organization schema
         schemas.push(generateOrganizationSchema(seoData.sitewide));
-
-        const slug = slugFromProjectTitle(caseStudyTitle || '');
-        const articleUrl =
-          caseStudySEO.canonicalUrl ||
-          (slug ? `${seoData.sitewide.siteUrl}/project/${slug}` : undefined);
 
         const articleExtras: Parameters<typeof generateArticleSchema>[2] = {
           headline: caseStudyTitle || caseStudySEO.title,
@@ -174,13 +177,20 @@ export function useCaseStudySEO(
         ];
         schemas.push(generateBreadcrumbListSchema(breadcrumbs, seoData.sitewide.siteUrl));
         
+        if (slug === TSLIM_PROJECT_SLUG) {
+          document.head.querySelectorAll('[data-prerendered-case-study]').forEach((tag) => tag.remove());
+        }
         injectMultipleStructuredData(schemas);
       } catch (error) {
         console.error('❌ SEO: Error applying case study SEO:', error);
         // Final fallback to local data for resilience
         const localSeoData = getSEOData();
         const localCaseStudySEO = getCaseStudySEO(caseStudyId, caseStudyTitle);
-        applyPageSEO(localCaseStudySEO, localSeoData.sitewide);
+        const slug = canonicalProjectSlug(slugFromProjectTitle(caseStudyTitle || ''));
+        const canonicalUrl = slug === TSLIM_PROJECT_SLUG
+          ? `${normalizeSiteUrlForSeo(localSeoData.sitewide.siteUrl)}/project/${slug}`
+          : localCaseStudySEO.canonicalUrl;
+        applyPageSEO({ ...localCaseStudySEO, canonicalUrl }, localSeoData.sitewide);
       }
     };
 

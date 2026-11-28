@@ -1,6 +1,7 @@
 // SEO Manager - Manages SEO metadata for all pages
 import { supabase } from '../lib/supabaseClient';
 import { getPortfolioOwnerUserId } from '../lib/portfolioOwner';
+import { TSLIM_PROJECT_SLUG } from '../lib/projectSlug';
 import {
   isSupabaseUnavailable,
   preferPublishedSnapshot,
@@ -962,8 +963,14 @@ export function applyPageSEO(
   updateMetaTag('meta[name="keywords"]', pageSEO.keywords);
   updateMetaTag('meta[name="author"]', sitewide.defaultAuthor);
   
-  // Meta robots (default: index, follow)
-  updateMetaTag('meta[name="robots"]', 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1');
+  const onTslimRoute = window.location.pathname.replace(/\/$/, '') === `/project/${TSLIM_PROJECT_SLUG}`;
+  const unverifiedProject = onTslimRoute && document.head.querySelector('[data-unverified-project]');
+  updateMetaTag('meta[name="robots"]', unverifiedProject
+    ? 'noindex, follow'
+    : 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1');
+  if (!onTslimRoute) {
+    document.head.querySelectorAll('[data-prerendered-case-study]').forEach((tag) => tag.remove());
+  }
 
   // Open Graph tags
   updateMetaTag('meta[property="og:site_name"]', sitewide.siteName);

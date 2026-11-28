@@ -7,6 +7,8 @@
  */
 const fs = require('fs');
 const path = require('path');
+const projectRouteAliases = require('../src/data/project-route-aliases.json');
+const { renderCaseStudyBody } = require('./prerender-case-study.cjs');
 const {
   DEFAULT_AUTHOR,
   SITE_NAME,
@@ -24,6 +26,8 @@ const {
 
 const ROOT = process.cwd();
 const distDir = path.join(ROOT, 'dist');
+const TSLIM_SLUG = projectRouteAliases['tandem-diabetes-care'];
+const TSLIM_PATH = `/project/${TSLIM_SLUG}`;
 
 require('dotenv').config({ path: path.join(ROOT, '.env.local') });
 require('dotenv').config({ path: path.join(ROOT, '.env') });
@@ -40,6 +44,22 @@ function slugify(title) {
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-')
     .trim();
+}
+
+function isTslim(slug) {
+  return slug === TSLIM_SLUG || Object.hasOwn(projectRouteAliases, slug);
+}
+
+function projectContent(row) {
+  return {
+    title: String(row.title || '').trim(),
+    description: typeof row.description === 'string' ? row.description.trim() : '',
+    caseStudyContent: typeof row.case_study_content === 'string' ? row.case_study_content : '',
+    caseStudySidebars: row.case_study_sidebars,
+    sectionPositions: row.section_positions,
+    published: row.published,
+    requiresPassword: row.requires_password,
+  };
 }
 
 const DEFAULT_LINKEDIN_URL = 'https://www.linkedin.com/in/bureson/';
@@ -111,20 +131,16 @@ function loadSnapshotWriting() {
   }
 }
 
-function loadSnapshotProjects() {
+function loadSnapshotProjects({ includeUnavailable = false } = {}) {
   try {
     const file = path.join(ROOT, "src", "data", "publishedSnapshot.json");
     if (!fs.existsSync(file)) return [];
     const data = JSON.parse(fs.readFileSync(file, "utf8"));
     const projects = Array.isArray(data?.projects) ? data.projects : [];
     return projects
-      .filter((project) => project && project.published !== false && project.requires_password !== true)
-      .map((project) => ({
-        title: String(project.title || "").trim(),
-        description: typeof project.description === "string" ? project.description.trim() : "",
-        caseStudyContent:
-          typeof project.case_study_content === "string" ? project.case_study_content : "",
-      }))
+      .filter((project) => project && (includeUnavailable ||
+        (project.published !== false && project.requires_password !== true)))
+      .map(projectContent)
       .filter((project) => project.title);
   } catch (_) {
     return [];
@@ -195,7 +211,7 @@ async function fetchPublishedSlugsFromSupabase() {
     process.env.SUPABASE_PUBLISHABLE_KEY;
   const key = serviceKey || publicKey;
   if (!url || !key) {
-    return { projects: [], profile: {} };
+    return { projects: [], profile: {}, verified: false };
   }
 
   const { createClient } = require('@supabase/supabase-js');
@@ -212,7 +228,7 @@ async function fetchPublishedSlugsFromSupabase() {
   if (serviceKey) {
     let q = supabase
       .from('projects')
-      .select('title, description, updated_at, sort_order, case_study_content')
+      .select('title, description, updated_at, sort_order, case_study_content, case_study_sidebars, section_positions, published, requires_password, user_id')
       .eq('published', true)
       .order('sort_order', { ascending: true, nullsFirst: false });
     if (ownerId) {
@@ -227,26 +243,24 @@ async function fetchPublishedSlugsFromSupabase() {
 
   if (error) {
     console.warn('⚠️ Sitemap: Supabase public projects query failed:', error.message);
-    return { projects: [], profile };
+    return { projects: [], profile, verified: false };
   }
 
   const out = [];
   for (const row of data || []) {
     const slug = slugify(row.title);
     if (!slug) continue;
+    if (isTslim(slug) && ownerId && row.user_id !== ownerId) continue;
     out.push({
+      ...projectContent(row),
       slug,
-      title: row.title,
-      description: typeof row.description === 'string' ? row.description.trim() : '',
-      caseStudyContent:
-        typeof row.case_study_content === 'string' ? row.case_study_content : '',
       lastmod:
         typeof row.updated_at === 'string' && row.updated_at
           ? row.updated_at.split('T')[0]
           : null,
     });
   }
-  return { projects: out, profile };
+  return { projects: out, profile, verified: Array.isArray(data) };
 }
 
 async function fetchPublishedWritingFromSupabase() {
@@ -336,9 +350,26 @@ function excerptFromWritingBlocks(blocks) {
   return truncateForLlms(stripHtml(prose.replace(/[#>*_\[\]()!`~-]/g, ' ')), 900);
 }
 
-function mergeProjectEntries(supabaseEntries, localProjects) {
+function selectTslimProject(liveProjects, snapshotProjects, { verified, snapshotMode }) {
+  if (!snapshotMode && !verified) return null;
+  const rows = snapshotMode ? snapshotProjects : liveProjects;
+  const exact = rows.find((row) => slugify(row.title) === TSLIM_SLUG);
+  const legacy = snapshotMode ? rows.find((row) => isTslim(slugify(row.title))) : undefined;
+  const project = exact ?? legacy;
+  if (project?.published !== true || project.requiresPassword !== false) return null;
+
+  return {
+    ...project,
+    title: 't:slim insulin pump',
+    path: TSLIM_PATH,
+    prerenderedBody: renderCaseStudyBody(project),
+  };
+}
+
+function mergeProjectEntries(supabaseEntries, localProjects, tslimProject) {
   const bySlug = new Map();
   for (const e of Array.isArray(supabaseEntries) ? supabaseEntries : []) {
+    if (isTslim(e.slug)) continue;
     bySlug.set(e.slug, {
       path: `/project/${e.slug}`,
       title: e.title,
@@ -350,7 +381,7 @@ function mergeProjectEntries(supabaseEntries, localProjects) {
   const now = new Date().toISOString().split('T')[0];
   for (const p of Array.isArray(localProjects) ? localProjects : []) {
     const slug = slugify(p.title);
-    if (!slug || bySlug.has(slug)) continue;
+    if (!slug || isTslim(slug) || bySlug.has(slug)) continue;
     bySlug.set(slug, {
       path: `/project/${slug}`,
       title: p.title,
@@ -359,6 +390,7 @@ function mergeProjectEntries(supabaseEntries, localProjects) {
       lastmod: now,
     });
   }
+  if (tslimProject) bySlug.set(TSLIM_SLUG, tslimProject);
   return [...bySlug.values()];
 }
 
@@ -566,7 +598,7 @@ function generateLlmsFullTxt(baseUrl, projectEntries, profile, writingEntries = 
       if (project.description) {
         lines.push('', truncateForLlms(project.description, 500), '');
       }
-      const excerpt = truncateForLlms(stripHtml(project.caseStudyContent), 800);
+      const excerpt = truncateForLlms(stripHtml(project.prerenderedBody ?? project.caseStudyContent), 800);
       if (excerpt) {
         lines.push('', excerpt, '');
       }
@@ -601,6 +633,7 @@ function getSitemapRoutes(projectEntries, writingEntries = []) {
     path: e.path,
     title: e.title,
     description: e.description || '',
+    prerenderedBody: e.prerenderedBody,
     priority: '0.9',
     changefreq: 'monthly',
     lastmod: e.lastmod || now,
@@ -661,9 +694,9 @@ function escapeHtmlAttr(value) {
 
 function upsertTag(html, selectorPattern, replacement, insertBefore = '</head>') {
   if (selectorPattern.test(html)) {
-    return html.replace(selectorPattern, replacement);
+    return html.replace(selectorPattern, () => replacement);
   }
-  return html.replace(insertBefore, `${replacement}\n${insertBefore}`);
+  return html.replace(insertBefore, () => `${replacement}\n${insertBefore}`);
 }
 
 function resolvePublicImageUrl(baseUrl, imagePath) {
@@ -747,7 +780,8 @@ function metadataForRoute(route, baseUrl) {
     return meta;
   }
   const projectTitle = route.title || 'Case Study';
-  const description = `Case study from ${DEFAULT_AUTHOR}'s AI product design portfolio: ${projectTitle}.`;
+  const description = (route.path === TSLIM_PATH && route.description) ||
+    `Case study from ${DEFAULT_AUTHOR}'s AI product design portfolio: ${projectTitle}.`;
   return {
     title: `${projectTitle} · ${DEFAULT_AUTHOR}`,
     ogTitle: projectTitle,
@@ -755,6 +789,7 @@ function metadataForRoute(route, baseUrl) {
     ogDescription: description,
     canonical: `${baseUrl}${route.path}`,
     ogImage: defaultOgImage,
+    ogType: route.prerenderedBody !== undefined ? 'article' : undefined,
   };
 }
 
@@ -861,6 +896,46 @@ function htmlForRoute(baseHtml, route, baseUrl) {
     `<meta name="twitter:image" content="${ogImage}" />`,
   );
 
+  if (route.noindex) {
+    html = upsertTag(html, /<meta\s+name=["']robots["'][^>]*>/i,
+      '<meta name="robots" content="noindex, follow" data-unverified-project />');
+  }
+  if (route.prerenderedBody !== undefined) {
+    const article = `<main><article class="prerendered-case-study"><h1>${ogTitle}</h1>\n<p>${description}</p>\n${route.prerenderedBody}</article></main>`;
+    html = html.replace(/<div id="root"><\/div>/, () => `<div id="root">${article}</div>`);
+    const schemas = [
+      {
+        '@context': 'https://schema.org',
+        '@type': 'Article',
+        headline: meta.ogTitle,
+        description: meta.description,
+        url: meta.canonical,
+        mainEntityOfPage: meta.canonical,
+        author: { '@id': `${baseUrl}/#person` },
+      },
+      {
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Home', item: `${baseUrl}/` },
+          { '@type': 'ListItem', position: 2, name: meta.ogTitle, item: meta.canonical },
+        ],
+      },
+    ];
+    const schemaHtml = schemas.map((schema) => {
+      const json = JSON.stringify(schema).replace(/</g, '\\u003c');
+      return `<script type="application/ld+json" data-prerendered-case-study>${json}</script>`;
+    }).join('\n');
+    html = html.replace('</head>', () => `<style>
+      .prerendered-case-study { width: min(100% - 2rem, 46rem); margin: 3rem auto; line-height: 1.65; }
+      .prerendered-case-study h1 { font-size: 2rem; }
+      .prerendered-case-study h2 { font-size: 1.5rem; margin-top: 2rem; }
+      .prerendered-case-study h3 { font-size: 1.125rem; margin-top: 1rem; }
+      .prerendered-case-study p, .prerendered-case-study ul, .prerendered-case-study ol { margin: 0.75rem 0; }
+      .prerendered-case-study ul { list-style: disc; padding-left: 1.5rem; }
+      .prerendered-case-study ol { list-style: decimal; padding-left: 1.5rem; }
+    </style>\n${schemaHtml}\n</head>`);
+  }
   return html;
 }
 
@@ -887,7 +962,7 @@ function writeStaticRouteHtml(routes, baseUrl) {
 
 async function main() {
   const baseUrl = (process.env.SITE_URL || 'https://www.bureson.com').replace(/\/+$/, '');
-  const { projects: fromDb, profile } = await fetchPublishedSlugsFromSupabase();
+  const { projects: fromDb, profile, verified } = await fetchPublishedSlugsFromSupabase();
   let writingFromDb = await fetchPublishedWritingFromSupabase();
   if (!writingFromDb.length) {
     const fromSnapshot = loadSnapshotWriting();
@@ -905,7 +980,11 @@ async function main() {
     }
   }
   const localProjects = loadLocalProjects();
-  const projectEntries = mergeProjectEntries(fromDb, localProjects);
+  const tslimProject = selectTslimProject(fromDb, loadSnapshotProjects({ includeUnavailable: true }), {
+    verified,
+    snapshotMode: process.env.VITE_FORCE_PUBLISHED_SNAPSHOT === 'true',
+  });
+  const projectEntries = mergeProjectEntries(fromDb, localProjects, tslimProject);
   const writingEntries = mergeWritingEntries(writingFromDb);
   await optimizeWritingOgImages(writingEntries, baseUrl, distDir, ensureDir);
   const routes = getSitemapRoutes(projectEntries, writingEntries);
@@ -933,11 +1012,19 @@ async function main() {
     path.join(distDir, 'llms-full.txt'),
     generateLlmsFullTxt(baseUrl, projectEntries, profile, writingEntries),
   );
-  writeStaticRouteHtml(routes, baseUrl);
+  const htmlRoutes = tslimProject ? routes : [
+    ...routes,
+    { path: TSLIM_PATH, title: 'Case Study', noindex: true },
+  ];
+  writeStaticRouteHtml(htmlRoutes, baseUrl);
   console.log('✅ Generated sitemap.xml, robots.txt, llms.txt, and llms-full.txt');
 }
 
-main().catch((e) => {
-  console.error('❌ generate-sitemap failed:', e);
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch((e) => {
+    console.error('❌ generate-sitemap failed:', e);
+    process.exit(1);
+  });
+}
+
+module.exports = { selectTslimProject, mergeProjectEntries, htmlForRoute };

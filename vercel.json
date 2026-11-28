@@ -3,6 +3,11 @@
   "outputDirectory": "dist",
   "redirects": [
     {
+      "source": "/project/tandem-diabetes-care",
+      "destination": "/project/tslim-insulin-pump",
+      "permanent": true
+    },
+    {
       "source": "/project/ask-oracle-in-myoracle",
       "destination": "/project/enterprise-ai-assistant-for-internal-knowledge-work",
       "permanent": true

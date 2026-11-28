@@ -3,6 +3,7 @@ import { ArrowRight, ArrowUpRight, Copy, Crop, Edit2, Lock, Trash2 } from "lucid
 import type { ProjectData } from "../ProjectImage";
 import { projectTypeTag } from "../../lib/modernCaseStudies";
 import { croppedCardImageStyle, computeCardFitToFrameScale, getProjectCardFrame } from "../../lib/projectHeroFrame";
+import { canonicalProjectSlug, slugFromProjectTitle, TSLIM_PROJECT_SLUG } from "../../lib/projectSlug";
 import { modern, modernFont } from "../../design/modernTokens";
 import { CardImageCropControls } from "./CardImageCropControls";
 import { resolveStoragePublicUrl } from "../../utils/imageOptimizer";
@@ -381,6 +382,24 @@ export function ModernCaseStudyCard({
         {bodyContent}
         {!isWide && !isCropping ? editBar : null}
       </div>
+    );
+  }
+
+  const slug = canonicalProjectSlug(slugFromProjectTitle(project.title));
+  if (slug === TSLIM_PROJECT_SLUG && !requiresPassword) {
+    return (
+      <a
+        href={`/project/${slug}`}
+        className={cardClass}
+        onClick={(event) => {
+          if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+          event.preventDefault();
+          onClick();
+        }}
+      >
+        {mediaColumn}
+        {bodyContent}
+      </a>
     );
   }
 

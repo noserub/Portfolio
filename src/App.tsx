@@ -54,7 +54,7 @@ import { PasswordRecovery } from "./components/PasswordRecovery";
 import { useSiteAuth } from "./contexts/SiteAuthContext";
 import { mapSupabaseProjectRowToProjectData, parseColumnsValue } from "./lib/mapSupabaseProjectRowToProjectData";
 import { normalizeProjectLinks } from "./lib/projectLinks";
-import { slugFromProjectTitle } from "./lib/projectSlug";
+import { canonicalProjectSlug, slugFromProjectTitle, TSLIM_PROJECT_SLUG } from "./lib/projectSlug";
 import { findWritingPostBySlug, type WritingPost } from "./lib/writingPosts";
 import { useWritingPosts } from "./hooks/useWritingPosts";
 import { parseWritingIndexGrid, type WritingIndexGrid } from "./lib/writingIndexGrid";
@@ -986,13 +986,7 @@ function AppShell() {
         newPath = '/writing';
       } else if (currentPage === "project-detail") {
         if (selectedProject) {
-          // Create friendly URL from project title
-          const friendlySlug = selectedProject.title
-            .toLowerCase()
-            .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
-            .replace(/\s+/g, '-') // Replace spaces with hyphens
-            .replace(/-+/g, '-') // Replace multiple hyphens with single
-            .trim();
+          const friendlySlug = canonicalProjectSlug(slugFromProjectTitle(selectedProject.title));
           newPath = `/project/${friendlySlug}`;
         } else {
           // If we're on project-detail but no project is selected, check if we're already on a project URL
@@ -1044,13 +1038,7 @@ function AppShell() {
     if (currentPage === "home") {
       return '/';
     } else if (currentPage === "project-detail" && selectedProject) {
-      // Create friendly slug for project pages
-      const friendlySlug = selectedProject.title
-        .toLowerCase()
-        .replace(/[^a-z0-9\s-]/g, '')
-        .replace(/\s+/g, '-')
-        .replace(/-+/g, '-')
-        .trim();
+      const friendlySlug = canonicalProjectSlug(slugFromProjectTitle(selectedProject.title));
       return `/project/${friendlySlug}`;
     } else if (currentPage === "writing") {
       return '/writing';
@@ -1150,7 +1138,7 @@ function AppShell() {
   // Function to find project by friendly slug
   const findProjectBySlug = async (slug: string): Promise<ProjectData | null> => {
     try {
-      const targetSlug = normalizeRouteSlug(slug);
+      const targetSlug = canonicalProjectSlug(normalizeRouteSlug(slug));
       const withTimeout = async <T,>(p: Promise<T>, ms = 5000): Promise<T> =>
         await Promise.race([
           p,
@@ -1188,6 +1176,15 @@ function AppShell() {
             rows = data as Record<string, unknown>[];
           }
         }
+      }
+
+      if (targetSlug === TSLIM_PROJECT_SLUG) {
+        const exact = rows?.find((p) => createSlug(String(p.title ?? "")) === targetSlug);
+        const legacy = rows === publishedSnapshot.projects
+          ? rows.find((p) => canonicalProjectSlug(createSlug(String(p.title ?? ""))) === targetSlug)
+          : undefined;
+        const project = exact ?? legacy;
+        return project ? mapSupabaseProjectRowToProjectData(project) : null;
       }
 
       if (rows?.length) {

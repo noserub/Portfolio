@@ -106,6 +106,16 @@ src/
 2. Add environment variables in Vercel dashboard (include `VITE_PUBLIC_PORTFOLIO_OWNER_ID` for Preview + Production, and `SITE_URL=https://www.bureson.com` so sitemap + JSON-LD use your canonical domain)
 3. Deploy automatically on push to main branch
 
+The t:slim case study’s initial HTML, sitemap entry, and machine-readable summaries
+are generated at deploy time. Redeploy after changing its CMS copy. If you unpublish
+or password-protect it, redeploy immediately and verify that the public HTML,
+`sitemap.xml`, `llms.txt`, and `llms-full.txt` no longer contain the case study.
+
+Builds normally verify the canonical record against Supabase. Set
+`VITE_FORCE_PUBLISHED_SNAPSHOT=true` for an intentional offline build or snapshot deployment
+after reviewing `src/data/publishedSnapshot.json` for current public content. Refresh
+or remove any withdrawn copy from the snapshot before using that mode.
+
 ### Other Platforms
 - **Netlify**: Connect repository and add build settings
 - **GitHub Pages**: Use GitHub Actions for deployment

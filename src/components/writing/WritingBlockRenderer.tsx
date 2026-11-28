@@ -4,7 +4,7 @@ import { WritingImage } from './WritingImage';
 import { MarkdownRenderer } from '../MarkdownRenderer';
 import { writingLayout } from '../../design/writingLayout';
 import type { WritingBlock } from '../../types/writingBlocks';
-import { slugFromProjectTitle } from '../../lib/projectSlug';
+import { canonicalProjectSlug, slugFromProjectTitle } from '../../lib/projectSlug';
 import { resolveStoragePublicUrl } from '../../utils/imageOptimizer';
 
 const Lightbox = lazy(() =>
@@ -37,7 +37,7 @@ function resolveRelatedHref(
   if (block.linkType === 'case_study') {
     const match = caseStudies.find((p) => p.id === block.targetId);
     if (!match) return null;
-    const slug = match.slug || slugFromProjectTitle(match.title);
+    const slug = canonicalProjectSlug(match.slug || slugFromProjectTitle(match.title));
     return { href: `/project/${slug}`, title: block.label || match.title };
   }
   const match = posts.find((p) => p.id === block.targetId);
